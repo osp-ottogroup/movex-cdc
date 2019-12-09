@@ -1,0 +1,66 @@
+!!!
+%html
+  %head
+    %meta{:content => "text/html; charset=UTF-8", "http-equiv" => "Content-Type"}/
+    %title Trixx
+    = csrf_meta_tags
+    = csp_meta_tag
+    = stylesheet_link_tag 'application', media: 'all', 'data-turbolinks-track': 'reload'
+    = javascript_pack_tag 'application', 'data-turbolinks-track': 'reload'
+  %body#page-top
+    #wrapper
+      %ul#accordionSidebar.navbar-nav.bg-gradient-primary.sidebar.sidebar-dark.accordion
+        %a.sidebar-brand.d-flex.align-items-center.justify-content-center{:href => "index.html"}
+          .sidebar-brand-icon.rotate-n-15
+            %i.fa.fa-address-card
+          .sidebar-brand-text.mx-3 Trixx
+        %hr.sidebar-divider.my-0/
+        %li.nav-item.active
+          %a.nav-link{:href => "/"}
+            %i.fa.fa-fw.fa-tachometer-alt
+            %span Dashboard
+        %hr.sidebar-divider/
+        .sidebar-heading
+          Management
+        %li.nav-item
+          %a.nav-link{:href => "/user/users"}
+            %i.fa.fa-user
+            %span Users
+        %hr.sidebar-divider/
+        .sidebar-heading
+          Daten
+        %li.nav-item
+          %a.nav-link{:href => "charts.html"}
+            %i.fa.fa-fw.fa-table
+            %span Tabellen
+        %li.nav-item
+          %a.nav-link{:href => "tables.html"}
+            %i.fa.fa-bell
+            %span Events
+        %li.nav-item
+          %a.nav-link{:href => "tables.html"}
+            %i.fa.fa-exclamation-triangle
+            %span Fehler
+        %hr.sidebar-divider.d-none.d-md-block/
+      #content-wrapper.d-flex.flex-column
+        #content
+          %nav.navbar.navbar-expand.navbar-light.bg-white.topbar.mb-4.static-top.shadow
+            / Topbar Navbar
+            %ul.navbar-nav.ml-auto
+              .topbar-divider.d-none.d-sm-block
+              / Nav Item - User Information
+              %li.nav-item.dropdown.no-arrow
+                - if user_signed_in?
+                  %a{"data-method" => "delete", :href => destroy_user_session_path}
+                    %i.fa.fa-user
+                    %span Logout
+                - else
+                  %a{:href => new_user_session_path}
+                    %i.fa.fa-sign-in
+                    %span Login
+          .container-fluid
+            = yield
+        %footer.sticky-footer.bg-white
+          .container.my-auto
+            .copyright.text-center.my-auto
+              %span Copyright © Otto Group Solution Provider GmbH 2019
