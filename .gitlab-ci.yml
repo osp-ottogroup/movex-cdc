@@ -10,8 +10,13 @@ stages:
 test:
   stage: test
   script:
-    #- apt-get update -qy
-    #- apt-get install -y nodejs
+    - apt-get update -qy
+    - apt-get -y upgrade
+    - apt-get install -y make
+    - apt-get install -y gcc
+    - apt-get install -y g++
+    - apt-get install -y nodejs
+    - gem install bundler
     - bundle install --path /cache
     - bundle exec rake db:create RAILS_ENV=test
     - bundle exec rake test
