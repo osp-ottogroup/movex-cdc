@@ -1,8 +1,17 @@
+# Test and build TriXX
+
+# Run in jRuby environment
+image: jruby:9.2.8.0
+
+stages:
+  - test
+  - build_docker_image
+
 test:
   stage: test
   script:
-    - apt-get update -qy
-    - apt-get install -y nodejs
+    #- apt-get update -qy
+    #- apt-get install -y nodejs
     - bundle install --path /cache
     - bundle exec rake db:create RAILS_ENV=test
     - bundle exec rake test
