@@ -17,14 +17,14 @@ stages:
   script:
     - date
     - bundle install
-    - bundle exex rails test
+    - bundle exec rails test
   #    - sh -c "cd Panorama_Gem && rake test TEST=test/system/spec_additions_test.rb"
   artifacts:
     when: always
     paths:
       #     - last_test.log
-      - Panorama_Gem/test/dummy/log/
-      - Panorama_Gem/test/dummy/tmp/screenshots/
+      - test/log/
+      - tmp/screenshots/
     expire_in: 1 month
 
 
