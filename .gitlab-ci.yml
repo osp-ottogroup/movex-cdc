@@ -53,8 +53,8 @@ test_oracle_11.2:
   services:
     - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
       alias: oracle-db
-   script:
-     - sh -c "echo ORACLE-Teil"
+  script:
+    - sh -c "echo ORACLE-Teil"
 
 
 
