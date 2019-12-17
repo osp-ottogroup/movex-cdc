@@ -1,0 +1,53 @@
+# Test Panorama from https://github.com/rammpeter/Panorama_Gem
+# Requires:
+#  - prebuilt database image with test users
+
+image: jruby:9.2.8.0
+
+variables:
+  TEST_HOST: "oracle-db"
+
+# Separate stages because pending jobs get stuck after one hour (hard limit)
+stages:
+  - test
+  - build
+  - deploy
+
+.tests:
+  script:
+    - date
+    - bundle install
+    - bundle exex rails test
+  #    - sh -c "cd Panorama_Gem && rake test TEST=test/system/spec_additions_test.rb"
+  artifacts:
+    when: always
+    paths:
+      #     - last_test.log
+      - Panorama_Gem/test/dummy/log/
+      - Panorama_Gem/test/dummy/tmp/screenshots/
+    expire_in: 1 month
+
+
+.tests_SQLITE:
+  extends: .tests
+  variables:
+    TRIXX_DB_TYPE: "SQLITE"
+
+.tests_ORACLE:
+  extends: .tests
+  services:
+    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt_panorama_test:11.2.0.4-ee
+      alias: oracle-db
+  variables:
+    TRIXX_DB_TYPE: "ORACLE"
+    TEST_SERVICENAME: "ORCL"
+
+test_sqlite:
+  stage: test
+  extends: .tests_SQLITE
+
+build_trixx:
+  stage: build
+  script:
+    - sh -c "echo Build"
+
