@@ -15,6 +15,9 @@ stages:
 
 .tests:
   script:
+    - sh -c "echo 'Europe/Berlin' > /etc/timezone"
+    - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
+    - dpkg-reconfigure -f noninteractive tzdata
     - date
     - bundle install
     - bundle exec rails test
