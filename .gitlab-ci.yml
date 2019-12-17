@@ -39,9 +39,6 @@ stages:
 
 .tests_ORACLE:
   extends: .tests
-  services:
-    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt_panorama_test:11.2.0.4-ee
-      alias: oracle-db
   variables:
     TRIXX_DB_TYPE: "ORACLE"
     TEST_SERVICENAME: "ORCL"
@@ -49,6 +46,17 @@ stages:
 test_sqlite:
   stage: test
   extends: .tests_SQLITE
+
+test_oracle_11.2:
+  stage: test
+  extends: .tests_ORACLE
+  services:
+    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
+      alias: oracle-db
+   script:
+     - sh -c "echo ORACLE-Teil"
+
+
 
 build_trixx:
   stage: build
