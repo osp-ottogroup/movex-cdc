@@ -55,6 +55,7 @@ test_oracle_11.2:
       alias: oracle-db
   script:
     - sh -c "echo ORACLE-Teil"
+    - docker ps
 
 
 
