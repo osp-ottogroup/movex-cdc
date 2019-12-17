@@ -1,8 +1,24 @@
-# TriXX
+# README
 
-Change Data Capture auf Basis von Datenbank-Triggern und Übergabe der Change-Events an Kafka Event-Hub
+This README would normally document whatever steps are necessary to get the
+application up and running.
 
-Dokumentation: 
+Things you may want to cover:
 
-*  https://confluence.osp-dd.de/display/TSTB/TriXX+Change+Data+Capture+auf+Basis+von+Triggern
-*  https://confluence.osp-dd.de/x/-ZeP
+* Ruby version
+
+* System dependencies
+
+* Configuration
+
+* Database creation
+
+* Database initialization
+
+* How to run the test suite
+
+* Services (job queues, cache servers, search engines, etc.)
+
+* Deployment instructions
+
+* ...
