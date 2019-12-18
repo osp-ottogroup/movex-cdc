@@ -13,7 +13,20 @@ default: &default
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
   %>
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 20 } %>
+
+  driver: <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then 'oracle.jdbc.driver.OracleDriver'
+    end
+  %>
+  username: <%= Trixx::Application.config.trixx_db_user %>
+  passsword: <%= Trixx::Application.config.trixx_db_password %>
+  url: <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then "jdbc:oracle:thin:@#{Trixx::Application.config.trixx_db_url }"
+    end
+  %>
 
 development:
   <<: *default
@@ -29,3 +42,7 @@ test:
 production:
   <<: *default
   database: db/production.sqlite3
+
+
+
+#  url:      jdbc:oracle:thin:@ramm.osp-dd.de:1521:RAMM

@@ -38,9 +38,28 @@ module Trixx
     config.trixx_db_type = ENV['TRIXX_DB_TYPE'] || 'SQLITE'
 
     supported_db_types = ['ORACLE', 'SQLITE']
-    raise "Unsupported value '#{config.trixx_db_type}' for environment varable 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
+    raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
 
+    config.trixx_db_user      = ENV['TRIXX_DB_USER']
+    config.trixx_db_password  = ENV['TRIXX_DB_PASSWORD']
+    config.trixx_db_url       = ENV['TRIXX_DB_URL']
 
+    # Verify mandatory settings
+    case config.trixx_db_type
+    when 'SQLITE' then
+    when 'ORACLE' then
+      if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
+        config.trixx_db_user            = "test_#{config.trixx_db_user || 'trixx'}"
+        config.trixx_db_password        = config.trixx_db_password || 'trixx'
+        config.trixx_db_victim_user     = ENV['TRIXX_DB_VICTIM_USER']     || 'trixx_victim'   # Schema for tables observed by trixx
+        config.trixx_db_victim_password = ENV['TRIXX_DB_VICTIM_PASSWORD'] || 'trixx_victim'
+      end
+      raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."      unless config.trixx_db_user
+      raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."  unless config.trixx_db_password
+      raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."       unless config.trixx_db_url
+    end
+
+#    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log
 
   end
 end

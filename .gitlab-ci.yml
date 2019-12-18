@@ -21,6 +21,7 @@ stages:
     - dpkg-reconfigure -f noninteractive tzdata
     - date
     - bundle install
+    - RAILS_ENV=test bundle exec rake ci_preparation:create_test_user
     - bundle exec rails test
   #    - sh -c "cd Panorama_Gem && rake test TEST=test/system/spec_additions_test.rb"
   artifacts:
@@ -53,10 +54,8 @@ test_oracle_11.2:
   services:
     - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
       alias: oracle-db
-  before_script:
-    - sh -c "echo ORACLE-Teil"
-    - docker ps
-
+  variables:
+    TRIXX_DB_URL: "oracle-db:1521/ORCL"
 
 
 build_trixx:
