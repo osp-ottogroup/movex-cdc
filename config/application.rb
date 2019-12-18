@@ -62,11 +62,11 @@ module Trixx
 #    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log
     #
     msg = "\nStarting TriXX application at #{Time.now}:
+RAILS_ENV              = #{Rails.env}
 TRIXX_DB_TYPE          = #{config.trixx_db_type}
 TRIXX_DB_URL           = #{config.trixx_db_url}
 TRIXX_DB_USER          = #{config.trixx_db_user}
-TRIXX_DB_PASSWORD      = #{config.trixx_db_password}
-      " # TODO: Remove TRIXX_DB_PASSWORD for production
+      "
     puts msg
 
 

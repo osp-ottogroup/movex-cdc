@@ -14,6 +14,8 @@ stages:
   - deploy
 
 .tests:
+  variables:
+    RAILS_ENV: "test"
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
@@ -22,7 +24,7 @@ stages:
     - date
     - java -version
     - bundle install
-    - RAILS_ENV=test bundle exec rake ci_preparation:create_test_user
+    - bundle exec rake ci_preparation:create_test_user
     - bundle exec rails test
   #    - sh -c "cd Panorama_Gem && rake test TEST=test/system/spec_additions_test.rb"
   artifacts:
