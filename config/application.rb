@@ -60,6 +60,14 @@ module Trixx
     end
 
 #    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log
+    #
+    msg = "\nStarting TriXX application at #{Time.now}:
+TRIXX_DB_TYPE          = #{config.trixx_db_type}
+TRIXX_DB_URL           = #{config.trixx_db_url}
+TRIXX_DB_USER          = #{config.trixx_db_user}
+      "
+    puts msg
+
 
   end
 end

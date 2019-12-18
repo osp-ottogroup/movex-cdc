@@ -20,6 +20,7 @@ stages:
     - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
     - dpkg-reconfigure -f noninteractive tzdata
     - date
+    - java -version
     - bundle install
     - RAILS_ENV=test bundle exec rake ci_preparation:create_test_user
     - bundle exec rails test
