@@ -4,7 +4,9 @@ require 'rails/test_help'
 
 class ActiveSupport::TestCase
   # Run tests in parallel with specified workers
-  parallelize(workers: :number_of_processors, with: :threads)
+  if Trixx::Application.config.trixx_db_type != 'SQLITE'
+    parallelize(workers: :number_of_processors, with: :threads)
+  end
 
   # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
   fixtures :all
