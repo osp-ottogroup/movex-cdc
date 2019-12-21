@@ -31,7 +31,7 @@ stages:
     when: always
     paths:
       #     - last_test.log
-      - test/log/
+      - log/
       - tmp/screenshots/
     expire_in: 1 month
 
