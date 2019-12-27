@@ -57,6 +57,8 @@ module Trixx
       raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."      unless config.trixx_db_user
       raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."  unless config.trixx_db_password
       raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."       unless config.trixx_db_url
+    else
+      raise "unsupported DB type '#{config.trixx_db_type}'"
     end
 
 #    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log

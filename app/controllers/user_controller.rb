@@ -7,7 +7,9 @@ class UserController < ApplicationController
 
     users = User.where email: email
     raise "No user found for email = '#{email}'" if users.count == 0
+
     raise "Multiple users found for email = '#{email}'" if users.count > 1
+
     user = users[0]
 
     render json: user

@@ -6,8 +6,8 @@ class CreateUsers < ActiveRecord::Migration[6.0]
       t.string :first_name,   limit: 128, null: false
       t.string :last_name,    limit: 128, null: false
       t.timestamps
-      t.index ["email"],        name: "ix_users_email",     unique: true
-      t.index ["db_user"],      name: "ix_users_db_user",   unique: true
+      t.index ['email'],        name: "ix_users_email",     unique: true
+      t.index ['db_user'],      name: "ix_users_db_user",   unique: true
     end
   end
 end
