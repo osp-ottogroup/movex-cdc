@@ -2,7 +2,7 @@
 # Requires:
 #  - prebuilt database image with test users
 
-image: jruby:9.2.9.0
+image: jruby:9.2.8.0
 
 variables:
   TEST_HOST: "oracle-db"

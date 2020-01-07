@@ -10,7 +10,14 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2019_12_18_154054) do
+ActiveRecord::Schema.define(version: 2020_01_07_114951) do
+
+  create_table "schemas", force: :cascade do |t|
+    t.string "name", limit: 256, null: false
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["name"], name: "ix_schemas_name", unique: true
+  end
 
   create_table "users", force: :cascade do |t|
     t.string "email", limit: 256, null: false
