@@ -18,6 +18,9 @@ gem 'puma', '~> 4.1'
 # gem 'jbuilder', '~> 2.7'
 # Use Redis adapter to run Action Cable in production
 # gem 'redis', '~> 4.0'
+
+# Use Json Web Token (JWT) for token based authentication
+gem 'jwt'
 # Use Active Model has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
 

@@ -7,10 +7,7 @@ class UserTest < ActiveSupport::TestCase
     # Second user without db_name
     User.new(email: 'Hans.Dampf2@web.de', first_name: 'Hans', last_name: 'Dampf').save
 
+    assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf').save }
 
   end
-
-  # test "the truth" do
-  #   assert true
-  # end
 end

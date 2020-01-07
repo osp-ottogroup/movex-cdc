@@ -1,0 +1,2 @@
+class Schema < ApplicationRecord
+end
