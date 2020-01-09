@@ -10,24 +10,49 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_01_07_114951) do
+ActiveRecord::Schema.define(version: 2020_01_08_133919) do
 
-  create_table "schemas", force: :cascade do |t|
-    t.string "name", limit: 256, null: false
+  create_table "columns", comment: "Columns with flags for DML operation to trigger", force: :cascade do |t|
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
+    t.string "name", limit: 256, null: false, comment: "Column name of database table"
+    t.string "info", limit: 1000, null: false, comment: "Additional info"
+    t.string "yn_log_insert", limit: 1, null: false, comment: "Log this column at insert operation (Y/N)"
+    t.string "yn_log_update", limit: 1, null: false, comment: "Log this column at update operation (Y/N)"
+    t.string "yn_log_delete", limit: 1, null: false, comment: "Log this column at delete operation (Y/N)"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["table_id", "name"], name: "ix_columns_table_name", unique: true
+    t.index ["table_id"], name: "index_columns_on_table_id"
+  end
+
+  create_table "schemas", comment: "Schemas allowed for use with TriXX by admin acount", force: :cascade do |t|
+    t.string "name", limit: 256, null: false, comment: "Name of corresponding database schema"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["name"], name: "ix_schemas_name", unique: true
   end
 
-  create_table "users", force: :cascade do |t|
-    t.string "email", limit: 256, null: false
-    t.string "db_user", limit: 128
-    t.string "first_name", limit: 128, null: false
-    t.string "last_name", limit: 128, null: false
+  create_table "tables", comment: "Tables planned for triger creation", force: :cascade do |t|
+    t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
+    t.string "name", limit: 256, null: false, comment: "Table name of database table"
+    t.string "info", limit: 1000, null: false, comment: "Additional info like responsible team"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["db_user"], name: "ix_users_db_user", unique: true
+    t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
+    t.index ["schema_id"], name: "index_tables_on_schema_id"
+  end
+
+  create_table "users", comment: "Users allowed to login", force: :cascade do |t|
+    t.string "email", limit: 256, null: false, comment: "Uniqe identifier as login name"
+    t.string "db_user", limit: 128, comment: "Database user used for authentication combined with password"
+    t.string "first_name", limit: 128, null: false, comment: "First name of user"
+    t.string "last_name", limit: 128, null: false, comment: "Last name of user"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
+    t.index ["db_user"], name: "ix_users_db_user"
     t.index ["email"], name: "ix_users_email", unique: true
   end
 
+  add_foreign_key "columns", "tables"
+  add_foreign_key "tables", "schemas"
 end

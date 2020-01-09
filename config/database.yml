@@ -28,6 +28,12 @@ default: &default
     end
   %>
 
+  cursor_sharing: <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then 'exact'
+    end
+  %>
+
 development:
   <<: *default
 

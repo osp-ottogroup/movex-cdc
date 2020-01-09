@@ -1,0 +1,16 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  table_id: 1
+  name: SCHEMA_ID
+  info: Mein Text
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: N
+two:
+  table_id: 2
+  name: TABLE_ID
+  info: Mein Text
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
