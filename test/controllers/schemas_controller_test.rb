@@ -30,7 +30,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy schema" do
     assert_difference('Schema.count', -1) do
-      delete schema_url(@schema), headers: jwt_header, as: :json
+      delete schema_url(schemas(:deletable)), headers: jwt_header, as: :json
     end
 
     assert_response 204

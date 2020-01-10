@@ -70,7 +70,7 @@ TRIXX_DB_URL           = #{config.trixx_db_url}
 TRIXX_DB_USER          = #{config.trixx_db_user}
 "
 
-    msg << "TRIXX_DB_VICTIM_USER    = #{config.trixx_db_victim_user}" if Rails.env.test? && config.trixx_db_type == 'ORACLE'
+    msg << "TRIXX_DB_VICTIM_USER   = #{config.trixx_db_victim_user}" if Rails.env.test? && config.trixx_db_type == 'ORACLE'
 
     puts msg
 

@@ -7,3 +7,8 @@ one:
 two:
   id:   2
   name: TRIXX
+
+# record without dependent references
+deletable:
+  id:   3
+  name: DELETABLE
