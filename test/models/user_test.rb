@@ -9,5 +9,9 @@ class UserTest < ActiveSupport::TestCase
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf').save }
 
+    user = User.new(email: 'DowncaseTest@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: 'HUGO')
+    user.save
+    assert_equal('hugo', user.db_user, 'db_user should be converted to lower case')
+
   end
 end

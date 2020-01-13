@@ -2,12 +2,24 @@
 
 one:
   email: Peter.Ramm@ottogroup.com
-  db_user: TRIXX
+  db_user: trixx
   first_name: Peter
   last_name: Ramm
 
 two:
   email: Sandro.Preuss@ottogroup.com
-  db_user: SANDRO
+  db_user: sandro
+  first_name: Sandro
+  last_name: Preuß
+
+double_db_user1:
+  email: double_db_user1@ottogroup.com
+  db_user: double_db_user
+  first_name: Sandro
+  last_name: Preuß
+
+double_db_user2:
+  email: double_db_user2@ottogroup.com
+  db_user: double_db_user
   first_name: Sandro
   last_name: Preuß

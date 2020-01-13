@@ -33,8 +33,8 @@ class ApplicationController < ActionController::API
   protected
 
   # switch empty param string to nil
-  def prepare_param(param_sym)
-    retval = params.permit(param_sym)[param_sym]
+  def prepare_param(permitted_params, param_sym)
+    retval = permitted_params[param_sym]
     retval = nil if retval == ''
     retval.strip! unless retval.nil? # Remove leading and trailing blanks
     retval

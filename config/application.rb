@@ -61,8 +61,9 @@ module Trixx
       raise "unsupported DB type '#{config.trixx_db_type}'"
     end
 
-#    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log
-    #
+    # TODO: List JDBC Driver Version to log, but later than here
+    # ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
+
     msg = "\nStarting TriXX application at #{Time.now}:
 RAILS_ENV              = #{Rails.env}
 TRIXX_DB_TYPE          = #{config.trixx_db_type}
