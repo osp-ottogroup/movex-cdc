@@ -1,0 +1,14 @@
+FROM node:12-alpine
+
+RUN apk update && apk upgrade && \
+    npm install -g @vue/cli
+
+WORKDIR /app
+
+COPY package*.json ./
+
+RUN npm install 
+
+COPY . .
+
+CMD npm install && npm run serve
