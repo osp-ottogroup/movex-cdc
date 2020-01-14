@@ -41,7 +41,7 @@ namespace :ci_preparation do
 
     puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
     if Trixx::Application.config.trixx_db_type == 'ORACLE'
-      conn = java.sql.DriverManager.getConnection("jdbc:oracle:thin:system/oracle@#{Trixx::Application.config.trixx_db_url}")
+      conn = java.sql.DriverManager.getConnection("jdbc:oracle:thin:system/#{Trixx::Application.config.trixx_db_system_password}@#{Trixx::Application.config.trixx_db_url}")
 
       ensure_user_existence(conn, Trixx::Application.config.trixx_db_user,        Trixx::Application.config.trixx_db_password)          # Schema for TriXX data structure
       ensure_user_existence(conn, Trixx::Application.config.trixx_db_victim_user, Trixx::Application.config.trixx_db_victim_password)   # Schema for tables observed by trixx

@@ -53,6 +53,7 @@ module Trixx
         config.trixx_db_password        = config.trixx_db_password || 'trixx'
         config.trixx_db_victim_user     = ENV['TRIXX_DB_VICTIM_USER']     || 'trixx_victim'   # Schema for tables observed by trixx
         config.trixx_db_victim_password = ENV['TRIXX_DB_VICTIM_PASSWORD'] || 'trixx_victim'
+        config.trixx_db_system_password = ENV['TRIXX_DB_SYSTEM_PASSWORD'] || 'oracle'
       end
       raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."      unless config.trixx_db_user
       raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."  unless config.trixx_db_password

@@ -5,7 +5,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
   test "should post do_logon" do
     # login existing user with email
-    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com', password: 'trixx'}
+    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com', password: Trixx::Application.config.trixx_db_password }
     assert_response :success
 
     # login  existing user with wrong password
@@ -17,7 +17,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
 
     # login  existing user with db-user
-    post login_do_logon_url, params: { email: 'trixx', password: 'trixx'}
+    post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user, password: Trixx::Application.config.trixx_db_password}
     assert_response :success
 
     # Non-existing user
