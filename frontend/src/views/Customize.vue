@@ -1,14 +1,14 @@
 <template>
   <div class="columns is-vcentered">
     <div class="column has-text-light has-text-centered">
-      <h1>Trixx</h1>
+      <h1>Customize</h1>
     </div>
   </div>
 </template>
 
 <script>
 export default {
-  name: 'Home',
+  name: 'Customize',
   components: {},
 };
 </script>

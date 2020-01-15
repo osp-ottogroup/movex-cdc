@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <template v-if="loggedIn">
-      <router-view/>
+      <app-header />
+      <router-view id="router-view"/>
+      <app-footer />
     </template>
     <template v-else>
       <b-modal
@@ -17,12 +19,16 @@
 </template>
 
 <script>
+import AppHeader from './components/AppHeader.vue';
+import AppFooter from './components/AppFooter.vue';
 import LoginForm from './components/LoginForm.vue';
 // import LoginService from './services/LoginService';
 
 export default {
   name: 'App',
   components: {
+    AppHeader,
+    AppFooter,
     LoginForm,
   },
   data() {
@@ -36,12 +42,23 @@ export default {
   methods: {
     onLogin() {
       this.loggedIn = true;
-      console.log('login');
     },
   },
 };
 </script>
 
 <style lang="scss">
+$footer-padding: 0.3rem 0;
+
 @import './app.scss';
+
+#app {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+}
+
+#router-view {
+  flex: 1;
+}
 </style>
