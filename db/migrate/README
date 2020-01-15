@@ -1,0 +1,4 @@
+Rules for migrations in TriXX
+=============================
+
+- One migration file should contain only one atomic operation, not more. Because Oracle doesn't have transactional DDL.

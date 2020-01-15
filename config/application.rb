@@ -47,6 +47,8 @@ module Trixx
     # Verify mandatory settings
     case config.trixx_db_type
     when 'SQLITE' then
+      config.trixx_db_user              = 'main'
+      config.trixx_db_victim_user       = 'main'
     when 'ORACLE' then
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.trixx_db_user            = "test_#{config.trixx_db_user || 'trixx'}"
@@ -72,7 +74,7 @@ TRIXX_DB_URL           = #{config.trixx_db_url}
 TRIXX_DB_USER          = #{config.trixx_db_user}
 "
 
-    msg << "TRIXX_DB_VICTIM_USER   = #{config.trixx_db_victim_user}" if Rails.env.test? && config.trixx_db_type == 'ORACLE'
+    msg << "TRIXX_DB_VICTIM_USER   = #{config.trixx_db_victim_user}" if Rails.env.test?
 
     puts msg
 

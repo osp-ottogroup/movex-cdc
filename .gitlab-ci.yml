@@ -25,8 +25,8 @@ stages:
     - java -version
     - bundle install
     - bundle exec rake ci_preparation:create_test_user
+    - bundle exec rails db:migrate RAILS_ENV=test
     - bundle exec rails test
-  #    - sh -c "cd Panorama_Gem && rake test TEST=test/system/spec_additions_test.rb"
   artifacts:
     when: always
     paths:

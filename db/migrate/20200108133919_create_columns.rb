@@ -9,7 +9,5 @@ class CreateColumns < ActiveRecord::Migration[6.0]
       t.string :yn_log_delete, limit: 1,  null: false,  comment: 'Log this column at delete operation (Y/N)'
       t.timestamps
     end
-    add_foreign_key :columns, :tables
-    add_index :columns, [:table_id, :name], name: 'ix_columns_table_name', unique: true
   end
 end

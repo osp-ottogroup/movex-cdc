@@ -6,8 +6,6 @@ class CreateUsers < ActiveRecord::Migration[6.0]
       t.string :first_name,   limit: 128, null: false,  comment: 'First name of user'
       t.string :last_name,    limit: 128, null: false,  comment: 'Last name of user'
       t.timestamps
-      t.index ['email'],        name: "ix_users_email",     unique: true,  comment: 'Unique user identifier'
-      t.index ['db_user'],      name: "ix_users_db_user",   unique: false, comment: 'Multiple users may authenticate with same DB-user'
     end
   end
 end

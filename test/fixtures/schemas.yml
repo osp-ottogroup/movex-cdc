@@ -1,14 +1,8 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
+# Only one schema defined here because several database support only one schema, additional schemas are defined in test setup if needed
 one:
   id:   1
-  name: TEST_TRIXX
+  name: <%= Trixx::Application.config.trixx_db_user %>
 
-two:
-  id:   2
-  name: TRIXX
 
-# record without dependent references
-deletable:
-  id:   3
-  name: DELETABLE
