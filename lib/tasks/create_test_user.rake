@@ -12,6 +12,7 @@ namespace :ci_preparation do
     end
 
     def select_single(conn, sql)
+      # puts "Execute: #{sql}"
       stmt = conn.prepareStatement(sql);
       resultSet = stmt.executeQuery(sql);
       resultSet.next
@@ -23,7 +24,7 @@ namespace :ci_preparation do
     end
 
     def ensure_user_existence(conn, username, password)
-      puts "Check existence of user '#{username}'"
+      puts "Check existence and grants of user '#{username}'"
       tablespace = 'USERS'                                                      # Default / first choice
       tablespace = 'DATA'   if select_single(conn, "SELECT COUNT(*) FROM DBA_Tablespaces WHERE Tablespace_Name = '#{tablespace}'") == 0
       tablespace = 'TOOLS'  if select_single(conn, "SELECT COUNT(*) FROM DBA_Tablespaces WHERE Tablespace_Name = '#{tablespace}'") == 0
@@ -34,8 +35,10 @@ namespace :ci_preparation do
         exec(conn, "CREATE USER #{username} IDENTIFIED BY \"#{password}\" DEFAULT TABLESPACE #{tablespace}")
         exec(conn, "ALTER USER #{username} QUOTA UNLIMITED ON #{tablespace}")
       end
-      exec(conn, "GRANT CONNECT TO #{username}")        if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'CONNECT'") == 0
-      exec(conn, "GRANT RESOURCE TO #{username}")       if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'RESOURCE'") == 0
+      exec(conn, "GRANT CONNECT TO #{username}")                if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'CONNECT'")                == 0
+      exec(conn, "GRANT RESOURCE TO #{username}")               if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'RESOURCE'")               == 0
+      exec(conn, "GRANT CREATE ANY TRIGGER TO #{username}")     if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'CREATE ANY TRIGGER'")     == 0
+      exec(conn, "GRANT SELECT ANY DICTIONARY TO #{username}")  if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'SELECT ANY DICTIONARY'")  == 0
 
     end
 

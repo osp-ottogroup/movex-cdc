@@ -3,13 +3,13 @@
 one:
   id: 1
   schema_id: 1
-  name: TABLE1
+  name: TABLES                                                                  # really existing table in test schema
   info: Mein Text
 
 two:
   id: 2
   schema_id: 1
-  name: TABLE2
+  name: COLUMNS                                                                 # really existing table in test schema
   info: Mein Text
 
 # record without dependent references
