@@ -6,4 +6,11 @@ class SchemaTest < ActiveSupport::TestCase
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { Schema.new(name: 'Schema1').save }
   end
+
+  test "select schema" do
+    schemas = Schema.all
+    assert(schemas.count > 0, 'Should return at least one schema')
+  end
+
+
 end

@@ -14,4 +14,10 @@ class UserTest < ActiveSupport::TestCase
     assert_equal('hugo', user.db_user, 'db_user should be converted to lower case')
 
   end
+
+  test "select user" do
+    users = User.all
+    assert(users.count > 0, 'Should return at least one user')
+  end
+
 end
