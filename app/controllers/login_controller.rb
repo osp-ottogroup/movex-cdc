@@ -26,7 +26,10 @@ class LoginController < ApplicationController
       auth_error = authenticate(user, password)
       if auth_error.nil?
         token_lifetime_hours = 24
-        token = JsonWebToken.encode({user_id: user.id}, token_lifetime_hours.hours.from_now)
+        token = JsonWebToken.encode(
+            {user_id: user.id},
+            token_lifetime_hours.hours.from_now
+        )
         time = Time.now + token_lifetime_hours.hours.to_i
         render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
