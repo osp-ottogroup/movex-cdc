@@ -9,7 +9,7 @@ admin:
 one:
   id: 1
   email: Peter.Ramm@ottogroup.com
-  db_user: <%= Trixx::Application.config.trixx_db_user %>   # real existing DB-user
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>   # real existing DB-user
   first_name: Peter
   last_name: Ramm
 

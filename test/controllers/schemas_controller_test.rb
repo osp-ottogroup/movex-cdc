@@ -32,7 +32,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       @deletable = Schema.new(name: 'Deletable')
-      @deletable.save
+      @deletable.save!
       assert_difference('Schema.count', -1) do
         delete schema_url(@deletable), headers: jwt_header, as: :json
       end

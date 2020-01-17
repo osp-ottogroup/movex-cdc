@@ -6,7 +6,9 @@ class InitializationJobTest < ActiveJob::TestCase
     admin = User.find_by_email 'admin'
     admin.destroy if admin
 
-    InitializationJob.new.perform
+    assert_difference('User.count') do
+      InitializationJob.new.perform
+    end
     InitializationJob.new.perform                                               # Must except repeated execution
   end
 end

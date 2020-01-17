@@ -54,6 +54,9 @@ class LoginController < ApplicationController
 
       connection = ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
       connection.logoff
+    when 'SQLITE' then
+      raise "Wrong user/email #{user.email}"  if user     != 'admin'
+      raise 'wrong password'            if password != Trixx::Application.config.trixx_db_password
     end
     nil                                                                         # Indicator for successful connection
   rescue Exception => e
