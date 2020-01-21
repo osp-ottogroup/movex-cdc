@@ -36,3 +36,9 @@ user2delete:
   email: user2delete@ottogroup.com
   first_name: Sandro
   last_name: Preuß
+
+no_schema_right:
+  email: no_schema_right@ottogroup.com
+  first_name: Has no right for
+  last_name: Schemas
+

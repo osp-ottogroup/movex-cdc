@@ -6,6 +6,14 @@ class ApplicationController < ActionController::API
   # protect_from_forgery with: :exception
   # respond_to :json
 
+  NotAuthorized = Class.new(StandardError)
+  rescue_from ApplicationController::NotAuthorized do |e|
+    render json: { error: e.message }, status: :unauthorized
+  end
+
+
+  protected
+
   # authorize_request function has responsibility for authorizing user request.
   # first we need to get token in header with ‘Authorization’ as key.
   # with this token now we can decode and get the payload value.
@@ -24,13 +32,11 @@ class ApplicationController < ActionController::API
       @decoded = JsonWebToken.decode(header)
       @current_user = User.find(@decoded[:user_id])
     rescue ActiveRecord::RecordNotFound => e
-      render json: { errors: e.message }, status: :unauthorized
+      render json: { error: e.message }, status: :unauthorized
     rescue JWT::DecodeError => e
-      render json: { errors: e.message }, status: :unauthorized
+      render json: { error: e.message }, status: :unauthorized
     end
   end
-
-  protected
 
   # switch empty param string to nil
   def prepare_param(permitted_params, param_sym)
@@ -39,4 +45,15 @@ class ApplicationController < ActionController::API
     retval.strip! unless retval.nil? # Remove leading and trailing blanks
     retval
   end
+
+  # Requires execution of 'authorize_request' in before_filter to fill @current_user
+  def check_user_for_valid_schema_right(schema_id)
+    raise ApplicationController::NotAuthorized, "Missing parameter schema_id for check of schema_rights for current user '#{@current_user.email}'" if schema_id.nil?
+    schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
+    if schema_right.nil?
+      schema = Schema.find schema_id
+      raise ApplicationController::NotAuthorized, "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
+    end
+  end
+
 end

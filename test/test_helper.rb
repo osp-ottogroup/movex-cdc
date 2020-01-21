@@ -16,17 +16,18 @@ end
 class ActionDispatch::IntegrationTest
   setup do
     # create JWT token for following tests
-    @jwt_token       = JsonWebToken.encode({user_id: users(:one).id}, 1.hours.from_now)
-    @jwt_admin_token = JsonWebToken.encode({user_id: users(:admin).id}, 1.hours.from_now)
+    @jwt_token                  = jwt_token users(:one).id
+    @jwt_admin_token            = jwt_token users(:admin).id
+    @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
+  end
+
+  def jwt_token(user_id)
+    JsonWebToken.encode({user_id: user_id}, 1.hours.from_now)
   end
 
   # provide JWT token for tests
-  def jwt_header
-    { 'Authorization' => @jwt_token}
-  end
-
-  def jwt_admin_header
-    { 'Authorization' => @jwt_admin_token}
+  def jwt_header(token = @jwt_token)
+    { 'Authorization' => token}
   end
 
 end

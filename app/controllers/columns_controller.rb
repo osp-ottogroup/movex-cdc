@@ -4,8 +4,11 @@ class ColumnsController < ApplicationController
 
   # GET /columns
   def index
-    @columns = Column.all
+    table_id = params.require(:table_id)                                        # Should only list columns of specific table
+    table = Table.find table_id
+    check_user_for_valid_schema_right(table.schema_id)
 
+    @columns = Column.where table_id: table_id
     render json: @columns
   end
 
@@ -16,7 +19,10 @@ class ColumnsController < ApplicationController
 
   # POST /columns
   def create
+    column_params.require [:table_id]                                           # minimum set of values
     @column = Column.new(column_params)
+    table = Table.find @column.table_id
+    check_user_for_valid_schema_right(table.schema_id)
 
     if @column.save
       render json: @column, status: :created, location: @column
@@ -43,11 +49,15 @@ class ColumnsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_column
       @column = Column.find(params[:id])
+      table = Table.find @column.table_id
+      check_user_for_valid_schema_right(table.schema_id)
     end
 
     # Only allow a trusted parameter "white list" through.
     def column_params
       params.fetch(:column, {}).permit(:table_id, :name, :info, :yn_log_insert, :yn_log_update, :yn_log_delete)
     end
+
+
 end
 

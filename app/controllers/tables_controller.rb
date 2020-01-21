@@ -4,8 +4,10 @@ class TablesController < ApplicationController
 
   # GET /tables
   def index
-    @tables = Table.all
+    schema_id = params.require(:schema_id)                                      # should only list tables of specific schema
+    check_user_for_valid_schema_right(schema_id)
 
+    @tables = Table.where schema_id: schema_id
     render json: @tables
   end
 
@@ -16,7 +18,9 @@ class TablesController < ApplicationController
 
   # POST /tables
   def create
+    table_params.require([:schema_id, :name])
     @table = Table.new(table_params)
+    check_user_for_valid_schema_right(@table.schema_id)
 
     if @table.save
       render json: @table, status: :created, location: @table
@@ -40,13 +44,16 @@ class TablesController < ApplicationController
   end
 
   private
-    # Use callbacks to share common setup or constraints between actions.
-    def set_table
-      @table = Table.find(params[:id])
-    end
+  # Use callbacks to share common setup or constraints between actions.
+  def set_table
+    @table = Table.find(params[:id])
+    check_user_for_valid_schema_right(@table.schema_id)
+  end
 
-    # Only allow a trusted parameter "white list" through.
-    def table_params
-      params.fetch(:table, {}).permit(:schema_id, :name, :info)
-    end
+  # Only allow a trusted parameter "white list" through.
+  def table_params
+    params.fetch(:table, {}).permit(:schema_id, :name, :info)
+  end
+
+
 end
