@@ -9,6 +9,6 @@ class InitializationJobTest < ActiveJob::TestCase
     assert_difference('User.count', 1, 'Should add new user admin') do
       InitializationJob.new.perform
     end
-    InitializationJob.new.perform                                               # Must except repeated execution
+    InitializationJob.new.perform                                               # Must except repeated execution with existing user admin
   end
 end

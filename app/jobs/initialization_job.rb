@@ -1,9 +1,18 @@
+require 'rake'
 class InitializationJob < ApplicationJob
   queue_as :default
 
   def perform(*args)
     puts "Initialization at startup"
     ensure_admin_existence
+
+    Rails.logger.info "Start db:migrate to ensure up to date data structures"
+    Trixx::Application.load_tasks
+    Rake::Task['db:migrate'].invoke
+    Rails.logger.info "Finished db:migrate"
+
+    # After initialization regular operation can start
+    SystemValidationJob.set(wait: 1.seconds).perform_later
   end
 
   # ensure that user admin exists
