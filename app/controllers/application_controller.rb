@@ -51,7 +51,7 @@ class ApplicationController < ActionController::API
     raise ApplicationController::NotAuthorized, "Missing parameter schema_id for check of schema_rights for current user '#{@current_user.email}'" if schema_id.nil?
     schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
     if schema_right.nil?
-      schema = Schema.find schema_id
+      schema = Schema.find_by_id schema_id
       raise ApplicationController::NotAuthorized, "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
     end
   end

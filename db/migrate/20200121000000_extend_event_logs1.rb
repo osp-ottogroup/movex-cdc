@@ -11,7 +11,10 @@ class ExtendEventLogs1 < ActiveRecord::Migration[6.0]
   end
 
   def down
-    EventLog.connection.execute("ALTER TABLE Event_Logs DROP Constraint PK_Event_Logs") if Rails.env.test?
+    sql = "ALTER TABLE Event_Logs DROP Constraint PK_Event_Logs"
+    EventLog.connection.execute(sql) if Rails.env.test?
+  rescue Exception => e
+    puts "Error: #{e.message}\nwhile executing:\n#{sql}"
   end
 
 end

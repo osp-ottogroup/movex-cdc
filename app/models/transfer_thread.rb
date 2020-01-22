@@ -13,7 +13,10 @@ class TransferThread
   end
 
   def process
+    # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
+    Rails.logger.info "TransferThread.process: New worker thread created with ID=#{@worker_id}"
 
+    # Loop for ever, check cancel criterial in threadhandling
   end
 
 end
