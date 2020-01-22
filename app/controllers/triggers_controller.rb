@@ -3,10 +3,10 @@ class TriggersController < ApplicationController
   # GET /triggers
   # List triggers for schema
   def index
-    schema_id = params.require(:schema_id)                                      # should only list tables of specific schema
+    schema_id = params.require(:schema_id).to_i                                 # should only list tables of specific schema
     check_user_for_valid_schema_right(schema_id)
 
-    @triggers = Trigger.where schema_id: schema_id
+    @triggers = Trigger.find_all_by_schema_id schema_id
     render json: @triggers
   end
 
