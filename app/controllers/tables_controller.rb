@@ -23,6 +23,11 @@ class TablesController < ApplicationController
     check_user_for_valid_schema_right(@table.schema_id)
 
     if @table.save
+      log_activity(
+          schema_name:  @table.schema.name,
+          table_name:   @table.name,
+          action:       "table inserted: #{@table.attributes}"
+      )
       render json: @table, status: :created, location: @table
     else
       render json: @table.errors, status: :unprocessable_entity
@@ -32,6 +37,11 @@ class TablesController < ApplicationController
   # PATCH/PUT /tables/1
   def update
     if @table.update(table_params)
+      log_activity(
+          schema_name:  @table.schema.name,
+          table_name:   @table.name,
+          action:       "table updated: #{@table.attributes}"
+      )
       render json: @table
     else
       render json: @table.errors, status: :unprocessable_entity
@@ -41,6 +51,11 @@ class TablesController < ApplicationController
   # DELETE /tables/1
   def destroy
     @table.destroy
+    log_activity(
+        schema_name:  @table.schema.name,
+        table_name:   @table.name,
+        action:       "table deleted: #{@table.attributes}"
+    )
   end
 
   private

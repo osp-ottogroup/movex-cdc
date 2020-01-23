@@ -16,9 +16,13 @@ class LoginController < ApplicationController
     unless user                                                                 # try with db-user instead of email if email is not valid
       existing_users = User.where(db_user: email).count
       case existing_users
-      when 0 then error_msg = "No user found for email / db-user = '#{email}'"
+      when 0 then
+        Rails.logger.error "Logon request with not existing email/db-user='#{email}': #{request_log_attributes}"
+        error_msg = "No user found for email / db-user = '#{email}'"
       when 1 then user = User.find_by_db_user email
-      else error_msg = "Multiple users are registered for db-user = '#{email}'! Please login with mail address."
+      else
+        Rails.logger.error "Logon request with multiple registered db-user='#{email}': #{request_log_attributes}"
+        error_msg = "Multiple users are registered for db-user = '#{email}'! Please login with mail address."
       end
     end
 
@@ -33,6 +37,7 @@ class LoginController < ApplicationController
         time = Time.now + token_lifetime_hours.hours.to_i
         render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
+        Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
         render json: { error: auth_error }, status: :unauthorized
       end
     else

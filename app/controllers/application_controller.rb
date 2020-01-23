@@ -1,4 +1,5 @@
 class ApplicationController < ActionController::API
+  include ApplicationHelper
 
   # Automatically protect every further controllers, exceptions are handled inside authorize_request
   before_action :authorize_request
@@ -8,6 +9,7 @@ class ApplicationController < ActionController::API
 
   NotAuthorized = Class.new(StandardError)
   rescue_from ApplicationController::NotAuthorized do |e|
+    Rails.logger.error "Not authorized activity '#{e.message}' in request: #{request_log_attributes}"
     render json: { error: e.message }, status: :unauthorized
   end
 
@@ -32,8 +34,10 @@ class ApplicationController < ActionController::API
       @decoded = JsonWebToken.decode(header)
       @current_user = User.find(@decoded[:user_id])
     rescue ActiveRecord::RecordNotFound => e
+      Rails.logger.error "Unauthorized request with valid token but not existing user: #{request_log_attributes}"
       render json: { error: e.message }, status: :unauthorized
     rescue JWT::DecodeError => e
+      Rails.logger.error "Unauthorized request with invalid token: #{request_log_attributes}"
       render json: { error: e.message }, status: :unauthorized
     end
   end
@@ -54,6 +58,28 @@ class ApplicationController < ActionController::API
       schema = Schema.find_by_id schema_id
       raise ApplicationController::NotAuthorized, "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
     end
+  end
+
+  # requires successful user login and hash with optional and required keys
+  # optional: :schema_name, :table_name, :column_name
+  # required: :action
+  def log_activity(activity)
+    raise "Missing action for logging" unless activity[:action]
+    raise "Missing value for attached user" unless defined?(@current_user)
+
+    ActivityLog.new(
+        user_id:      @current_user.id,
+        schema_name:  activity[:schema_name],
+        table_name:   activity[:table_name],
+        column_name:  activity[:column_name],
+        action:       activity[:action]
+    ).save!
+  end
+
+  def request_log_attributes
+    text = "controller='#{controller_name}' action='#{action_name}' client_ip='#{request.remote_ip||'localhost'}'"
+    text << " client_ip_behind_proxy='#{request.env['HTTP_X_REAL_IP'] }'" if  request.env['HTTP_X_REAL_IP']  # original address behind reverse proxy
+    text
   end
 
 end

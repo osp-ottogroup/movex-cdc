@@ -32,4 +32,19 @@ class TriggerOracle < TableLess
     )
   end
 
+  # Generate triggers for schema
+  def self.generate_triggers(schema_id)
+    # TODO: Implement
+    target_trigger_data = {}                                                    # Hash with target trigger states for schema
+    Tables.where(schema_id: schema_id).each do |table|
+      ['I', 'U', 'D'].each do |operation|
+
+      end
+    end
+
+  end
+
+  private
+
+
 end

@@ -20,14 +20,29 @@ class TriggersController < ApplicationController
     render json: @trigger
   end
 
-  # POST /triggers/generate_triggers
+  # POST /triggers/generate
   # Generate triggers for named schema
   def generate
     schema_name = params.require([:schema_name])
     schema = Schema.find_by_name schema_name
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     check_user_for_valid_schema_right(schema.id)
+    Trigger.generate_triggers(schema.id)
+    # TODO: render success result
+  end
 
+  # POST /triggers/generate_all
+  # Generate triggers for all schema the user has rights for
+  def generate_all
+    schema_rights = SchemaRight.where(user_id: @current_user.id)
+    if schema_rights.empty?
+      render json: { error: "No schemas available for user '#{@current_user.email}'" }, status: :unauthorized
+    else
+      schema_rights.each do |sr|
+        Trigger.generate_triggers(sr.schema_id)
+      end
+      # TODO: render success result
+    end
   end
 
 end

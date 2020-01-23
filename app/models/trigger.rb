@@ -1,7 +1,11 @@
 class Trigger
 
   # delegate method calls to DB-specific implementation classes
-  METHODS_TO_DELEGATE = [:find_all_by_schema_id, :find_by_table_id_and_trigger_name]
+  METHODS_TO_DELEGATE = [
+      :find_all_by_schema_id,
+      :find_by_table_id_and_trigger_name,
+      :generate_triggers
+  ]
 
   def self.method_missing(method, *args, &block)
     if METHODS_TO_DELEGATE.include?(method)

@@ -17,4 +17,9 @@ class TriggerSqlite < TableLess
     # TODO: Filter on table and trigger
   end
 
+  # Generate triggers for schema
+  def self.generate_triggers(schema_id)
+    # TODO: Implement
+  end
+
 end

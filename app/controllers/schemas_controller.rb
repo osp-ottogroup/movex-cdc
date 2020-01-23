@@ -19,6 +19,10 @@ class SchemasController < ApplicationController
     @schema = Schema.new(schema_params)
 
     if @schema.save
+      log_activity(
+          schema_name:  @schema.name,
+          action:       "schema inserted: #{@schema.attributes}"
+      )
       render json: @schema, status: :created, location: @schema
     else
       render json: @schema.errors, status: :unprocessable_entity
@@ -28,6 +32,10 @@ class SchemasController < ApplicationController
   # PATCH/PUT /schemas/1
   def update
     if @schema.update(schema_params)
+      log_activity(
+          schema_name:  @schema.name,
+          action:       "schema updated: #{@schema.attributes}"
+      )
       render json: @schema
     else
       render json: @schema.errors, status: :unprocessable_entity
@@ -37,6 +45,10 @@ class SchemasController < ApplicationController
   # DELETE /schemas/1
   def destroy
     @schema.destroy
+    log_activity(
+        schema_name:  @schema.name,
+        action:       "schema deleted: #{@schema.attributes}"
+    )
   end
 
   private

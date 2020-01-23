@@ -25,6 +25,12 @@ class ColumnsController < ApplicationController
     check_user_for_valid_schema_right(table.schema_id)
 
     if @column.save
+      log_activity(
+          schema_name:  table.schema.name,
+          table_name:   table.name,
+          column_name:  @column.name,
+          action:       "column inserted: #{@column.attributes}"
+      )
       render json: @column, status: :created, location: @column
     else
       render json: @column.errors, status: :unprocessable_entity
@@ -34,6 +40,12 @@ class ColumnsController < ApplicationController
   # PATCH/PUT /columns/1
   def update
     if @column.update(column_params)
+      log_activity(
+          schema_name:  @column.table.schema.name,
+          table_name:   @column.table.name,
+          column_name:  @column.name,
+          action:       "column updated: #{@column.attributes}"
+      )
       render json: @column
     else
       render json: @column.errors, status: :unprocessable_entity
@@ -43,6 +55,12 @@ class ColumnsController < ApplicationController
   # DELETE /columns/1
   def destroy
     @column.destroy
+    log_activity(
+        schema_name:  @column.table.schema.name,
+        table_name:   @column.table.name,
+        column_name:  @column.name,
+        action:       "column deleted: #{@column.attributes}"
+    )
   end
 
   private
