@@ -14,4 +14,10 @@ class ColumnTest < ActiveSupport::TestCase
     assert(columns.count > 0, 'Should return at least one column of table')
   end
 
+  test "count active columns" do
+    assert_equal(Column.count_active(table_id: 1),                     1, 'Should return the number of active columns of table')
+    assert_equal(Column.count_active(table_id: 1, yn_log_update: 'Y'), 1, 'Should return the number of active columns of table for update')
+    assert_equal(Column.count_active(table_id: 1, yn_log_delete: 'Y'), 0, 'Should return the number of active columns of table for update')
+  end
+
 end
