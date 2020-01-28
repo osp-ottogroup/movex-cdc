@@ -45,24 +45,32 @@ module Trixx
     config.trixx_db_url       = ENV['TRIXX_DB_URL']
 
     # Verify mandatory settings
+    if Rails.env.test?
+      config.trixx_db_password        = config.trixx_db_password        || 'trixx'
+      config.trixx_db_victim_password = ENV['TRIXX_DB_VICTIM_PASSWORD'] || 'trixx_victim'
+    end
     case config.trixx_db_type
-    when 'SQLITE' then
     when 'ORACLE' then
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.trixx_db_user            = "test_#{config.trixx_db_user || 'trixx'}"
-        config.trixx_db_password        = config.trixx_db_password || 'trixx'
         config.trixx_db_victim_user     = ENV['TRIXX_DB_VICTIM_USER']     || 'trixx_victim'   # Schema for tables observed by trixx
-        config.trixx_db_victim_password = ENV['TRIXX_DB_VICTIM_PASSWORD'] || 'trixx_victim'
+        config.trixx_db_system_password = ENV['TRIXX_DB_SYSTEM_PASSWORD'] || 'oracle'
       end
-      raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."      unless config.trixx_db_user
-      raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."  unless config.trixx_db_password
       raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."       unless config.trixx_db_url
+    when 'SQLITE' then
+      config.trixx_db_user              = 'main'
+      if Rails.env.test?
+        config.trixx_db_victim_user     = 'main'  if Rails.env.test?
+      end
     else
       raise "unsupported DB type '#{config.trixx_db_type}'"
     end
+    raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."      unless config.trixx_db_user
+    raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."  unless config.trixx_db_password
 
-#    puts ActiveRecord::Base.connection.inspect # TODO: List JDBC Driver Version to log
-    #
+    # TODO: List JDBC Driver Version to log, but later than here
+    # ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
+
     msg = "\nStarting TriXX application at #{Time.now}:
 RAILS_ENV              = #{Rails.env}
 TRIXX_DB_TYPE          = #{config.trixx_db_type}
@@ -70,7 +78,7 @@ TRIXX_DB_URL           = #{config.trixx_db_url}
 TRIXX_DB_USER          = #{config.trixx_db_user}
 "
 
-    msg << "TRIXX_DB_VICTIM_USER   = #{config.trixx_db_victim_user}" if Rails.env.test? && config.trixx_db_type == 'ORACLE'
+    msg << "TRIXX_DB_VICTIM_USER   = #{config.trixx_db_victim_user}" if Rails.env.test?
 
     puts msg
 

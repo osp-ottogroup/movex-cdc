@@ -2,19 +2,19 @@
 
 one:
   id: 1
-  schema_id: 2
-  name: TABLE1
+  schema_id: 1
+  name: TABLES                                                                  # really existing table in test schema
   info: Mein Text
 
 two:
   id: 2
-  schema_id: 2
-  name: TABLE2
+  schema_id: 1
+  name: COLUMNS                                                                 # really existing table in test schema
   info: Mein Text
 
 # record without dependent references
 deletable:
   id: 3
-  schema_id: 2
+  schema_id: 1
   name: TABLE3
   info: Mein Text

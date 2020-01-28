@@ -6,9 +6,6 @@ class CreateTables < ActiveRecord::Migration[6.0]
       t.string :info, limit: 1000,  null: false,  comment: 'Additional info like responsible team'
       t.timestamps
     end
-
-    add_foreign_key :tables, :schemas
-    add_index :tables, [:schema_id, :name], name: 'ix_tables_schema_name', unique: true
   end
 
 end
