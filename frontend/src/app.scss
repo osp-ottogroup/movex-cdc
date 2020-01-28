@@ -1,7 +1,10 @@
 // Import Bulma's core
 @import "~bulma/sass/utilities/_all";
 
-// Set your colors
+// custom definitions
+$footer-padding: 0.3rem 0;
+$body-overflow-y: auto;
+
 $primary: #3372a5;
 $primary-invert: findColorInvert($primary);
 $twitter: #4099FF;

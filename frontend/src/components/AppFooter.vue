@@ -15,5 +15,12 @@ export default {
 };
 </script>
 
-<style lang="scss">
+<style lang="scss" scoped>
+#app-footer {
+   position:fixed;
+   left:0px;
+   bottom:0px;
+   height:30px;
+   width:100%;
+}
 </style>

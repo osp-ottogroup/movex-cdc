@@ -1,9 +1,11 @@
 <template>
-  <div class="columns is-vcentered">
-    <div class="column has-text-light has-text-centered">
-      <h1>Customize</h1>
+  <section class="hero is-fullheight-with-navbar">
+    <div class="hero-body">
+      <div class="container has-text-light has-text-centered">
+        <h1>Customize</h1>
+      </div>
     </div>
-  </div>
+  </section>
 </template>
 
 <script>
