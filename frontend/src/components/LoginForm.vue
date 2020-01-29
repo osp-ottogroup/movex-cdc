@@ -9,7 +9,7 @@
           <b-input
             v-model="userName"
             type="text"
-            placeholder="Your username"
+            placeholder="Your e-mail address or database user"
             required
             validation-message="Username must not be empty">
           </b-input>
@@ -38,6 +38,7 @@
 <script>
 import { ToastProgrammatic as Toast } from 'buefy';
 import LoginService from '../services/LoginService';
+import ServerError from '../services/ServerError';
 
 export default {
   data() {
@@ -50,7 +51,7 @@ export default {
   computed: {
     credentials() {
       return {
-        userName: this.userName,
+        email: this.userName,
         password: this.password,
       };
     },
@@ -64,9 +65,13 @@ export default {
         await LoginService.login(this.credentials);
         this.$emit('login');
       } catch (e) {
+        let toastMessage = 'Login failed';
+        if (e instanceof ServerError) {
+          toastMessage = e.data.error;
+        }
         this.toast = Toast.open({
           duration: 5000,
-          message: 'Login failed',
+          message: toastMessage,
           type: 'is-danger',
         });
       }

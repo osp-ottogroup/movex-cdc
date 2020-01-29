@@ -1,8 +1,9 @@
 // @ts-check
 
-// import HttpService from './HttpService';
+// eslint-disable-next-line import/no-cycle
+import HttpService from './HttpService';
 import TokenService from './TokenService';
-// import Config from '../config/config';
+import Config from '../config/config';
 
 const TOKEN_KEY = 'login_token';
 
@@ -26,23 +27,17 @@ const checkStoredLogin = () => {
 const checkLogin = async () => {
   const isStoredLoginPresent = checkStoredLogin();
   if (isStoredLoginPresent) {
-    // TODO wieder auf Backend-Aufruf umstellen, wenn dies implementiert ist.
-    // await HttpService.get(`${Config.backendUrl}/api/login_check`);
+    // TODO login-check im backend?
     return true;
   }
   return false;
 };
 
 const login = async (credentials) => {
-  // const resp = await HttpService.post(`${Config.backendUrl}/api/login`, credentials);
-  if (credentials.userName === 'admin' && credentials.password === 'admin') {
-    const resp = { data: { token: '1.2.3' } };
-    const { token } = resp.data;
-    storeToken(token);
-    initializeTokenService(token);
-  } else {
-    throw new Error('Username or Password invalid');
-  }
+  const resp = await HttpService.post(`${Config.backendUrl}/login/do_logon`, credentials);
+  const { token } = resp.data;
+  storeToken(token);
+  initializeTokenService(token);
 };
 
 const logout = () => {

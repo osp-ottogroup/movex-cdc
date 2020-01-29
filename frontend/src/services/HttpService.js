@@ -3,6 +3,7 @@
 import TokenService from './TokenService';
 import FetchService from './FetchService';
 import ServerError from './ServerError';
+// eslint-disable-next-line import/no-cycle
 import LoginService from './LoginService';
 
 const HTTP_STATUS_CODE_401 = 401; // Unauthorized
@@ -28,7 +29,7 @@ const doFetch = async (url, requestOptions) => {
     if (e instanceof ServerError && e.httpStatus === HTTP_STATUS_CODE_401) {
       LoginService.logout(); // page reload
     }
-    return e;
+    throw e;
   }
 };
 
