@@ -4,6 +4,10 @@ require 'user'
 class LoginControllerTest < ActionDispatch::IntegrationTest
 
   test "should post do_logon" do
+    # login admin user with email
+    post login_do_logon_url, params: { email: 'admin', password: Trixx::Application.config.trixx_db_password }
+    assert_response :success
+
     # login existing user with email
     post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com', password: Trixx::Application.config.trixx_db_victim_password }
     case Trixx::Application.config.trixx_db_type
