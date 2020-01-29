@@ -23,7 +23,7 @@ stages:
     - dpkg-reconfigure -f noninteractive tzdata
     - date
     - java -version
-    - bundle install
+    - bundle install --deployment
     - bundle exec rake ci_preparation:create_test_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - bundle exec rails test

@@ -21,6 +21,5 @@
 # Ignore master key for decrypting credentials and more.
 /config/master.key
 
-Gemfile.lock
 /coverage/.last_run.json
 /coverage/.resultset.json.lock
