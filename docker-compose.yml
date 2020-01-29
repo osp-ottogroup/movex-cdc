@@ -1,0 +1,22 @@
+version: '3'
+services:
+  trixx-frontend:
+    build: ./frontend
+    volumes:
+      - ./frontend:/app
+    ports:
+      - "8080:8080"
+
+  trixx-backend:
+    build: .
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    environment:
+      TRIXX_DB_PASSWORD: test
+
+networks:
+  default:
+    external:
+      name: public
