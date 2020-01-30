@@ -14,3 +14,11 @@ two:
   yn_log_insert: Y
   yn_log_update: Y
   yn_log_delete: Y
+
+victim1_1:
+  table_id: 4
+  name: Name
+  info: Trigger generation
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y

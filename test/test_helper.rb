@@ -77,13 +77,20 @@ class ActiveSupport::TestCase
   end
 
   def create_victim_structures
+    # deactivate column definitions of fixtures in test schema because schemaless DBs create victim tables in same schema
+    # This ensures that triggers are generated for victim tables only
+    ActiveRecord::Base.connection.execute "\
+      UPDATE Columns SET YN_LOG_INSERT='N', YN_LOG_UPDATE='N', YN_LOG_DELETE='N'
+      WHERE  Table_ID IN (SELECT ID FROM Tables WHERE UPPER(Name) NOT LIKE 'VICTIM%')
+    "
+
     connection = create_victim_connection
     exec_victim_sql(connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (ID NUMBER, Name VARCHAR2(20))")
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_Victim1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -92,7 +99,7 @@ class ActiveSupport::TestCase
         END TRIXX_Victim1_I;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_Victim1_U FOR UPDATE OF Name ON #{victim_schema_prefix}#{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{tables(:victim1).name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -102,13 +109,13 @@ class ActiveSupport::TestCase
       ")
     when 'SQLITE' then
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_Victim1_I INSERT ON #{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{tables(:victim1).name}
         BEGIN
           INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
         END;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_Victim1_U UPDATE ON #{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP UPDATE ON #{tables(:victim1).name}
         BEGIN
           INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
         END;

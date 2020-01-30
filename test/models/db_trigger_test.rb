@@ -1,6 +1,6 @@
 require 'test_helper'
 
-class TriggerTest < ActiveSupport::TestCase
+class DbTriggerTest < ActiveSupport::TestCase
 
   setup do
     # Create victim tables and triggers
@@ -24,6 +24,11 @@ class TriggerTest < ActiveSupport::TestCase
 
   test "generate_triggers" do
     result = DbTrigger.generate_triggers(victim_schema_id)
+    result[:successes].each do |s|
+      puts s
+    end
+    puts result[:errors] if result[:errors].count > 0
+    assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
   end
 
 end
