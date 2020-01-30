@@ -1,6 +1,7 @@
 import HttpService from './HttpService';
+import Config from '../config/config';
 
-const backendUrl = window.location.origin;
+const { backendUrl } = Config;
 
 export default name => ({
   getAll: async () => (await HttpService.get(`${backendUrl}/${name}`)).data,

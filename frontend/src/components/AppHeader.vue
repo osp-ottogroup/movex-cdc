@@ -12,8 +12,8 @@
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
             Home
         </b-navbar-item>
-        <b-navbar-item tag="router-link" :to="{ path: '/customize' }">
-            Customize
+        <b-navbar-item tag="router-link" :to="{ path: '/users' }">
+            Users
         </b-navbar-item>
       </template>
 
