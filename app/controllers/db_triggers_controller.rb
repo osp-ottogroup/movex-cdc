@@ -1,4 +1,4 @@
-class TriggersController < ApplicationController
+class DbTriggersController < ApplicationController
 
   # GET /triggers
   # List triggers for schema
@@ -6,7 +6,7 @@ class TriggersController < ApplicationController
     schema_id = params.require(:schema_id).to_i                                 # should only list tables of specific schema
     check_user_for_valid_schema_right(schema_id)
 
-    @triggers = Trigger.find_all_by_schema_id schema_id
+    @triggers = DbTrigger.find_all_by_schema_id schema_id
     render json: @triggers
   end
 
@@ -16,7 +16,7 @@ class TriggersController < ApplicationController
     params.require([:table_id, :trigger_name])
     table = Table.find params[:table_id]
     check_user_for_valid_schema_right(table.schema_id)
-    @trigger = Trigger.find_by_table_id_and_trigger_name(params[:table_id], params[:trigger_name])
+    @trigger = DbTrigger.find_by_table_id_and_trigger_name(params[:table_id], params[:trigger_name])
     render json: @trigger
   end
 
@@ -27,7 +27,7 @@ class TriggersController < ApplicationController
     schema = Schema.find_by_name schema_name
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     check_user_for_valid_schema_right(schema.id)
-    Trigger.generate_triggers(schema.id)
+    DbTrigger.generate_triggers(schema.id)
     # TODO: render success result
   end
 
@@ -39,7 +39,7 @@ class TriggersController < ApplicationController
       render json: { error: "No schemas available for user '#{@current_user.email}'" }, status: :unauthorized
     else
       schema_rights.each do |sr|
-        Trigger.generate_triggers(sr.schema_id)
+        DbTrigger.generate_triggers(sr.schema_id)
       end
       # TODO: render success result
     end

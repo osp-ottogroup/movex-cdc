@@ -1,4 +1,4 @@
-class TriggerSqlite < TableLess
+class DbTriggerSqlite < TableLess
   # get ActiveRecord::Result with trigger records
   def self.find_all_by_schema_id(schema_id)
     select_all("\
