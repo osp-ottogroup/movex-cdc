@@ -23,10 +23,11 @@ class DbTriggersController < ApplicationController
   # POST /triggers/generate
   # Generate triggers for named schema
   def generate
-    schema_name = params.require([:schema_name])
+    schema_name = params.require :schema_name
     schema = Schema.find_by_name schema_name
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     check_user_for_valid_schema_right(schema.id)
+
     DbTrigger.generate_triggers(schema.id)
     # TODO: render success result
   end

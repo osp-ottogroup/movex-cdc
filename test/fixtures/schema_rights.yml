@@ -8,11 +8,10 @@ one:
   user_id: 1
   schema_id: 1
   info: Info1
-# column: value
-#
-#two:
-#  user_id: 2
-#  schema_id: 1
-#  info: Info2
 
-# column: value
+<% if Trixx::Application.config.trixx_db_type == 'ORACLE' %>
+two:
+  user_id: 1
+  schema_id: 2
+  info: Info1
+<% end %>

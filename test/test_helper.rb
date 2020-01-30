@@ -77,6 +77,13 @@ class ActiveSupport::TestCase
   end
 
   def create_victim_structures
+    # Renove possible pending structures before recreating
+    begin
+      drop_victim_structures
+    rescue
+      nil
+    end
+
     # deactivate column definitions of fixtures in test schema because schemaless DBs create victim tables in same schema
     # This ensures that triggers are generated for victim tables only
     ActiveRecord::Base.connection.execute "\
