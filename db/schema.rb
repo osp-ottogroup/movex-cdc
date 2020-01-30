@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_01_23_160000) do
+ActiveRecord::Schema.define(version: 2020_01_30_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -43,7 +43,7 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
     t.string "filter", limit: 4000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["table_id", "operation"], name: "IX_Conditions_Table_ID_Operation", unique: true
+    t.index ["table_id", "operation"], name: "IX_Conditions_Table_ID_Oper", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
@@ -91,6 +91,7 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
     t.string "last_name", limit: 128, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "yn_admin", limit: 1, default: "N", null: false
     t.index ["db_user"], name: "ix_users_db_user"
     t.index ["email"], name: "ix_users_email", unique: true
   end

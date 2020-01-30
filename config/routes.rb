@@ -13,6 +13,7 @@ Rails.application.routes.draw do
   resources :columns
   resources :conditions
   resources :schemas
+  resources :schema_rights
   resources :tables
   resources :users
 end
