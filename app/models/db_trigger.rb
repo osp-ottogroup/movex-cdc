@@ -1,17 +1,16 @@
-class Trigger
+class DbTrigger
 
   # delegate method calls to DB-specific implementation classes
   METHODS_TO_DELEGATE = [
       :find_all_by_schema_id,
       :find_by_table_id_and_trigger_name,
-      :generate_triggers
   ]
 
   def self.method_missing(method, *args, &block)
     if METHODS_TO_DELEGATE.include?(method)
       target_class = case Trixx::Application.config.trixx_db_type
-                     when 'ORACLE' then TriggerOracle
-                     when 'SQLITE' then TriggerSqlite
+                     when 'ORACLE' then DbTriggerOracle
+                     when 'SQLITE' then DbTriggerSqlite
                      else
                        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
                      end
@@ -63,8 +62,8 @@ class Trigger
 
     # Delegate to DB-specific classes
     case Trixx::Application.config.trixx_db_type
-     when 'ORACLE' then result = TriggerOracle.generate_db_triggers(schema_id, target_trigger_data)
-     when 'SQLITE' then result = TriggerSqlite.generate_db_triggers(schema_id, target_trigger_data)
+     when 'ORACLE' then result = DbTriggerOracle.generate_db_triggers(schema_id, target_trigger_data)
+     when 'SQLITE' then result = DbTriggerSqlite.generate_db_triggers(schema_id, target_trigger_data)
      else
        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end

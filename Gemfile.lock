@@ -77,6 +77,7 @@ GEM
       concurrent-ruby (~> 1.0)
     jaro_winkler (1.5.4-java)
     jdbc-sqlite3 (3.28.0)
+    json (2.3.0-java)
     jwt (2.2.1)
     listen (3.1.5)
       rb-fsevent (~> 0.9, >= 0.9.4)
@@ -148,6 +149,7 @@ GEM
     ruby_dep (1.5.0)
     simplecov (0.18.0)
       docile (~> 1.1)
+      json (>= 1.8, < 3)
       simplecov-html (~> 0.11.0)
     simplecov-html (0.11.0)
     sprockets (4.0.0)
@@ -188,4 +190,4 @@ RUBY VERSION
    ruby 2.5.3p0 (jruby 9.2.8.0)
 
 BUNDLED WITH
-   2.0.2
+   2.1.4

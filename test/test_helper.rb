@@ -11,6 +11,123 @@ class ActiveSupport::TestCase
   fixtures :all
 
   # Add more helper methods to be used by all tests here...
+
+  # schema for tables with triggers for tests
+  def victim_schema_id
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then schemas(:victim).id
+    when 'SQLITE' then schemas(:one).id                                         # SQLite does not support multiple schema
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+
+  # get schemaname if used for DB
+  def victim_schema_prefix
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then "#{Trixx::Application.config.trixx_db_victim_user}."
+    when 'SQLITE' then ''
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+
+  def create_victim_connection
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      db_config = Rails.configuration.database_configuration[Rails.env].clone
+      db_config['username'] = Trixx::Application.config.trixx_db_victim_user
+      db_config['password'] = Trixx::Application.config.trixx_db_victim_password
+      db_config.symbolize_keys!
+      ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
+    when 'SQLITE' then ActiveRecord::Base.connection                            # SQLite uses default AR connection
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+
+  def logoff_victim_connection(connection)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then connection.logoff
+    when 'SQLITE' then                                                          # SQLite uses default AR connection
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+
+  def exec_victim_sql(connection, sql)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then connection.exec sql
+    when 'SQLITE' then connection.execute sql                                   # standard method for AR.connection
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  rescue Exception => e
+    msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
+    Rails.logger.error(msg)
+    raise msg
+  end
+
+  def exec_db_user_sql(sql)
+    ActiveRecord::Base.connection.execute sql
+  rescue Exception => e
+    msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
+    Rails.logger.error(msg)
+    raise msg
+  end
+
+  def create_victim_structures
+    connection = create_victim_connection
+    exec_victim_sql(connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (ID NUMBER, Name VARCHAR2(20))")
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      exec_db_user_sql("\
+        CREATE TRIGGER TRIXX_Victim1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
+        COMPOUND TRIGGER
+          BEFORE STATEMENT IS
+          BEGIN
+            NULL;
+          END BEFORE STATEMENT;
+        END TRIXX_Victim1_I;
+      ")
+      exec_db_user_sql("\
+        CREATE TRIGGER TRIXX_Victim1_U FOR UPDATE OF Name ON #{victim_schema_prefix}#{tables(:victim1).name}
+        COMPOUND TRIGGER
+          BEFORE STATEMENT IS
+          BEGIN
+            NULL;
+          END BEFORE STATEMENT;
+        END TRIXX_Victim1_U;
+      ")
+    when 'SQLITE' then
+      exec_db_user_sql("\
+        CREATE TRIGGER TRIXX_Victim1_I INSERT ON #{tables(:victim1).name}
+        BEGIN
+          INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
+        END;
+      ")
+      exec_db_user_sql("\
+        CREATE TRIGGER TRIXX_Victim1_U UPDATE ON #{tables(:victim1).name}
+        BEGIN
+          INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
+        END;
+      ")
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+
+
+
+    logoff_victim_connection(connection)
+  end
+
+  def drop_victim_structures
+    connection = create_victim_connection
+    exec_victim_sql(connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
+    logoff_victim_connection(connection)
+  end
+
 end
 
 class ActionDispatch::IntegrationTest

@@ -1,5 +1,5 @@
 class UsersController < ApplicationController
-  before_action :authenticate
+  before_action :check_for_current_user_admin
   before_action :set_user, only: [:show, :update, :destroy]
 
   # GET /users
@@ -54,15 +54,8 @@ class UsersController < ApplicationController
       @user = User.find(params[:id])
     end
 
-  def authenticate
-    if @current_user.email != 'admin'
-      render json: { errors: "Access denied! User #{@current_user.email} isn't supervisor" }, status: :unauthorized
-    end
-
-  end
-
     # Only allow a trusted parameter "white list" through.
     def user_params
-      params.fetch(:user, {}).permit(:email, :db_user, :first_name, :last_name)
+      params.fetch(:user, {}).permit(:email, :db_user, :first_name, :last_name, :yn_admin)
     end
 end

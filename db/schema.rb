@@ -10,10 +10,10 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_01_23_160000) do
+ActiveRecord::Schema.define(version: 2020_01_30_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
-    t.integer "user_id", precision: 38, null: false
+    t.integer "user_id", null: false
     t.string "schema_name", limit: 256
     t.string "table_name", limit: 256
     t.string "column_name", limit: 256
@@ -25,7 +25,7 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
   end
 
   create_table "columns", force: :cascade do |t|
-    t.integer "table_id", precision: 38, null: false
+    t.integer "table_id", null: false
     t.string "name", limit: 256, null: false
     t.string "info", limit: 1000, null: false
     t.string "yn_log_insert", limit: 1, null: false
@@ -38,25 +38,27 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
   end
 
   create_table "conditions", force: :cascade do |t|
-    t.integer "table_id", precision: 38, null: false
+    t.integer "table_id", null: false
     t.string "operation", limit: 1, null: false
     t.string "filter", limit: 4000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["table_id", "operation"], name: "ix_conditions_table_id_operation", unique: true
+    t.index ["table_id", "operation"], name: "IX_Conditions_Table_ID_Oper", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
   create_table "event_logs", force: :cascade do |t|
-    t.integer "schema_id", precision: 38
-    t.integer "table_id", precision: 38
-    t.text "payload"
-    t.datetime "created_at", precision: 6
+    t.integer "schema_id", null: false
+    t.integer "table_id", null: false
+    t.text "payload", null: false
+    t.datetime "created_at", null: false
+    t.index ["schema_id"], name: "index_event_logs_on_schema_id"
+    t.index ["table_id"], name: "index_event_logs_on_table_id"
   end
 
   create_table "schema_rights", force: :cascade do |t|
-    t.integer "user_id", precision: 38, null: false
-    t.integer "schema_id", precision: 38, null: false
+    t.integer "user_id", null: false
+    t.integer "schema_id", null: false
     t.string "info", limit: 1000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
@@ -73,7 +75,7 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
   end
 
   create_table "tables", force: :cascade do |t|
-    t.integer "schema_id", precision: 38, null: false
+    t.integer "schema_id", null: false
     t.string "name", limit: 256, null: false
     t.string "info", limit: 1000, null: false
     t.datetime "created_at", precision: 6, null: false
@@ -89,6 +91,7 @@ ActiveRecord::Schema.define(version: 2020_01_23_160000) do
     t.string "last_name", limit: 128, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "yn_admin", limit: 1, default: "N", null: false
     t.index ["db_user"], name: "ix_users_db_user"
     t.index ["email"], name: "ix_users_email", unique: true
   end

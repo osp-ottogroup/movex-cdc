@@ -21,7 +21,7 @@ class InitializationJob < ApplicationJob
     unless admin
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do
-        user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: Trixx::Application.config.trixx_db_user)
+        user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: Trixx::Application.config.trixx_db_user, yn_admin: 'Y')
         user.save!
       end
     end

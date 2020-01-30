@@ -82,4 +82,10 @@ class ApplicationController < ActionController::API
     text
   end
 
+  def check_for_current_user_admin
+    if @current_user.yn_admin != 'Y'
+      render json: { errors: "Access denied! User #{@current_user.email} isn't tagged as admin" }, status: :unauthorized
+    end
+  end
+
 end
