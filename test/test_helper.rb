@@ -84,13 +84,6 @@ class ActiveSupport::TestCase
       nil
     end
 
-    # deactivate column definitions of fixtures in test schema because schemaless DBs create victim tables in same schema
-    # This ensures that triggers are generated for victim tables only
-    ActiveRecord::Base.connection.execute "\
-      UPDATE Columns SET YN_LOG_INSERT='N', YN_LOG_UPDATE='N', YN_LOG_DELETE='N'
-      WHERE  Table_ID IN (SELECT ID FROM Tables WHERE UPPER(Name) NOT LIKE 'VICTIM%')
-    "
-
     connection = create_victim_connection
     exec_victim_sql(connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (ID NUMBER, Name VARCHAR2(20))")
 
@@ -130,8 +123,6 @@ class ActiveSupport::TestCase
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
-
-
 
     logoff_victim_connection(connection)
   end

@@ -9,7 +9,7 @@ class DbTriggerSqlite < TableLess
   end
 
   def self.find_by_table_id_and_trigger_name(table_id, trigger_name)
-    select_one("\
+    select_first_row("\
       SELECT *
       FROM   SQLite_Master
       WHERE  Type = 'trigger'

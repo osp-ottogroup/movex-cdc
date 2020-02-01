@@ -17,7 +17,7 @@ class DbTriggerOracle < TableLess
   def self.find_by_table_id_and_trigger_name(table_id, trigger_name)
     table  = Table.find table_id
     schema = Schema.find table.schema_id
-    select_one("\
+    select_first_row("\
       SELECT *
       FROM   All_Triggers
       WHERE  Owner        = :owner
