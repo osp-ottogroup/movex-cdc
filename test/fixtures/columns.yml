@@ -1,16 +1,25 @@
 # Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
 
+# Active columns should only exists in victim tables
 one:
   table_id: 1
   name: SCHEMA_ID
   info: Mein Text
-  yn_log_insert: Y
-  yn_log_update: Y
+  yn_log_insert: N
+  yn_log_update: N
   yn_log_delete: N
 two:
   table_id: 2
   name: TABLE_ID
   info: Mein Text
+  yn_log_insert: N
+  yn_log_update: N
+  yn_log_delete: N
+
+victim1_1:
+  table_id: 4
+  name: Name
+  info: Trigger generation
   yn_log_insert: Y
   yn_log_update: Y
   yn_log_delete: Y

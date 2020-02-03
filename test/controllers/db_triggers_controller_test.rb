@@ -31,24 +31,31 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "generate triggers" do
-    post "/db_triggers/generate?schema_name=#{Trixx::Application.config.trixx_db_user}", headers: jwt_header, as: :json
+    create_victim_structures
+
+    post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header, as: :json
     assert_response :success
 
     assert_raise(Exception, 'Unknown schema should raise exception') do
       post "/db_triggers/generate?schema_name=hugo", headers: jwt_header, as: :json
     end
 
-    post "/db_triggers/generate?schema_name=#{Trixx::Application.config.trixx_db_user}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :unauthorized, 'Should not get access without schema rights'
+
+    drop_victim_structures
   end
 
   test "generate all triggers" do
+    create_victim_structures
+
     post "/db_triggers/generate_all", headers: jwt_header, as: :json
     assert_response :success
 
     post "/db_triggers/generate_all", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :unauthorized, 'Should not get access without schema rights'
 
+    drop_victim_structures
   end
 
 
