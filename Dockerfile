@@ -4,6 +4,8 @@ WORKDIR /app
 
 COPY Gemfile* ./
 
+RUN gem install bundler -v '2.1.4'
+
 RUN bundle install --jobs 4
 
 COPY . .
