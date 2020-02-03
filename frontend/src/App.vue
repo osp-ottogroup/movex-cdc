@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <template v-if="loggedIn">
-      <app-header />
+      <app-header :userName="userName"/>
       <router-view />
       <app-footer />
     </template>
@@ -23,6 +23,7 @@ import AppHeader from './components/AppHeader.vue';
 import AppFooter from './components/AppFooter.vue';
 import LoginForm from './components/LoginForm.vue';
 import LoginService from './services/LoginService';
+import TokenService from './services/TokenService';
 
 export default {
   name: 'App',
@@ -34,14 +35,22 @@ export default {
   data() {
     return {
       loggedIn: false,
+      userName: null,
     };
   },
   async created() {
     this.loggedIn = await LoginService.checkLogin();
+    if (this.loggedIn) {
+      this.setUserName();
+    }
   },
   methods: {
     onLogin() {
       this.loggedIn = true;
+      this.setUserName();
+    },
+    setUserName() {
+      this.userName = `${TokenService.getPayload().first_name} ${TokenService.getPayload().last_name}`;
     },
   },
 };

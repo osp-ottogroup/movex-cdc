@@ -42,7 +42,9 @@ import LoginService from '../services/LoginService';
 
 export default {
   name: 'AppHeader',
-  data: () => ({ userName: 'Sandro Admin' }),
+  props: {
+    userName: { type: String },
+  },
   methods: {
     logout() {
       LoginService.logout();

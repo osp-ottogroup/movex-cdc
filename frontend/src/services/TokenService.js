@@ -40,7 +40,7 @@ const getTokenParts = (token) => {
  * Extracts the payload from the access token and parses it to a JSON object
  * @returns {object} JSON object extracted and parsed from JWT
  */
-const getUserData = () => {
+const getPayload = () => {
   const parts = getTokenParts(accessToken);
   return JSON.parse(decode(parts.payload));
 };
@@ -57,6 +57,6 @@ const setAccessToken = (newAccessToken) => { accessToken = newAccessToken; };
 
 export default {
   getAccessToken,
-  getUserData,
+  getPayload,
   setAccessToken,
 };
