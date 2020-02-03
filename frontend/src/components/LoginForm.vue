@@ -5,7 +5,7 @@
         <p class="modal-card-title">Login</p>
       </header>
       <section class="modal-card-body">
-        <b-field label="Username">
+        <b-field label="User Name">
           <b-input
             v-model="userName"
             type="text"
