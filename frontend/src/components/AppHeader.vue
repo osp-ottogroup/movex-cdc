@@ -15,6 +15,9 @@
         <b-navbar-item tag="router-link" :to="{ path: '/users' }">
             Users
         </b-navbar-item>
+        <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
+          Configuration
+        </b-navbar-item>
       </template>
 
       <template slot="end">
@@ -28,7 +31,7 @@
         </b-navbar-item>
         <b-navbar-item tag="div">
           <b-button @click="logout">
-            Abmelden
+            Logout
           </b-button>
         </b-navbar-item>
       </template>
