@@ -3,9 +3,9 @@ class SchemasController < ApplicationController
   before_action :set_schema, only: [:show, :update, :destroy]
 
   # GET /schemas
+  # List schemas the current user is allowed for
   def index
-    @schemas = Schema.all
-
+    @schemas = Schema.includes(:schema_rights).where(schema_rights: { user_id: @current_user.id})
     render json: @schemas
   end
 

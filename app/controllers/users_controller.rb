@@ -6,23 +6,24 @@ class UsersController < ApplicationController
   def index
     @users = User.all
 
-    render json: @users
+    render json: @users, include: { schema_rights: {include: :schema} }
   end
 
   # GET /users/1
   def show
-    render json: @user
+    render json: @user, include: { schema_rights: {include: :schema} }
   end
 
   # POST /users
   def create
     @user = User.new(user_params)
 
-    if @user.save
+    if  @user.save
+      SchemaRight.process_user_request(@user, schema_rights_params)
       log_activity(
           action:       "user inserted: #{@user.attributes}"
       )
-      render json: @user, status: :created, location: @user
+      render json: @user, include: { schema_rights: {include: :schema} }, status: :created, location: @user
     else
       render json: @user.errors, status: :unprocessable_entity
     end
@@ -31,10 +32,11 @@ class UsersController < ApplicationController
   # PATCH/PUT /users/1
   def update
     if @user.update(user_params)
+      SchemaRight.process_user_request(@user, schema_rights_params)
       log_activity(
           action:       "user updated: #{@user.attributes}"
       )
-      render json: @user
+      render json: @user, include: { schema_rights: {include: :schema} }
     else
       render json: @user.errors, status: :unprocessable_entity
     end
@@ -57,5 +59,9 @@ class UsersController < ApplicationController
     # Only allow a trusted parameter "white list" through.
     def user_params
       params.fetch(:user, {}).permit(:email, :db_user, :first_name, :last_name, :yn_admin)
+    end
+
+    def schema_rights_params
+      params.fetch(:user, {}).permit( [schema_rights: [:info, {schema: :name }] ] )[:schema_rights]
     end
 end

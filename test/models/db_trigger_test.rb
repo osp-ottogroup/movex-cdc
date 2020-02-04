@@ -26,6 +26,9 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate_triggers" do
     result = DbTrigger.generate_triggers(victim_schema_id)
+    assert_instance_of(Hash, result, 'Should return result of type Hash')
+    result.assert_valid_keys(:successes, :errors)
+
     puts "Successes:" if result[:successes].count > 0
     result[:successes].each do |s|
       puts s

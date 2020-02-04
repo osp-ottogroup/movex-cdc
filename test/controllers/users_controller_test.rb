@@ -16,7 +16,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   test "should create user" do
     assert_difference('User.count') do
-      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
+      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+          email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+          schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+      } }, as: :json
     end
     assert_response 201
 
@@ -35,7 +38,9 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update user" do
-    patch user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: { email: 'Dummy@dummy.com' } }, as: :json
+    patch user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: { email: 'Dummy@dummy.com',
+                                                                                    schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}}]
+    } }, as: :json
     assert_response 200
 
     patch user_url(@user), headers: jwt_header, params: { user: { email: 'Dummy@dummy.com' } }, as: :json

@@ -5,9 +5,17 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     @schema = schemas(:one)
   end
 
-  test "should get index" do
+  test "should get index for allowed schemata" do
     get schemas_url, headers: jwt_header, as: :json
     assert_response :success
+    result = response.parsed_body
+
+    case Trixx::Application.config.trixx_db_type
+    when 'SQLITE' then
+      assert_equal(1, result.count, 'Should return schema main only')
+    else
+      assert_equal(2, result.count, 'Should return the allowed schemas for user')
+    end
   end
 
   test "should create schema" do
