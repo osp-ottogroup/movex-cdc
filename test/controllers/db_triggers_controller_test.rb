@@ -3,7 +3,15 @@ require 'test_helper'
 class DbTriggersControllerTest < ActionDispatch::IntegrationTest
 
   setup do
-    # TODO: create one trigger for tests
+    # Create victim tables and triggers
+    @victim_connection = create_victim_connection
+    create_victim_structures(@victim_connection)
+  end
+
+  teardown do
+    # Remove victim structures
+    drop_victim_structures(@victim_connection)
+    logoff_victim_connection(@victim_connection)
   end
 
   test 'should get index' do
@@ -31,8 +39,6 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "generate triggers" do
-    create_victim_structures
-
     post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header, as: :json
     assert_response :success
 
@@ -42,20 +48,14 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
 
     post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :unauthorized, 'Should not get access without schema rights'
-
-    drop_victim_structures
   end
 
   test "generate all triggers" do
-    create_victim_structures
-
     post "/db_triggers/generate_all", headers: jwt_header, as: :json
     assert_response :success
 
     post "/db_triggers/generate_all", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :unauthorized, 'Should not get access without schema rights'
-
-    drop_victim_structures
   end
 
 

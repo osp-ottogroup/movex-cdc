@@ -18,8 +18,64 @@ two:
 
 victim1_1:
   table_id: 4
-  name: Name
-  info: Trigger generation
+  name: ID
+  info: Number test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_2:
+  table_id: 4
+  name: NAME
+  info: varchar2 test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_3:
+  table_id: 4
+  name: CHAR_NAME
+  info: char2 test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_4:
+  table_id: 4
+  name: DATE_VAL
+  info: date test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_5:
+  table_id: 4
+  name: TS_VAL
+  info: timestamp test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_6:
+  table_id: 4
+  name: RAW_VAL
+  info: RAW test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_7:
+  table_id: 4
+  name: TSTZ_VAL
+  info: timestamp with time zone test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y
+
+victim1_8:
+  table_id: 4
+  name: ROWID_VAL
+  info: RowID test
   yn_log_insert: Y
   yn_log_update: Y
   yn_log_delete: Y

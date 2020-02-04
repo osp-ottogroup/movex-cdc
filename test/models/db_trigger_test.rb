@@ -4,12 +4,14 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   setup do
     # Create victim tables and triggers
-    create_victim_structures
+    @victim_connection = create_victim_connection
+    create_victim_structures(@victim_connection)
   end
 
   teardown do
     # Remove victim structures
-    drop_victim_structures
+    drop_victim_structures(@victim_connection)
+    logoff_victim_connection(@victim_connection)
   end
 
   test "find_all_by_schema_id" do
@@ -24,11 +26,47 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate_triggers" do
     result = DbTrigger.generate_triggers(victim_schema_id)
+    puts "Successes:" if result[:successes].count > 0
     result[:successes].each do |s|
       puts s
     end
-    puts result[:errors] if result[:errors].count > 0
+    if result[:errors].count > 0
+      puts "Errors:"
+      result[:errors].each do |e|
+        puts "#{e[:trigger_name]} #{e[:exception_class]}"
+        puts "#{e[:exception_message]}"
+        puts e[:sql]
+      end
+    end
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
+
+    expected_event_logs = 8 + 1                                   # created Event_Logs-records by trigger + existing from fixture
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+      VALUES (1, 'Record1', 'Y', SYSDATE, LOCALTIMESTAMP, HexToRaw('FFFF'), SYSTIMESTAMP
+      )"
+      )
+      rownum = 'RowNum'
+    when 'SQLITE' then
+      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+      VALUES (1, 'Record1', 'Y', '2020-02-01T12:20:22', '2020-02-01T12:20:22.999999+01:00', 'FFFF', '2020-02-01T12:20:22.999999+01:00'
+      )"
+      )
+      rownum = 'row_number() over ()'
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name) VALUES (2, 'Record2')")
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name) SELECT 2+#{rownum}, 'Recordx' FROM #{victim_schema_prefix}#{tables(:victim1).name}")
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record3', RowID_Val = RowID WHERE ID = 3")
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = 4")
+    exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (1, 2)")
+
+    real_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
+    assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
   end
 
 end
