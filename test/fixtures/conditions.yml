@@ -21,7 +21,7 @@ victim1_I:
   operation: I
   filter: <%=
     case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then ":new.Name != 'EXCLUDE FILTER'"
+    when 'ORACLE' then ":new.Name != 'EXCLUDE FILTER' /* Oracle */"
     when 'SQLITE' then "new.Name != 'EXCLUDE FILTER'"
     end %>
 
