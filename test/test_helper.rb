@@ -79,7 +79,7 @@ class ActiveSupport::TestCase
   def create_victim_structures(victim_connection)
     # Renove possible pending structures before recreating
     begin
-      drop_victim_structures
+      drop_victim_structures(victim_connection)
     rescue
       nil
     end

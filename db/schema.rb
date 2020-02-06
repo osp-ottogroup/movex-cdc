@@ -43,17 +43,16 @@ ActiveRecord::Schema.define(version: 2020_02_03_000000) do
     t.string "filter", limit: 4000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["table_id", "operation"], name: "ix_conditions_table_id_oper", unique: true
+    t.index ["table_id", "operation"], name: "ix_conditions_table_id_operation", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
-  create_table "event_logs", force: :cascade do |t|
-    t.integer "schema_id", null: false
-    t.integer "table_id", null: false
-    t.text "payload", null: false
-    t.datetime "created_at", precision: 6, null: false
-    t.index ["schema_id"], name: "index_event_logs_on_schema_id"
-    t.index ["table_id"], name: "index_event_logs_on_table_id"
+  create_table "event_logs", id: false, force: :cascade do |t|
+    t.integer "id"
+    t.integer "schema_id"
+    t.integer "table_id"
+    t.text "payload"
+    t.datetime "created_at", precision: 6
   end
 
   create_table "schema_rights", force: :cascade do |t|
