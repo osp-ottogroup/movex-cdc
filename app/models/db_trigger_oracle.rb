@@ -77,7 +77,7 @@ class DbTriggerOracle < TableLess
 
         trigger_data[:columns].each do |c|
           raise "Column '#{c[:column_name]}' does not exists in DB for table '#{@schema.name}.#{tab[:table_name]}'" if !ora_columns.has_key?(c[:column_name])
-          c[:data_type] = ora_columns[c[:column_name]][:data_type]
+          c[:data_type] = ora_columns[c[:column_name]]&.fetch(:data_type)
         end
 
 
@@ -170,8 +170,9 @@ BEGIN
     Flush;
     tab_size := 0;
   END IF;
-  payload_tab(tab_size + 1) := ''#{payload_command(target_trigger_data)}
-  ;
+  #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := ''#{payload_command(target_trigger_data)};
+  #{"END IF;" if target_trigger_data[:condition]}
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
 
 AFTER STATEMENT IS

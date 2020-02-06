@@ -68,6 +68,9 @@ class DbTriggerTest < ActiveSupport::TestCase
     exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = 4")
     exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (1, 2)")
 
+    # Next record should not generate record in Event_Logs
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name) VALUES (5, 'EXCLUDE FILTER')")
+
     real_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
     assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
   end

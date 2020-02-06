@@ -15,3 +15,14 @@ two:
   operation: D
   filter: ID IS NOT NULL
 # column: value
+
+victim1_I:
+  table_id: 4
+  operation: I
+  filter: <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then ":new.Name != 'EXCLUDE FILTER'"
+    when 'SQLITE' then "new.Name != 'EXCLUDE FILTER'"
+    end %>
+
+

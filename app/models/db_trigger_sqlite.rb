@@ -99,7 +99,8 @@ class DbTriggerSqlite < TableLess
   # Build trigger header from hash
   def build_trigger_header(target_trigger_data)
     result = "CREATE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} #{target_trigger_data[:operation]}"
-    result << " ON #{target_trigger_data[:table_name]}"
+    result << " ON #{target_trigger_data[:table_name]} FOR EACH ROW"
+    result << " WHEN #{target_trigger_data[:condition]}" if target_trigger_data[:condition]
     result
   end
 
