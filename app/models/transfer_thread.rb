@@ -1,4 +1,5 @@
 class TransferThread
+  include ExceptionHelper
   attr_reader :worker_id
 
   def self.create_worker(worker_id)
@@ -13,7 +14,6 @@ class TransferThread
   def initialize(worker_id)
     @worker_id = worker_id
     @stop_requested = false
-    @stop_completed = false
     @thread_mutex = Mutex.new                                                   # Ensure access on instance variables from two threads
   end
 
@@ -22,28 +22,20 @@ class TransferThread
     Rails.logger.info "TransferThread.process: New worker thread created with ID=#{@worker_id}"
 
     # Loop for ever, check cancel criterial in threadhandling
-    while !@stop_completed
+    while !@thread_mutex.synchronize { @stop_requested }
       sleep 1
 
-      @thread_mutex.synchronize do
-        if @stop_requested
-          Rails.logger.info "TransferThread(#{@worker_id}).process: stop request accepted"
-          @stop_completed = true
-        end
-      end
     end
     Rails.logger.info "TransferThread(#{@worker_id}).process: stopped"
+  rescue Exception => e
+    log_exception(e)
+  ensure
+    ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
   end
 
-  def stop_thread                                                               # called from mail thread / job
+  def stop_thread                                                               # called from main thread / job
     Rails.logger.info "TransferThread(#{@worker_id}).stop_thread: stop request executed"
     @thread_mutex.synchronize { @stop_requested = true }
-    local_stop_completed = false
-    while !local_stop_completed
-      sleep(0.1)                                                                # wait for process termination
-      @thread_mutex.synchronize { local_stop_completed = @stop_completed }      # check if process has terminated
-    end
-    Rails.logger.info "TransferThread(#{@worker_id}).stop_thread: stop request completed"
   end
 
 end
