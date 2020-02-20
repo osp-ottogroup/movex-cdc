@@ -58,10 +58,13 @@ export default {
   },
   methods: {
     onRowClicked(user) {
-      this.selectedUser = { ...user };
+      this.selectedUser = user;
     },
     onCreateUserButtonClicked() {
-      this.selectedUser = {};
+      this.selectedUser = {
+        id: null,
+        schema_rights: [],
+      };
     },
     async onSave(user) {
       await CRUD.users.update(user);
