@@ -28,8 +28,8 @@ class DbTriggersController < ApplicationController
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     check_user_for_valid_schema_right(schema.id)
 
-    DbTrigger.generate_triggers(schema.id)
-    # TODO: render success result
+    result = DbTrigger.generate_triggers(schema.id)
+    render json: result, status: result[:errors].count == 0 ? :ok : :internal_server_error
   end
 
   # POST /triggers/generate_all
@@ -39,10 +39,15 @@ class DbTriggersController < ApplicationController
     if schema_rights.empty?
       render json: { error: "No schemas available for user '#{@current_user.email}'" }, status: :unauthorized
     else
+      result = []
+      status = :ok
       schema_rights.each do |sr|
-        DbTrigger.generate_triggers(sr.schema_id)
+        schema_result = DbTrigger.generate_triggers(sr.schema_id)
+        status = :internal_server_error if schema_result[:errors].count > 0
+        schema_result[:schema_name] = sr.schema.name
+        result << schema_result
       end
-      # TODO: render success result
+      render json: result, status: status
     end
   end
 

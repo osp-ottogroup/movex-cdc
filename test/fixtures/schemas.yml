@@ -8,7 +8,7 @@ one:
 <% if Trixx::Application.config.trixx_db_type != 'SQLITE' %>
 victim:
   id:   2
-  name: <%= Trixx::Application.config.trixx_db_victim_user %>
+  name: <%= Trixx::Application.config.trixx_db_victim_user.upcase %>
 <% end %>
 
 

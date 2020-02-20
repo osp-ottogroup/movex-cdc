@@ -26,5 +26,5 @@ victim1:
     when 'ORACLE' then 2
     when 'SQLITE' then 1
     end %>
-  name: Victim1                                                                 # really existing table in test schema, created in test_helper.rb
+  name: VICTIM1                                                                 # really existing table in test schema, created in test_helper.rb
   info: Victim table in separate schema for use with triggers

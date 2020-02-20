@@ -24,7 +24,8 @@ stages:
     - date
     - java -version
     - gem install bundler
-    - bundle install --deployment
+    - bundle config set deployment 'true'
+    - bundle install --jobs 4
     - bundle exec rake ci_preparation:create_test_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - bundle exec rails test

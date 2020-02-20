@@ -99,17 +99,19 @@ class DbTriggerSqlite < TableLess
   # Build trigger header from hash
   def build_trigger_header(target_trigger_data)
     result = "CREATE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} #{target_trigger_data[:operation]}"
-    result << " ON #{target_trigger_data[:table_name]}"
+    result << " ON #{target_trigger_data[:table_name]} FOR EACH ROW"
+    result << " WHEN #{target_trigger_data[:condition]}" if target_trigger_data[:condition]
     result
   end
 
   # Build trigger code from hash
   def build_trigger_body(target_trigger_data)
-    payload = target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||#{c[:column_name]}||'"}.join(",\n")
+    accessor = target_trigger_data[:operation] == 'DELETE' ? 'old' : 'new'
+    payload = target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||ifnull(#{accessor}.#{c[:column_name]}, '')||'"}.join(",\n")
     "\
 BEGIN
-  INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, '{#{payload}}');
-END"
+  INSERT INTO Event_Logs(Schema_ID, Table_ID, Created_At, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, strftime('%Y-%m-%d %H-%M-%f','now'), '{#{payload}}');
+END;"
   end
 
   def operation_from_short_op(short_op)

@@ -52,16 +52,34 @@ class DbTriggerOracle < TableLess
     # get list of target triggers
     target_triggers = {}
     @target_trigger_data.each do |tab|
+      ora_columns = {}                                                          # list of table columns from db with column_name as key
+      TableLess.select_all(
+          "SELECT Column_Name, Data_Type FROM DBA_Tab_Columns WHERE Owner = :owner AND Table_Name = :table_name",
+          { owner: @schema.name, table_name: tab[:table_name]}
+      ).each do |c|
+        ora_columns[c['column_name']] = {
+            data_type: c['data_type']
+        }
+      end
+
       tab[:operations].each do |op|
         trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
+            schema_id:      @schema.id,
             schema_name:    @schema.name,
+            table_id:       tab[:table_id],
             table_name:     tab[:table_name],
             trigger_name:   trigger_name,
             operation:      operation_from_short_op(op[:operation]),            # INSERT/UPDATE/DELETE
             condition:      op[:condition],
             columns:        op[:columns]
         }
+
+        trigger_data[:columns].each do |c|
+          raise "Column '#{c[:column_name]}' does not exists in DB for table '#{@schema.name}.#{tab[:table_name]}'" if !ora_columns.has_key?(c[:column_name])
+          c[:data_type] = ora_columns[c[:column_name]]&.fetch(:data_type)
+        end
+
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
       end
@@ -125,24 +143,45 @@ class DbTriggerOracle < TableLess
 
   # Build trigger code from hash
   def build_trigger_body(target_trigger_data)
-    body = "COMPOUND TRIGGER\n"
-    body << "BEFORE STATEMENT IS\n"
-    body << "BEGIN\n"
-    body << " NULL;\n"
-    body << "END BEFORE STATEMENT;\n"
-    body << ""
-    body << "#{position_from_operation(target_trigger_data[:operation])} EACH ROW IS\n"
-    body << "BEGIN\n"
-    body << "  NULL;\n"
-    body << "END #{position_from_operation(target_trigger_data[:operation])} EACH ROW\n"
-    body << "\n"
-    body << "AFTER STATEMENT IS\n"
-    body << "BEGIN\n"
-    body << "  NULL;\n"
-    body << "END AFTER STATEMENT;\n"
-    body << "\n"
-    body << "END #{target_trigger_data[:trigger_name]};\n"
-    body
+    "\
+COMPOUND TRIGGER
+
+TYPE Payload_Tab_Type IS TABLE OF CLOB INDEX BY PLS_INTEGER;
+payload_tab Payload_Tab_Type;
+tab_size    PLS_INTEGER;
+
+PROCEDURE Flush IS
+BEGIN
+  FORALL i IN 1..payload_tab.COUNT
+    INSERT INTO Event_Logs(ID, Schema_ID, Table_ID, Payload, Created_At)
+    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:schema_id]}, #{target_trigger_data[:table_id]}, payload_tab(i), SYSTIMESTAMP);
+  payload_tab.DELETE;
+END Flush;
+
+BEFORE STATEMENT IS
+BEGIN
+  payload_tab.DELETE; /* remove possible fragments of previous transactions */
+END BEFORE STATEMENT;
+
+#{position_from_operation(target_trigger_data[:operation])} EACH ROW IS
+BEGIN
+  tab_size := Payload_Tab.COUNT;
+  IF tab_size > 1000 THEN
+    Flush;
+    tab_size := 0;
+  END IF;
+  #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := ''#{payload_command(target_trigger_data)};
+  #{"END IF;" if target_trigger_data[:condition]}
+END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
+
+AFTER STATEMENT IS
+BEGIN
+  Flush;
+END AFTER STATEMENT;
+
+END #{target_trigger_data[:trigger_name]};
+"
   end
 
   def operation_from_short_op(short_op)
@@ -162,10 +201,30 @@ class DbTriggerOracle < TableLess
   def exec_trigger_sql(sql, trigger_name)
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql)
-    @trigger_successes << {
-        trigger_name: trigger_name,
-        sql:          sql
-    }
+    errors = TableLess.select_all(
+        "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
+        {
+            owner:  Trixx::Application.config.trixx_db_user.upcase,
+            name:   trigger_name.upcase
+        }
+    )
+    if errors.count == 0
+      @trigger_successes << {
+          trigger_name: trigger_name,
+          sql:          sql
+      }
+    else
+      errors.each do |error|
+        @trigger_errors << {
+            trigger_name:       trigger_name,
+            exception_class:    "Compile error line #{error['line']} position #{error['position']}",
+            exception_message:  error['text'],
+            sql:                sql
+        }
+      end
+    end
+
+
   rescue Exception => e
     Rails.logger.error "#{e.class} #{e.message} executing\n#{sql}"
     @trigger_errors << {
@@ -176,4 +235,34 @@ class DbTriggerOracle < TableLess
     }
   end
 
+  # generate concatenated PL/SQL-commands for payload
+  def payload_command(target_trigger_data)
+    result = ''
+    target_trigger_data[:columns].each_index do |i|
+      col = target_trigger_data[:columns][i]
+      result << "||'#{', ' if i > 0}#{col[:column_name]}: '||#{convert_col(target_trigger_data, col)}"
+    end
+    result
+  end
+
+  # convert values to string in PL/SQL
+  def convert_col(target_trigger_data, column_hash)
+    accessor = target_trigger_data[:operation] == 'DELETE' ? ':old' : ':new'
+
+    case column_hash[:data_type]
+
+    when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'    # character data types
+    then "''''||#{accessor}.#{column_hash[:column_name]}||''''"
+    when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
+    then "TO_CHAR(#{accessor}.#{column_hash[:column_name]})"
+    when 'DATE'                         then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||''''"
+    when 'RAW'                          then "''''||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||''''"
+    when /^TIMESTAMP\([0-9]\)$/
+    then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||''''"
+    when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
+    then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||''''"
+    else
+      raise "Unsupported column type '#{column_hash[:data_type]}' for column '#{column_hash[:column_name]}'"
+    end
+  end
 end

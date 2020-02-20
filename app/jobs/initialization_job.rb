@@ -1,4 +1,5 @@
 require 'rake'
+
 class InitializationJob < ApplicationJob
   queue_as :default
 
@@ -12,7 +13,7 @@ class InitializationJob < ApplicationJob
     Rails.logger.info "Finished db:migrate"
 
     # After initialization regular operation can start
-    SystemValidationJob.set(wait: 1.seconds).perform_later
+    SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
   end
 
   # ensure that user admin exists
