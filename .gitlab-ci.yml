@@ -28,6 +28,11 @@ stages:
     - bundle install --jobs 4
     - bundle exec rake ci_preparation:create_test_user
     - bundle exec rails db:migrate RAILS_ENV=test
+    - >
+      if [ "$TRIXX_DB_TYPE" == "ORACLE" ]; then
+        # Check if db:rollback is functional + restore migration
+        bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
+      fi
     - bundle exec rails test
   artifacts:
     when: always
@@ -49,10 +54,6 @@ stages:
     TRIXX_DB_TYPE: "ORACLE"
     TRIXX_DB_SYSTEM_PASSWORD: "oracle"
     TEST_SERVICENAME: "ORCL"
-  script:
-    # Check if db:rollback is functional
-    - bundle exec rails db:migrate RAILS_ENV=test
-    - bundle exec rails db:migrate RAILS_ENV=test VERSION=0
 
 test_sqlite:
   stage: test
