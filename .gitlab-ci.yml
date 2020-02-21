@@ -31,6 +31,7 @@ stages:
     - >
       if [ "$TRIXX_DB_TYPE" == "ORACLE" ]; then
         # Check if db:rollback is functional + restore migration
+        # SQLite does not support remove_foreign_key although it is implemented
         bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
       fi
     - bundle exec rails test
