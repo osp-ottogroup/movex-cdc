@@ -9,4 +9,5 @@ one:
   id: 1
   schema_id: 1
   table_id: 1
+  operation: I
   payload: Dummy
