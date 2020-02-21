@@ -88,7 +88,7 @@ class ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
-        ID NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID
+        ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID
       )")
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
@@ -110,7 +110,7 @@ class ActiveSupport::TestCase
       ")
     when 'SQLITE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
-        ID NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT      )")
+        ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT      )")
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{tables(:victim1).name}
         BEGIN

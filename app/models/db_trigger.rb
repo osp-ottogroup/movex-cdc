@@ -67,6 +67,13 @@ class DbTrigger
      else
        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
+
+    result[:errors].each do |error|
+      Rails.logger.error "Error creating trigger #{error[:trigger_name]}"
+      Rails.logger.error "#{error[:exception_class]}: #{error[:exception_message]}"
+      Rails.logger.error "#{error[:sql]}"
+    end
+
     result
   end
 

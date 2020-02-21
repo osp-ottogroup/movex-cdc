@@ -49,6 +49,10 @@ stages:
     TRIXX_DB_TYPE: "ORACLE"
     TRIXX_DB_SYSTEM_PASSWORD: "oracle"
     TEST_SERVICENAME: "ORCL"
+  script:
+    # Check if db:rollback is functional
+    - bundle exec rails db:migrate RAILS_ENV=test
+    - bundle exec rails db:migrate RAILS_ENV=test VERSION=0
 
 test_sqlite:
   stage: test

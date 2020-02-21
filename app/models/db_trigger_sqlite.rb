@@ -39,13 +39,14 @@ class DbTriggerSqlite < TableLess
       tab[:operations].each do |op|
         trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
-            schema_name:    @schema.name,
-            table_id:       tab[:table_id],
-            table_name:     tab[:table_name],
-            trigger_name:   trigger_name,
-            operation:      operation_from_short_op(op[:operation]),            # INSERT/UPDATE/DELETE
-            condition:      op[:condition],
-            columns:        op[:columns]
+            schema_name:      @schema.name,
+            table_id:         tab[:table_id],
+            table_name:       tab[:table_name],
+            trigger_name:     trigger_name,
+            operation:        operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
+            operation_short:  op[:operation],                                   # I/U/D
+            condition:        op[:condition],
+            columns:          op[:columns]
         }
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
@@ -106,11 +107,22 @@ class DbTriggerSqlite < TableLess
 
   # Build trigger code from hash
   def build_trigger_body(target_trigger_data)
-    accessor = target_trigger_data[:operation] == 'DELETE' ? 'old' : 'new'
-    payload = target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||ifnull(#{accessor}.#{c[:column_name]}, '')||'"}.join(",\n")
+    accessors =
+        case target_trigger_data[:operation]
+        when 'INSERT' then ['new']
+        when 'UPDATE' then ['old', 'new']
+        when 'DELETE' then ['old']
+        end
+    payload = ''
+    accessors.each do |accessor|
+      payload << "#{accessor}: {"
+      payload << target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||ifnull(#{accessor}.#{c[:column_name]}, '')||'"}.join(",\n")
+      payload << "}"
+    end
+
     "\
 BEGIN
-  INSERT INTO Event_Logs(Schema_ID, Table_ID, Created_At, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, strftime('%Y-%m-%d %H-%M-%f','now'), '{#{payload}}');
+  INSERT INTO Event_Logs(Schema_ID, Table_ID, Operation, Created_At, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', strftime('%Y-%m-%d %H-%M-%f','now'), '{#{payload}}');
 END;"
   end
 

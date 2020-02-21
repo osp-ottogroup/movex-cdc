@@ -65,14 +65,15 @@ class DbTriggerOracle < TableLess
       tab[:operations].each do |op|
         trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
-            schema_id:      @schema.id,
-            schema_name:    @schema.name,
-            table_id:       tab[:table_id],
-            table_name:     tab[:table_name],
-            trigger_name:   trigger_name,
-            operation:      operation_from_short_op(op[:operation]),            # INSERT/UPDATE/DELETE
-            condition:      op[:condition],
-            columns:        op[:columns]
+            schema_id:        @schema.id,
+            schema_name:      @schema.name,
+            table_id:         tab[:table_id],
+            table_name:       tab[:table_name],
+            trigger_name:     trigger_name,
+            operation:        operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
+            operation_short:  op[:operation],                                   # I/U/D
+            condition:        op[:condition],
+            columns:          op[:columns]
         }
 
         trigger_data[:columns].each do |c|
@@ -153,8 +154,8 @@ tab_size    PLS_INTEGER;
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO Event_Logs(ID, Schema_ID, Table_ID, Payload, Created_At)
-    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:schema_id]}, #{target_trigger_data[:table_id]}, payload_tab(i), SYSTIMESTAMP);
+    INSERT INTO Event_Logs(ID, Schema_ID, Table_ID, Operation, Payload, Created_At)
+    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:schema_id]}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', payload_tab(i), SYSTIMESTAMP);
   payload_tab.DELETE;
 END Flush;
 
@@ -171,7 +172,7 @@ BEGIN
     tab_size := 0;
   END IF;
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
-  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := ''#{payload_command(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := #{payload_command(target_trigger_data)};
   #{"END IF;" if target_trigger_data[:condition]}
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
 
@@ -237,24 +238,35 @@ END #{target_trigger_data[:trigger_name]};
 
   # generate concatenated PL/SQL-commands for payload
   def payload_command(target_trigger_data)
-    result = ''
+    case target_trigger_data[:operation]
+    when 'INSERT' then payload_command_internal(target_trigger_data, 'new')
+    when 'UPDATE' then "#{payload_command_internal(target_trigger_data, 'old')}||',\n'||#{payload_command_internal(target_trigger_data, 'new')}"
+    when 'DELETE' then payload_command_internal(target_trigger_data, 'old')
+    else
+      raise "Unknown operation #{target_trigger_data[:operation]}"
+    end
+  end
+
+  def payload_command_internal(target_trigger_data, old_new)
+    result = "'#{old_new}: {\n'"
     target_trigger_data[:columns].each_index do |i|
       col = target_trigger_data[:columns][i]
-      result << "||'#{', ' if i > 0}#{col[:column_name]}: '||#{convert_col(target_trigger_data, col)}"
+      result << "||'  #{col[:column_name]}: '||#{convert_col(target_trigger_data, col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
     end
+    result << "||'}'"
     result
   end
 
   # convert values to string in PL/SQL
-  def convert_col(target_trigger_data, column_hash)
-    accessor = target_trigger_data[:operation] == 'DELETE' ? ':old' : ':new'
+  def convert_col(target_trigger_data, column_hash, old_new)
+    accessor = ":#{old_new}"
 
     case column_hash[:data_type]
 
     when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'    # character data types
     then "''''||#{accessor}.#{column_hash[:column_name]}||''''"
     when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
-    then "TO_CHAR(#{accessor}.#{column_hash[:column_name]})"
+    then "TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')"
     when 'DATE'                         then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||''''"
     when 'RAW'                          then "''''||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||''''"
     when /^TIMESTAMP\([0-9]\)$/
