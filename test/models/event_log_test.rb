@@ -3,7 +3,7 @@ require 'test_helper'
 class EventLogTest < ActiveSupport::TestCase
 
   test "create event log" do
-    EventLog.new(schema_id: 1, table_id: 1, payload: 'Payload').save!
+    EventLog.new(schema_id: 1, table_id: 1, operation: 'I', payload: 'Payload').save!
   end
 
   test "select event log" do
