@@ -12,6 +12,9 @@ class InitializationJob < ApplicationJob
     Rake::Task['db:migrate'].invoke
     Rails.logger.info "Finished db:migrate"
 
+    # LOG JDBC driver version
+    Rails.logger.info "ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion"
+
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
   end

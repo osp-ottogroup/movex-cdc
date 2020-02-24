@@ -16,6 +16,7 @@ stages:
 .tests:
   variables:
     RAILS_ENV: "test"
+    TRIXX_KAFKA_SEED_BROKER: "/dev/null"
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
