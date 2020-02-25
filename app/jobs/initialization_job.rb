@@ -30,4 +30,5 @@ class InitializationJob < ApplicationJob
       end
     end
   end
+
 end

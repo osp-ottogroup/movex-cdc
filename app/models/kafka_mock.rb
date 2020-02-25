@@ -30,7 +30,7 @@ class KafkaMock
 
   end
 
-  def producer
+  def producer(options = {})
     Producer.new
   end
 

@@ -82,5 +82,19 @@ TRIXX_KAFKA_SEED_BROKER = #{config.trixx_kafka_seed_broker}
 
     puts msg
 
+    # check if database supports partitioning (possible and licensed)
+    def partitioning
+      if !defined? @trixx_db_partitioning
+        @trixx_db_partitioning = case config.trixx_db_type
+                                 when 'ORACLE' then
+                                   TableLess.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
+                                 else
+                                   false
+                                 end
+        Rails.logger.info "Partitioning = #{@trixx_db_partitioning} for this #{config.trixx_db_type} database"
+      end
+      @trixx_db_partitioning
+    end
+
   end
 end
