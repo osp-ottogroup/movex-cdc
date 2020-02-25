@@ -1,4 +1,5 @@
 require 'kafka'
+require 'kafka_mock'
 require 'socket'
 
 class TransferThread

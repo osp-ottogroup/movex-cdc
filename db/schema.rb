@@ -13,19 +13,19 @@
 ActiveRecord::Schema.define(version: 2020_02_03_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
-    t.integer "user_id", null: false
+    t.integer "user_id", precision: 38, null: false
     t.string "schema_name", limit: 256
     t.string "table_name", limit: 256
     t.string "column_name", limit: 256
     t.string "action", limit: 1024, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["schema_name", "table_name", "column_name"], name: "IX_ACTIVITY_LOG_TABCOL"
+    t.index ["schema_name", "table_name", "column_name"], name: "ix_activity_log_tabcol"
     t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
 
   create_table "columns", force: :cascade do |t|
-    t.integer "table_id", null: false
+    t.integer "table_id", precision: 38, null: false
     t.string "name", limit: 256, null: false
     t.string "info", limit: 1000, null: false
     t.string "yn_log_insert", limit: 1, null: false
@@ -33,38 +33,38 @@ ActiveRecord::Schema.define(version: 2020_02_03_000000) do
     t.string "yn_log_delete", limit: 1, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["table_id", "name"], name: "IX_COLUMNS_TABLE_NAME", unique: true
+    t.index ["table_id", "name"], name: "ix_columns_table_name", unique: true
     t.index ["table_id"], name: "index_columns_on_table_id"
   end
 
   create_table "conditions", force: :cascade do |t|
-    t.integer "table_id", null: false
+    t.integer "table_id", precision: 38, null: false
     t.string "operation", limit: 1, null: false
     t.string "filter", limit: 4000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["table_id", "operation"], name: "IX_CONDITIONS_TABLE_ID_OPER", unique: true
+    t.index ["table_id", "operation"], name: "ix_conditions_table_id_oper", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
   create_table "event_logs", force: :cascade do |t|
-    t.integer "schema_id", null: false
-    t.integer "table_id", null: false
+    t.integer "schema_id", precision: 38, null: false
+    t.integer "table_id", precision: 38, null: false
     t.string "operation", limit: 1, null: false
     t.text "payload", null: false
-    t.datetime "created_at", null: false
+    t.datetime "created_at", precision: 6, null: false
     t.index ["schema_id"], name: "index_event_logs_on_schema_id"
     t.index ["table_id"], name: "index_event_logs_on_table_id"
   end
 
   create_table "schema_rights", force: :cascade do |t|
-    t.integer "user_id", null: false
-    t.integer "schema_id", null: false
+    t.integer "user_id", precision: 38, null: false
+    t.integer "schema_id", precision: 38, null: false
     t.string "info", limit: 1000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["schema_id"], name: "index_schema_rights_on_schema_id"
-    t.index ["user_id", "schema_id"], name: "IX_SCHEMA_RIGHTS_LOGICAL_PKEY", unique: true
+    t.index ["user_id", "schema_id"], name: "ix_schema_rights_logical_pkey", unique: true
     t.index ["user_id"], name: "index_schema_rights_on_user_id"
   end
 
@@ -72,16 +72,16 @@ ActiveRecord::Schema.define(version: 2020_02_03_000000) do
     t.string "name", limit: 256, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["name"], name: "IX_SCHEMAS_NAME", unique: true
+    t.index ["name"], name: "ix_schemas_name", unique: true
   end
 
   create_table "tables", force: :cascade do |t|
-    t.integer "schema_id", null: false
+    t.integer "schema_id", precision: 38, null: false
     t.string "name", limit: 256, null: false
     t.string "info", limit: 1000, null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["schema_id", "name"], name: "IX_TABLES_SCHEMA_NAME", unique: true
+    t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end
 
@@ -93,8 +93,8 @@ ActiveRecord::Schema.define(version: 2020_02_03_000000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "yn_admin", limit: 1, default: "N", null: false
-    t.index ["db_user"], name: "IX_USERS_DB_USER"
-    t.index ["email"], name: "IX_USERS_EMAIL", unique: true
+    t.index ["db_user"], name: "ix_users_db_user"
+    t.index ["email"], name: "ix_users_email", unique: true
   end
 
   add_foreign_key "activity_logs", "users"

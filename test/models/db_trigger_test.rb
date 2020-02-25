@@ -29,10 +29,13 @@ class DbTriggerTest < ActiveSupport::TestCase
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors)
 
+=begin
     puts "Successes:" if result[:successes].count > 0
     result[:successes].each do |s|
       puts s
     end
+=end
+
     if result[:errors].count > 0
       puts "Errors:"
       result[:errors].each do |e|
