@@ -34,7 +34,6 @@ module Trixx
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
-
     config.trixx_db_type = ENV['TRIXX_DB_TYPE'] || 'SQLITE'
 
     supported_db_types = ['ORACLE', 'SQLITE']
@@ -43,7 +42,7 @@ module Trixx
     config.trixx_db_user            = ENV['TRIXX_DB_USER']
     config.trixx_db_password        = ENV['TRIXX_DB_PASSWORD']
     config.trixx_db_url             = ENV['TRIXX_DB_URL']
-    config.trixx_kafka_seed_broker  = ENV['TRIXX_KAFKA_SEED_BROKER']
+    config.trixx_kafka_seed_broker  = ENV['TRIXX_KAFKA_SEED_BROKER'] || '/dev/null'
 
     # Verify mandatory settings
     if Rails.env.test?

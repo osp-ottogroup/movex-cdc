@@ -4,6 +4,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
   test "process" do
     ThreadHandling.get_instance.ensure_processing
+    sleep 1
     assert_equal(ThreadHandling::INITIAL_NUMBER_OF_THREADS, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     sleep 3                                                                     # let workers start work

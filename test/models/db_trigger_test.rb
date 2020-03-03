@@ -46,7 +46,8 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
-    expected_event_logs = 8 + 1                                   # created Event_Logs-records by trigger + existing from fixture
+    fixture_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
+    expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then

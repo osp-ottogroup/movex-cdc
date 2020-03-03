@@ -11,3 +11,12 @@ one:
   table_id: 1
   operation: I
   payload: Dummy
+  created_at: <%= 5.day.ago.to_s(:db) %>
+
+two:
+  id: 2
+  schema_id: 1
+  table_id: 1
+  operation: U
+  payload: Dummy2
+  created_at: <%= 4.day.ago.to_s(:db) %>

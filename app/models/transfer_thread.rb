@@ -1,6 +1,7 @@
 require 'kafka'
 require 'kafka_mock'
 require 'socket'
+require 'table_less'
 
 class TransferThread
   include ExceptionHelper
@@ -20,6 +21,8 @@ class TransferThread
     @stop_requested = false
     @thread_mutex = Mutex.new                                                   # Ensure access on instance variables from two threads
     @max_event_logs_id = 0                                                      # maximum processed id
+    @schemas_cache = {}                                                         # cache for match id to name
+    @tables_cache = {}                                                          # cache for match id to name
   end
 
   MAX_MESSAGE_BULK_COUNT = 10000                                                # Number of records to process within one bulk operation, each operation causes full table scan at Event_Logs
@@ -42,7 +45,7 @@ class TransferThread
             if event_logs.count > 0
               idle_sleep_time = 0                                               # Reset sleep time for next idle time
               event_logs.each do |event_log|
-                @max_event_logs_id = event_log.id if event_log.id > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+                @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
                 kafka_producer.produce(prepare_message_from_event_log(event_log), topic: "test-messages")   # Store messages in local collection
               end
               kafka_producer.deliver_messages                                   # bulk transfer of messages from collection to kafka
@@ -51,8 +54,8 @@ class TransferThread
               idle_sleep_time += 1 if idle_sleep_time < 60
               sleep idle_sleep_time                                             # sleep some time if no records are to be processed
             end
-          end
-        end
+          end                                                                   # Kafka-Transaction
+        end                                                                     # DB-Transaction
       rescue Exception => e
         kafka_producer.clear_buffer                                             # remove all pending (not processed by kafka) messages from producer buffer
         raise e
@@ -74,17 +77,27 @@ class TransferThread
 
   private
   def read_event_logs_batch
+    # Ensure that older IDs are processed first
+    # only half of MAX_MESSAGE_BULK_COUNT is processed with newer IDs than last execution
+    # the other half of MAX_MESSAGE_BULK_COUNT is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning
-        # Iterate over older partitions up to MAX_MESSAGE_BULK_COUNT records
-        []
+        event_logs = []
+        # Iterate over partitions starting with oldest up to MAX_MESSAGE_BULK_COUNT records
+        TableLess.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
+            .sort_by{|x| x['high_value']}.each do |part|
+          remaining_records = MAX_MESSAGE_BULK_COUNT - event_logs.count         # available space for more result records
+          if remaining_records > 0                                              # add records from next partition to result
+            event_logs.concat(TableLess.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs PARTITION (#{part['partition_name']}) e WHERE (ID < :max_id AND RowNum <= :remaining_records1) OR RowNum <= :remaining_records2 / 2 FOR UPDATE SKIP LOCKED",
+                              {max_id: @max_event_logs_id, remaining_records1: remaining_records, remaining_records2: remaining_records })
+            )
+          end
+        end
+        event_logs
       else
-        # Ensure that older IDs are processed first
-        # only half of MAX_MESSAGE_BULK_COUNT is processed with newer IDs than last execution
-        # the other half of MAX_MESSAGE_BULK_COUNT is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
-        TableLess.select_all("SELECT * FROM Event_Logs WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count) OR RowNum <= :max_message_bulk_count / 2",
-                             {max_id: @max_event_logs_id, max_message_bulk_count: MAX_MESSAGE_BULK_COUNT}
+        TableLess.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
+                             {max_id: @max_event_logs_id, max_message_bulk_count1: MAX_MESSAGE_BULK_COUNT, max_message_bulk_count2: MAX_MESSAGE_BULK_COUNT }
         )
       end
     when 'SQLITE' then
@@ -92,9 +105,9 @@ class TransferThread
       # only half of MAX_MESSAGE_BULK_COUNT is processed with newer IDs than last execution
       # the other half of MAX_MESSAGE_BULK_COUNT is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
       TableLess.select_all("\
-SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{MAX_MESSAGE_BULK_COUNT}
-UNION ALL
-SELECT * FROM Event_Logs WHERE LIMIT #{MAX_MESSAGE_BULK_COUNT / 2}",
+SELECT * FROM (SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{MAX_MESSAGE_BULK_COUNT})
+UNION
+SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
                            {max_id: @max_event_logs_id}
       )
     else
@@ -103,10 +116,74 @@ SELECT * FROM Event_Logs WHERE LIMIT #{MAX_MESSAGE_BULK_COUNT / 2}",
   end
 
   def delete_event_logs_batch(event_logs)
-
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      begin
+        sql = "DELETE FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
+        jdbc_conn = ActiveRecord::Base.connection.raw_connection
+        cursor = jdbc_conn.prepareStatement sql
+        array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
+        cursor.setArray(1, array)
+        result = cursor.executeUpdate
+        raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
+      rescue Exception => e
+        Rails.logger.error "#{e.class}: #{e.message}\nErroneous SQL:\n#{sql}"
+        raise e
+      ensure
+        cursor.close if defined? cursor
+      end
+    when 'SQLITE' then
+      event_logs.each do |e|
+        rows = TableLess.execute "DELETE FROM Event_Logs WHERE ID = :id", id: e['id']  # No known way for SQLite to execute in array binding
+        raise "Error in TransferThread.delete_event_logs_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
+      end
+    end
   end
 
   def prepare_message_from_event_log(event_log)
+    "\
+schema: '#{schema_name(event_log['schema_id'])}',
+tablename: '#{table_name(event_log['table_id'])}',
+operation: '#{long_operation_from_short(event_log['operation'])}',
+timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
+#{event_log['payload']}
+    "
+  end
 
+  private
+  def long_operation_from_short(op)
+    case op
+    when 'I' then 'INSERT'
+    when 'U' then 'UPDATE'
+    when 'D' then 'DELETE'
+    else raise "Unknown operation '#{op}'"
+    end
+  end
+
+  # Cache schema names for repeated usage
+  def schema_name(schema_id)
+    unless @schemas_cache[schema_id]
+      @schemas_cache[schema_id] = Schema.find(schema_id).name
+    end
+    @schemas_cache[schema_id]
+  end
+
+  # Cache table names for repeated usage
+  def table_name(table_id)
+    unless @tables_cache[table_id]
+      @tables_cache[table_id] = Table.find(table_id).name
+    end
+    @tables_cache[table_id]
+  end
+
+  def timestamp_as_iso_string(timestamp)
+    timestamp_as_time =
+        case timestamp.class.name
+        when 'String' then                                                      # assume structure like 2020-02-27 12:50:42, e.g. for SQLite without column type DATE
+          Time.parse(timestamp)
+        else
+          timestamp
+        end
+    timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"
   end
 end
