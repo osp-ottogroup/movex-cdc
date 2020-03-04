@@ -13,8 +13,8 @@ class ThreadHandling
 
     # calculate required number of worker threads
     required_number_of_threads = current_thread_pool_size                       # Current state as default
-    required_number_of_threads = INITIAL_NUMBER_OF_THREADS if @thread_pool.count == 0 # Startup setup
-
+    required_number_of_threads = INITIAL_NUMBER_OF_THREADS if current_thread_pool_size == 0 # Startup setup
+    Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}"
     unless @shutdown_requested                                                # don't start new worker during server shutdown
 
       @thread_pool_mutex.synchronize do

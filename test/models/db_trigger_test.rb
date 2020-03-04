@@ -79,8 +79,9 @@ class DbTriggerTest < ActiveSupport::TestCase
     assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
 
     # Dump Event_Logs
+    Rails.logger.info "======== Dump all event_logs ========="
     TableLess.select_all("SELECT * FROM Event_Logs").each do |e|
-      puts e['payload']
+      Rails.logger.info e['payload']
     end
   end
 
