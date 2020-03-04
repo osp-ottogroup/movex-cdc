@@ -142,6 +142,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
 
   def prepare_message_from_event_log(event_log)
     "\
+id: #{event_log['id']},
 schema: '#{schema_name(event_log['schema_id'])}',
 tablename: '#{table_name(event_log['table_id'])}',
 operation: '#{long_operation_from_short(event_log['operation'])}',

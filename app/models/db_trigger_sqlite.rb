@@ -122,7 +122,7 @@ class DbTriggerSqlite < TableLess
 
     "\
 BEGIN
-  INSERT INTO Event_Logs(Schema_ID, Table_ID, Operation, Created_At, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}');
+  INSERT INTO Event_Logs(Schema_ID, Table_ID, Operation, DBUser, Created_At, Payload) VALUES (#{@schema.id}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}');
 END;"
   end
 

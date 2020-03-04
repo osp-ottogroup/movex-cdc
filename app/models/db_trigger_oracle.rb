@@ -103,8 +103,8 @@ class DbTriggerOracle < TableLess
     existing_triggers.each do |trigger|                                         # iterate over existing trigger of target schema
       trigger_name = trigger['trigger_name']                                    # Name of existing trigger
       if target_triggers.has_key? trigger_name                                  # existing trigger should survive
-        body = build_trigger_body(target_triggers[trigger_name])                  # target body structure
-        # TODO: Check trigger for difference on body and whenclause and replace if different
+        body = build_trigger_body(target_triggers[trigger_name])                # target body structure
+        # TODO: Check trigger for difference on body and whenclause and replace only if different
 
         exec_trigger_sql "#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name
         target_triggers.delete trigger_name                                     # remove processed trigger from target triggers at success and also at error
@@ -113,7 +113,7 @@ class DbTriggerOracle < TableLess
       end
     end
 
-    # TODO: create remaining not yet existing triggers
+    # create remaining not yet existing triggers
     target_triggers.values.each do |target_trigger|
       exec_trigger_sql "#{build_trigger_header(target_trigger)}\n#{build_trigger_body(target_trigger)}", target_trigger[:trigger_name]
     end
@@ -150,12 +150,13 @@ COMPOUND TRIGGER
 TYPE Payload_Tab_Type IS TABLE OF CLOB INDEX BY PLS_INTEGER;
 payload_tab Payload_Tab_Type;
 tab_size    PLS_INTEGER;
+dbuser      VARCHAR2(128) := USER;
 
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO Event_Logs(ID, Schema_ID, Table_ID, Operation, Payload, Created_At)
-    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:schema_id]}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', payload_tab(i), SYSTIMESTAMP);
+    INSERT INTO Event_Logs(ID, Schema_ID, Table_ID, Operation, DBUser, Payload, Created_At)
+    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:schema_id]}, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i), SYSTIMESTAMP);
   payload_tab.DELETE;
 END Flush;
 

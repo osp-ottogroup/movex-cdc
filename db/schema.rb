@@ -51,6 +51,7 @@ ActiveRecord::Schema.define(version: 2020_03_03_000000) do
     t.integer "schema_id", null: false
     t.integer "table_id", null: false
     t.string "operation", limit: 1, null: false
+    t.string "dbuser", limit: 128, null: false
     t.text "payload", null: false
     t.datetime "created_at", null: false
     t.index ["schema_id"], name: "index_event_logs_on_schema_id"

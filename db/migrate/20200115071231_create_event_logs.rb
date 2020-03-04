@@ -9,6 +9,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
         Schema_ID   NUMBER(38)    NOT NULL,
         Table_ID    NUMBER(38)    NOT NULL,
         Operation   CHAR(1)       NOT NULL,
+        DBUser      VARCHAR2(128) NOT NULL,
         Payload     CLOB          NOT NULL,
         Created_At  TIMESTAMP(6)  NOT NULL
         )
@@ -22,7 +23,8 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
       create_table :event_logs do |t|
         t.references  :schema,                null: false, comment: 'Reference to schemas'
         t.references  :table,                 null: false, comment: 'Reference to tables'
-        t.string      :operation,   limit: 1, null: false, comment: 'Operation type /I/U/D  '
+        t.string      :operation, limit: 1,   null: false, comment: 'Operation type /I/U/D'
+        t.string      :dbuser,    limit: 128, null: false, comment: 'Name of connected DB user'
         t.text        :payload,               null: false, comment: 'Payload of message with old and new values'
         t.timestamp   :created_at,            null: false,  comment: 'Record creation timestamp'
       end

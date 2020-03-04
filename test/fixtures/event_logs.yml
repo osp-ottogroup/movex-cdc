@@ -10,13 +10,15 @@ one:
   schema_id: 1
   table_id: 1
   operation: I
+  dbuser: HUGO
   payload: Dummy
-  created_at: <%= 5.day.ago.to_s(:db) %>
+  created_at: <%= 5.seconds.ago.to_s(:db) %>  # must be younger than Oracle partition timestamp for MIN
 
 two:
   id: 2
   schema_id: 1
   table_id: 1
   operation: U
+  dbuser: ALFRED
   payload: Dummy2
-  created_at: <%= 4.day.ago.to_s(:db) %>
+  created_at: <%= 4.seconds.ago.to_s(:db) %> # must be younger than Oracle partition timestamp for MIN
