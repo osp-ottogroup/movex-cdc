@@ -32,7 +32,31 @@ class Housekeeping
                             WHERE  Table_Name = 'EVENT_LOGS'
                             AND Partition_Name != 'MIN'"
       ).each do |part|
-
+        part_high_value_ts = Time.parse(part['high_value'])
+        oldest_high_value = TableLess.select_one "SELECT SYSDATE - 1/24 FROM DUAL" # Use time from DB because of possibe different time zone compared to client
+        if part_high_value_ts < oldest_high_value                               # Check partitions only with high_value older than x hours
+          Rails.logger.info "Housekeeping: Check partition #{part['partition_name']} with high value #{part['high_value']} for deletion"
+          pending_transactions = TableLess.select_one("\
+            SELECT COUNT(*)
+            FROM   gv$Lock l
+            JOIN   All_Objects o ON o.Object_ID = l.ID1
+            WHERE  o.Object_Name    = 'EVENT_LOGS'
+            AND    o.SubObject_Name = :partition_name
+            ", partition_name: part['partition_name']
+          )
+          if pending_transactions > 0
+            Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{pending_transactions} pending transactions"
+          else
+            existing_records = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{part['partition_name']})"
+            if existing_records > 0
+              Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{existing_records} records remaining"
+            else
+              Rails.logger.info "Housekeeping: Execute drop partition #{part['partition_name']} with high value #{part['high_value']}"
+              TableLess.execute "ALTER TABLE Event_Logs DROP PARTITION #{part['partition_name']}"
+              Rails.logger.info "Housekeeping: Successful dropped partition #{part['partition_name']} with high value #{part['high_value']}"
+            end
+          end
+        end
       end
     end
 
