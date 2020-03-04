@@ -27,10 +27,17 @@ class Housekeeping
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      TableLess.select_all("SELECT Partition_Name, High_Value
+      # check all partitions for deletion except the youngest one
+      TableLess.select_all("\
+        WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
                             FROM   User_Tab_Partitions
                             WHERE  Table_Name = 'EVENT_LOGS'
-                            AND Partition_Name != 'MIN'"
+                            AND Partition_Name != 'MIN'
+                           )
+        SELECT Partition_Name, High_Value
+        FROM   Partitions
+        WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions)
+        "
       ).each do |part|
         part_high_value_ts = Time.parse(part['high_value'])
         oldest_high_value = TableLess.select_one "SELECT SYSDATE - 1/24 FROM DUAL" # Use time from DB because of possibe different time zone compared to client

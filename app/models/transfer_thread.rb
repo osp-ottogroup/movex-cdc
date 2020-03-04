@@ -33,7 +33,8 @@ class TransferThread
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
     kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}")
-    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT)
+    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: "TRIXX-#{@worker_id}")
+    kafka_producer.init_transactions                                            # Should be called once before starting transactions
 
     # Loop for ever, check cancel criterial in threadhandling
     idle_sleep_time = 0
