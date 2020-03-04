@@ -48,6 +48,7 @@ class ThreadHandling
     end
     if @thread_pool_mutex.synchronize { @thread_pool.count } == 0
       Rails.logger.info "All TransferThread worker are stopped now, shutting down"
+      @shutdown_requested = false if Rails.env.test?                            # Reset state. Only valid for test if multiple tests are running with one object instance. In reality whole Rails process will shutdown now
     else
       Rails.logger.info "Not all TransferThread worker are stopped now (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
     end
