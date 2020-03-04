@@ -23,7 +23,7 @@ class TransferThreadTest < ActiveSupport::TestCase
       worker.stop_thread
     end
 
-    worker.process
+    worker.process                                                              # only synchrone execution ensures valid test of function
     assert_equal 0, TableLess.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All Records from Event_Logs should be processed and deleted now'
   end
 
