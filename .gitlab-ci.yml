@@ -17,10 +17,16 @@ stages:
   services:
     - name: confluentinc/cp-zookeeper
       alias: zookeeper
+    - name: confluentinc/cp-kafka
+      alias: kafka
   variables:
     RAILS_ENV: "test"
     TRIXX_KAFKA_SEED_BROKER: "/dev/null"
     ZOOKEEPER_CLIENT_PORT: 2181
+    KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+    KAFKA_BROKER_ID: 1
+    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
