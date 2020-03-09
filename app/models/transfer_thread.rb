@@ -2,6 +2,7 @@ require 'kafka'
 require 'kafka_mock'
 require 'socket'
 require 'table_less'
+require 'schema'
 
 class TransferThread
   include ExceptionHelper
