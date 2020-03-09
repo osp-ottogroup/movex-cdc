@@ -51,10 +51,11 @@
               </div>
             </div>
           </div>
+
           <div class="column border-left">
             <label class="label">DB Schemas</label>
             <button class="button is-fullwidth is-small"
-                    @click="onAddSelectedSchema(index)"
+                    @click="onAddSchemaRight(index)"
                     v-for="(selectableDbSchema, index) in selectableDbSchemas"
                     :key="index">
               <span class="flex-auto">{{ selectableDbSchema.name }}</span>
@@ -62,11 +63,12 @@
                 <i class="fas fa-greater-than"></i>
               </span>
             </button>
-            </div>
+          </div>
+
           <div class="column border-left">
             <label class="label">Authorized Schemas</label>
             <button class="button is-fullwidth is-small"
-                    @click="onRemoveSelectedSchema(index)"
+                    @click="onRemoveSchemaRight(index)"
                     v-for="(schemaRight, index) in internalUser.schema_rights"
                     :key="index">
               <span class="icon is-small">
@@ -117,8 +119,10 @@ export default {
   data() {
     return {
       // a copy of the user property to work with inside this component
-      // (changing properties directly is bad practice)
-      internalUser: { ...this.user },
+      // (because of changing properties directly is bad practice)
+      // need JSON here, because of destructuring ( {...this.user} ) will do only a shallow copy
+      // user -> schema_rights -> schema, schema would be a reference
+      internalUser: JSON.parse(JSON.stringify(this.user)),
       dbSchemas: [],
       selectableDbSchemas: [],
     };
@@ -148,28 +152,22 @@ export default {
         this.$emit('create', this.internalUser);
       }
     },
-    onAddSelectedSchema(index) {
-      this.internalUser.schema_rights.push({ schema: this.selectableDbSchemas[index] });
-      // this.sortSchemaList(this.internalUser.schema_rights);
+    onAddSchemaRight(index) {
+      this.internalUser.schema_rights.push({
+        info: 'TODO',
+        schema: this.selectableDbSchemas[index],
+      });
+      this.internalUser.schema_rights.sort((a, b) => (
+        a.schema.name.toUpperCase() > b.schema.name.toUpperCase() ? 1 : -1
+      ));
       this.selectableDbSchemas.splice(index, 1);
     },
-    onRemoveSelectedSchema(index) {
-      this.selectableDbSchemas.push(this.internalUser.schema_rights[index]);
-      // this.sortSchemaList(this.selectableDbSchemas);
+    onRemoveSchemaRight(index) {
+      this.selectableDbSchemas.push(this.internalUser.schema_rights[index].schema);
+      this.selectableDbSchemas.sort((a, b) => (
+        a.name.toUpperCase() > b.name.toUpperCase() ? 1 : -1
+      ));
       this.internalUser.schema_rights.splice(index, 1);
-    },
-    sortSchemaList(schemas) {
-      schemas.sort((a, b) => {
-        const aUpper = a.name.toUpperCase();
-        const bUpper = b.name.toUpperCase();
-        if (aUpper < bUpper) {
-          return -1;
-        }
-        if (aUpper > bUpper) {
-          return 1;
-        }
-        return 0;
-      });
     },
   },
 };

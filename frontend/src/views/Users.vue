@@ -67,7 +67,7 @@ export default {
       };
     },
     async onSave(user) {
-      await CRUD.users.update(user);
+      await CRUD.users.update(user.id, { user });
       const index = this.users.findIndex(elem => elem.id === user.id);
       this.$set(this.users, index, user);
       this.selectedUser = null;
