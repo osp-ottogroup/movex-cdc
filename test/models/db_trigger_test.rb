@@ -29,10 +29,13 @@ class DbTriggerTest < ActiveSupport::TestCase
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors)
 
+=begin
     puts "Successes:" if result[:successes].count > 0
     result[:successes].each do |s|
       puts s
     end
+=end
+
     if result[:errors].count > 0
       puts "Errors:"
       result[:errors].each do |e|
@@ -43,7 +46,8 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
-    expected_event_logs = 8 + 1                                   # created Event_Logs-records by trigger + existing from fixture
+    fixture_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
+    expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
@@ -62,8 +66,8 @@ class DbTriggerTest < ActiveSupport::TestCase
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
 
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name) VALUES (2, 'Record2')")
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Name) SELECT 2+#{rownum}, 'Recordx' FROM #{victim_schema_prefix}#{tables(:victim1).name}")
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name) VALUES (2, 45.375, 'Record2')")
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name) SELECT 2+#{rownum}, 48.375, 'Recordx' FROM #{victim_schema_prefix}#{tables(:victim1).name}")
     exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record3', RowID_Val = RowID WHERE ID = 3")
     exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = 4")
     exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (1, 2)")
@@ -73,6 +77,12 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     real_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
     assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
+
+    # Dump Event_Logs
+    Rails.logger.info "======== Dump all event_logs ========="
+    TableLess.select_all("SELECT * FROM Event_Logs").each do |e|
+      Rails.logger.info e['payload']
+    end
   end
 
 end

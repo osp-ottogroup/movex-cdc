@@ -79,3 +79,11 @@ victim1_8:
   yn_log_insert: Y
   yn_log_update: Y
   yn_log_delete: Y
+
+victim1_9:
+  table_id: 4
+  name: NUM_VAL
+  info: NumVal test
+  yn_log_insert: Y
+  yn_log_update: Y
+  yn_log_delete: Y

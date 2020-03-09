@@ -13,8 +13,8 @@ class ThreadHandling
 
     # calculate required number of worker threads
     required_number_of_threads = current_thread_pool_size                       # Current state as default
-    required_number_of_threads = INITIAL_NUMBER_OF_THREADS if @thread_pool.count == 0 # Startup setup
-
+    required_number_of_threads = INITIAL_NUMBER_OF_THREADS if current_thread_pool_size == 0 # Startup setup
+    Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
     unless @shutdown_requested                                                # don't start new worker during server shutdown
 
       @thread_pool_mutex.synchronize do
@@ -48,6 +48,7 @@ class ThreadHandling
     end
     if @thread_pool_mutex.synchronize { @thread_pool.count } == 0
       Rails.logger.info "All TransferThread worker are stopped now, shutting down"
+      @shutdown_requested = false if Rails.env.test?                            # Reset state. Only valid for test if multiple tests are running with one object instance. In reality whole Rails process will shutdown now
     else
       Rails.logger.info "Not all TransferThread worker are stopped now (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
     end

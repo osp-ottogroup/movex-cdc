@@ -1,0 +1,45 @@
+# docker-compose.yml for Kafka installation from wurstmeister
+# change KAFKA_ADVERTISED_HOST_NAME to your host / IP
+# run commands for:
+# start cluster:      docker-compose -f kafka_docker-compose.yml up
+# add more brokers:   docker-compose -f kafka_docker-compose.yml scale kafka=3
+# destroy cluster:    docker-compose -f kafka_docker-compose.yml stop
+
+version: '2'
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper 
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+  kafka1:
+    image: confluentinc/cp-kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka1:9092
+      KAFKA_BROKER_ID: 1 
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+  kafka2:
+    image: confluentinc/cp-kafka
+    ports:
+      - "9093:9093"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka2:9093
+      KAFKA_BROKER_ID: 2 
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock
+  kafka3:
+    image: confluentinc/cp-kafka
+    ports:
+      - "9094:9094"
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka3:9094
+      KAFKA_BROKER_ID: 3 
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock

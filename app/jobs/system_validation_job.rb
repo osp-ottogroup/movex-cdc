@@ -7,5 +7,7 @@ class SystemValidationJob < ApplicationJob
     # Ensure that enough worker threads are operating for event transfer
     ThreadHandling.get_instance.ensure_processing
 
+    # do housekeeping activities
+    Housekeeping.get_instance.do_housekeeping
   end
 end

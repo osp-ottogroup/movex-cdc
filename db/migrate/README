@@ -2,3 +2,5 @@ Rules for migrations in TriXX
 =============================
 
 - One migration file should contain only one atomic operation, not more. Because Oracle doesn't have transactional DDL.
+- foreign key names should always be lower case
+- index names should always be upper case

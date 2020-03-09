@@ -1,0 +1,18 @@
+# Build Docker image with both zookeeper and kafka
+# Peter Ramm, 2020-03-07^
+
+# Usage:
+# Build image:      > docker build -f Dockerfile-kafka-compact -t kafka-compact .
+# Run container:    > docker run --name kafka-compact -v/var/run/docker.sock:/var/run/docker.sock kafka-compact
+# Run container:    > docker run -v/var/run/docker.sock:/var/run/docker.sock -p 2182:2181 -p 9093:9092 kafka-compact
+
+FROM docker
+MAINTAINER Peter Ramm <Peter.Ramm@ottogroup.com>
+
+#EXPOSE  2181 9092
+
+COPY	run-kafka_compact.sh /tmp/
+
+CMD     /tmp/run-kafka_compact.sh	
+
+
