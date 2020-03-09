@@ -17,8 +17,8 @@ stages:
   services:
     - name: confluentinc/cp-zookeeper
       alias: zookeeper
-    - name: confluentinc/cp-kafka
-      alias: kafka
+#    - name: confluentinc/cp-kafka
+#      alias: kafka
   variables:
     RAILS_ENV: "test"
     TRIXX_KAFKA_SEED_BROKER: "/dev/null"
@@ -28,6 +28,7 @@ stages:
     KAFKA_BROKER_ID: 1
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   script:
+    - docker run -d --net=host --name=zookeeper -e ZOOKEEPER_CLIENT_PORT=2181 confluentinc/cp-zookeeper
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
     - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
