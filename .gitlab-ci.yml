@@ -28,6 +28,7 @@ stages:
     KAFKA_BROKER_ID: 1
     KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
   script:
+    - sleep 10000
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
     - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
