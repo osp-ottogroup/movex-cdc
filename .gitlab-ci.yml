@@ -15,8 +15,8 @@ stages:
 
 .tests:
   services:
-    - name: confluentinc/cp-zookeeper
-      alias: zookeeper
+#    - name: confluentinc/cp-zookeeper
+#      alias: zookeeper
 #    - name: confluentinc/cp-kafka
 #      alias: kafka
   variables:
