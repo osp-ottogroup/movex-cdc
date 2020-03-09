@@ -5,12 +5,13 @@ class InitializationJob < ApplicationJob
 
   def perform(*args)
     puts "Initialization at startup"
-    ensure_admin_existence
 
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
     Trixx::Application.load_tasks
     Rake::Task['db:migrate'].invoke
     Rails.logger.info "Finished db:migrate"
+
+    ensure_admin_existence
 
     # LOG JDBC driver version
     Rails.logger.info "ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion"
