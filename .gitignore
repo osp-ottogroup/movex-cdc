@@ -13,6 +13,9 @@
 !/log/.keep
 !/tmp/.keep
 
+/db/development.sqlite
+/db/test.sqlite
+
 # Ignore uploaded files in development.
 /storage/*
 !/storage/.keep
