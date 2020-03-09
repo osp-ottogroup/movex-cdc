@@ -7,9 +7,9 @@ class SchemaRightsController < ApplicationController
     # Should only list schema rights of specific user or schema
     index_params = params.permit [:user_id, :schema_id]
     if index_params[:user_id]
-      @schema_rights = SchemaRight.find_by_user_id index_params[:user_id]
+      @schema_rights = SchemaRight.where user_id: index_params[:user_id]
     else
-      @schema_rights = SchemaRight.find_by_schema_id params.require :schema_id  # schema_id must be provided if user_id is not provided
+      @schema_rights = SchemaRight.where schema_id: (params.require :schema_id)  # schema_id must be provided if user_id is not provided
     end
 
     render json: @schema_rights
