@@ -15,17 +15,12 @@ stages:
 
 .tests:
   services:
-    - name: spotify/kafka
+    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
       alias: kafka
   variables:
     RAILS_ENV: "test"
     TRIXX_KAFKA_SEED_BROKER: kafka:9092
-    ADVERTISED_HOST: kafka
-    #ZOOKEEPER_CLIENT_PORT: 2181
-    #KAFKA_ZOOKEEPER_CONNECT: localhost:2181
-    #KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
-    KAFKA_BROKER_ID: 1
-    KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    KAFKA_ADVERTISED_HOST: kafka
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
