@@ -1,8 +1,9 @@
 <template>
   <div>
-    <table-table :table="tables"></table-table>
+    <table-table :tables="tables"></table-table>
     <button class="button" @click="isTableModalActive = true">Add Table</button>
-    <table-modal :isActive.sync="isTableModalActive" :tables="dbTables"></table-modal>
+    <table-modal :isActive.sync="isTableModalActive" :tables="dbTables"
+                 @add-table="onAddTable"></table-modal>
   </div>
 </template>
 
@@ -24,6 +25,13 @@ export default {
     return {
       isTableModalActive: false,
     };
+  },
+  methods: {
+    onAddTable(table) {
+      console.log('onAddTable', table);
+      this.tables.push(table);
+      this.isTableModalActive = false;
+    },
   },
 };
 </script>
