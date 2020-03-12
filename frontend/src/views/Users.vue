@@ -79,7 +79,7 @@ export default {
       this.selectedUser = null;
     },
     async onCreate(user) {
-      const newUser = await CRUD.users.create(user);
+      const newUser = await CRUD.users.create({ user });
       this.users.push(newUser);
       this.selectedUser = null;
     },
