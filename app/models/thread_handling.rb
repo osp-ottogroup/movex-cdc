@@ -6,7 +6,7 @@ class ThreadHandling
     @@instance
   end
 
-  INITIAL_NUMBER_OF_THREADS = 10                                                # how many worker threads should be created at startup
+  INITIAL_NUMBER_OF_THREADS = 2                                                # how many worker threads should be created at startup
   # Ensure that matching number of worker threads is active
   def ensure_processing
     current_thread_pool_size = @thread_pool_mutex.synchronize { @thread_pool.count }

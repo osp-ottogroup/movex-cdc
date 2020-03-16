@@ -5,6 +5,8 @@ class SchemaRight < ApplicationRecord
   # user = User
   # user_request_params = [ { :info, schema: { :name }  } ]
   def self.process_user_request(user, user_request_params)
+    raise "Array expected for user_request_params" if user_request_params.class != Array
+
     SchemaRight.where(user_id: user.id).each do |sr|                            # iterate over existing schema_rights of user
       sr.destroy unless user_request_params.map{|r| r[:schema][:name]}.include? sr.schema.name  # remove schema_rights from user that are no more in list
     end

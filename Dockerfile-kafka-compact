@@ -1,18 +1,41 @@
-# Build Docker image with both zookeeper and kafka
-# Peter Ramm, 2020-03-07^
+# Build Docker image with both zookeeper and kafka, based on idea of Martin Nowack
+# for usage as single node cluster in CI pipeline (non-persistent)
+# Peter Ramm, 2020-03-09
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-compact -t kafka-compact .
-# Run container:    > docker run --name kafka-compact -v/var/run/docker.sock:/var/run/docker.sock kafka-compact
-# Run container:    > docker run -v/var/run/docker.sock:/var/run/docker.sock -p 2182:2181 -p 9093:9092 kafka-compact
+# Build image:      > docker build -f Dockerfile-kafka-compact -t git.osp-dd.de:5005/main/trixx/kafka-compact .
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_HOST_NAME=localhost git.osp-dd.de:5005/main/trixx/kafka-compact
+# Use
 
-FROM docker
-MAINTAINER Peter Ramm <Peter.Ramm@ottogroup.com>
+FROM openjdk:8-jre-alpine
 
-#EXPOSE  2181 9092
+MAINTAINER Peter.Ramm@ottogroup.com
 
-COPY	run-kafka_compact.sh /tmp/
+ARG KAFKA_VERSION=2.4.0
+ARG SCALA_VERSION=2.12
 
-CMD     /tmp/run-kafka_compact.sh	
+# generate unique id by default
+ENV BROKER_ID=-1
+ENV KAFKA_ADVERTISED_HOST_NAME=localhost
+EXPOSE 2181/tcp 9092/tcp
 
+RUN apk add tar
+RUN apk add gzip
+
+RUN wget "http://us.mirrors.quenda.co/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+
+RUN ls -l /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+    ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
+    sed -i 's|^log.dirs=.*$|log.dirs=/var/lib/kafka|' /opt/kafka/config/server.properties && \
+    # for kafka scripts
+    apk add --no-cache bash
+
+# Without own volume for ontime usage in CI pipeline
+#VOLUME /var/lib/kafka
+
+CMD sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" /opt/kafka/config/server.properties && \
+    echo "advertised.listeners=PLAINTEXT://$KAFKA_ADVERTISED_HOST_NAME:9092" >> /opt/kafka/config/server.properties && \
+    /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties && \
+    /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
 
