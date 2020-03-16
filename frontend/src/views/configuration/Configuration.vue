@@ -11,12 +11,12 @@
 </template>
 
 <script>
-import SchemaSelector from '../components/SchemaSelector.vue';
-import TableSelector from '../components/TableSelector.vue';
-import ColumnSelector from '../components/ColumnSelector.vue';
-import CRUDService from '../services/CRUDServices';
-import HttpService from '../services/HttpService';
-import Config from '../config/config';
+import SchemaSelector from './SchemaSelector.vue';
+import TableSelector from './TableSelector.vue';
+import ColumnSelector from './ColumnSelector.vue';
+import CRUDService from '../../services/CRUDServices';
+import HttpService from '../../services/HttpService';
+import Config from '../../config/config';
 
 export default {
   name: 'configuration',

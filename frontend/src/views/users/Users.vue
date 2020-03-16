@@ -27,8 +27,8 @@
 </template>
 
 <script>
-import CRUD from '../services/CRUDServices';
-import UserModal from '../components/UserModal.vue';
+import CRUD from '../../services/CRUDServices';
+import UserModal from './UserModal.vue';
 
 export default {
   name: 'Users',
@@ -79,7 +79,7 @@ export default {
       this.selectedUser = null;
     },
     async onCreate(user) {
-      const newUser = await CRUD.users.create(user);
+      const newUser = await CRUD.users.create({ user });
       this.users.push(newUser);
       this.selectedUser = null;
     },

@@ -12,8 +12,8 @@
       </header>
       <section class="modal-card-body">
         <div class="select">
-          <select>
-            <option v-for="table in tables" :key="table.id">
+          <select v-model="selectedTable">
+            <option v-for="table in tables" :key="table.id" :value="table">
               {{ table.name }}
             </option>
           </select>
@@ -36,12 +36,17 @@ export default {
     tables: { type: Array, default: () => [] },
     isActive: { type: Boolean, default: false },
   },
+  data() {
+    return {
+      selectedTable: null,
+    };
+  },
   methods: {
     onClose() {
       this.$emit('update:is-active', false);
     },
     onAddButtonClicked() {
-      this.$emit('add-schema', this.internalUser);
+      this.$emit('add-table', this.selectedTable);
     },
   },
 };

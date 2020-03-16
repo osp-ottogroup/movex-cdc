@@ -97,7 +97,7 @@
 </template>
 
 <script>
-import CRUDService from '../services/CRUDServices';
+import CRUDService from '../../services/CRUDServices';
 
 export default {
   name: 'UserModal',
