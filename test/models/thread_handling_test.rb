@@ -4,7 +4,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
   test "process" do
     ThreadHandling.get_instance.ensure_processing
-    assert_equal(ThreadHandling::INITIAL_NUMBER_OF_THREADS, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
+    assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     loop_count = 0
     while loop_count < 3 do                                                  # wait up to x seconds for processing of event_logs records
