@@ -20,7 +20,7 @@ stages:
   variables:
     RAILS_ENV: "test"
     TRIXX_KAFKA_SEED_BROKER: kafka:9092
-    KAFKA_ADVERTISED_HOST: kafka
+    KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092, PLAINTEXT://localhost:9092
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"

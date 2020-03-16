@@ -4,7 +4,7 @@
 
 # Usage:
 # Build image:      > docker build -f Dockerfile-kafka-compact -t git.osp-dd.de:5005/main/trixx/kafka-compact .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_HOST_NAME=localhost git.osp-dd.de:5005/main/trixx/kafka-compact
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092 git.osp-dd.de:5005/main/trixx/kafka-compact
 # Use
 
 FROM openjdk:8-jre-alpine
@@ -16,7 +16,7 @@ ARG SCALA_VERSION=2.12
 
 # generate unique id by default
 ENV BROKER_ID=-1
-ENV KAFKA_ADVERTISED_HOST_NAME=localhost
+ENV KAFKA_ADVERTISED_LISTENERS=PLAINTEXT://localhost:9092
 EXPOSE 2181/tcp 9092/tcp
 
 RUN apk add tar
@@ -35,7 +35,7 @@ RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /t
 #VOLUME /var/lib/kafka
 
 CMD sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" /opt/kafka/config/server.properties && \
-    echo "advertised.listeners=PLAINTEXT://$KAFKA_ADVERTISED_HOST_NAME:9092" >> /opt/kafka/config/server.properties && \
+    echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS" >> /opt/kafka/config/server.properties && \
     /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties && \
     /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
 
