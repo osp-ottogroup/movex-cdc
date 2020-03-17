@@ -31,7 +31,7 @@ stages:
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
     - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
     - dpkg-reconfigure -f noninteractive tzdata
-    - /opt/start_kafka.sh
+    - /opt/start-kafka.sh
     - date
     - java -version
     - gem install bundler
