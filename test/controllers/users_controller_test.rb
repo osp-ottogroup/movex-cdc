@@ -48,6 +48,11 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy user" do
+    # Remove objects that may cause foreign key error
+    ActivityLog.all.each do |al|
+      al.destroy
+    end
+
     assert_difference('User.count', -1) do
       delete user_url(@user), headers: jwt_header(@jwt_admin_token), as: :json
     end
