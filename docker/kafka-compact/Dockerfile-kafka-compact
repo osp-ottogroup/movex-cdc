@@ -1,5 +1,5 @@
 # Build Docker image with both zookeeper and kafka, based on idea of Martin Nowack
-# for usage as single node cluster in CI pipeline (non-persistent)
+# for usage as single node cluster (non-persistent)
 # Peter Ramm, 2020-03-09
 
 # Usage:

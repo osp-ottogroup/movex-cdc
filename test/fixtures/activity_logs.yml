@@ -4,8 +4,22 @@
 # model remove the '{}' from the fixture names and add the columns immediately
 # below each fixture, per the syntax in the comments below
 #
-#one: {}
-# column: value
-#
-#two: {}
-# column: value
+
+full:
+  user_id: 1
+  schema_name: SCHEMA
+  table_name: TABLE
+  column_name: COLUMN
+  action: value changed
+
+without_column:
+  user_id: 1
+  schema_name: SCHEMA
+  table_name: TABLE
+  action: value changed
+
+without_table:
+  user_id: 1
+  schema_name: SCHEMA
+  action: value changed
+
