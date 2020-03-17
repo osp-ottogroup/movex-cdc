@@ -228,7 +228,7 @@ END #{target_trigger_data[:trigger_name]};
 
 
   rescue Exception => e
-    Rails.logger.error "#{e.class} #{e.message} executing\n#{sql}"
+    ExceptionHelper.log_exception(e, "DbTriggerOracle.exec_trigger_sql: Executing SQL:\n#{sql}")
     @trigger_errors << {
         trigger_name:       trigger_name,
         exception_class:    e.class.name,

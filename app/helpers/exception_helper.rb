@@ -1,5 +1,5 @@
 module ExceptionHelper
-  def log_exception_backtrace(exception, line_number_limit=nil)
+  def self.log_exception_backtrace(exception, line_number_limit=nil)
     curr_line_no=0
     output = ''
     exception.backtrace.each do |bt|
@@ -10,8 +10,9 @@ module ExceptionHelper
     Rails.logger.error "Stack-Trace for exception: #{exception.class} #{exception.message}\n#{output}"
   end
 
-  def log_exception(exception)
+  def self.log_exception(exception, context)
     Rails.logger.error "#{self.class}: #{exception.class}: #{exception.message}"
+    Rails.logger.error "Context: #{context}"
     log_exception_backtrace(exception)
   end
 

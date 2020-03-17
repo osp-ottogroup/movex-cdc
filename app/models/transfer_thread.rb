@@ -5,7 +5,7 @@ require 'table_less'
 require 'schema'
 
 class TransferThread
-  include ExceptionHelper
+#  include ExceptionHelper
   attr_reader :worker_id
 
   def self.create_worker(worker_id)
@@ -14,7 +14,7 @@ class TransferThread
     thread.name = "TransferThread :#{worker_id}"
     worker
   rescue Exception => e
-    Rails.logger.error "Exception #{e.message} raised in WorkerThread.create_worker (#{worker_id})"
+    ExceptionHelper.log_exception(e, "WorkerThread.create_worker (#{worker_id})")
   end
 
   def initialize(worker_id)
@@ -55,8 +55,7 @@ class TransferThread
               kafka_producer.deliver_messages                                   # bulk transfer of messages from collection to kafka
               delete_event_logs_batch(event_logs)
             rescue Exception => e
-              puts "#{Thread.current.object_id} TransferThread.process: Exception #{e.message} within transaction. Aborting transaction now, transactional_id = #{transactional_id}."
-              Rails.logger.error "TransferThread.process: Exception #{e.message} within transaction. Aborting transaction now, transactional_id = #{transactional_id}."
+              ExceptionHelper.log_exception(e, "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.")
               raise
             end
           end
@@ -67,12 +66,15 @@ class TransferThread
       end
     end                                                                         # while
   rescue Exception => e
-    puts "#{Thread.current.object_id} TransferThread.process: kafka_producer.clear_buffer #{e.message}"
-    log_exception(e)
-    raise e
+    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception")
+    raise
   ensure
-    kafka_producer&.clear_buffer                                                # remove all pending (not processed by kafka) messages from producer buffer
-    kafka_producer&.shutdown                                                    # free kafka connections
+    begin
+      kafka_producer&.clear_buffer                                              # remove all pending (not processed by kafka) messages from producer buffer
+      kafka_producer&.shutdown                                                  # free kafka connections
+    rescue Exception => e
+      ExceptionHelper.log_exception(e, "TransferThread.process: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
+    end
     Rails.logger.info "TransferThread(#{@worker_id}).process: stopped"
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
   end
@@ -134,8 +136,8 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
         result = cursor.executeUpdate
         raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
       rescue Exception => e
-        Rails.logger.error "#{e.class}: #{e.message}\nErroneous SQL:\n#{sql}"
-        raise e
+        ExceptionHelper.log_exception(e, "Erroneous SQL:\n#{sql}")
+        raise
       ensure
         cursor.close if defined? cursor
       end

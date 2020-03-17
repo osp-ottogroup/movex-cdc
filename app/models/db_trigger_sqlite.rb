@@ -1,4 +1,5 @@
 class DbTriggerSqlite < TableLess
+
   # get ActiveRecord::Result with trigger records
   def self.find_all_by_schema_id(schema_id)
     select_all("\
@@ -143,7 +144,7 @@ END;"
         sql:          sql
     }
   rescue Exception => e
-    Rails.logger.error "#{e.class} #{e.message} executing\n#{sql}"
+    ExceptionHelper.log_exception(e, "DbTriggerSqlite.exec_trigger_sql: Executing SQL\n#{sql}")
     @trigger_errors << {
         trigger_name:       trigger_name,
         exception_class:    e.class.name,

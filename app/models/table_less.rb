@@ -11,8 +11,8 @@ class TableLess
 
     ActiveRecord::Base.connection.select_all(sql, 'TableLess.select_all', binds)
   rescue Exception => e
-    Rails.logger.error "#{e.class}: #{e.message}\nErroneous SQL:\n#{sql}"
-    raise e
+    ExceptionHelper.log_exception(e, "TableLess.select_all: Erroneous SQL:\n#{sql}")
+    raise
   end
 
   def self.select_first_row(sql, filter = {})
@@ -37,8 +37,8 @@ class TableLess
 
     ActiveRecord::Base.connection.exec_update(sql, 'TableLess.execute', binds)  # returns the number of affected rows
   rescue Exception => e
-    Rails.logger.error "#{e.class}: #{e.message}\nErroneous SQL:\n#{sql}"
-    raise e
+    ExceptionHelper.log_exception(e, "TableLess.execute: Erroneous SQL:\n#{sql}")
+    raise
   end
 
 end
