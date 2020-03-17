@@ -20,7 +20,7 @@ stages:
   variables:
     RAILS_ENV: "test"
     TRIXX_KAFKA_SEED_BROKER: kafka:9092
-    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093
+    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
     KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
     KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
     KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
@@ -75,6 +75,8 @@ test_oracle_11.2:
   services:
     - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
       alias: oracle-db
+    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
+      alias: kafka
   variables:
     TRIXX_DB_URL: "oracle-db:1521/ORCL"
 
