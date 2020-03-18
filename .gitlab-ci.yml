@@ -49,9 +49,9 @@ stages:
   artifacts:
     when: always
     paths:
-      #     - last_test.log
       - log/
       - tmp/screenshots/
+      - /opt/kafka/logs/
     expire_in: 1 month
 
 

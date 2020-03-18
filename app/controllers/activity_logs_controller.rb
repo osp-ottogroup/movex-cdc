@@ -2,7 +2,7 @@ class ActivityLogsController < ApplicationController
 
   # GET /activity_logs
   # get records according to filter parameters
-  # mandatory parameters: user_id, schema_name, table_name, column_name
+  # optional parameters: user_id, schema_name, table_name, column_name
   def index
     optional_params = params.permit(:user_id, :schema_name, :table_name, :column_name)
 
