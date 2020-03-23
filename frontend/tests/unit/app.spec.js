@@ -4,7 +4,6 @@ import App from '@/App.vue';
 describe('App.vue', () => {
   it('renders login modal if no user is logged in', () => {
     const wrapper = shallowMount(App, {});
-    console.log('bla', wrapper.html());
     expect(wrapper.find('b-modal-stub').exists()).toBeTruthy();
   });
 

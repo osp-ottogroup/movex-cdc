@@ -1,6 +1,6 @@
 // @ts-check
 
-import ServerError from './ServerError';
+import ServerError from '../models/ServerError';
 
 /**
  * Extracts the data from the response object
