@@ -13,6 +13,7 @@
       <section class="modal-card-body">
         <div class="select">
           <select v-model="selectedTable">
+            <option disabled value="">Please select a table</option>
             <option v-for="table in tables" :key="table.id" :value="table">
               {{ table.name }}
             </option>

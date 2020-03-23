@@ -35,7 +35,7 @@ export default {
         table: {
           schema_id: this.schema.id,
           name: addedTable.name,
-          info: ' ',
+          info: 'TODO',
         },
       });
       this.tables.push(table);

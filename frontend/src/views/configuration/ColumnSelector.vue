@@ -1,6 +1,10 @@
 <template>
   <div>
-    <column-table :columns="mergedColumns"></column-table>
+<!--    <div class="loader-wrapper is-active">-->
+<!--      <div class="loader is-loading"></div>-->
+<!--    </div>-->
+    <column-table :columns="mergedColumns"
+                  @column-changed="onColumnChanged"/>
   </div>
 </template>
 
@@ -21,16 +25,25 @@ export default {
     return {
       columns: [],
       dbColumns: [],
+      mergedColumns: [],
     };
   },
-  computed: {
-    mergedColumns() {
+  methods: {
+    mergeColumns() {
       // build a map from db columns with column names as keys
+      // and column as value, extended by required fields
       const dbColumnsMap = new Map();
       this.dbColumns.forEach((column) => {
-        dbColumnsMap.set(column.name, column);
+        const fields = {
+          table_id: this.table.id,
+          info: 'TODO',
+          yn_log_insert: 'N',
+          yn_log_update: 'N',
+          yn_log_delete: 'N',
+        };
+        dbColumnsMap.set(column.name, { ...column, ...fields });
       });
-      // enrich the map with currently existing trixx column data
+      // enrich/merge the map column values with currently existing trixx column data
       this.columns.forEach((column) => {
         if (dbColumnsMap.has(column.name)) {
           const current = dbColumnsMap.get(column.name);
@@ -40,21 +53,57 @@ export default {
         }
       });
 
-      return Array.from(dbColumnsMap.values());
+      this.mergedColumns = Array.from(dbColumnsMap.values());
+    },
+    async onColumnChanged(column) {
+      if (column.id) { // update
+        await CRUDService.columns.update(column.id, { column });
+      } else { // create
+        await CRUDService.columns.create({ column });
+      }
+      await this.reload(this.table);
+    },
+    async reload(table) {
+      this.dbColumns = await CRUDService.dbColumns.getAll({
+        table_name: table.name,
+        schema_name: this.schema.name,
+      });
+      this.columns = await CRUDService.columns.getAll({ table_id: table.id });
+      this.mergeColumns();
     },
   },
   watch: {
     async table(newTable) {
-      this.dbColumns = await CRUDService.dbColumns.getAll({
-        table_name: newTable.name,
-        schema_name: this.schema.name,
-      });
-      const resp = await CRUDService.columns.getAll({ table_id: newTable.id });
-      resp.push({
-        id: 1, table_id: 3, name: 'name', info: ' ', yn_log_insert: false, yn_log_update: true, yn_log_delete: false,
-      });
-      this.columns = resp;
+      await this.reload(newTable);
     },
   },
 };
 </script>
+
+<!--<style lang="scss">-->
+<!--.loader-wrapper {-->
+<!--  position: absolute;-->
+<!--  top: 0;-->
+<!--  left: 0;-->
+<!--  height: 100%;-->
+<!--  width: 100%;-->
+<!--  background: #fff;-->
+<!--  opacity: 0;-->
+<!--  z-index: -1;-->
+<!--  transition: opacity .3s;-->
+<!--  display: flex;-->
+<!--  justify-content: center;-->
+<!--  align-items: center;-->
+<!--  border-radius: 6px;-->
+
+<!--  .loader {-->
+<!--    height: 80px;-->
+<!--    width: 80px;-->
+<!--  }-->
+
+<!--  &.is-active {-->
+<!--    opacity: 1;-->
+<!--    z-index: 1;-->
+<!--  }-->
+<!--}-->
+<!--</style>-->
