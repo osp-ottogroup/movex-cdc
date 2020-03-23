@@ -6,14 +6,13 @@ class ThreadHandling
     @@instance
   end
 
-  INITIAL_NUMBER_OF_THREADS = 2                                                # how many worker threads should be created at startup
   # Ensure that matching number of worker threads is active
   def ensure_processing
     current_thread_pool_size = @thread_pool_mutex.synchronize { @thread_pool.count }
 
     # calculate required number of worker threads
     required_number_of_threads = current_thread_pool_size                       # Current state as default
-    required_number_of_threads = INITIAL_NUMBER_OF_THREADS if current_thread_pool_size == 0 # Startup setup
+    required_number_of_threads = Trixx::Application.config.trixx_initial_worker_threads if current_thread_pool_size == 0 # Startup setup
     Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
     unless @shutdown_requested                                                # don't start new worker during server shutdown
 

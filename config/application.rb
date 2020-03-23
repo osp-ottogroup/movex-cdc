@@ -50,10 +50,11 @@ module Trixx
     supported_db_types = ['ORACLE', 'SQLITE']
     raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
 
-    config.trixx_db_user            = ENV['TRIXX_DB_USER']
-    config.trixx_db_password        = ENV['TRIXX_DB_PASSWORD']
-    config.trixx_db_url             = ENV['TRIXX_DB_URL']
-    config.trixx_kafka_seed_broker  = ENV['TRIXX_KAFKA_SEED_BROKER'] || '/dev/null'
+    config.trixx_db_user                = ENV['TRIXX_DB_USER']
+    config.trixx_db_password            = ENV['TRIXX_DB_PASSWORD']
+    config.trixx_db_url                 = ENV['TRIXX_DB_URL']
+    config.trixx_kafka_seed_broker      = ENV['TRIXX_KAFKA_SEED_BROKER'] || '/dev/null'
+    config.trixx_initial_worker_threads = (ENV['TRIXX_INITIAL_WORKER_THREADS'] || '3').to_i
 
     # Verify mandatory settings
     if Rails.env.test?
@@ -81,14 +82,15 @@ module Trixx
     raise "Missing configuration value for 'TRIXX_KAFKA_SEED_BROKER'! Aborting..."  unless config.trixx_kafka_seed_broker
 
     msg = "\nStarting TriXX application at #{Time.now}:
-RAILS_ENV               = #{Rails.env}
-TRIXX_DB_TYPE           = #{config.trixx_db_type}
-TRIXX_DB_URL            = #{config.trixx_db_url}
-TRIXX_DB_USER           = #{config.trixx_db_user}
-TRIXX_KAFKA_SEED_BROKER = #{config.trixx_kafka_seed_broker}
+RAILS_ENV                     = #{Rails.env}
+TRIXX_DB_TYPE                 = #{config.trixx_db_type}
+TRIXX_DB_URL                  = #{config.trixx_db_url}
+TRIXX_DB_USER                 = #{config.trixx_db_user}
+TRIXX_KAFKA_SEED_BROKER       = #{config.trixx_kafka_seed_broker}
+TRIXX_INITIAL_WORKER_THREADS  = #{config.trixx_initial_worker_threads}
 "
 
-    msg << "TRIXX_DB_VICTIM_USER    = #{config.trixx_db_victim_user}" if Rails.env.test?
+    msg << "TRIXX_DB_VICTIM_USER          = #{config.trixx_db_victim_user}" if Rails.env.test?
 
     puts msg
 

@@ -2,7 +2,8 @@
 # Requires:
 #  - prebuilt database image with test users
 
-image: jruby:9.2.8.0
+#image: jruby:9.2.8.0
+image: git.osp-dd.de:5005/main/trixx/kafka-jruby
 
 variables:
   TEST_HOST: "oracle-db"
@@ -14,18 +15,23 @@ stages:
   - deploy
 
 .tests:
-  services:
-    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
-      alias: kafka
+#  services:
+#    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
+#      alias: kafka
   variables:
     RAILS_ENV: "test"
-    TRIXX_KAFKA_SEED_BROKER: kafka:9092
-    KAFKA_ADVERTISED_HOST: kafka
+    TRIXX_KAFKA_SEED_BROKER: localhost:9092
+#    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
+#    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
+#    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
+#    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
+
   script:
     # Set Timezone to CET first
     - sh -c "echo 'Europe/Berlin' > /etc/timezone"
     - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
     - dpkg-reconfigure -f noninteractive tzdata
+    - /opt/start-kafka.sh
     - date
     - java -version
     - gem install bundler
@@ -43,9 +49,9 @@ stages:
   artifacts:
     when: always
     paths:
-      #     - last_test.log
       - log/
       - tmp/screenshots/
+      - /opt/kafka/logs/
     expire_in: 1 month
 
 

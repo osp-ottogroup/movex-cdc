@@ -5,7 +5,7 @@ require 'table_less'
 require 'schema'
 
 class TransferThread
-  include ExceptionHelper
+#  include ExceptionHelper
   attr_reader :worker_id
 
   def self.create_worker(worker_id)
@@ -14,7 +14,7 @@ class TransferThread
     thread.name = "TransferThread :#{worker_id}"
     worker
   rescue Exception => e
-    Rails.logger.error "Exception #{e.message} raised in WorkerThread.create_worker (#{worker_id})"
+    ExceptionHelper.log_exception(e, "WorkerThread.create_worker (#{worker_id})")
   end
 
   def initialize(worker_id)
@@ -34,40 +34,47 @@ class TransferThread
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
     kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}")
-    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: "TRIXX-#{@worker_id}")
+    transactional_id = "TRIXX-#{@worker_id}"
+    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: transactional_id)
     kafka_producer.init_transactions                                            # Should be called once before starting transactions
 
     # Loop for ever, check cancel criterial in threadhandling
     idle_sleep_time = 0
     while !@thread_mutex.synchronize { @stop_requested }
-      begin
-        ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
+      ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka
+        event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
+        if event_logs.count > 0
+          idle_sleep_time = 0                                                   # Reset sleep time for next idle time
+          # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
           kafka_producer.transaction do                                         # make messages visible at kafka only if all messages of the batch are processed
-            event_logs = read_event_logs_batch                                  # read bulk collection of messages from Event_Logs
-            if event_logs.count > 0
-              idle_sleep_time = 0                                               # Reset sleep time for next idle time
+            begin
               event_logs.each do |event_log|
                 @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
                 kafka_producer.produce(prepare_message_from_event_log(event_log), topic: "test-messages")   # Store messages in local collection
               end
               kafka_producer.deliver_messages                                   # bulk transfer of messages from collection to kafka
               delete_event_logs_batch(event_logs)
-            else
-              idle_sleep_time += 1 if idle_sleep_time < 60
-              sleep idle_sleep_time                                             # sleep some time if no records are to be processed
+            rescue Exception => e
+              ExceptionHelper.log_exception(e, "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.")
+              raise
             end
-          end                                                                   # Kafka-Transaction
-        end                                                                     # DB-Transaction
-      rescue Exception => e
-        kafka_producer.clear_buffer                                             # remove all pending (not processed by kafka) messages from producer buffer
-        raise e
+          end
+        else
+          idle_sleep_time += 1 if idle_sleep_time < 60
+          sleep idle_sleep_time                                                 # sleep some time if no records are to be processed
+        end
       end
     end                                                                         # while
   rescue Exception => e
-    log_exception(e)
-    raise e
+    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception")
+    raise
   ensure
-    kafka_producer&.shutdown                                                    # free kafka connections
+    begin
+      kafka_producer&.clear_buffer                                              # remove all pending (not processed by kafka) messages from producer buffer
+      kafka_producer&.shutdown                                                  # free kafka connections
+    rescue Exception => e
+      ExceptionHelper.log_exception(e, "TransferThread.process: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
+    end
     Rails.logger.info "TransferThread(#{@worker_id}).process: stopped"
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
   end
@@ -129,8 +136,8 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
         result = cursor.executeUpdate
         raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
       rescue Exception => e
-        Rails.logger.error "#{e.class}: #{e.message}\nErroneous SQL:\n#{sql}"
-        raise e
+        ExceptionHelper.log_exception(e, "Erroneous SQL:\n#{sql}")
+        raise
       ensure
         cursor.close if defined? cursor
       end
@@ -190,3 +197,6 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"
   end
 end
+
+
+
