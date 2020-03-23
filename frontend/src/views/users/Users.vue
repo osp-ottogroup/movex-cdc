@@ -27,7 +27,7 @@
 </template>
 
 <script>
-import CRUD from '../../services/CRUDServices';
+import CRUD from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
 
 export default {

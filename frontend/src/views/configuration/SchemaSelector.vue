@@ -7,14 +7,20 @@
 
 <script>
 import SchemaTable from './SchemaTable.vue';
+import CRUDService from '../../services/CRUDService';
 
 export default {
   name: 'SchemaSelector',
   components: {
     SchemaTable,
   },
-  props: {
-    schemas: { type: Array, default: () => [] },
+  data() {
+    return {
+      schemas: [],
+    };
+  },
+  async mounted() {
+    this.schemas = await CRUDService.schemas.getAll();
   },
 };
 </script>

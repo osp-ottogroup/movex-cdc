@@ -1,12 +1,13 @@
 <template>
   <div class="columns is-centered">
     <schema-selector class="column is-2 is-offset-2"
-                     :schemas="schemas"
                      @schema-selected="onSchemaSelected"></schema-selector>
     <table-selector class="column is-2"
-                    :tables="tables"
-                    :dbTables="dbTables"></table-selector>
-    <column-selector class="column is-6"></column-selector>
+                    :schema="selectedSchema"
+                    @table-selected="onTableSelected"></table-selector>
+    <column-selector class="column is-6"
+                     :schema="selectedSchema"
+                     :table="selectedTable"></column-selector>
   </div>
 </template>
 
@@ -14,9 +15,6 @@
 import SchemaSelector from './SchemaSelector.vue';
 import TableSelector from './TableSelector.vue';
 import ColumnSelector from './ColumnSelector.vue';
-import CRUDService from '../../services/CRUDServices';
-import HttpService from '../../services/HttpService';
-import Config from '../../config/config';
 
 export default {
   name: 'configuration',
@@ -27,18 +25,16 @@ export default {
   },
   data() {
     return {
-      schemas: [],
-      tables: [],
-      dbTables: [],
+      selectedSchema: null,
+      selectedTable: null,
     };
   },
-  async mounted() {
-    this.schemas = await CRUDService.schemas.getAll();
-  },
   methods: {
-    async onSchemaSelected(schema) {
-      this.tables = (await HttpService.get(`${Config.backendUrl}/tables`, { schema_id: schema.id })).data;
-      this.dbTables = (await HttpService.get(`${Config.backendUrl}/db_tables`, { schema_name: schema.name })).data;
+    onSchemaSelected(schema) {
+      this.selectedSchema = schema;
+    },
+    onTableSelected(table) {
+      this.selectedTable = table;
     },
   },
 };

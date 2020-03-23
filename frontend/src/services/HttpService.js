@@ -75,7 +75,6 @@ const createRequestOptions = (method, headerOptions, requestData) => {
 const get = (urlString, urlParams = {}, headerOptions = {}) => {
   const url = new URL(urlString);
   url.search = (new URLSearchParams(urlParams)).toString();
-  console.log('get http');
   return doFetch(url, createRequestOptions('GET', headerOptions, null));
 };
 
