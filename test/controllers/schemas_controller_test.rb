@@ -14,7 +14,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     when 'SQLITE' then
       assert_equal(1, result.count, 'Should return schema main only')
     else
-      assert_equal(3, result.count, 'Should return the allowed schemas for user')
+      assert_equal(2, result.count, 'Should return the allowed schemas for user')
     end
   end
 
