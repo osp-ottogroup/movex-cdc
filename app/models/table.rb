@@ -10,4 +10,12 @@ class Table < ApplicationRecord
     end
   end
 
+  def topic_to_use
+    if topic.nil? || topic == ''
+      schema.topic
+    else
+      topic
+    end
+  end
+
 end

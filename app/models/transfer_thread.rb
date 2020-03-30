@@ -53,7 +53,12 @@ class TransferThread
               begin
                 event_logs.each do |event_log|
                   @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-                  kafka_producer.produce(prepare_message_from_event_log(event_log), topic: "test-messages")   # Store messages in local collection
+
+                  table = Rails.cache.fetch("Table_#{event_log['table_id']}", expires_in: 1.minutes) do
+                    Table.find event_log['table_id']
+                  end
+
+                  kafka_producer.produce(prepare_message_from_event_log(event_log), topic: table.topic_to_use)   # Store messages in local collection
                 end
                 kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
                 delete_event_logs_batch(event_logs)
@@ -135,11 +140,6 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
-  end
-
-  # Send Array of event_logs to kafka within one kafka transaction
-  def send_kafka_batch(event_logs)
-
   end
 
   def delete_event_logs_batch(event_logs)

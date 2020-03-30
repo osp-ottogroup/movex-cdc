@@ -5,6 +5,7 @@ one:
   schema_id: 1
   name: TABLES
   info: Mein Text
+  topic: Table_1_Topic
 
 two:
   id: 2

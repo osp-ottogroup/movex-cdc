@@ -4,6 +4,7 @@ class KafkaMock
     end
 
     def produce(message, options)
+      Rails.logger.info "KafkaMock.produce: options = #{options}, message=\n#{message}"
     end
 
     def deliver_messages
