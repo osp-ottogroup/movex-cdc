@@ -3,6 +3,7 @@ require 'test_helper'
 class SchemaTest < ActiveSupport::TestCase
   test "create schema" do
     Schema.new(name: 'Schema1').save!
+    Schema.new(name: 'Schema2', topic: 'TOPIC').save!
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { Schema.new(name: 'Schema1').save! }
   end

@@ -14,7 +14,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     when 'SQLITE' then
       assert_equal(1, result.count, 'Should return schema main only')
     else
-      assert_equal(2, result.count, 'Should return the allowed schemas for user')
+      assert_equal(3, result.count, 'Should return the allowed schemas for user')
     end
   end
 
@@ -22,7 +22,11 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     assert_difference('Schema.count') do
       post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new'  } }, as: :json
     end
+    assert_response 201
 
+    assert_difference('Schema.count') do
+      post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new2', topic: 'with_topic'  } }, as: :json
+    end
     assert_response 201
   end
 
@@ -32,7 +36,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update schema" do
-    patch schema_url(@schema), headers: jwt_header, params: { schema: {  } }, as: :json
+    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: 'new topic'} }, as: :json
     assert_response 200
   end
 

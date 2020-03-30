@@ -4,11 +4,19 @@
 one:
   id:   1
   name: <%= Trixx::Application.config.trixx_db_user %>
+  topic: trixx_topic
 
 <% if Trixx::Application.config.trixx_db_type != 'SQLITE' %>
 victim:
   id:   2
   name: <%= Trixx::Application.config.trixx_db_victim_user.upcase %>
+  topic: victim
+
+without_topic:
+  id:   3
+  name: WITHOUT_TOPIC
+
+
 <% end %>
 
 

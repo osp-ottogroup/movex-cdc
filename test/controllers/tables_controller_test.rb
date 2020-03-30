@@ -20,6 +20,11 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
+    assert_difference('Table.count') do
+      post tables_url, headers: jwt_header, params: { table: { schema_id: 1, name: 'New table2', info: 'New info', topic: 'with_topic' } }, as: :json
+    end
+    assert_response 201
+
     post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
     assert_response :unauthorized, 'Should not get access without schema rights'
 
@@ -34,7 +39,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update table" do
-    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1,  } }, as: :json
+    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic' } }, as: :json
     assert_response 200
 
     patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json

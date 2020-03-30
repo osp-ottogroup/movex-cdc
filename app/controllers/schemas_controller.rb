@@ -59,6 +59,6 @@ class SchemasController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def schema_params
-      params.fetch(:schema, {}).permit(:name)
+      params.fetch(:schema, {}).permit(:name, :topic)
     end
 end

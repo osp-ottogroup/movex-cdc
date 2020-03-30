@@ -27,6 +27,7 @@ class TransferThread
   end
 
   MAX_MESSAGE_BULK_COUNT = 10000                                                # Number of records to process within one bulk operation, each operation causes full table scan at Event_Logs
+  MAX_EXCEPTION_RETRY=10                                                        # max. number of retries after exception
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info "TransferThread.process: New worker thread created with ID=#{@worker_id}"
@@ -40,33 +41,45 @@ class TransferThread
 
     # Loop for ever, check cancel criterial in threadhandling
     idle_sleep_time = 0
+    retry_count_on_exception = 0                                                # limit retries
     while !@thread_mutex.synchronize { @stop_requested }
-      ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka
-        event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
-        if event_logs.count > 0
-          idle_sleep_time = 0                                                   # Reset sleep time for next idle time
-          # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
-          kafka_producer.transaction do                                         # make messages visible at kafka only if all messages of the batch are processed
-            begin
-              event_logs.each do |event_log|
-                @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-                kafka_producer.produce(prepare_message_from_event_log(event_log), topic: "test-messages")   # Store messages in local collection
+      begin
+        ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
+          event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
+          if event_logs.count >
+            idle_sleep_time = 0                                                 # Reset sleep time for next idle time
+            # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
+            kafka_producer.transaction do                                       # make messages visible at kafka only if all messages of the batch are processed
+              begin
+                event_logs.each do |event_log|
+                  @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+                  kafka_producer.produce(prepare_message_from_event_log(event_log), topic: "test-messages")   # Store messages in local collection
+                end
+                kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
+                delete_event_logs_batch(event_logs)
+              rescue Exception => e
+                ExceptionHelper.log_exception(e, "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.")
+                raise
               end
-              kafka_producer.deliver_messages                                   # bulk transfer of messages from collection to kafka
-              delete_event_logs_batch(event_logs)
-            rescue Exception => e
-              ExceptionHelper.log_exception(e, "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.")
-              raise
             end
+          else
+            idle_sleep_time += 1 if idle_sleep_time < 60
+            sleep idle_sleep_time                                               # sleep some time if no records are to be processed
           end
+        end
+        retry_count_on_exception = 0                                            # reset retry counter if successful processed
+      rescue Exception => e
+        if retry_count_on_exception < MAX_EXCEPTION_RETRY
+          retry_count_on_exception += 1
+          sleep 10                                                              # spend some time if problem is only temporary
+          ExceptionHelper.log_exception(e, "TransferThread.process: Retrying after exception (#{retry_count_on_exception}. try)")
         else
-          idle_sleep_time += 1 if idle_sleep_time < 60
-          sleep idle_sleep_time                                                 # sleep some time if no records are to be processed
+          raise
         end
       end
     end                                                                         # while
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception")
+    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception after #{MAX_EXCEPTION_RETRY} retries")
     raise
   ensure
     begin
@@ -122,6 +135,11 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
+  end
+
+  # Send Array of event_logs to kafka within one kafka transaction
+  def send_kafka_batch(event_logs)
+
   end
 
   def delete_event_logs_batch(event_logs)
