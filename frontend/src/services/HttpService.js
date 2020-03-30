@@ -2,7 +2,7 @@
 
 import TokenService from './TokenService';
 import FetchService from './FetchService';
-import ServerError from './ServerError';
+import ServerError from '../models/ServerError';
 // eslint-disable-next-line import/no-cycle
 import LoginService from './LoginService';
 
@@ -24,7 +24,7 @@ const DEFAULT_HEADER = {
  */
 const doFetch = async (url, requestOptions) => {
   try {
-    return FetchService.fetch(url, requestOptions);
+    return await FetchService.fetch(url, requestOptions);
   } catch (e) {
     if (e instanceof ServerError && e.httpStatus === HTTP_STATUS_CODE_401) {
       LoginService.logout(); // page reload
@@ -74,9 +74,7 @@ const createRequestOptions = (method, headerOptions, requestData) => {
  */
 const get = (urlString, urlParams = {}, headerOptions = {}) => {
   const url = new URL(urlString);
-  if (urlParams !== null) {
-    url.search = (new URLSearchParams(urlParams)).toString();
-  }
+  url.search = (new URLSearchParams(urlParams)).toString();
   return doFetch(url, createRequestOptions('GET', headerOptions, null));
 };
 

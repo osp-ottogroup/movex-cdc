@@ -38,7 +38,7 @@
 <script>
 import { ToastProgrammatic as Toast } from 'buefy';
 import LoginService from '../services/LoginService';
-import ServerError from '../services/ServerError';
+import ServerError from '../models/ServerError';
 
 export default {
   data() {

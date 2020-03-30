@@ -4,7 +4,7 @@ import Config from '../config/config';
 const { backendUrl } = Config;
 
 export default name => ({
-  getAll: async () => (await HttpService.get(`${backendUrl}/${name}`)).data,
+  getAll: async urlParams => (await HttpService.get(`${backendUrl}/${name}`, urlParams)).data,
   get: async id => (await HttpService.get(`${backendUrl}/${name}/${id}`)).data,
   delete: async id => (await HttpService.delete(`${backendUrl}/${name}/${id}`)).data,
   update: async (id, object) => (await HttpService.put(`${backendUrl}/${name}/${id}`, object)).data,

@@ -1,6 +1,7 @@
 <template>
   <div>
-    <table-table :tables="tables"></table-table>
+    <table-table :tables="tables"
+                 v-on="$listeners"/>
     <button class="button" @click="isTableModalActive = true">Add Table</button>
     <table-modal :isActive.sync="isTableModalActive" :tables="dbTables"
                  @add-table="onAddTable"></table-modal>
@@ -10,6 +11,7 @@
 <script>
 import TableTable from './TableTable.vue';
 import TableModal from './TableModal.vue';
+import CRUDService from '@/services/CRUDService';
 
 export default {
   name: 'TableSelector',
@@ -18,19 +20,32 @@ export default {
     TableModal,
   },
   props: {
-    tables: { type: Array, default: () => [] },
-    dbTables: { type: Array, default: () => [] },
+    schema: { type: Object, default: () => {} },
   },
   data() {
     return {
       isTableModalActive: false,
+      tables: [],
+      dbTables: [],
     };
   },
   methods: {
-    onAddTable(table) {
-      console.log('onAddTable', table);
+    async onAddTable(addedTable) {
+      const table = await CRUDService.tables.create({
+        table: {
+          schema_id: this.schema.id,
+          name: addedTable.name,
+          info: 'TODO',
+        },
+      });
       this.tables.push(table);
       this.isTableModalActive = false;
+    },
+  },
+  watch: {
+    async schema(newSchema) {
+      this.tables = await CRUDService.tables.getAll({ schema_id: newSchema.id });
+      this.dbTables = await CRUDService.dbTables.getAll({ schema_name: newSchema.name });
     },
   },
 };

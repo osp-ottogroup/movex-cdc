@@ -11,22 +11,21 @@ const decode = base64String => atob(base64String);
 
 /**
  * splits the JWT in its three parts header, payload, and signature
- * @param {string} token - JWT in the form of 'header.payload.signature'
  * @returns {object} A map with the keys 'header', 'payload', 'signature'
  *                   and the corresponding token values
  */
-const getTokenParts = (token) => {
-  if (!token || token === '') {
-    throw new TypeError("The given JWT-Token is empty. Expected the form of 'header.payload.signature'.");
+const getTokenParts = () => {
+  if (!accessToken || accessToken === '') {
+    throw new TypeError("The given JWT is empty. Expected the form of 'header.payload.signature'.");
   }
 
-  const parts = token.split('.');
+  const parts = accessToken.split('.');
   if (parts.length !== 3
       || parts[0] === ''
       || parts[1] === ''
       || parts[2] === ''
   ) {
-    throw new TypeError(`The given JWT-Token is ill-formed. Expected the form of 'header.payload.signature'. Token=${token}`);
+    throw new TypeError(`The given JWT-Token is ill-formed. Expected the form of 'header.payload.signature'. Token=${accessToken}`);
   }
 
   return {
@@ -41,7 +40,7 @@ const getTokenParts = (token) => {
  * @returns {object} JSON object extracted and parsed from JWT
  */
 const getPayload = () => {
-  const parts = getTokenParts(accessToken);
+  const parts = getTokenParts();
   return JSON.parse(decode(parts.payload));
 };
 

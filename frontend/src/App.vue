@@ -39,7 +39,7 @@ export default {
     };
   },
   async created() {
-    this.loggedIn = await LoginService.checkLogin();
+    this.loggedIn = await LoginService.loginWithExistingToken();
     if (this.loggedIn) {
       this.setUserName();
     }
