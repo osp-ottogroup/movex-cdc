@@ -10,6 +10,9 @@ if [ -n "$TIMEZONE" ]; then
   dpkg-reconfigure -f noninteractive tzdata
 fi
 
+echo "nodejs version is `node -v`"
+echo "npm version is `npm -v`"
+
 cd /opt/trixx
 export RAILS_LOG_TO_STDOUT=true
 rails server --port 8080 --environment production
