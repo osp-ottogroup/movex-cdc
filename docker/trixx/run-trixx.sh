@@ -12,6 +12,7 @@ fi
 
 echo "nodejs version is `node -v`"
 echo "npm version is `npm -v`"
+echo "TriXX build version is `cat /opt/trixx/build_version`"
 
 cd /opt/trixx
 export RAILS_LOG_TO_STDOUT=true

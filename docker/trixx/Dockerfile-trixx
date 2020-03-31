@@ -3,13 +3,15 @@
 
 # Usage:
 # Build image:      > docker pull jruby:9.2.8.0
-#                   > docker build -f Dockerfile-trixx --no-cache -t git.osp-dd.de:5005/main/trixx/trixx .
-# Run container:    > docker run git.osp-dd.de:5005/main/trixx/trixx
+#                   > docker build -f Dockerfile-trixx --no-cache -t --build-arg BUILD_VERSION=2020-03-30_00-00-00 git.osp-dd.de:5005/main/trixx/trixx .
+# Run container:    > docker run -p 8080:8080 git.osp-dd.de:5005/main/trixx/trixx
 # Use
 
 FROM jruby:9.2.8.0
 
 MAINTAINER Peter.Ramm@ottogroup.com
+
+ARG BUILD_VERSION
 
 EXPOSE 8080/tcp
 
@@ -29,7 +31,12 @@ RUN  apt-get update && \
      bash nodesource_setup.sh && \
      apt install -y nodejs && \
      echo "nodejs version is `node -v`" && \
-     echo "npm version is `npm -v`"
+     echo "npm version is `npm -v`" && \
+     npm install -g @vue/cli && \
+     cd /opt/trixx/frontend && \
+     npm install && \
+     # npm run build ... + move to public
+     test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S" > /opt/trixx/build_version
 
 # use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
 CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]
