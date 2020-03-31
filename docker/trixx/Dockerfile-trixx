@@ -32,11 +32,11 @@ RUN  apt-get update && \
      apt install -y nodejs && \
      echo "nodejs version is `node -v`" && \
      echo "npm version is `npm -v`" && \
-     npm install -g @vue/cli && \
      cd /opt/trixx/frontend && \
-     npm install && \
+     npm install -g @vue/cli && \
+     npm install --only=production && \
      # npm run build ... + move to public
-     test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S" > /opt/trixx/build_version
+     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /opt/trixx/build_version
 
 # use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
 CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]
