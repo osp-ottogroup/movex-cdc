@@ -3,7 +3,7 @@
 
 # Usage:
 # Build image:      > docker pull jruby:9.2.8.0
-#                   > docker build -f Dockerfile-trixx --no-cache -t --build-arg BUILD_VERSION=2020-03-30_00-00-00 git.osp-dd.de:5005/main/trixx/trixx .
+#                   > docker build -f Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=2020-03-30_00-00-00 -t git.osp-dd.de:5005/main/trixx/trixx .
 # Run container:    > docker run -p 8080:8080 git.osp-dd.de:5005/main/trixx/trixx
 # Use
 
