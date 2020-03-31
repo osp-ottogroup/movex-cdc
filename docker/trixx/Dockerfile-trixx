@@ -1,0 +1,31 @@
+# Build Docker image for TriXX application based on jRuby
+# Peter Ramm, 2020-03-31
+
+# Usage:
+# Build image:      > docker pull jruby:9.2.8.0
+#                   > docker build -f Dockerfile-trixx --no-cache -t git.osp-dd.de:5005/main/trixx/trixx .
+# Run container:    > docker run git.osp-dd.de:5005/main/trixx/trixx
+# Use
+
+FROM jruby:9.2.8.0
+
+MAINTAINER Peter.Ramm@ottogroup.com
+
+EXPOSE 8080/tcp
+
+RUN  apt-get update && \
+     apt-get -y upgrade && \
+     apt-get install -y procps git && \
+     sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
+     sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
+     dpkg-reconfigure -f noninteractive tzdata && \
+     mkdir /opt/trixx && \
+     cd /opt && \
+     git clone https://git.osp-dd.de/main/trixx.git && \
+     cd /opt/trixx && \
+     gem install bundler && \
+     bundle config set deployment 'true' && \
+     bundle install --jobs 4
+
+# use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
+CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]

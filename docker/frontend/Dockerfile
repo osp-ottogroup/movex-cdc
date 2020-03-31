@@ -8,7 +8,7 @@ RUN gem install bundler -v '2.1.4'
 
 RUN bundle install --jobs 4
 
-COPY . .
+COPY ../../../../../../.rvm/gems/jruby-9.2.8.0/gems/actioncable-6.0.2.1/app/assets/javascripts .
 
 EXPOSE 3000
 

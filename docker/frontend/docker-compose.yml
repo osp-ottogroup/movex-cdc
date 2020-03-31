@@ -1,7 +1,7 @@
 version: '3'
 services:
   trixx-frontend:
-    build: ./frontend
+    build: ../../frontend
     volumes:
       - ./frontend:/app
     ports:
@@ -10,7 +10,7 @@ services:
       VUE_APP_BACKEND_URL: http://localhost:3000
 
   trixx-backend:
-    build: .
+    build: ../../../../../../.rvm/gems/jruby-9.2.8.0/gems/actioncable-6.0.2.1/app/assets/javascripts
     volumes:
       - .:/app
     ports:
