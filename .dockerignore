@@ -28,4 +28,4 @@
 /coverage/.resultset.json.lock
 
 .idea
-frontend/
+frontend/node_modules/
