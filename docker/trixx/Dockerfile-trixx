@@ -7,8 +7,20 @@
 # Run container:    > docker run -p 8080:8080 git.osp-dd.de:5005/main/trixx/trixx
 # Use
 
-FROM jruby:9.2.8.0
+FROM node:12-alpine AS frontend
 
+RUN apk update && \
+    apk upgrade && \
+    apk add git && \
+    cd /opt && \
+    git clone https://git.osp-dd.de/main/trixx.git && \
+    cd /opt/trixx/frontend && \
+    npm install -g @vue/cli && \
+    npm install && \
+    npm run build
+
+
+FROM jruby:9.2.8.0
 MAINTAINER Peter.Ramm@ottogroup.com
 
 ARG BUILD_VERSION
