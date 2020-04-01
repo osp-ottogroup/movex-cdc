@@ -9,7 +9,7 @@ class TableLess
       binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
     end
 
-    ActiveRecord::Base.connection.select_all(sql, 'TableLess.select_all', binds)
+    ActiveRecord::Base.connection.select_all(sql, "TableLess.select_all Thread=#{Thread.current.object_id}", binds)
   rescue Exception => e
     ExceptionHelper.log_exception(e, "TableLess.select_all: Erroneous SQL:\n#{sql}")
     raise
@@ -35,7 +35,7 @@ class TableLess
       binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
     end
 
-    ActiveRecord::Base.connection.exec_update(sql, 'TableLess.execute', binds)  # returns the number of affected rows
+    ActiveRecord::Base.connection.exec_update(sql, "TableLess.execute Thread=#{Thread.current.object_id}", binds)  # returns the number of affected rows
   rescue Exception => e
     ExceptionHelper.log_exception(e, "TableLess.execute: Erroneous SQL:\n#{sql}")
     raise

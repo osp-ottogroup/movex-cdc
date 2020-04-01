@@ -1,6 +1,10 @@
 # Controller for actions regarding user management (logon, user maintenance)
 class LoginController < ApplicationController
-  before_action :authorize_request, except: :do_logon
+
+  # load vuejs application
+  def index
+    render :file => 'public/index.html'
+  end
 
   # User-logon from GUI
   # POST /login/do_logon

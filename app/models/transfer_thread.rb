@@ -46,7 +46,7 @@ class TransferThread
       begin
         ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
           event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
-          if event_logs.count >
+          if event_logs.count > 0
             idle_sleep_time = 0                                                 # Reset sleep time for next idle time
             # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
             kafka_producer.transaction do                                       # make messages visible at kafka only if all messages of the batch are processed

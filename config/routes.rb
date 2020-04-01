@@ -17,4 +17,6 @@ Rails.application.routes.draw do
   resources :schema_rights
   resources :tables
   resources :users
+
+  root 'login#index'
 end

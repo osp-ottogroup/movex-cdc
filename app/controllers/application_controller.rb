@@ -24,7 +24,7 @@ class ApplicationController < ActionController::API
   # When performing JsonWebToken.decode function, it will return JWT::DecodeError if there was an error like token was expired, token not valid, token missing etc.
   # After we got user_id from payload then we will try to find user by id and assign it into current_user variable,
   # If user not exist it will return ActiveRecord::RecordNotFound and it will render error message with http status unauthorized.
-  @@authorize_exceptions = [{ controller: :login, action: :do_logon}]
+  @@authorize_exceptions = [{ controller: :login, action: :do_logon}, { controller: :login, action: :index}]
   def authorize_request
     return if @@authorize_exceptions.include?(controller: controller_name.to_sym, action: action_name.to_sym)
 
