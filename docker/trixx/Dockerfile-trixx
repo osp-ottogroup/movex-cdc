@@ -7,36 +7,48 @@
 # Run container:    > docker run -p 8080:8080 git.osp-dd.de:5005/main/trixx/trixx
 # Use
 
-FROM jruby:9.2.8.0
+FROM node:12-alpine AS frontend
 
-MAINTAINER Peter.Ramm@ottogroup.com
+RUN apk update && \
+    apk upgrade && \
+    apk add git && \
+    cd /opt && \
+    git clone https://git.osp-dd.de/main/trixx.git && \
+    cd /opt/trixx/frontend && \
+    npm install -g @vue/cli && \
+    npm install && \
+    npm run build
 
-ARG BUILD_VERSION
 
-EXPOSE 8080/tcp
+#FROM jruby:9.2.8.0
+#MAINTAINER Peter.Ramm@ottogroup.com
 
-RUN  apt-get update && \
-     apt-get -y upgrade && \
-     apt-get install -y procps git vim && \
-     sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
-     sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
-     dpkg-reconfigure -f noninteractive tzdata && \
-     cd /opt && \
-     git clone https://git.osp-dd.de/main/trixx.git && \
-     cd /opt/trixx && \
-     gem install bundler && \
-     bundle config set deployment 'true' && \
-     bundle install --jobs 4 && \
-     curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh && \
-     bash nodesource_setup.sh && \
-     apt install -y nodejs && \
-     echo "nodejs version is `node -v`" && \
-     echo "npm version is `npm -v`" && \
-     cd /opt/trixx/frontend && \
-     npm install -g @vue/cli && \
-     npm install --only=production && \
-     # npm run build ... + move to public
-     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /opt/trixx/build_version
+#ARG BUILD_VERSION
+
+#EXPOSE 8080/tcp
+
+#RUN  apt-get update && \
+#     apt-get -y upgrade && \
+#     apt-get install -y procps git vim && \
+#     sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
+#     sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
+#     dpkg-reconfigure -f noninteractive tzdata && \
+#     cd /opt && \
+#     git clone https://git.osp-dd.de/main/trixx.git && \
+#     cd /opt/trixx && \
+#     gem install bundler && \
+#     bundle config set deployment 'true' && \
+#     bundle install --jobs 4 && \
+#     curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh && \
+#     bash nodesource_setup.sh && \
+#     apt install -y nodejs && \
+#     echo "nodejs version is `node -v`" && \
+#     echo "npm version is `npm -v`" && \
+#     cd /opt/trixx/frontend && \
+#     npm install -g @vue/cli && \
+#     npm install --only=production && \
+#     # npm run build ... + move to public
+#     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /opt/trixx/build_version
 
 # use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
-CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]
+#CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]

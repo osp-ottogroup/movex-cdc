@@ -49,7 +49,9 @@ export default {
           const current = dbColumnsMap.get(column.name);
           dbColumnsMap.set(column.name, { ...current, ...column });
         } else {
-          console.warn(`The configured column ${this.schema.name}.${this.table.name}.${column.name} does not seem to exist in the database anymore`);
+          // console.warn(`The configured column ` +
+          //   `${this.schema.name}.${this.table.name}.${column.name} `+
+          //   `does not seem to exist in the DB anymore`);
         }
       });
 
