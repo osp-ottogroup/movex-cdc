@@ -69,9 +69,9 @@ class TransferThread
             end
           else
             idle_sleep_time += 1 if idle_sleep_time < 60
-            sleep idle_sleep_time                                               # sleep some time if no records are to be processed
           end
         end
+        sleep idle_sleep_time if idle_sleep_time > 0                            # sleep some time outside transaction if no records are to be processed
         retry_count_on_exception = 0                                            # reset retry counter if successful processed
       rescue Exception => e
         if retry_count_on_exception < MAX_EXCEPTION_RETRY
