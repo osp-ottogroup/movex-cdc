@@ -10,15 +10,11 @@ if [ -n "$TIMEZONE" ]; then
   dpkg-reconfigure -f noninteractive tzdata
 fi
 
+echo "TriXX build version is `cat /app/build_version`"
 
-echo "nodejs version is `node -v`"
-echo "npm version is `npm -v`"
-echo "TriXX build version is `cat /opt/trixx/build_version`"
-
-cd /opt/trixx
 export RAILS_LOG_TO_STDOUT=true
+export RAILS_SERVE_STATIC_FILES=true
 rails server --port 8080 --environment production
-
 
 
 

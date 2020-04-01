@@ -1,30 +1,36 @@
 # Build Docker image for TriXX application based on jRuby
-# Peter Ramm, 2020-03-31
+# Sandro Preuß, Peter Ramm, 2020-04-01
 
 # Usage:
 # Build image:      > docker pull jruby:9.2.8.0
-#                   > docker build -f Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=2020-03-30_00-00-00 -t git.osp-dd.de:5005/main/trixx/trixx .
-# Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx git.osp-dd.de:5005/main/trixx/trixx
-# Use
+#                   > docker build -f docker/trixx/Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t trixx .
+# Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx trixx
+# Store image at git.osp-dd.de:5005/main/trixx/trixx for deployment
 
-FROM node:12-alpine AS frontend
+# STAGE 1: build trixx frontend
+FROM node:12-alpine AS frontend_build
 
-RUN apk update && \
-    apk upgrade && \
-    apk add git && \
-    cd /opt && \
-    git clone https://git.osp-dd.de/main/trixx.git && \
-    cd /opt/trixx/frontend && \
-    npm install -g @vue/cli && \
-    npm install && \
-    npm run build
+ENV FRONTEND_SRC_PATH=frontend
 
+RUN apk update && apk upgrade && \
+    npm install -g @vue/cli
+
+WORKDIR /app
+
+COPY $FRONTEND_SRC_PATH/package*.json ./
+
+RUN npm install
+
+COPY $FRONTEND_SRC_PATH .
+
+RUN npm run build
+
+# STAGE 2: build trixx backend
 FROM jruby:9.2.8.0
+
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG BUILD_VERSION
-
-EXPOSE 8080/tcp
+ENV BACKEND_SRC_PATH=.
 
 RUN  apt-get update && \
      apt-get -y upgrade && \
@@ -32,25 +38,26 @@ RUN  apt-get update && \
      sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
      sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
      dpkg-reconfigure -f noninteractive tzdata && \
-     cd /opt && \
-     git clone https://git.osp-dd.de/main/trixx.git && \
-     cd /opt/trixx && \
-     gem install bundler && \
-     bundle config set deployment 'true' && \
-     bundle install --jobs 4
+     gem install bundler
 
-COPY --from=frontend /opt/trixx/frontend/dist/ /opt/trixx/public/
+WORKDIR /app
 
-#     curl -sL https://deb.nodesource.com/setup_12.x -o nodesource_setup.sh && \
-#     bash nodesource_setup.sh && \
-#     apt install -y nodejs && \
-#     echo "nodejs version is `node -v`" && \
-#     echo "npm version is `npm -v`" && \
-#     cd /opt/trixx/frontend && \
-#     npm install -g @vue/cli && \
-#     npm install --only=production && \
-#     # npm run build ... + move to public
-#     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /opt/trixx/build_version
+COPY ${BACKEND_SRC_PATH}/Gemfile* ./
+
+RUN bundle config set deployment 'true' && \
+    bundle install --jobs 4
+
+COPY ${BACKEND_SRC_PATH} .
+
+# Copy Frontend-Build into Rails-Project for static serve
+COPY --from=frontend_build /app/dist public/
+
+# use ARG not before this point, because ARGs are implicitly used by RUN commands and
+# this will force docker cache misses which results in not using cached layers
+ARG BUILD_VERSION
+RUN (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
+
+EXPOSE 8080/tcp
 
 # use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
-CMD ["/opt/trixx/docker/trixx/run-trixx.sh"]
+CMD ["/app/docker/trixx/run-trixx.sh"]
