@@ -83,6 +83,25 @@ test_oracle_11.2:
 
 build_trixx:
   stage: build
+
+  variables:
+    #IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA
+    IMAGE_TAG: $CI_REGISTRY_IMAGE/ki:$CI_COMMIT_REF_NAME
+
+  image:
+    name: gcr.io/kaniko-project/executor:debug
+    entrypoint: [""]
+
+  only:
+    refs:
+      - master
+      - dev
+
   script:
-    - sh -c "echo Build"
+    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+    - cd KI
+    - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
+    - cat build.json
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $IMAGE_TAG
+
 
