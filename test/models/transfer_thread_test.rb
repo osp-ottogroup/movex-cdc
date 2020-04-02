@@ -3,7 +3,7 @@ require 'test_helper'
 class TransferThreadTest < ActiveSupport::TestCase
 
   test "create worker" do
-    worker = TransferThread.create_worker(1)                                    # Async. thread
+    worker = TransferThread.create_worker(2)                                    # Async. thread
     sleep(1)
     worker.stop_thread
   end

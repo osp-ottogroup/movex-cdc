@@ -3,9 +3,9 @@ require 'kafka_mock'
 require 'socket'
 require 'table_less'
 require 'schema'
+require 'exception_helper'
 
 class TransferThread
-#  include ExceptionHelper
   attr_reader :worker_id
 
   def self.create_worker(worker_id)
@@ -35,7 +35,7 @@ class TransferThread
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
     kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}")
-    transactional_id = "TRIXX-#{hostname.strip}-#{@worker_id}"
+    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
     kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: transactional_id)
     kafka_producer.init_transactions                                            # Should be called once before starting transactions
 
