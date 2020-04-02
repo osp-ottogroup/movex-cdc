@@ -35,7 +35,7 @@ class TransferThread
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
     kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}")
-    transactional_id = "TRIXX-#{@worker_id}"
+    transactional_id = "TRIXX-#{hostname.strip}-#{@worker_id}"
     kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: transactional_id)
     kafka_producer.init_transactions                                            # Should be called once before starting transactions
 
@@ -79,12 +79,13 @@ class TransferThread
           sleep 10                                                              # spend some time if problem is only temporary
           ExceptionHelper.log_exception(e, "TransferThread.process: Retrying after exception (#{retry_count_on_exception}. try)")
         else
+          ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
           raise
         end
       end
     end                                                                         # while
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception after #{MAX_EXCEPTION_RETRY} retries")
+    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception")
     raise
   ensure
     begin
