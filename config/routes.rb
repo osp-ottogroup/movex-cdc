@@ -3,7 +3,8 @@ Rails.application.routes.draw do
 
   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
   #
-  get  '/activity_logs',            to: 'activity_logs#index'                   # only one method for resource established
+  get  '/activity_logs',            to: 'activity_logs#index'                   # only less methods for resource established
+  post '/activity_logs',            to: 'activity_logs#create'                  # only less methods for resource established
   get  '/db_columns',               to: 'db_columns#index'                      # only one method for resource established
   get  '/db_schemas',               to: 'db_schemas#index'                      # only one method for resource established
   get  '/db_tables',                to: 'db_tables#index'                       # only one method for resource established
