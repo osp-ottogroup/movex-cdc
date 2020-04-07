@@ -32,3 +32,16 @@ npm run lint
 
 ### Customize configuration
 See [Configuration Reference](https://cli.vuejs.org/config/).
+
+## Development with docker and docker-compose
+run front- and backend services
+```shell script
+# execute in from project root
+docker-compose -f docker/dev_docker-compose.yml up -d
+```
+
+show logs of running services
+```shell script
+# execute in from project root
+docker-compose -f docker/dev_docker-compose.yml logs -f
+```
