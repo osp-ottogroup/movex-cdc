@@ -1,18 +1,22 @@
 version: '3'
 services:
   trixx-frontend:
-    build: ../../frontend
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend/Dockerfile.dev
     volumes:
-      - ./frontend:/app
+      - ../frontend:/app
     ports:
       - "8080:8080"
     environment:
       VUE_APP_BACKEND_URL: http://localhost:3000
 
   trixx-backend:
-    build: ../../../../../../.rvm/gems/jruby-9.2.8.0/gems/actioncable-6.0.2.1/app/assets/javascripts
+    build:
+      context: ..
+      dockerfile: ./docker/backend/Dockerfile.dev
     volumes:
-      - .:/app
+      - ..:/app
     ports:
       - "3000:3000"
     environment:
