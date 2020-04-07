@@ -67,21 +67,57 @@ export default {
       };
     },
     async onSave(user) {
-      await CRUD.users.update(user.id, { user });
-      const index = this.users.findIndex(elem => elem.id === user.id);
-      this.$set(this.users, index, user);
-      this.selectedUser = null;
+      try {
+        await CRUD.users.update(user.id, { user });
+        const index = this.users.findIndex(elem => elem.id === user.id);
+        this.$set(this.users, index, user);
+        this.selectedUser = null;
+        this.$buefy.toast.open({
+          message: 'Saved changes to user!',
+          type: 'is-success',
+        });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occured!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
     async onDelete(user) {
-      await CRUD.users.delete(user.id);
-      const index = this.users.findIndex(elem => elem.id === user.id);
-      this.users.splice(index, 1);
-      this.selectedUser = null;
+      try {
+        await CRUD.users.delete(user.id);
+        const index = this.users.findIndex(elem => elem.id === user.id);
+        this.users.splice(index, 1);
+        this.selectedUser = null;
+        this.$buefy.toast.open({
+          message: 'Deleted user!',
+          type: 'is-success',
+        });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occured!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
     async onCreate(user) {
-      const newUser = await CRUD.users.create({ user });
-      this.users.push(newUser);
-      this.selectedUser = null;
+      try {
+        const newUser = await CRUD.users.create({ user });
+        this.users.push(newUser);
+        this.selectedUser = null;
+        this.$buefy.toast.open({
+          message: 'Created user!',
+          type: 'is-success',
+        });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occured!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
     onClose() {
       this.selectedUser = null;
