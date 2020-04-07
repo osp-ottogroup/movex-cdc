@@ -15,6 +15,8 @@ require "action_cable/engine"
 # require "sprockets/railtie"
 require "rails/test_unit/railtie"
 
+require 'yaml'
+
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
@@ -44,6 +46,14 @@ module Trixx
         )
       end
     end
+
+    # Load configuration file if exists
+    config.trixx_run_config = ENV['TRIXX_RUN_CONFIG'] || "#{Rails.root}/config/trixx_run.yml"
+    run_config = YAML.load_file(config.trixx_run_config)
+    run_config.each do |key, value|
+      config.send "#{key.downcase}=", value                                           # copy file content to config
+    end
+    config.log_level = config.log_level.to_sym if config.log_level.class == String
 
     config.trixx_db_type = ENV['TRIXX_DB_TYPE'] || 'SQLITE'
 
@@ -83,6 +93,8 @@ module Trixx
 
     msg = "\nStarting TriXX application at #{Time.now}:
 RAILS_ENV                     = #{Rails.env}
+LOG_LEVEL                     = #{config.log_level}
+TRIXX_RUN_CONFIG              = #{config.trixx_run_config}
 TRIXX_DB_TYPE                 = #{config.trixx_db_type}
 TRIXX_DB_URL                  = #{config.trixx_db_url}
 TRIXX_DB_USER                 = #{config.trixx_db_user}
