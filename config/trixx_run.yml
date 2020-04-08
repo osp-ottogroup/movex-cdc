@@ -1,4 +1,5 @@
 # Runtime configuration for TriXX application
+# Tell the location of configfile for trixx by environment variable TRIXX_RUN_CONFIG
 
 # Parameters to define: comment or uncomment for usage
 
