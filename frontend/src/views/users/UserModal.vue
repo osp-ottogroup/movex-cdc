@@ -40,16 +40,22 @@
               </b-input>
             </b-field>
 
-            <div class="field">
-              <label class="label">DB User</label>
-              <div class="select is-fullwidth">
-                <select v-model="internalUser.db_user">
-                  <option v-for="(dbSchema, index) in dbSchemas" :key="index">
-                    {{ dbSchema.name }}
-                  </option>
-                </select>
-              </div>
-            </div>
+            <b-field label="DB User">
+              <b-select v-model="internalUser.db_user"
+                        placeholder="Select a schema"
+                        expanded
+                        required>
+                <option v-for="(dbSchema, index) in dbSchemas" :key="index">
+                  {{ dbSchema.name }}
+                </option>
+              </b-select>
+            </b-field>
+
+            <b-field label="Admin User">
+              <b-checkbox v-model="internalUser.yn_admin"
+                          true-value="Y"
+                          false-value="N"/>
+            </b-field>
           </div>
 
           <div class="column border-left">

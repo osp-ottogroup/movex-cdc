@@ -64,6 +64,7 @@ export default {
       this.selectedUser = {
         id: null,
         schema_rights: [],
+        yn_admin: 'N',
       };
     },
     async onSave(user) {
@@ -91,7 +92,7 @@ export default {
         this.users.splice(index, 1);
         this.selectedUser = null;
         this.$buefy.toast.open({
-          message: 'Deleted user!',
+          message: 'User deleted!',
           type: 'is-success',
         });
       } catch (e) {
@@ -108,7 +109,7 @@ export default {
         this.users.push(newUser);
         this.selectedUser = null;
         this.$buefy.toast.open({
-          message: 'Created user!',
+          message: 'User Created!',
           type: 'is-success',
         });
       } catch (e) {
