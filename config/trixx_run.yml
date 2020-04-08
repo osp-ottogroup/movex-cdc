@@ -1,0 +1,28 @@
+# Runtime configuration for TriXX application
+# Tell the location of configfile for trixx by environment variable TRIXX_RUN_CONFIG
+
+# Parameters to define: comment or uncomment for usage
+
+# Log level for application (debug, info, warn, error)
+LOG_LEVEL: debug
+
+# Type of used database (SQLITE, ORACLE)
+# TRIXX_DB_TYPE: ORACLE
+
+# Username of TriXX schema in database
+# TRIXX_DB_USER: MyUser
+
+# Password of TRIXX_DB_USER, also used as password of user 'admin' for GUI logon.
+# TRIXX_DB_PASSWORD: MyPassword
+
+# Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" oder "machine:port/service"
+# TRIXX_DB_URL: machine:port/service
+
+# optional directory for tnsnames.ora for resolution if Oracle DB aliases
+# TNS_ADMIN: /etc
+
+# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
+# TRIXX_KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
+
+# Initial number of worker threads
+TRIXX_INITIAL_WORKER_THREADS: 3
