@@ -51,7 +51,7 @@ stages:
     paths:
       - log/
       - tmp/screenshots/
-      - /opt/kafka/logs/
+      - /opt/kafka/logs/*
     expire_in: 1 month
 
 
