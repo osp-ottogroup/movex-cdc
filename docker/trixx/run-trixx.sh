@@ -14,7 +14,7 @@ echo "TriXX build version is `cat /app/build_version`"
 
 export RAILS_LOG_TO_STDOUT=true
 export RAILS_SERVE_STATIC_FILES=true
-rails server --port 8080 --environment production
+exec rails server --port 8080 --environment production
 
 
 
