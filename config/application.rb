@@ -85,7 +85,7 @@ module Trixx
     raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
 
     if Rails.env.test?
-      config.trixx_db_password        = config.trixx_db_password        || 'trixx'
+      Trixx::Application.set_attrib_from_env(:trixx_db_password, 'trixx')
       Trixx::Application.set_attrib_from_env(:trixx_db_victim_password, 'trixx_victim')
     end
 
