@@ -96,7 +96,6 @@ module Trixx
         Trixx::Application.set_and_log_attrib_from_env(:trixx_db_victim_user, 'trixx_victim') if Rails.env.test? # Schema for tables observed by trixx
         Trixx::Application.set_attrib_from_env(:trixx_db_system_password, 'oracle')
       end
-      raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."       unless config.trixx_db_url
     when 'SQLITE' then
       config.trixx_db_user              = 'main'
       if Rails.env.test?
@@ -115,6 +114,7 @@ module Trixx
     # Verify mandatory settings
     raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."            unless config.trixx_db_user
     raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."        unless config.trixx_db_password
+    raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."             unless config.trixx_db_url || config.trixx_db_type == 'SQLITE'
     raise "Missing configuration value for 'TRIXX_KAFKA_SEED_BROKER'! Aborting..."  unless config.trixx_kafka_seed_broker
 
     # check if database supports partitioning (possible and licensed)
