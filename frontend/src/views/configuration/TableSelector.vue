@@ -1,5 +1,6 @@
 <template>
-  <div>
+  <div class="content">
+    <h6>Tables</h6>
     <table-table :tables="tables"
                  v-on="$listeners"/>
     <button class="button" @click="isTableModalActive = true">Add Table</button>
