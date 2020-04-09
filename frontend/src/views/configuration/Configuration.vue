@@ -1,11 +1,11 @@
 <template>
   <div class="columns is-centered">
-    <schema-selector class="column is-2 is-offset-2"
+    <schema-selector class="column is-2"
                      @schema-selected="onSchemaSelected"></schema-selector>
     <table-selector class="column is-2"
                     :schema="selectedSchema"
                     @table-selected="onTableSelected"></table-selector>
-    <column-selector class="column is-6"
+    <column-selector class="column is-4"
                      :schema="selectedSchema"
                      :table="selectedTable"></column-selector>
   </div>

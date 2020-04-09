@@ -1,32 +1,25 @@
 <template>
-  <table class="table is-striped is-hoverable">
-    <thead>
-    <tr>
-      <th>Name</th>
-      <th>Topic</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr v-for="schema in schemas"
-        :key="schema.id"
-        @click="setCurrentSchema(schema)"
-        :class="{ 'is-selected': isCurrentSchema(schema) }">
-      <td>{{ schema.name }}</td>
-      <td>
-        <b-field>
+  <div>
+    <b-table :data="schemas"
+             :columns="columns"
+             detailed
+             detail-key="id"
+             :selected="currentSchema"
+             @click="setCurrentSchema">
+      <template slot="detail" slot-scope="props">
+        <b-field label="Topic" label-position="on-border">
           <b-input placeholder="Enter Topic"
-                   v-model="schema.topic"
+                   v-model="props.row.topic"
                    size="is-small"
-                   :icon-right="schema.topicChanged ? 'save' : ''"
-                   :icon-right-clickable="schema.topicChanged"
-                   @icon-right-click="onSaveSchema(schema)"
-                   @input="onTopicChanged(schema)">
+                   :icon-right="props.row.topicChanged ? 'save' : ''"
+                   :icon-right-clickable="props.row.topicChanged"
+                   @icon-right-click="onSaveSchema(props.row)"
+                   @input="onTopicChanged(props.row)">
           </b-input>
         </b-field>
-      </td>
-    </tr>
-    </tbody>
-  </table>
+      </template>
+    </b-table>
+  </div>
 </template>
 
 <script>
@@ -40,15 +33,15 @@ export default {
   data() {
     return {
       currentSchema: null,
+      columns: [
+        { field: 'name', label: 'Name' },
+      ],
     };
   },
   methods: {
     setCurrentSchema(schema) {
       this.currentSchema = schema;
       this.$emit('schema-selected', schema);
-    },
-    isCurrentSchema(schema) {
-      return this.currentSchema && this.currentSchema.id === schema.id;
     },
     async onSaveSchema(schema) {
       try {
