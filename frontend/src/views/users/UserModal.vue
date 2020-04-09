@@ -111,16 +111,22 @@ export default {
     user: { type: Object, required: true },
   },
   async mounted() {
-    this.dbSchemas = await CRUDService.dbSchemas.getAll();
-    this.dbSchemas.push({ name: 'Test 1' });
-    this.dbSchemas.push({ name: 'Test 2' });
-    // eslint-disable-next-line
-    this.selectableDbSchemas = this.dbSchemas.filter((dbSchema) => {
+    try {
+      this.dbSchemas = await CRUDService.dbSchemas.getAll();
       // eslint-disable-next-line
-      return !this.internalUser.schema_rights.some((schemaRight) => {
-        return schemaRight.schema.name === dbSchema.name;
+      this.selectableDbSchemas = this.dbSchemas.filter((dbSchema) => {
+        // eslint-disable-next-line
+        return !this.internalUser.schema_rights.some((schemaRight) => {
+          return schemaRight.schema.name === dbSchema.name;
+        });
       });
-    });
+    } catch (e) {
+      this.$buefy.toast.open({
+        message: 'An error occurred while loading schemas!',
+        type: 'is-danger',
+        duration: 5000,
+      });
+    }
   },
   data() {
     return {

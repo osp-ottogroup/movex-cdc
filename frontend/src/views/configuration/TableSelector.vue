@@ -32,21 +32,41 @@ export default {
   },
   methods: {
     async onAddTable(addedTable) {
-      const table = await CRUDService.tables.create({
-        table: {
-          schema_id: this.schema.id,
-          name: addedTable.name,
-          info: 'TODO',
-        },
-      });
-      this.tables.push(table);
-      this.isTableModalActive = false;
+      try {
+        const table = await CRUDService.tables.create({
+          table: {
+            schema_id: this.schema.id,
+            name: addedTable.name,
+            info: 'TODO',
+          },
+        });
+        this.tables.push(table);
+        this.isTableModalActive = false;
+        this.$buefy.toast.open({
+          message: 'Table added to TriXX configuration!',
+          type: 'is-success',
+        });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occurred!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
   },
   watch: {
     async schema(newSchema) {
-      this.tables = await CRUDService.tables.getAll({ schema_id: newSchema.id });
-      this.dbTables = await CRUDService.dbTables.getAll({ schema_name: newSchema.name });
+      try {
+        this.tables = await CRUDService.tables.getAll({ schema_id: newSchema.id });
+        this.dbTables = await CRUDService.dbTables.getAll({ schema_name: newSchema.name });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occurred while loading tables!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
   },
 };

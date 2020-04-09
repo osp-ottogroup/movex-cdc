@@ -21,7 +21,15 @@ export default {
     };
   },
   async mounted() {
-    this.schemas = await CRUDService.schemas.getAll();
+    try {
+      this.schemas = await CRUDService.schemas.getAll();
+    } catch (e) {
+      this.$buefy.toast.open({
+        message: 'An error occurred while loading schemas!',
+        type: 'is-danger',
+        duration: 5000,
+      });
+    }
   },
 };
 </script>

@@ -59,20 +59,40 @@ export default {
       this.mergedColumns = Array.from(dbColumnsMap.values());
     },
     async onColumnChanged(column) {
-      if (column.id) { // update
-        await CRUDService.columns.update(column.id, { column });
-      } else { // create
-        await CRUDService.columns.create({ column });
+      try {
+        if (column.id) { // update
+          await CRUDService.columns.update(column.id, { column });
+        } else { // create
+          await CRUDService.columns.create({ column });
+        }
+        this.$buefy.toast.open({
+          message: `Saved changes to column '${column.name}'!`,
+          type: 'is-success',
+        });
+        await this.reload(this.table);
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occurred!',
+          type: 'is-danger',
+          duration: 5000,
+        });
       }
-      await this.reload(this.table);
     },
     async reload(table) {
-      this.dbColumns = await CRUDService.dbColumns.getAll({
-        table_name: table.name,
-        schema_name: this.schema.name,
-      });
-      this.columns = await CRUDService.columns.getAll({ table_id: table.id });
-      this.mergeColumns();
+      try {
+        this.dbColumns = await CRUDService.dbColumns.getAll({
+          table_name: table.name,
+          schema_name: this.schema.name,
+        });
+        this.columns = await CRUDService.columns.getAll({ table_id: table.id });
+        this.mergeColumns();
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: 'An error occurred while loading columns!',
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
     },
   },
   watch: {

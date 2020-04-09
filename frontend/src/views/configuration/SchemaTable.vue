@@ -61,7 +61,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occured!',
+          message: 'An error occurred!',
           type: 'is-danger',
           duration: 5000,
         });

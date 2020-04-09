@@ -49,7 +49,15 @@ export default {
     };
   },
   async mounted() {
-    this.users = await CRUD.users.getAll();
+    try {
+      this.users = await CRUD.users.getAll();
+    } catch (e) {
+      this.$buefy.toast.open({
+        message: 'An error occurred while loading users!',
+        type: 'is-danger',
+        duration: 5000,
+      });
+    }
   },
   computed: {
     isUserSelected() {
@@ -79,7 +87,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occured!',
+          message: 'An error occurred!',
           type: 'is-danger',
           duration: 5000,
         });
@@ -97,7 +105,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occured!',
+          message: 'An error occurred!',
           type: 'is-danger',
           duration: 5000,
         });
@@ -114,7 +122,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occured!',
+          message: 'An error occurred!',
           type: 'is-danger',
           duration: 5000,
         });
