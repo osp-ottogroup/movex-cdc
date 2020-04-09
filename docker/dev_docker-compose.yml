@@ -21,6 +21,7 @@ services:
       - "3000:3000"
     environment:
       TRIXX_DB_PASSWORD: test
+      TRIXX_DB_TYPE: SQLITE
 
 networks:
   default:

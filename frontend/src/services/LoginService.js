@@ -30,7 +30,7 @@ const login = async (credentials) => {
 const logout = () => {
   TokenService.setAccessToken(null);
   removeToken();
-  window.location.reload();
+  window.location.href = window.location.origin;
 };
 
 export default {
