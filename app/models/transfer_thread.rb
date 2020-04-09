@@ -63,7 +63,9 @@ class TransferThread
                 kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
                 delete_event_logs_batch(event_logs)
               rescue Exception => e
-                ExceptionHelper.log_exception(e, "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.")
+                msg = "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.\n"
+                msg << "Number of records to deliver = #{event_logs.count}"
+                ExceptionHelper.log_exception(e, msg)
                 raise
               end
             end
