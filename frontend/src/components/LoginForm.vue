@@ -70,7 +70,7 @@ export default {
           toastMessage = e.data.error;
         }
         this.toast = Toast.open({
-          duration: 5000,
+          duration: 10000,
           message: toastMessage,
           type: 'is-danger',
         });

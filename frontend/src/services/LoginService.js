@@ -28,9 +28,11 @@ const login = async (credentials) => {
 };
 
 const logout = () => {
-  TokenService.setAccessToken(null);
-  removeToken();
-  window.location.href = window.location.origin;
+  if (TokenService.getAccessToken() != null) {
+    TokenService.setAccessToken(null);
+    removeToken();
+    window.location.href = window.location.origin;
+  }
 };
 
 export default {
