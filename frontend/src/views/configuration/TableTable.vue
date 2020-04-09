@@ -3,7 +3,7 @@
     <thead>
     <tr>
       <th>
-        Tables
+        Name
       </th>
     </tr>
     </thead>

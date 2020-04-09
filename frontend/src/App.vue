@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <template v-if="loggedIn">
-      <app-header :userName="userName"/>
+      <app-header class="header" :userName="userName"/>
       <router-view />
       <app-footer />
     </template>
@@ -58,4 +58,8 @@ export default {
 
 <style lang="scss">
 @import './app.scss';
+
+.header {
+  margin-bottom: 1rem;
+}
 </style>
