@@ -1,6 +1,5 @@
 <template>
   <div class="content">
-    <h6>Tables</h6>
     <table-table :tables="tables"
                  v-on="$listeners"/>
     <button class="button" @click="isTableModalActive = true">Add Table</button>
@@ -37,6 +36,7 @@ export default {
           table: {
             schema_id: this.schema.id,
             name: addedTable.name,
+            topic: addedTable.topic,
             info: 'TODO',
           },
         });

@@ -1,10 +1,12 @@
 <template>
   <div>
-    <b-table :data="schemas"
+    <b-table ref="table"
+             :data="schemas"
              :columns="columns"
              detailed
              detail-key="id"
              :selected="currentSchema"
+             :show-detail-icon="false"
              @click="setCurrentSchema">
       <template slot="detail" slot-scope="props">
         <b-field label="Topic" label-position="on-border">
@@ -23,7 +25,7 @@
 </template>
 
 <script>
-import CRUDService from '../../services/CRUDService';
+import CRUDService from '@/services/CRUDService';
 
 export default {
   name: 'SchemaTable',
@@ -34,13 +36,17 @@ export default {
     return {
       currentSchema: null,
       columns: [
-        { field: 'name', label: 'Name' },
+        { field: 'name', label: 'Schemas' },
       ],
     };
   },
   methods: {
     setCurrentSchema(schema) {
+      if (this.currentSchema !== null) {
+        this.$refs.table.toggleDetails(this.currentSchema);
+      }
       this.currentSchema = schema;
+      this.$refs.table.toggleDetails(schema);
       this.$emit('schema-selected', schema);
     },
     async onSaveSchema(schema) {

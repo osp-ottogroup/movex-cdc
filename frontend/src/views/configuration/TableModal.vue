@@ -11,14 +11,21 @@
         </button>
       </header>
       <section class="modal-card-body">
-        <div class="select">
-          <select v-model="selectedTable">
-            <option disabled value="">Please select a table</option>
-            <option v-for="table in tables" :key="table.id" :value="table">
+        <b-field label="Table">
+          <b-select v-model="table.name"
+                    placeholder="Select a table"
+                    expanded>
+            <option v-for="table in tables" :key="table.id" :value="table.name">
               {{ table.name }}
             </option>
-          </select>
-        </div>
+          </b-select>
+        </b-field>
+
+        <b-field label="Topic">
+          <b-input placeholder="Enter Topic"
+                   v-model="table.topic">
+          </b-input>
+        </b-field>
       </section>
       <footer class="modal-card-foot">
         <button class="button is-primary"
@@ -39,7 +46,10 @@ export default {
   },
   data() {
     return {
-      selectedTable: null,
+      table: {
+        name: null,
+        topic: null,
+      },
     };
   },
   methods: {
@@ -47,7 +57,7 @@ export default {
       this.$emit('update:is-active', false);
     },
     onAddButtonClicked() {
-      this.$emit('add-table', this.selectedTable);
+      this.$emit('add-table', this.table);
     },
   },
 };

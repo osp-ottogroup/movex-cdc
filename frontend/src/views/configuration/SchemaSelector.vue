@@ -1,6 +1,5 @@
 <template>
   <div class="content">
-    <h6>Schemas</h6>
     <schema-table :schemas="schemas"
                   v-on="$listeners"/>
   </div>

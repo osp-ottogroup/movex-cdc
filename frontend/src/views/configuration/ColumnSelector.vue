@@ -1,6 +1,5 @@
 <template>
   <div class="content">
-    <h6>Columns</h6>
 <!--    <div class="loader-wrapper is-active">-->
 <!--      <div class="loader is-loading"></div>-->
 <!--    </div>-->

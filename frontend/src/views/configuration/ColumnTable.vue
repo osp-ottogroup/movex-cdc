@@ -4,7 +4,7 @@
       <thead>
       <tr>
         <th>
-          Name
+          Columns
         </th>
         <th>
           Insert-Trigger
