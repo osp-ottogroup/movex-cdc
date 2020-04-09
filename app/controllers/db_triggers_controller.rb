@@ -10,7 +10,7 @@ class DbTriggersController < ApplicationController
     render json: @triggers
   end
 
-  # GET /triggers/details
+  # GET /db_triggers/details
   # List details of one trigger
   def show
     params.require([:table_id, :trigger_name])
@@ -20,7 +20,7 @@ class DbTriggersController < ApplicationController
     render json: @trigger
   end
 
-  # POST /triggers/generate
+  # POST /db_triggers/generate
   # Generate triggers for named schema
   def generate
     schema_name = params.require :schema_name
@@ -32,7 +32,7 @@ class DbTriggersController < ApplicationController
     render json: result, status: result[:errors].count == 0 ? :ok : :internal_server_error
   end
 
-  # POST /triggers/generate_all
+  # POST /db_triggers/generate_all
   # Generate triggers for all schema the user has rights for
   def generate_all
     schema_rights = SchemaRight.where(user_id: @current_user.id)

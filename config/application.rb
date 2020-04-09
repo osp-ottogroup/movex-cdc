@@ -78,8 +78,7 @@ module Trixx
     config.log_level = config.log_level.to_sym if config.log_level.class == String
     Trixx::Application.log_attribute('LOG_LEVEL', config.log_level)
 
-    config.trixx_db_type = ENV['TRIXX_DB_TYPE'] || config.trixx_db_type
-    Trixx::Application.log_attribute('TRIXX_DB_TYPE', config.trixx_db_type)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type)
 
     supported_db_types = ['ORACLE', 'SQLITE']
     raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
