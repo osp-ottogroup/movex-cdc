@@ -64,6 +64,16 @@ class ThreadHandling
     @thread_pool_mutex.synchronize { @thread_pool.count }
   end
 
+  def health_check_data
+    result = []
+    @thread_pool_mutex.synchronize do
+      @thread_pool.each do |t|
+        result << t.thread_state
+      end
+    end
+    result
+  end
+
   private
   def initialize                                                                # get singleton by get_instance only
     @thread_pool = []

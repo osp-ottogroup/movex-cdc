@@ -19,6 +19,11 @@ class TransferThread
 
   def initialize(worker_id)
     @worker_id = worker_id
+    @start_time = Time.now
+    @last_active_time = nil                                                     # timestamp of last transfer to kafka
+    @total_messages_processed = 0                                               # Total number of message processings, no matter whether successful or not
+    @messages_processed_with_error = 0                                          # Number of messages processing trials ending with error
+    @max_message_size = 0                                                       # Max. size of single message in bytes
     @stop_requested = false
     @thread_mutex = Mutex.new                                                   # Ensure access on instance variables from two threads
     @max_event_logs_id = 0                                                      # maximum processed id
@@ -47,6 +52,8 @@ class TransferThread
         ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
           event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
           if event_logs.count > 0
+            @total_messages_processed += event_logs.count
+            @last_active_time = Time.now
             idle_sleep_time = 0                                                 # Reset sleep time for next idle time
             # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
             kafka_producer.transaction do                                       # make messages visible at kafka only if all messages of the batch are processed
@@ -76,6 +83,7 @@ class TransferThread
         sleep idle_sleep_time if idle_sleep_time > 0                            # sleep some time outside transaction if no records are to be processed
         retry_count_on_exception = 0                                            # reset retry counter if successful processed
       rescue Exception => e
+        @messages_processed_with_error +=  event_logs.count
         if retry_count_on_exception < MAX_EXCEPTION_RETRY
           retry_count_on_exception += 1
           sleep 10                                                              # spend some time if problem is only temporary
@@ -97,12 +105,26 @@ class TransferThread
       ExceptionHelper.log_exception(e, "TransferThread.process: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
     Rails.logger.info "TransferThread(#{@worker_id}).process: stopped"
+    Rails.logger.info thread_state
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
   end
 
   def stop_thread                                                               # called from main thread / job
     Rails.logger.info "TransferThread(#{@worker_id}).stop_thread: stop request executed"
     @thread_mutex.synchronize { @stop_requested = true }
+  end
+
+  # get Hash with current state info for thread, used e.g. for health check
+  def thread_state
+    {
+        worker_id:                      @worker_id,
+        start_time:                     @start_time,
+        last_active_time:               @last_active_time,
+        max_message_size:               @max_message_size,
+        max_event_logs_id:              @max_event_logs_id,
+        successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
+        message_processing_errors:      @messages_processed_with_error
+    }
   end
 
   private
@@ -171,7 +193,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{MAX_MESSAGE_BULK_COUNT / 2})",
   end
 
   def prepare_message_from_event_log(event_log)
-    "\
+    msg = "\
 id: #{event_log['id']},
 schema: '#{schema_name(event_log['schema_id'])}',
 tablename: '#{table_name(event_log['table_id'])}',
@@ -179,9 +201,10 @@ operation: '#{long_operation_from_short(event_log['operation'])}',
 timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
 #{event_log['payload']}
     "
+    @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
+    msg
   end
 
-  private
   def long_operation_from_short(op)
     case op
     when 'I' then 'INSERT'

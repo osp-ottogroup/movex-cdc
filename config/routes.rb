@@ -12,6 +12,7 @@ Rails.application.routes.draw do
   get  '/db_triggers/details',      to: 'db_triggers#show'
   post '/db_triggers/generate',     to: 'db_triggers#generate'
   post '/db_triggers/generate_all', to: 'db_triggers#generate_all'
+  get  '/health_check',             to: 'health_check#index'                    # only one method for resource established
   resources :columns
   resources :conditions
   resources :schemas
