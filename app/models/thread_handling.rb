@@ -1,4 +1,5 @@
 class ThreadHandling
+  attr_reader :application_startup_timestamp
 
   @@instance = nil
   def self.get_instance
@@ -29,7 +30,7 @@ class ThreadHandling
 
   end
 
-  SHUTDOWN_TIMEOUT_SECS = 60
+  SHUTDOWN_TIMEOUT_SECS = 20
   # graceful shutdown processing of transfer threads at rails exit
   def shutdown_processing
     @thread_pool_mutex.synchronize do
@@ -49,7 +50,7 @@ class ThreadHandling
       Rails.logger.info "All TransferThread worker are stopped now, shutting down"
       @shutdown_requested = false if Rails.env.test?                            # Reset state. Only valid for test if multiple tests are running with one object instance. In reality whole Rails process will shutdown now
     else
-      Rails.logger.info "Not all TransferThread worker are stopped now (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
+      Rails.logger.info "ThreadHandling.shutdown_processing: Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
     end
   end
 
@@ -79,6 +80,7 @@ class ThreadHandling
     @thread_pool = []
     @thread_pool_mutex = Mutex.new                                              # Ensure synchronized operations on @@thread_pool
     @shutdown_requested = false                                                 # Semaphore to prevent ensure_processing from recreating shut down threads
+    @application_startup_timestamp = Time.now
   end
 
   # get worker_id for new worker from end of list or gap, called from inside Mutex.synchronize

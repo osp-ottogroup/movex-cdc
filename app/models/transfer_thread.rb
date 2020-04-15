@@ -1,8 +1,11 @@
 require 'kafka'
 require 'kafka_mock'
 require 'socket'
+
+# preload classes to prevent from 'RuntimeError: Circular dependency detected while autoloading constant' if multiple threads start working simultaneously
 require 'table_less'
 require 'schema'
+require 'table'
 require 'exception_helper'
 
 class TransferThread
@@ -10,11 +13,14 @@ class TransferThread
 
   def self.create_worker(worker_id)
     worker = TransferThread.new(worker_id)
-    thread = Thread.new{ worker.process }
+    thread = Thread.new do
+      worker.process
+    end
     thread.name = "TransferThread :#{worker_id}"
     worker
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "WorkerThread.create_worker (#{worker_id})")
+    ExceptionHelper.log_exception(e, "TransferThread.create_worker (#{worker_id})")
+    raise
   end
 
   def initialize(worker_id)
@@ -24,6 +30,8 @@ class TransferThread
     @total_messages_processed = 0                                               # Total number of message processings, no matter whether successful or not
     @messages_processed_with_error = 0                                          # Number of messages processing trials ending with error
     @max_message_size = 0                                                       # Max. size of single message in bytes
+    @db_session_info = 'set later in new thread'                                # Session ID etc.
+    @thread_id = 'set later in new thread'                                      # Object_ID of thread
     @stop_requested = false
     @thread_mutex = Mutex.new                                                   # Ensure access on instance variables from two threads
     @max_event_logs_id = 0                                                      # maximum processed id
@@ -36,16 +44,19 @@ class TransferThread
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info "TransferThread.process: New worker thread created with ID=#{@worker_id}"
+    @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
+    @thread_id = Thread.current.object_id
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
     kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}")
     transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
-    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT, transactional: true, transactional_id: transactional_id)
+    kafka_producer = kafka.producer(max_buffer_size: MAX_MESSAGE_BULK_COUNT+1, transactional: true, transactional_id: transactional_id)
     kafka_producer.init_transactions                                            # Should be called once before starting transactions
 
     # Loop for ever, check cancel criterial in threadhandling
     idle_sleep_time = 0
+    event_logs = []                                                             # ensure variable is also known in exception handling
     retry_count_on_exception = 0                                                # limit retries
     while !@thread_mutex.synchronize { @stop_requested }
       begin
@@ -70,7 +81,7 @@ class TransferThread
                 kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
                 delete_event_logs_batch(event_logs)
               rescue Exception => e
-                msg = "TransferThread.process: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.\n"
+                msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.\n"
                 msg << "Number of records to deliver = #{event_logs.count}"
                 ExceptionHelper.log_exception(e, msg)
                 raise
@@ -80,37 +91,42 @@ class TransferThread
             idle_sleep_time += 1 if idle_sleep_time < 60
           end
         end
-        sleep idle_sleep_time if idle_sleep_time > 0                            # sleep some time outside transaction if no records are to be processed
+        sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                 # sleep some time outside transaction if no records are to be processed
         retry_count_on_exception = 0                                            # reset retry counter if successful processed
       rescue Exception => e
         @messages_processed_with_error +=  event_logs.count
         if retry_count_on_exception < MAX_EXCEPTION_RETRY
           retry_count_on_exception += 1
-          sleep 10                                                              # spend some time if problem is only temporary
-          ExceptionHelper.log_exception(e, "TransferThread.process: Retrying after exception (#{retry_count_on_exception}. try)")
+          sleep_and_watch 10                                                    # spend some time if problem is only temporary
+          ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Retrying after exception (#{retry_count_on_exception}. try)")
         else
-          ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
+          ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
           raise
         end
       end
     end                                                                         # while
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TransferThread.process: Terminating thread due to exception")
+    ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
     raise
   ensure
     begin
       kafka_producer&.clear_buffer                                              # remove all pending (not processed by kafka) messages from producer buffer
       kafka_producer&.shutdown                                                  # free kafka connections
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "TransferThread.process: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
+      ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
-    Rails.logger.info "TransferThread(#{@worker_id}).process: stopped"
+    Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
     Rails.logger.info thread_state
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
+
+    # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised
+    if !@stop_requested && !Rails.env.test?                                     # not for test because threads have all the same DB connection in test
+      ActiveRecord::Connection.clear_active_connections! unless Rails.env.test? # Ensure that connections are freed in connection pool
+    end
   end
 
   def stop_thread                                                               # called from main thread / job
-    Rails.logger.info "TransferThread(#{@worker_id}).stop_thread: stop request executed"
+    Rails.logger.info "TransferThread.stop_thread #{@worker_id}: stop request executed"
     @thread_mutex.synchronize { @stop_requested = true }
   end
 
@@ -118,6 +134,8 @@ class TransferThread
   def thread_state
     {
         worker_id:                      @worker_id,
+        thread_id:                      @thread_id,
+        db_session_info:                @db_session_info,
         start_time:                     @start_time,
         last_active_time:               @last_active_time,
         max_message_size:               @max_message_size,
@@ -240,6 +258,22 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
         end
     timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"
   end
+
+  def db_session_info
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      TableLess.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
+    else '< not implemented >'
+    end
+  end
+
+  def sleep_and_watch(sleeptime)
+    1.upto(sleeptime) do
+      sleep(1)
+      return if @thread_mutex.synchronize { @stop_requested }                   # Cancel sleep if stop requested
+    end
+  end
+
 end
 
 

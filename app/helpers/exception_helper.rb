@@ -22,7 +22,7 @@ module ExceptionHelper
   def self.memory_info_string
     output = ''
     memory_info_hash.each do |key, value|
-      output << "#{key} = #{value}" unless value.nil?
+      output << "#{key} = #{value}, " unless value.nil?
     end
     output
   end
@@ -59,7 +59,7 @@ module ExceptionHelper
         else
           page_multitplier = 1                                                       # bytes
           page_multitplier= 4096 if output['vm.page']                                # pages
-          retval = (output.split(' ')[1].to_f * page_multitplier /(1024*1024*1024)).round(3)
+          retval = (output.split(' ')[1].to_f * page_multitplier / (1024*1024*1024)).round(3)
         end
       end
     end

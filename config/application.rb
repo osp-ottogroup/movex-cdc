@@ -109,12 +109,15 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker, '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb)
 
     # Verify mandatory settings
-    raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."            unless config.trixx_db_user
-    raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."        unless config.trixx_db_password
-    raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."             unless config.trixx_db_url || config.trixx_db_type == 'SQLITE'
-    raise "Missing configuration value for 'TRIXX_KAFKA_SEED_BROKER'! Aborting..."  unless config.trixx_kafka_seed_broker
+    raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."                      unless config.trixx_db_user
+    raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."                  unless config.trixx_db_password
+    raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."                       unless config.trixx_db_url || config.trixx_db_type == 'SQLITE'
+    raise "Missing configuration value for 'TRIXX_KAFKA_SEED_BROKER'! Aborting..."            unless config.trixx_kafka_seed_broker
+    raise "Missing configuration value for 'TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB'! Aborting..."   unless config.trixx_kafka_total_buffer_size_mb
+    raise "Missing configuration value for 'TRIXX_INITIAL_WORKER_THREADS'! Aborting..."       unless config.trixx_initial_worker_threads
 
     # check if database supports partitioning (possible and licensed)
     def partitioning

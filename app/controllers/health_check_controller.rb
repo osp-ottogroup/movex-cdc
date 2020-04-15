@@ -9,7 +9,8 @@ class HealthCheckController < ApplicationController
 
 
     @health_data = {
-        timestamp: Time.now,
+        start_working_timestamp: ThreadHandling.get_instance.application_startup_timestamp,
+        health_check_timestamp: Time.now,
         warnings: '',
         memory: ExceptionHelper.memory_info_hash
     }
@@ -21,6 +22,31 @@ class HealthCheckController < ApplicationController
     end
 
     @health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
+
+    connection_info = []
+    ActiveRecord::Base.connection_pool.connections.each do |conn|
+      connection_info << {
+          owner_thread: conn.owner&.object_id,
+          owner_name:   conn.owner&.name,
+          owner_status: conn.owner&.status,
+          seconds_idle: conn.seconds_idle
+      }
+    end
+    @health_data[:number_of_connections] = connection_info.count
+    @health_data[:connection_pool] = connection_info
+
+    thread_info = []
+    Thread.list.each do |t|
+      thread_info << {
+          object_id:    t.object_id,
+          name:         t.name,
+          info:         t == Thread.current ? 'health_check request processing' : (t == Thread.main ? 'Application main thread' : ''),
+          status:       t.status,
+          alive:        t.alive?
+      }
+    end
+    @health_data[:number_of_threads] = thread_info.count
+    @health_data[:threads] = thread_info
 
     render json: JSON.pretty_generate(@health_data), status: @health_status
   end
