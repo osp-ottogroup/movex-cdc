@@ -51,16 +51,18 @@ module Trixx
       puts "#{key.ljust(35, ' ')} #{value}"
     end
 
-    def self.set_attrib_from_env(key, default=nil)
+    def self.set_attrib_from_env(key, options={})
       up_key = key.to_s.upcase
-      value = default
+      value = options[:default]
       value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
       value = ENV[up_key] if ENV[up_key]
       Trixx::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
+
+      raise "Missing configuration value for '#{up_key}'! Aborting..." if !options[:accept_empty] && Trixx::Application.config.send(key).nil?
     end
 
-    def self.set_and_log_attrib_from_env(key, default=nil)
-      Trixx::Application.set_attrib_from_env(key, default)
+    def self.set_and_log_attrib_from_env(key, options={})
+      Trixx::Application.set_attrib_from_env(key, options)
       Trixx::Application.log_attribute(key.to_s.upcase, Trixx::Application.config.send(key))
     end
 
@@ -84,16 +86,16 @@ module Trixx
     raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
 
     if Rails.env.test?
-      Trixx::Application.set_attrib_from_env(:trixx_db_password, 'trixx')
-      Trixx::Application.set_attrib_from_env(:trixx_db_victim_password, 'trixx_victim')
+      Trixx::Application.set_attrib_from_env(:trixx_db_password, default: 'trixx')
+      Trixx::Application.set_attrib_from_env(:trixx_db_victim_password, default: 'trixx_victim')
     end
 
     case config.trixx_db_type
     when 'ORACLE' then
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.trixx_db_user            = "test_#{config.respond_to?(:trixx_db_user) ? config.trixx_db_user : 'trixx'}"
-        Trixx::Application.set_and_log_attrib_from_env(:trixx_db_victim_user, 'trixx_victim') if Rails.env.test? # Schema for tables observed by trixx
-        Trixx::Application.set_attrib_from_env(:trixx_db_system_password, 'oracle')
+        Trixx::Application.set_and_log_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim') if Rails.env.test? # Schema for tables observed by trixx
+        Trixx::Application.set_attrib_from_env(:trixx_db_system_password, default: 'oracle')
       end
     when 'SQLITE' then
       config.trixx_db_user              = 'main'
@@ -106,18 +108,12 @@ module Trixx
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_user)
     Trixx::Application.set_attrib_from_env(:trixx_db_password)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker, '/dev/null')
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url, accept_empty: config.trixx_db_type == 'SQLITE')
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker, default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb)
-
-    # Verify mandatory settings
-    raise "Missing configuration value for 'TRIXX_DB_USER'! Aborting..."                      unless config.trixx_db_user
-    raise "Missing configuration value for 'TRIXX_DB_PASSWORD'! Aborting..."                  unless config.trixx_db_password
-    raise "Missing configuration value for 'TRIXX_DB_URL'! Aborting..."                       unless config.trixx_db_url || config.trixx_db_type == 'SQLITE'
-    raise "Missing configuration value for 'TRIXX_KAFKA_SEED_BROKER'! Aborting..."            unless config.trixx_kafka_seed_broker
-    raise "Missing configuration value for 'TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB'! Aborting..."   unless config.trixx_kafka_total_buffer_size_mb
-    raise "Missing configuration value for 'TRIXX_INITIAL_WORKER_THREADS'! Aborting..."       unless config.trixx_initial_worker_threads
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size, default: 10000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count, default: 1000)
 
     # check if database supports partitioning (possible and licensed)
     def partitioning

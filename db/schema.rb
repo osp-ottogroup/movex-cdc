@@ -47,14 +47,12 @@ ActiveRecord::Schema.define(version: 2020_03_30_100000) do
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
-  create_table "event_logs", id: false, force: :cascade do |t|
-    t.integer "id", precision: 38
-    t.integer "schema_id", precision: 38
-    t.integer "table_id", precision: 38
-    t.string "operation", limit: 1
-    t.string "dbuser", limit: 128
-    t.text "payload"
-    t.datetime "created_at", precision: 6
+  create_table "event_logs", force: :cascade do |t|
+    t.integer "table_id", precision: 38, null: false
+    t.string "operation", limit: 1, null: false
+    t.string "dbuser", limit: 128, null: false
+    t.text "payload", null: false
+    t.datetime "created_at", precision: 6, null: false
   end
 
   create_table "schema_rights", force: :cascade do |t|
@@ -99,4 +97,10 @@ ActiveRecord::Schema.define(version: 2020_03_30_100000) do
     t.index ["email"], name: "ix_users_email", unique: true
   end
 
+  add_foreign_key "activity_logs", "users", name: "fk_activity_logs_users"
+  add_foreign_key "columns", "tables", name: "fk_columns_tables"
+  add_foreign_key "conditions", "tables", name: "fk_conditions_tables"
+  add_foreign_key "schema_rights", "schemas", name: "fk_schema_rights_schema", on_delete: :cascade
+  add_foreign_key "schema_rights", "users", name: "fk_schema_rights_users", on_delete: :cascade
+  add_foreign_key "tables", "schemas", name: "fk_tables_schema"
 end

@@ -7,7 +7,6 @@
 
 one:
   id: 1
-  schema_id: 1
   table_id: 1
   operation: I
   dbuser: HUGO
@@ -16,7 +15,6 @@ one:
 
 two:
   id: 2
-  schema_id: 1
   table_id: 1
   operation: U
   dbuser: ALFRED

@@ -29,6 +29,7 @@ class HealthCheckController < ApplicationController
           owner_thread: conn.owner&.object_id,
           owner_name:   conn.owner&.name,
           owner_status: conn.owner&.status,
+          owner_alive:  conn.owner&.alive?,
           seconds_idle: conn.seconds_idle
       }
     end

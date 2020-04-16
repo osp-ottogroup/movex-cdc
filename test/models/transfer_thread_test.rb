@@ -3,13 +3,13 @@ require 'test_helper'
 class TransferThreadTest < ActiveSupport::TestCase
 
   test "create worker" do
-    worker = TransferThread.create_worker(2)                                    # Async. thread
+    worker = TransferThread.create_worker(2, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000) # Async. thread
     sleep(1)
     worker.stop_thread
   end
 
   test "process" do
-    worker = TransferThread.new(1)                                              # Sync. call within one thread
+    worker = TransferThread.new(1, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
 
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
     Thread.new do

@@ -114,13 +114,13 @@ class ActiveSupport::TestCase
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{tables(:victim1).name}
         BEGIN
-          INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
+          INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
       ")
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_TO_DROP UPDATE ON #{tables(:victim1).name}
         BEGIN
-          INSERT INTO Event_Logs(Schema_ID, Table_ID, Payload) VALUES (1, 4, '{}');
+          INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
       ")
     else

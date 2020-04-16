@@ -8,7 +8,11 @@ class InitializationJob < ApplicationJob
 
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
     Trixx::Application.load_tasks
-    Rake::Task['db:migrate'].invoke
+    if ENV['TRIXX_SUPPRESS_MIGRATION_AT_STARTUP']
+      Rails.logger.info "Migration suppressed because TRIXX_SUPPRESS_MIGRATION_AT_STARTUP is set in environment"
+    else
+      Rake::Task['db:migrate'].invoke
+    end
     Rails.logger.info "Finished db:migrate"
 
     ensure_admin_existence
