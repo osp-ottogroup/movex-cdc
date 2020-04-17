@@ -4,7 +4,7 @@
 # Parameters to define: comment or uncomment for usage
 
 # Log level for application (debug, info, warn, error)
-LOG_LEVEL: debug
+# LOG_LEVEL: warn
 
 # Type of used database (SQLITE, ORACLE)
 # TRIXX_DB_TYPE: ORACLE
@@ -28,4 +28,10 @@ LOG_LEVEL: debug
 TRIXX_INITIAL_WORKER_THREADS: 3
 
 # Sum of Kafka message buffer size over all threads
-TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: 100
+TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: 10
+
+# Number of messages to process within one transaction
+TRIXX_MAX_TRANSACTION_SIZE: 10000
+
+# Number of messages to process within one bulk operation to kafka
+TRIXX_KAFKA_MAX_BULK_COUNT: 1000

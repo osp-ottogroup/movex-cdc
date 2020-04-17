@@ -77,8 +77,8 @@ module Trixx
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                           # copy file content to config
     end
+    Trixx::Application.set_and_log_attrib_from_env(:log_level, default: (Rails.env.production? ? 'warn' : 'debug'))
     config.log_level = config.log_level.to_sym if config.log_level.class == String
-    Trixx::Application.log_attribute('LOG_LEVEL', config.log_level)
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type)
 

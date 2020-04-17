@@ -9,10 +9,11 @@ class HealthCheckController < ApplicationController
 
 
     @health_data = {
-        start_working_timestamp: ThreadHandling.get_instance.application_startup_timestamp,
-        health_check_timestamp: Time.now,
-        warnings: '',
-        memory: ExceptionHelper.memory_info_hash
+        start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
+        health_check_timestamp:       Time.now,
+        warnings:                     '',
+        memory:                       ExceptionHelper.memory_info_hash,
+        trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
     @health_status = :ok
 
