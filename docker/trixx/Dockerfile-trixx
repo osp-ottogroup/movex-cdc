@@ -62,4 +62,4 @@ EXPOSE 8080/tcp
 # use bracket syntax to ensure run-kafka-jruby.sh runs with PID 1 and receives SIGTERM signal
 CMD ["/app/docker/trixx/run-trixx.sh"]
 
-HEALTHCHECK --interval=5m --timeout=3s CMD curl localhost:8080/Panorama/ 2>/dev/null | grep "Please choose saved connection " >/dev/null || exit 1
+HEALTHCHECK --interval=5m --timeout=3s CMD curl -I localhost:8080/health_check/ 2>/dev/null | grep "HTTP/1.1 200 OK" >/dev/null || exit 1
