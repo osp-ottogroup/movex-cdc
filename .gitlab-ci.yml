@@ -111,3 +111,4 @@ generate_asciidoc:
   artifacts:
     paths:
       - doc/trixx.html
+      - doc/images/
