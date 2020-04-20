@@ -109,6 +109,8 @@ generate_asciidoc:
     - gem install asciidoctor
     - asciidoctor -o doc/trixx.html doc/trixx.adoc
   artifacts:
+    # artifacts are downloadable at https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/download?job=generate_asciidoc
+    # direct access a'la https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/file/doc/trixx.html?job=generate_asciidoc
     paths:
       - doc/trixx.html
       - doc/images/
