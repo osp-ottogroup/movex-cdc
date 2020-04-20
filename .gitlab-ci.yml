@@ -103,4 +103,11 @@ build_trixx:
     - cat build.json
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $IMAGE_TAG
 
-
+generate_asciidoc:
+  stage: build
+  script:
+    - gem install asciidoctor
+    - asciidoctor -o doc/trixx.html doc/trixx.adoc
+  artifacts:
+    paths:
+      - doc/trixx.html

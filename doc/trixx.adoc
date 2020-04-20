@@ -1,0 +1,42 @@
+= TriXX: Change Data Capture based on DB-Triggers  =
+Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
+:Author Initials: PR
+:toc:
+:toclevels: 4
+:icons:
+:imagesdir: ./images
+:numbered:
+:sectnumlevels: 6
+:website: https://www.osp.de
+
+
+
+.TriXX
+**********************************************************************
+TriXX captures data change events in relational databases and transfers them to Kafka.
+Database triggers are used to capture change events. The observed tables and columns are defined via TriXX' own HTML-GUI.
+**********************************************************************
+
+TIP: This page is not yet completed and still under construction.
+
+== Introduction ==
+=== Purpose ===
+=== Differentiation from other solutions for CDC ===
+=== Supported databases ===
+== Operation ==
+=== Preconditions for usage ===
+=== Configuring and running TriXX ===
+.Environment parameters evaluated at appliction start
+|===
+|Variabe|Description|Type|Default
+
+|TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work in config file|optional|Europe/Berlin
+
+|===
+=== Configuration of capturing with TriXX-GUI ===
+== Technical implementation ==
+=== Module overview ===
+=== Troubleshooting ===
+
+
+
