@@ -54,6 +54,13 @@ class LoginController < ApplicationController
     end
   end
 
+  # GET login/check_jwt
+  # Check if JWT is valid for operation
+  def check_jwt
+    # ApplicationController.authorize_request raises Exception if JWT is not valid or aged out
+    render json: { status: 'ok'}, status: :ok
+  end
+
   private
 
   # do authenticate against database, return nil for success or error message
