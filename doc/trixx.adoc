@@ -8,7 +8,7 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :numbered:
 :sectnumlevels: 6
 :website: https://www.osp.de
-
+:title-logo-image: osp.png
 
 TIP: This page is not yet completed and still under construction.
 
