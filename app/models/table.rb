@@ -18,4 +18,9 @@ class Table < ApplicationRecord
     end
   end
 
+  # get list of corresponding database trigger objects as hash if exist
+  def db_triggers
+    DbTrigger.find_all_by_table(id, schema.name, name)
+  end
+
 end

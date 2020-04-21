@@ -9,4 +9,8 @@ class Column < ApplicationRecord
     end
     retval
   end
+
+  def to_json
+    super.to_json
+  end
 end

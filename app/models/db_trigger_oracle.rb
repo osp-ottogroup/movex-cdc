@@ -14,6 +14,34 @@ class DbTriggerOracle < TableLess
     )
   end
 
+  # get Array of Hash with trigger info
+  def self.find_all_by_table(table_id, schema_name, table_name)
+    result = []
+    select_all("\
+      SELECT t.Trigger_name, o.Last_DDL_Time
+      FROM   All_Triggers t
+      JOIN   All_Objects o ON o.Owner = t.Owner AND o.Object_Name = t.Trigger_Name AND o.Object_Type = 'TRIGGER'
+      WHERE  t.Owner        = :owner
+      AND    t.Table_Owner  = :table_owner
+      AND    t.Table_Name   = :table_name
+    ", {
+        owner:        Trixx::Application.config.trixx_db_user.upcase,
+        table_owner:  schema_name.upcase,
+        table_name:   table_name.upcase
+    }).each do |t|
+      ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
+        if t['trigger_name'] == build_trigger_name(table_name, table_id, operation)
+          result << {
+              operation:  operation,
+              name:       t['trigger_name'],
+              changed_at: t['last_ddl_time']
+          }
+        end
+      end
+    end
+    result
+  end
+
   def self.find_by_table_id_and_trigger_name(table_id, trigger_name)
     table  = Table.find table_id
     schema = Schema.find table.schema_id
@@ -128,7 +156,7 @@ class DbTriggerOracle < TableLess
   private
 
   # generate trigger name from short operation (I/U/D) and table name
-  def build_trigger_name(table_name, table_id, operation)
+  def self.build_trigger_name(table_name, table_id, operation)
     middle_name = table_name
     middle_name = table_id.to_s if table_name.length > 22  # Ensure trigger name is less than 30 character
     "TRIXX_#{table_name.upcase}_#{operation}"
