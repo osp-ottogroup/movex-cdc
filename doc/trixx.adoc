@@ -1,4 +1,4 @@
-= TriXX: Change Data Capture based on DB-Triggers  =
+= image:osp.png[float="left" width=200 ] TriXX: Change Data Capture based on DB-Triggers  =
 Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :Author Initials: PR
 :toc:
@@ -7,7 +7,7 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :imagesdir: ./images
 :numbered:
 :sectnumlevels: 6
-:website: https://www.osp.de
+:homepage: https://www.osp.de
 :title-logo-image: osp.png
 
 TIP: This page is not yet completed and still under construction.
