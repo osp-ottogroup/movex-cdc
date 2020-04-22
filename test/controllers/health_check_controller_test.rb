@@ -14,7 +14,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
 
     get "/health_check", as: :json
     Rails.logger.info @response.body
-    assert_response :success
+    assert_response :conflict, '409 (conflict) expected because no worker threads are active'
 
     assert_raises(RuntimeError, 'second check should fail within same second') do
       get "/health_check", as: :json

@@ -59,7 +59,7 @@ class DbTriggerSqlite < TableLess
     target_triggers = {}
     @target_trigger_data.each do |tab|
       tab[:operations].each do |op|
-        trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
+        trigger_name = DbTriggerSqlite.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
             schema_name:      @schema.name,
             table_id:         tab[:table_id],

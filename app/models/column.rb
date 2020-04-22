@@ -10,7 +10,7 @@ class Column < ApplicationRecord
     retval
   end
 
-  def to_json
-    super.to_json
+  def to_json(*args)
+    super.to_json(*args)
   end
 end

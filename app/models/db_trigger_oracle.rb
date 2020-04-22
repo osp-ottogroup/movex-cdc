@@ -91,7 +91,7 @@ class DbTriggerOracle < TableLess
       end
 
       tab[:operations].each do |op|
-        trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
+        trigger_name = DbTriggerOracle.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
             schema_id:        @schema.id,
             schema_name:      @schema.name,
