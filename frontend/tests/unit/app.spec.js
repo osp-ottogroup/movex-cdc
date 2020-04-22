@@ -12,7 +12,11 @@ describe('App.vue', () => {
       data() {
         return {
           loggedIn: true,
+          isLoginCheckPending: false,
         };
+      },
+      methods: {
+        onCreated: jest.fn(),
       },
     });
     expect(wrapper.find('router-view-stub').exists()).toBeTruthy();
