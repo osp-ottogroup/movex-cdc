@@ -14,7 +14,11 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
 
     get "/health_check", as: :json
     Rails.logger.info @response.body
-    assert_response :conflict, '409 (conflict) expected because no worker threads are active'
+    if Trixx::Application.config.trixx_initial_worker_threads == ThreadHandling.get_instance.thread_count
+      assert_response :success, '200 (success) expected because all worker threads are active'
+    else
+      assert_response :conflict, '409 (conflict) expected because not all worker threads are active'
+    end
 
     assert_raises(RuntimeError, 'second check should fail within same second') do
       get "/health_check", as: :json
