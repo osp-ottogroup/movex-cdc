@@ -40,4 +40,12 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
   end
 
+  test "should get check_jwt" do
+    get login_check_jwt_url, as: :json
+    assert_response :unauthorized, 'No access should be possible without valid JWT'
+
+    get login_check_jwt_url, headers: jwt_header, as: :json
+    assert_response :success, 'Access should be possible with valid JWT'
+  end
+
 end

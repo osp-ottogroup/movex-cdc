@@ -9,6 +9,27 @@ class DbTriggerSqlite < TableLess
     ")
   end
 
+  def self.find_all_by_table(table_id, schema_name, table_name)
+    result = []
+    select_all("\
+      SELECT *
+      FROM   SQLite_Master
+      WHERE  Type     = 'trigger'
+      AND    tbl_name = :table_name
+    ", {table_name:   table_name}).each do |t|
+      ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
+        if t['name'] == build_trigger_name(table_name, table_id, operation)
+          result << {
+              operation:  operation,
+              name:       t['name'],
+              changed_at: nil
+          }
+        end
+      end
+    end
+    result
+  end
+
   def self.find_by_table_id_and_trigger_name(table_id, trigger_name)
     select_first_row("\
       SELECT *
@@ -38,7 +59,7 @@ class DbTriggerSqlite < TableLess
     target_triggers = {}
     @target_trigger_data.each do |tab|
       tab[:operations].each do |op|
-        trigger_name = build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
+        trigger_name = DbTriggerSqlite.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
             schema_name:      @schema.name,
             table_id:         tab[:table_id],
@@ -92,7 +113,7 @@ class DbTriggerSqlite < TableLess
   private
 
   # generate trigger name from short operation (I/U/D) and table name
-  def build_trigger_name(table_name, table_id, operation)
+  def self.build_trigger_name(table_name, table_id, operation)
     middle_name = table_name
     middle_name = table_id.to_s if table_name.length > 22  # Ensure trigger name is less than 30 character
     "TRIXX_#{table_name.upcase}_#{operation}"

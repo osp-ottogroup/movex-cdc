@@ -1,9 +1,11 @@
-class DbTrigger
+class DbTrigger < ApplicationRecord
 
   # delegate method calls to DB-specific implementation classes
   METHODS_TO_DELEGATE = [
       :find_all_by_schema_id,
+      :find_all_by_table,
       :find_by_table_id_and_trigger_name,
+      :generate_db_triggers
   ]
 
   def self.method_missing(method, *args, &block)
@@ -60,14 +62,7 @@ class DbTrigger
       end
     end
 
-    # Delegate to DB-specific classes
-    case Trixx::Application.config.trixx_db_type
-     when 'ORACLE' then result = DbTriggerOracle.generate_db_triggers(schema_id, target_trigger_data)
-     when 'SQLITE' then result = DbTriggerSqlite.generate_db_triggers(schema_id, target_trigger_data)
-     else
-       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
-    end
-
+    result = generate_db_triggers(schema_id, target_trigger_data)               # Delegate to DB-specific classes
     result[:errors].each do |error|
       Rails.logger.error "Error creating trigger #{error[:trigger_name]}"
       Rails.logger.error "#{error[:exception_class]}: #{error[:exception_message]}"
@@ -76,6 +71,5 @@ class DbTrigger
 
     result
   end
-
 
 end

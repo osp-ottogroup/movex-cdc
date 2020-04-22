@@ -1,5 +1,4 @@
 Rails.application.routes.draw do
-  post 'login/do_logon'
 
   # For details on the DSL available within this file, see https://guides.rubyonrails.org/routing.html
   #
@@ -13,6 +12,8 @@ Rails.application.routes.draw do
   post '/db_triggers/generate',     to: 'db_triggers#generate'
   post '/db_triggers/generate_all', to: 'db_triggers#generate_all'
   get  '/health_check',             to: 'health_check#index'                    # only one method for resource established
+  post 'login/do_logon'
+  get  'login/check_jwt'
   resources :columns
   resources :conditions
   resources :schemas
