@@ -38,6 +38,15 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized, 'Should not get access without schema rights'
   end
 
+  test "should get trigger dates of table" do
+    get "/trigger_dates/#{@table.id}", headers: jwt_header, as: :json
+    assert_response :success
+
+    get "/trigger_dates/#{@table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :unauthorized, 'Should not get access without schema rights'
+  end
+
+
   test "should update table" do
     patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic' } }, as: :json
     assert_response 200

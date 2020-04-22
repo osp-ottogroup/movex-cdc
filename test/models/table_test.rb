@@ -1,6 +1,19 @@
 require 'test_helper'
 
 class TableTest < ActiveSupport::TestCase
+  setup do
+    # Create victim tables and triggers
+    @victim_connection = create_victim_connection
+    create_victim_structures(@victim_connection)
+  end
+
+  teardown do
+    # Remove victim structures
+    drop_victim_structures(@victim_connection)
+    logoff_victim_connection(@victim_connection)
+  end
+
+
   test "create table" do
     Table.new(schema_id: 1, name: 'Table_new',  info: 'info').save!
     Table.new(schema_id: 1, name: 'Table_new2', info: 'info', topic: 'TOPIC').save!
@@ -13,4 +26,17 @@ class TableTest < ActiveSupport::TestCase
     tables = Table.where(schema_id: 1)
     assert(tables.count > 0, 'Should return at least one table of schema')
   end
+
+  test "oldest trigger change dates per operation" do
+    oldest_change_dates = tables(:victim1).oldest_trigger_change_dates_per_operation
+    ['I', 'U', 'D'].each do |operation|
+      oldest_change_date = oldest_change_dates[operation]
+      if operation == 'I' && ['ORACLE'].include?(Trixx::Application.config.trixx_db_type)
+        assert_not_nil(oldest_change_date, 'oldest change date should be known for existing insert trigger')
+      else
+        assert_nil(oldest_change_date, 'no trigger should exists for operation or no change date available for DB')
+      end
+    end
+  end
+
 end

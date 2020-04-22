@@ -4,6 +4,8 @@ Rails.application.routes.draw do
   #
   get  '/activity_logs',            to: 'activity_logs#index'                   # only less methods for resource established
   post '/activity_logs',            to: 'activity_logs#create'                  # only less methods for resource established
+  resources :columns
+  resources :conditions
   get  '/db_columns',               to: 'db_columns#index'                      # only one method for resource established
   get  '/db_schemas',               to: 'db_schemas#index'                      # only one method for resource established
   get  '/db_tables',                to: 'db_tables#index'                       # only one method for resource established
@@ -14,11 +16,10 @@ Rails.application.routes.draw do
   get  '/health_check',             to: 'health_check#index'                    # only one method for resource established
   post 'login/do_logon'
   get  'login/check_jwt'
-  resources :columns
-  resources :conditions
   resources :schemas
   resources :schema_rights
   resources :tables
+  get  '/trigger_dates/:id',        to: 'tables#trigger_dates'
   resources :users
 
   root 'login#index'
