@@ -11,7 +11,7 @@ export const getErrorMessageAsHtml = (error, prependMessage = '') => {
   } else if (error.message) {
     errorMessage = `<div>${error.message}</div>`;
   } else {
-    errorMessage = '<div>An unknown error occured!</div>';
+    errorMessage = '<div>An unknown error occurred!</div>';
   }
 
   if (prependMessage !== '') {
