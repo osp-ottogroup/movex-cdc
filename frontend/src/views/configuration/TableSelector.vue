@@ -12,6 +12,7 @@
 import TableTable from './TableTable.vue';
 import TableModal from './TableModal.vue';
 import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'TableSelector',
@@ -48,7 +49,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
@@ -62,7 +63,7 @@ export default {
         this.dbTables = await CRUDService.dbTables.getAll({ schema_name: newSchema.name });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred while loading tables!',
+          message: getErrorMessageAsHtml(e, 'An error occurred while loading tables!'),
           type: 'is-danger',
           duration: 5000,
         });

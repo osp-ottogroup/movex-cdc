@@ -11,6 +11,7 @@
 <script>
 import ColumnTable from './ColumnTable.vue';
 import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'ColumnSelector',
@@ -71,7 +72,7 @@ export default {
         await this.reload(this.table);
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
@@ -87,7 +88,7 @@ export default {
         this.mergeColumns();
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred while loading columns!',
+          message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
           type: 'is-danger',
           duration: 5000,
         });

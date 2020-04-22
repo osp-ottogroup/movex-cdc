@@ -52,7 +52,12 @@ const doFetch = (url, requestOptions) => {
         });
       } else {
         const errorMessage = `The request to ${url.toString()} responded with http-status-code ${response.status}: ${response.statusText}`;
-        reject(new ServerError(errorMessage, data, httpStatus));
+        let errors = [];
+        if (data.errors && data.errors instanceof Array) {
+          // eslint-disable-next-line prefer-destructuring
+          errors = data.errors;
+        }
+        reject(new ServerError(errorMessage, errors, httpStatus));
       }
     } catch (exception) {
       reject(exception);

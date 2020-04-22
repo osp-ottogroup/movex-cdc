@@ -29,6 +29,7 @@
 <script>
 import CRUD from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'Users',
@@ -53,7 +54,7 @@ export default {
       this.users = await CRUD.users.getAll();
     } catch (e) {
       this.$buefy.toast.open({
-        message: 'An error occurred while loading users!',
+        message: getErrorMessageAsHtml(e, 'An error occurred while loading users!'),
         type: 'is-danger',
         duration: 5000,
       });
@@ -87,7 +88,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
@@ -105,7 +106,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
@@ -122,7 +123,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
