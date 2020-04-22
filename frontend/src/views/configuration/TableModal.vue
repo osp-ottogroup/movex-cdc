@@ -54,16 +54,21 @@ export default {
   },
   methods: {
     onClose() {
-      this.resetData();
       this.$emit('update:is-active', false);
     },
     onAddButtonClicked() {
-      this.resetData();
       this.$emit('add-table', this.table);
     },
     resetData() {
       this.table.name = null;
       this.table.topic = null;
+    },
+  },
+  watch: {
+    isActive(isActive) {
+      if (!isActive) {
+        this.resetData();
+      }
     },
   },
 };
