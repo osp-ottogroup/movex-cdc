@@ -18,9 +18,21 @@ class Table < ApplicationRecord
     end
   end
 
-  # get list of corresponding database trigger objects as hash if exist
+  # get array of corresponding database trigger objects as hash if exist
   def db_triggers
     DbTrigger.find_all_by_table(id, schema.name, name)
+  end
+
+  # get oldest change date of existing trigger for every operation (I/U/D)
+  # there may exist multiple triggers for one operation (BEFORE, AFTER etc.)
+  def oldest_trigger_change_dates_per_operation
+    oldest_change_dates = {}
+    db_triggers.each do |t|
+      if oldest_change_dates[t[:operation]].nil? || ( !t[:changed_at].nil? && t[:changed_at] < oldest_change_dates[t[:operation]] )
+        oldest_change_dates[t[:operation]] = t[:changed_at]
+      end
+    end
+    oldest_change_dates
   end
 
 end
