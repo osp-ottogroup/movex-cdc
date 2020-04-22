@@ -33,7 +33,7 @@ class ColumnsController < ApplicationController
       )
       render json: @column, status: :created, location: @column
     else
-      render json: @column.errors, status: :unprocessable_entity
+      render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -48,7 +48,7 @@ class ColumnsController < ApplicationController
       )
       render json: @column
     else
-      render json: @column.errors, status: :unprocessable_entity
+      render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity
     end
   end
 

@@ -38,7 +38,7 @@
 <script>
 import { ToastProgrammatic as Toast } from 'buefy';
 import LoginService from '../services/LoginService';
-import ServerError from '../models/ServerError';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   data() {
@@ -65,13 +65,9 @@ export default {
         await LoginService.login(this.credentials);
         this.$emit('login');
       } catch (e) {
-        let toastMessage = 'Login failed';
-        if (e instanceof ServerError) {
-          toastMessage = e.data.error;
-        }
         this.toast = Toast.open({
           duration: 10000,
-          message: toastMessage,
+          message: getErrorMessageAsHtml(e, 'Login failed'),
           type: 'is-danger',
         });
       }

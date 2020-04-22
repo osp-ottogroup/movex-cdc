@@ -26,6 +26,7 @@
 
 <script>
 import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'TableTable',
@@ -60,7 +61,7 @@ export default {
         });
       } catch (e) {
         this.$buefy.toast.open({
-          message: 'An error occurred!',
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });

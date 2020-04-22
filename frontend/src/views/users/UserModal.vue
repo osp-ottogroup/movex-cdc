@@ -104,6 +104,7 @@
 
 <script>
 import CRUDService from '../../services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'UserModal',
@@ -122,7 +123,7 @@ export default {
       });
     } catch (e) {
       this.$buefy.toast.open({
-        message: 'An error occurred while loading schemas!',
+        message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
         type: 'is-danger',
         duration: 5000,
       });

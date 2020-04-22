@@ -8,6 +8,7 @@
 <script>
 import SchemaTable from './SchemaTable.vue';
 import CRUDService from '../../services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'SchemaSelector',
@@ -24,7 +25,7 @@ export default {
       this.schemas = await CRUDService.schemas.getAll();
     } catch (e) {
       this.$buefy.toast.open({
-        message: 'An error occurred while loading schemas!',
+        message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
         type: 'is-danger',
         duration: 5000,
       });

@@ -10,7 +10,7 @@ class ApplicationController < ActionController::API
   NotAuthorized = Class.new(StandardError)
   rescue_from ApplicationController::NotAuthorized do |e|
     Rails.logger.error "Not authorized activity '#{e.message}' in request: #{request_log_attributes}"
-    render json: { error: e.message }, status: :unauthorized
+    render json: { errors: [e.message] }, status: :unauthorized
   end
 
 
@@ -35,10 +35,10 @@ class ApplicationController < ActionController::API
       @current_user = User.find(@decoded[:user_id])
     rescue ActiveRecord::RecordNotFound => e
       Rails.logger.error "Unauthorized request with valid token but not existing user: #{request_log_attributes}"
-      render json: { error: e.message }, status: :unauthorized
+      render json: { errors: [e.message] }, status: :unauthorized
     rescue JWT::DecodeError => e
       Rails.logger.error "Unauthorized request with invalid token: #{request_log_attributes}"
-      render json: { error: e.message }, status: :unauthorized
+      render json: { errors: [e.message] }, status: :unauthorized
     end
   end
 
@@ -84,7 +84,7 @@ class ApplicationController < ActionController::API
 
   def check_for_current_user_admin
     if @current_user.yn_admin != 'Y'
-      render json: { errors: "Access denied! User #{@current_user.email} isn't tagged as admin" }, status: :unauthorized
+      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
     end
   end
 

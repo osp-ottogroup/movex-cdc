@@ -47,10 +47,10 @@ class LoginController < ApplicationController
         render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
         Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
-        render json: { error: auth_error }, status: :unauthorized
+        render json: { errors: [auth_error] }, status: :unauthorized
       end
     else
-      render json: { error: error_msg }, status: :unauthorized
+      render json: { errors: [error_msg] }, status: :unauthorized
     end
   end
 

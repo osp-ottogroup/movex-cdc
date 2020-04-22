@@ -59,6 +59,17 @@ export default {
     onAddButtonClicked() {
       this.$emit('add-table', this.table);
     },
+    resetData() {
+      this.table.name = null;
+      this.table.topic = null;
+    },
+  },
+  watch: {
+    isActive(isActive) {
+      if (!isActive) {
+        this.resetData();
+      }
+    },
   },
 };
 </script>

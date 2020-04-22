@@ -31,7 +31,7 @@ const logout = () => {
   if (TokenService.getAccessToken() != null) {
     TokenService.setAccessToken(null);
     removeToken();
-    window.location.href = window.location.origin;
+    window.location.assign(window.location.origin);
   }
 };
 

@@ -25,7 +25,7 @@ class UsersController < ApplicationController
       )
       render json: @user, include: { schema_rights: {include: :schema} }, status: :created, location: @user
     else
-      render json: @user.errors, status: :unprocessable_entity
+      render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -38,7 +38,7 @@ class UsersController < ApplicationController
       )
       render json: @user, include: { schema_rights: {include: :schema} }
     else
-      render json: @user.errors, status: :unprocessable_entity
+      render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
     end
   end
 

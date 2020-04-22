@@ -30,7 +30,7 @@ class ConditionsController < ApplicationController
       )
       render json: @condition, status: :created, location: @condition
     else
-      render json: @condition.errors, status: :unprocessable_entity
+      render json: { errors: @condition.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -44,7 +44,7 @@ class ConditionsController < ApplicationController
       )
       render json: @condition
     else
-      render json: @condition.errors, status: :unprocessable_entity
+      render json: { errors: @condition.errors.full_messages }, status: :unprocessable_entity
     end
   end
 

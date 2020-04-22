@@ -36,7 +36,7 @@ class TablesController < ApplicationController
       )
       render json: @table, status: :created, location: @table
     else
-      render json: @table.errors, status: :unprocessable_entity
+      render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -50,7 +50,7 @@ class TablesController < ApplicationController
       )
       render json: @table
     else
-      render json: @table.errors, status: :unprocessable_entity
+      render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
     end
   end
 

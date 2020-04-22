@@ -31,7 +31,7 @@ class SchemaRightsController < ApplicationController
       )
       render json: @schema_right, status: :created, location: @schema_right
     else
-      render json: @schema_right.errors, status: :unprocessable_entity
+      render json: { errors: @schema_right.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -44,7 +44,7 @@ class SchemaRightsController < ApplicationController
       )
       render json: @schema_right
     else
-      render json: @schema_right.errors, status: :unprocessable_entity
+      render json: { errors: @schema_right.errors.full_messages }, status: :unprocessable_entity
     end
   end
 

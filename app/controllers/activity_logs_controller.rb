@@ -44,7 +44,7 @@ class ActivityLogsController < ApplicationController
     if @activity_log.save
       render json: @activity_log, status: :created
     else
-      render json: @activity_log.errors, status: :unprocessable_entity
+      render json: { errors: @activity_log.errors.full_messages }, status: :unprocessable_entity
     end
   end
 
@@ -53,7 +53,5 @@ class ActivityLogsController < ApplicationController
   def activity_log_params
     params.fetch(:activity_log, {}).permit(:level, :user_id, :schema_name, :table_name, :column_name, :action)
   end
-
-
 
 end
