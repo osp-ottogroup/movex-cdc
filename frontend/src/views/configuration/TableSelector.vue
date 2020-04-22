@@ -2,8 +2,8 @@
   <div class="content">
     <table-table :tables="tables"
                  v-on="$listeners"/>
-    <button class="button" @click="isTableModalActive = true">Add Table</button>
-    <table-modal :isActive.sync="isTableModalActive" :tables="dbTables"
+    <button class="button" @click="openTableModal">Add Table</button>
+    <table-modal :isActive.sync="isTableModalActive" :tables="selectableTables"
                  @add-table="onAddTable"></table-modal>
   </div>
 </template>
@@ -30,7 +30,17 @@ export default {
       dbTables: [],
     };
   },
+  computed: {
+    selectableTables() {
+      // filter all tables out of db tables, that are not included in trixx tables
+      // eslint-disable-next-line max-len
+      return this.dbTables.filter(dbTable => !this.tables.some(table => dbTable.name === table.name));
+    },
+  },
   methods: {
+    openTableModal() {
+      this.isTableModalActive = true;
+    },
     async onAddTable(addedTable) {
       try {
         const table = await CRUDService.tables.create({
