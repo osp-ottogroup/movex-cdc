@@ -24,12 +24,15 @@ describe('LoginService', () => {
   it('should logout', () => {
     const { location } = window;
     delete window.location;
-    window.location = { reload: jest.fn() };
+    window.location = {
+      assign: jest.fn(),
+      origin: 'http://localhost:8080',
+    };
 
     LoginService.logout();
 
     expect(TokenService.getAccessToken()).toBeNull();
-    expect(window.location.reload).toHaveBeenCalled()
+    expect(window.location.assign).toHaveBeenCalledWith(window.location.origin);
 
     window.location = location;
   });
