@@ -48,7 +48,16 @@ module Trixx
     end
 
     def self.log_attribute(key, value)
-      puts "#{key.ljust(35, ' ')} #{value}"
+      if value.nil? || value == ''
+        outval = '< not set >'
+      else
+        if key['PASSWORD']
+          outval = '*****'
+        else
+          outval = value
+        end
+      end
+      puts "#{key.ljust(40, ' ')} #{outval}"
     end
 
     def self.set_attrib_from_env(key, options={})
@@ -95,7 +104,7 @@ module Trixx
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.trixx_db_user            = "test_#{config.respond_to?(:trixx_db_user) ? config.trixx_db_user : 'trixx'}"
         Trixx::Application.set_and_log_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim') if Rails.env.test? # Schema for tables observed by trixx
-        Trixx::Application.set_attrib_from_env(:trixx_db_system_password, default: 'oracle')
+        Trixx::Application.set_and_log_attrib_from_env(:trixx_db_system_password, default: 'oracle')
       end
     when 'SQLITE' then
       config.trixx_db_user              = 'main'
@@ -107,13 +116,17 @@ module Trixx
     end
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_user)
-    Trixx::Application.set_attrib_from_env(:trixx_db_password)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url, accept_empty: config.trixx_db_type == 'SQLITE')
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker, default: '/dev/null')
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size, default: 10000)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count, default: 1000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert,              accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key,          accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
 
     # check if database supports partitioning (possible and licensed)
     def partitioning

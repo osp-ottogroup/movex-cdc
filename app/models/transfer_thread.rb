@@ -50,9 +50,18 @@ class TransferThread
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
-    kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}", logger: Rails.logger)
-    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
 
+    kafka_options = {
+        client_id: "TriXX: TRIXX-#{Socket.gethostname}",
+        logger: Rails.logger
+    }
+    kafka_options[:ssl_ca_cert]                   = Trixx::Application.config.trixx_kafka_ssl_ca_cert                   if Trixx::Application.config.trixx_kafka_ssl_ca_cert
+    kafka_options[:ssl_client_cert]               = Trixx::Application.config.trixx_kafka_ssl_client_cert               if Trixx::Application.config.trixx_kafka_ssl_client_cert
+    kafka_options[:ssl_client_cert_key]           = Trixx::Application.config.trixx_kafka_ssl_client_cert_key           if Trixx::Application.config.trixx_kafka_ssl_client_cert_key
+    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password  if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
+
+    kafka = kafka_class.new(seed_brokers, kafka_options)
+    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
 
     init_transactions_successfull = false
     init_transactions_retry_count = 0
