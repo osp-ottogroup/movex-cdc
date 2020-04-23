@@ -2,25 +2,49 @@
   <div>
     <b-table ref="table"
              :data="schemas"
-             :columns="columns"
-             detailed
-             detail-key="id"
-             :selected="currentSchema"
-             :show-detail-icon="false"
-             @click="setCurrentSchema">
-      <template slot="detail" slot-scope="props">
-        <b-field label="Topic" label-position="on-border">
-          <b-input placeholder="Enter Topic"
-                   v-model="props.row.topic"
-                   size="is-small"
-                   :icon-right="props.row.topicChanged ? 'save' : ''"
-                   :icon-right-clickable="props.row.topicChanged"
-                   @icon-right-click="onSaveSchema(props.row)"
-                   @input="onTopicChanged(props.row)">
-          </b-input>
-        </b-field>
+             :selected.sync="selectedSchema"
+             @click="onSchemaSelected">
+      <template slot-scope="props">
+        <b-table-column field="name" label="Schemas">
+          {{ props.row.name }}
+          <b-button v-show="selectedSchema && selectedSchema.id === props.row.id"
+                    icon-right="pen"
+                    class="is-pulled-right is-small"
+                    @click="onEditClicked()" />
+        </b-table-column>
       </template>
     </b-table>
+
+    <template v-if="showSchemaModal">
+      <b-modal :active.sync="showSchemaModal"
+               has-modal-card
+               trap-focus
+               aria-role="dialog"
+               aria-modal>
+        <div class="modal-card" style="width: auto">
+          <header class="modal-card-head">
+            <p class="modal-card-title">Edit Schema ({{modal.schema.name}})</p>
+            <button class="delete"
+                    aria-label="close"
+                    @click="showSchemaModal = !showSchemaModal">
+            </button>
+          </header>
+          <section class="modal-card-body">
+            <b-field label="Topic">
+              <b-input placeholder="Enter Topic"
+                       v-model="modal.schema.topic"/>
+            </b-field>
+          </section>
+          <footer class="modal-card-foot">
+            <button id="save-schema-button"
+                    class="button is-primary"
+                    @click="onSaveSchema">
+              Save
+            </button>
+          </footer>
+        </div>
+      </b-modal>
+    </template>
   </div>
 </template>
 
@@ -35,41 +59,44 @@ export default {
   },
   data() {
     return {
-      currentSchema: null,
-      columns: [
-        { field: 'name', label: 'Schemas' },
-      ],
+      selectedSchema: null,
+      showSchemaModal: false,
+      modal: {
+        schema: null,
+      },
     };
   },
   methods: {
-    setCurrentSchema(schema) {
-      if (this.currentSchema !== null) {
-        this.$refs.table.toggleDetails(this.currentSchema);
-      }
-      this.currentSchema = schema;
-      this.$refs.table.toggleDetails(schema);
+    onSchemaSelected(schema) {
       this.$emit('schema-selected', schema);
     },
-    async onSaveSchema(schema) {
+    onEditClicked() {
+      this.modal.schema = { ...this.selectedSchema };
+      this.showSchemaModal = true;
+    },
+    async onSaveSchema() {
       try {
+        const { schema } = this.modal;
         await CRUDService.schemas.update(schema.id, { schema });
-        // eslint-disable-next-line no-param-reassign
-        schema.topicChanged = false;
         this.$buefy.toast.open({
           message: `Saved changes to schema '${schema.name}'!`,
           type: 'is-success',
         });
+        // TODO refactor components; modal should not be part of table; handling is to complex
+        const done = () => {
+          // select the row which was selected before schemas are reloaded
+          const newSchema = this.schemas.find(s => s.id === this.selectedSchema.id);
+          this.selectedSchema = newSchema;
+          this.modal.schema = null;
+          this.showSchemaModal = false;
+        };
+        this.$emit('schema-changed', done);
       } catch (e) {
         this.$buefy.toast.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           duration: 5000,
         });
-      }
-    },
-    onTopicChanged(schema) {
-      if (!schema.topicChanged) {
-        this.$set(schema, 'topicChanged', true);
       }
     },
   },

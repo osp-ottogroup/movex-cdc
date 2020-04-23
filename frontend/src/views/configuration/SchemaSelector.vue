@@ -1,7 +1,8 @@
 <template>
-  <div class="content">
+  <div>
     <schema-table :schemas="schemas"
-                  v-on="$listeners"/>
+                  v-on="$listeners"
+                  @schema-changed="onSchemaChanged"/>
   </div>
 </template>
 
@@ -21,15 +22,24 @@ export default {
     };
   },
   async mounted() {
-    try {
-      this.schemas = await CRUDService.schemas.getAll();
-    } catch (e) {
-      this.$buefy.toast.open({
-        message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
-        type: 'is-danger',
-        duration: 5000,
-      });
-    }
+    await this.loadSchemas();
+  },
+  methods: {
+    async loadSchemas() {
+      try {
+        this.schemas = await CRUDService.schemas.getAll();
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
+    },
+    async onSchemaChanged(done) {
+      await this.loadSchemas();
+      done();
+    },
   },
 };
 </script>
