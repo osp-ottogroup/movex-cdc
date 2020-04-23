@@ -16,22 +16,9 @@ class Column < ApplicationRecord
   end
 
   private
-  # set yn_pending to 'Y' if any test requires this
+  # set yn_pending to 'Y' if change is younger than last trigger generation check
   def calc_yn_pending
-    oldest_change_dates = table.oldest_trigger_change_dates_per_operation       # Hash for I/U/D
-    [
-        {operation: 'I', yn_log: yn_log_insert},
-        {operation: 'U', yn_log: yn_log_update},
-        {operation: 'D', yn_log: yn_log_delete},
-    ].each do |oper_hash|
-      operation = oper_hash[:operation]
-      if yn_pending == 'N' && oper_hash[:yn_log] == 'Y'                         # newer trigger should exists for operation to not be pending
-        yn_pending = 'Y' if oldest_change_dates[operation].nil? || oldest_change_dates[operation] < created_at
-      end
-
-      if yn_pending == 'N' && oper_hash[:yn_log] == 'N'                         # no trigger should exist for operation to not be pending
-        yn_pending = 'Y' unless oldest_change_dates[operation].nil?
-      end
-    end
+    last_trigger_deployment = table.schema.last_trigger_deployment
+    last_trigger_deployment.nil? || last_trigger_deployment < updated_at
   end
 end

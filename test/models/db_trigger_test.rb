@@ -51,6 +51,8 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
+    assert_not_nil Schema.find(victim_schema_id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
+
     fixture_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
     expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
 

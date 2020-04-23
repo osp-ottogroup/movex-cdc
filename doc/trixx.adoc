@@ -125,6 +125,15 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"|required|
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|optional|APP_ROOT/config/trixx_run.yml
 
 |===
+
+==== Setup SSL-connection to Kafka ====
+Kafka supports encryption and authentication via SSL.
+The required setup is described at http://kafka.apache.org/documentation.html#security_ssl.
+However, the certificates generated for Kafka are in JKS format, which the underlying library 'ruby-kafka' does not support.
+Luckily, it is possible to convert the generated files into X509 format.
+A guide how to do conversion is here: https://github.com/zendesk/ruby-kafka/wiki/Creating-X509-certificates-from-JKS-format.
+
+
 === Running TriXX ===
 The TriXX application is provided as Docker-Image by:
 [source]
