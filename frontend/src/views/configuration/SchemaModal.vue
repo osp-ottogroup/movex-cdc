@@ -46,9 +46,15 @@ export default {
     onClose() {
       this.$emit('close');
     },
-    async onSave() {
+    onSave() {
       this.$emit('save', this.internalSchema);
     },
   },
 };
 </script>
+
+<style lang="scss" scoped>
+  footer button {
+    margin-left: auto;
+  }
+</style>

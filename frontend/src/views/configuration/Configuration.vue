@@ -1,6 +1,6 @@
 <template>
   <div class="columns is-centered">
-    <schema-manager class="column is-3"
+    <schema-manager class="column is-2"
                      @schema-selected="onSchemaSelected"></schema-manager>
     <table-selector class="column is-2"
                     :schema="selectedSchema"

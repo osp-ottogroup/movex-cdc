@@ -13,6 +13,13 @@
                     @click="onEditClicked()" />
         </b-table-column>
       </template>
+
+      <template slot="empty">
+        <div class="content has-text-grey has-text-centered is-size-7">
+          <b-icon icon="info-circle" />
+          <p>Your user has no authorized schemas</p>
+        </div>
+      </template>
     </b-table>
   </div>
 </template>
