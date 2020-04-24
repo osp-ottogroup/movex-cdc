@@ -13,6 +13,7 @@
     <template v-if="showTableModal">
       <table-modal :tables="selectableTables"
                    :table="modal.table"
+                   :schema="schema"
                    :mode="modal.mode"
                    @save="onSave"
                    @close="onClose"/>
@@ -103,7 +104,7 @@ export default {
             schema_id: this.schema.id,
             name: table.name,
             topic: table.topic,
-            info: 'TODO',
+            info: table.info,
           },
         });
         this.tables.push(createdTable);

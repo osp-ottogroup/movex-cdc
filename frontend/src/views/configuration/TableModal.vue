@@ -1,5 +1,6 @@
 <template>
-  <b-modal :active="true"
+  <b-modal ref="tableModal"
+           :active="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
@@ -17,6 +18,8 @@
         <b-field v-if="showTableSelect" label="Table">
           <b-select v-model="internalTable.name"
                     placeholder="Select a table"
+                    required
+                    validation-message="Select a table to add"
                     expanded>
             <option v-for="table in tables" :key="table.id" :value="table.name">
               {{ table.name }}
@@ -25,7 +28,16 @@
         </b-field>
         <b-field label="Topic">
           <b-input placeholder="Enter Topic"
+                   :required="!schema.topic && !internalTable.topic"
+                   validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
+        </b-field>
+        <b-field label="Info">
+          <b-input type="textarea"
+                   rows="1"
+                   v-model="internalTable.info"
+                   required
+                   validation-message="Add an info text why this table is used in TriXX"/>
         </b-field>
       </section>
       <footer class="modal-card-foot">
@@ -45,6 +57,7 @@ export default {
   props: {
     tables: { type: Array, default: () => [] },
     table: { type: Object, default: () => {} },
+    schema: { type: Object, default: () => {} },
     isActive: { type: Boolean, default: false },
     mode: { type: String, default: 'ADD' }, // 'ADD' or 'EDIT'
   },
@@ -69,6 +82,9 @@ export default {
       this.$emit('close');
     },
     onSave() {
+      if (this.$refs.tableModal.$el.querySelectorAll(':invalid').length > 0) {
+        return;
+      }
       this.$emit('save', this.internalTable);
     },
   },
