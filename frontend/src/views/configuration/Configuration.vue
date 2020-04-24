@@ -1,8 +1,8 @@
 <template>
-  <div class="columns is-centered">
-    <schema-manager class="column is-2"
+  <div class="columns is-centered is-6 is-variable">
+    <schema-manager class="column is-2 border-right"
                      @schema-selected="onSchemaSelected"></schema-manager>
-    <table-manager class="column is-2"
+    <table-manager class="column is-2 border-right"
                    :schema="selectedSchema"
                    @table-selected="onTableSelected"></table-manager>
     <column-manager class="column is-4"
@@ -39,3 +39,9 @@ export default {
   },
 };
 </script>
+
+<style lang="scss">
+  .border-right {
+    border-right: 1px solid lightgray;
+  }
+</style>

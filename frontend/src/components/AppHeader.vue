@@ -4,7 +4,8 @@
 
       <template slot="brand">
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
-          OSP| Trixx
+          <span>OSP|</span>
+          <strong>Trixx</strong>
         </b-navbar-item>
       </template>
 
