@@ -2,26 +2,26 @@
   <div class="columns is-centered">
     <schema-manager class="column is-2"
                      @schema-selected="onSchemaSelected"></schema-manager>
-    <table-selector class="column is-2"
+    <table-manager class="column is-2"
+                   :schema="selectedSchema"
+                   @table-selected="onTableSelected"></table-manager>
+    <column-manager class="column is-4"
                     :schema="selectedSchema"
-                    @table-selected="onTableSelected"></table-selector>
-    <column-selector class="column is-4"
-                     :schema="selectedSchema"
-                     :table="selectedTable"></column-selector>
+                    :table="selectedTable"></column-manager>
   </div>
 </template>
 
 <script>
 import SchemaManager from './SchemaManager.vue';
-import TableSelector from './TableSelector.vue';
-import ColumnSelector from './ColumnSelector.vue';
+import TableManager from './TableManager.vue';
+import ColumnManager from './ColumnManager.vue';
 
 export default {
   name: 'configuration',
   components: {
     SchemaManager,
-    TableSelector,
-    ColumnSelector,
+    TableManager,
+    ColumnManager,
   },
   data() {
     return {

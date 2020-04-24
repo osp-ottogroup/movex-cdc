@@ -14,7 +14,7 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
-  name: 'ColumnSelector',
+  name: 'ColumnManager',
   components: {
     ColumnTable,
   },

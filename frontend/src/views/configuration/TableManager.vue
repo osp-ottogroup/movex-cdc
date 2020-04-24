@@ -27,7 +27,7 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
-  name: 'TableSelector',
+  name: 'TableManager',
   components: {
     TableTable,
     TableModal,
