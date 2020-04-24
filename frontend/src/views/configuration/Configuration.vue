@@ -1,7 +1,7 @@
 <template>
   <div class="columns is-centered">
-    <schema-selector class="column is-3"
-                     @schema-selected="onSchemaSelected"></schema-selector>
+    <schema-manager class="column is-3"
+                     @schema-selected="onSchemaSelected"></schema-manager>
     <table-selector class="column is-2"
                     :schema="selectedSchema"
                     @table-selected="onTableSelected"></table-selector>
@@ -12,14 +12,14 @@
 </template>
 
 <script>
-import SchemaSelector from './SchemaSelector.vue';
+import SchemaManager from './SchemaManager.vue';
 import TableSelector from './TableSelector.vue';
 import ColumnSelector from './ColumnSelector.vue';
 
 export default {
   name: 'configuration',
   components: {
-    SchemaSelector,
+    SchemaManager,
     TableSelector,
     ColumnSelector,
   },
