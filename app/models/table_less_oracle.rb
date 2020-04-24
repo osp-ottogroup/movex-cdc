@@ -52,16 +52,21 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 
   # Method comparable with ActiveRecord::ConnectionAdapters::OracleEnhancedDatabaseStatements.exec_query,
   # but without storing whole result in memory
-  def select_all_limit(sql, name = 'SQL', binds = [], query_timeout = nil)
+  # options: :query_name, :query_timeout, :fetch_limit
+  def select_all_limit(sql, binds = [], options = {})
     # Variante für Rails 5
+    options[:query_name] = 'SQL' unless options[:query_name]
+
     type_casted_binds = binds.map { |attr| TypeMapper.new.type_cast(attr.value_for_database) }
 
-    log(sql, name, binds, type_casted_binds) do
+    query_name = options[:query_name]
+    query_name << " fetch_limit=#{options[:fetch_limit]}" if options[:fetch_limit]
+    log(sql, query_name, binds, type_casted_binds) do
       cursor = nil
       cursor = prepare(sql)
       cursor.bind_params(type_casted_binds) if !binds.empty?
 
-      cursor.get_raw_statement.setQueryTimeout(query_timeout.to_i) if query_timeout          # Erweiterunge gegenüber exec_query
+      cursor.get_raw_statement.setQueryTimeout(options[:query_timeout].to_i) if options[:query_timeout]          # Erweiterunge gegenüber exec_query
       cursor.get_raw_statement.setFetchSize(5)
       cursor.exec
 
@@ -71,11 +76,11 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
         #col_name =~ /[a-z]/ ? col_name : col_name.downcase!
         col_name.downcase!.freeze
       end
-      fetch_options = {:get_lob_value => (name != 'Writable Large Object')}
+      fetch_options = {:get_lob_value => (options[:query_name] != 'Writable Large Object')}
       # noinspection RubyAssignmentExpressionInConditionalInspection
       row_count = 0
       result = []
-      while row = cursor.fetch(fetch_options)
+      while (options[:fetch_limit].nil? || row_count < options[:fetch_limit]) && row = cursor.fetch(fetch_options)
         row_count += 1
         result_hash = {}
         columns.each_index do |index|
@@ -94,8 +99,16 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 end #class_eval
 
 class TableLessOracle
-  def self.select_all_limit(stmt, binds=[], query_timeout=nil, query_name = 'select_all_limit')
-    ActiveRecord::Base.connection.get_jdbc_connection.select_all_limit(stmt, query_name, binds, query_timeout)
-    #Thread.current[:panorama_connection_connection_object].jdbc_connection.iterate_query(stmt, query_name, binds, modifier, query_timeout)
+  # options: :query_name, :query_timeout, :fetch_limit
+  def self.select_all_limit(stmt, filter={}, options={})
+    options[:query_name] = 'select_all_limit' unless options[:query_name]
+
+    raise "Hash expected as filter" if filter.class != Hash
+    binds = []
+    filter.each do |key, value|
+      binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
+    end
+
+    ActiveRecord::Base.connection.get_jdbc_connection.select_all_limit(stmt, binds,options)
   end
 end

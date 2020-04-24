@@ -28,7 +28,6 @@ class DbTrigger < ApplicationRecord
 
   # Generate triggers for schema
   def self.generate_triggers(schema_id)
-    # TODO: Implement
     target_trigger_data = []                                                    # Hash with target trigger states for schema
 
     # Build hash structure with data for trigger generation
@@ -68,6 +67,8 @@ class DbTrigger < ApplicationRecord
       Rails.logger.error "#{error[:exception_class]}: #{error[:exception_message]}"
       Rails.logger.error "#{error[:sql]}"
     end
+
+    Schema.find(schema_id).update(last_trigger_deployment: Time.now) if result[:errors].count == 0  # Flag trigger generation successful
 
     result
   end

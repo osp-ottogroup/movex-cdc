@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_04_17_000000) do
+ActiveRecord::Schema.define(version: 2020_04_23_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -71,6 +71,7 @@ ActiveRecord::Schema.define(version: 2020_04_17_000000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "topic", comment: "Default topic name for tables of this schema if no topic is defined at table level. Null if topic should be defined at table level"
+    t.datetime "last_trigger_deployment", precision: 6, comment: "Timestamp of last successful trigger deployment for schema (no matter if there have been changes for triggers or not)"
     t.index ["name"], name: "ix_schemas_name", unique: true
   end
 

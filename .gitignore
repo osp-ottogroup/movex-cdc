@@ -7,6 +7,9 @@
 # Ignore bundler config.
 /.bundle
 
+# expect certificates here but not in version control
+/cert/*
+
 # Ignore all logfiles and tempfiles.
 /log/*
 /tmp/*

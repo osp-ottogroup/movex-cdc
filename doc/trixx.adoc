@@ -120,11 +120,24 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"|required|
 |TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|optional|1000
 |TRIXX_KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
 "/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).|required|
+|TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|optional|
+|TRIXX_KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|optional|
+|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|optional|
+|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|optional|
 |TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the sum of allocated memory over all threads. If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|optional|10
 |TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaktion (both DB and Kafka)|optional|10000
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|optional|APP_ROOT/config/trixx_run.yml
 
 |===
+
+==== Setup SSL-connection to Kafka ====
+Kafka supports encryption and authentication via SSL.
+The required setup is described at http://kafka.apache.org/documentation.html#security_ssl.
+However, the certificates generated for Kafka are in JKS format, which the underlying library 'ruby-kafka' does not support.
+Luckily, it is possible to convert the generated files into X509 format.
+A guide how to do conversion is here: https://github.com/zendesk/ruby-kafka/wiki/Creating-X509-certificates-from-JKS-format.
+
+
 === Running TriXX ===
 The TriXX application is provided as Docker-Image by:
 [source]
@@ -139,6 +152,12 @@ It is recommended to place an own reverse proxy nearby for SSL encryption.
 
 === Configuration of capturing with TriXX-GUI ===
 TODO: Describe GUI workflow
+
+==== Managing users, schemas and rights ====
+
+==== Configuring events to capture at column level ====
+
+==== Generation of database triggers ====
 
 === Troubleshooting ===
 ==== Health check ====

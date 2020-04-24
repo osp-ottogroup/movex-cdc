@@ -50,9 +50,18 @@ class TransferThread
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
-    kafka = kafka_class.new(seed_brokers, client_id: "TriXX: #{Socket.gethostname}", logger: Rails.logger)
-    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
 
+    kafka_options = {
+        client_id: "TriXX: TRIXX-#{Socket.gethostname}",
+        logger: Rails.logger
+    }
+    kafka_options[:ssl_ca_cert]                   = Trixx::Application.config.trixx_kafka_ssl_ca_cert                   if Trixx::Application.config.trixx_kafka_ssl_ca_cert
+    kafka_options[:ssl_client_cert]               = Trixx::Application.config.trixx_kafka_ssl_client_cert               if Trixx::Application.config.trixx_kafka_ssl_client_cert
+    kafka_options[:ssl_client_cert_key]           = Trixx::Application.config.trixx_kafka_ssl_client_cert_key           if Trixx::Application.config.trixx_kafka_ssl_client_cert_key
+    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password  if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
+
+    kafka = kafka_class.new(seed_brokers, kafka_options)
+    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
 
     init_transactions_successfull = false
     init_transactions_retry_count = 0
@@ -203,11 +212,23 @@ class TransferThread
         # Iterate over partitions starting with oldest up to @max_transaction_size records
         TableLess.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
             .sort_by{|x| x['high_value']}.each do |part|
-          remaining_records = @max_transaction_size - event_logs.count         # available space for more result records
+          remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
           if remaining_records > 0                                              # add records from next partition to result
-            event_logs.concat(TableLess.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs PARTITION (#{part['partition_name']}) e WHERE (ID < :max_id AND RowNum <= :remaining_records1) OR RowNum <= :remaining_records2 / 2 FOR UPDATE SKIP LOCKED",
-                              {max_id: @max_event_logs_id, remaining_records1: remaining_records, remaining_records2: remaining_records })
-            )
+            # First step: look for records with smaller ID than largest of lst run (older records)
+            event_logs.concat(TableLessOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+                                                                FROM   Event_Logs PARTITION (#{part['partition_name']}) e
+                                                                WHERE  e.ID < :max_id
+                                                                FOR UPDATE SKIP LOCKED",
+                                                               {max_id: @max_event_logs_id}, fetch_limit: remaining_records
+            ))
+            remaining_records = @max_transaction_size - event_logs.count        # available space for more result records
+            if remaining_records > 0                                            # fill rest of buffer with all unlocked records
+              event_logs.concat(TableLessOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+                                                                FROM   Event_Logs PARTITION (#{part['partition_name']}) e
+                                                                FOR UPDATE SKIP LOCKED",
+                                                                 {}, fetch_limit: remaining_records
+              ))
+            end
           end
         end
         event_logs
