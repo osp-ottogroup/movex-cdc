@@ -2,75 +2,47 @@
   <div>
     <b-table ref="table"
              :data="tables"
-             :columns="columns"
-             detailed
-             detail-key="id"
-             :selected="currentTable"
-             :show-detail-icon="false"
-             @click="setCurrentTable">
-      <template slot="detail" slot-scope="props">
-        <b-field label="Topic" label-position="on-border">
-          <b-input placeholder="Enter Topic"
-                   v-model="props.row.topic"
-                   size="is-small"
-                   :icon-right="props.row.topicChanged ? 'save' : ''"
-                   :icon-right-clickable="props.row.topicChanged"
-                   @icon-right-click="onSaveTable(props.row)"
-                   @input="onTopicChanged(props.row)">
-          </b-input>
-        </b-field>
+             :selected.sync="selectedTable"
+             @click="onTableSelected">
+      <template slot-scope="props">
+        <b-table-column field="name" label="Tables">
+          {{ props.row.name }}
+          <b-button v-show="selectedTable && selectedTable.id === props.row.id"
+                    icon-right="pen"
+                    class="is-pulled-right is-small"
+                    @click="onEditClicked()" />
+        </b-table-column>
+      </template>
+
+      <template slot="empty">
+        <div class="content has-text-grey has-text-centered is-size-7">
+          <b-icon icon="info-circle" />
+          <p v-if="!schema">Select a schema.</p>
+          <p v-else>Add a table.</p>
+        </div>
       </template>
     </b-table>
   </div>
 </template>
 
 <script>
-import CRUDService from '@/services/CRUDService';
-import { getErrorMessageAsHtml } from '@/helpers';
-
 export default {
   name: 'TableTable',
   props: {
     tables: { type: Array, default: () => [] },
+    schema: { type: Object, default: () => {} },
   },
   data() {
     return {
-      currentTable: null,
-      columns: [
-        { field: 'name', label: 'Tables' },
-      ],
+      selectedTable: null,
     };
   },
   methods: {
-    setCurrentTable(table) {
-      if (this.currentTable !== null) {
-        this.$refs.table.toggleDetails(this.currentTable);
-      }
-      this.currentTable = table;
-      this.$refs.table.toggleDetails(table);
+    onTableSelected(table) {
       this.$emit('table-selected', table);
     },
-    async onSaveTable(table) {
-      try {
-        await CRUDService.tables.update(table.id, { table });
-        // eslint-disable-next-line no-param-reassign
-        table.topicChanged = false;
-        this.$buefy.toast.open({
-          message: `Saved changes to table '${table.name}'!`,
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.toast.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          duration: 5000,
-        });
-      }
-    },
-    onTopicChanged(table) {
-      if (!table.topicChanged) {
-        this.$set(table, 'topicChanged', true);
-      }
+    onEditClicked() {
+      this.$emit('edit-table', this.selectedTable);
     },
   },
 };

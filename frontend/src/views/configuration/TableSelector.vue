@@ -1,10 +1,22 @@
 <template>
-  <div class="content">
+  <div>
     <table-table :tables="tables"
-                 v-on="$listeners"/>
-    <button class="button" @click="openTableModal">Add Table</button>
-    <table-modal :isActive.sync="isTableModalActive" :tables="selectableTables"
-                 @add-table="onAddTable"></table-modal>
+                 :schema="schema"
+                 v-on="$listeners"
+                 @edit-table="onEditTable"/>
+    <b-button id="add-table-button"
+              v-if="schema"
+              class="is-pulled-right"
+              @click="onAddTable">
+      Add Table
+    </b-button>
+    <template v-if="showTableModal">
+      <table-modal :tables="selectableTables"
+                   :table="modal.table"
+                   :mode="modal.mode"
+                   @save="onSave"
+                   @close="onClose"/>
+    </template>
   </div>
 </template>
 
@@ -25,9 +37,12 @@ export default {
   },
   data() {
     return {
-      isTableModalActive: false,
       tables: [],
       dbTables: [],
+      modal: {
+        table: null,
+        mode: null,
+      },
     };
   },
   computed: {
@@ -36,25 +51,64 @@ export default {
       // eslint-disable-next-line max-len
       return this.dbTables.filter(dbTable => !this.tables.some(table => dbTable.name === table.name));
     },
+    showTableModal() {
+      return this.modal.table !== null;
+    },
   },
   methods: {
-    openTableModal() {
-      this.isTableModalActive = true;
-    },
-    async onAddTable(addedTable) {
+    async loadTables(schema) {
       try {
-        const table = await CRUDService.tables.create({
+        this.tables = await CRUDService.tables.getAll({ schema_id: schema.id });
+        this.dbTables = await CRUDService.dbTables.getAll({ schema_name: schema.name });
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: getErrorMessageAsHtml(e, 'An error occurred while loading tables!'),
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
+    },
+    onAddTable() {
+      this.modal.mode = 'ADD';
+      this.modal.table = {};
+    },
+    onEditTable(table) {
+      this.modal.mode = 'EDIT';
+      this.modal.table = { ...table };
+    },
+    onClose() {
+      this.modal.table = null;
+    },
+    async onSave(table) {
+      try {
+        if (table.id) {
+          await this.updateTable(table);
+        } else {
+          await this.createTable(table);
+        }
+        this.modal.table = null;
+        this.modal.mode = null;
+      } catch (e) {
+        this.$buefy.toast.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          duration: 5000,
+        });
+      }
+    },
+    async createTable(table) {
+      try {
+        const createdTable = await CRUDService.tables.create({
           table: {
             schema_id: this.schema.id,
-            name: addedTable.name,
-            topic: addedTable.topic,
+            name: table.name,
+            topic: table.topic,
             info: 'TODO',
           },
         });
-        this.tables.push(table);
-        this.isTableModalActive = false;
+        this.tables.push(createdTable);
         this.$buefy.toast.open({
-          message: 'Table added to TriXX configuration!',
+          message: `Table '${createdTable.name}' added to TriXX configuration!`,
           type: 'is-success',
         });
       } catch (e) {
@@ -65,20 +119,36 @@ export default {
         });
       }
     },
+    async updateTable(table) {
+      const updatedTable = await CRUDService.tables.update(table.id, { table });
+      this.$buefy.toast.open({
+        message: `Saved changes to table '${table.name}'!`,
+        type: 'is-success',
+      });
+      // TODO needs a better way of copying properties without dereferencing original object
+      this.tables.some((tables) => {
+        if (tables.id === updatedTable.id) { /* eslint-disable no-param-reassign */
+          tables.name = updatedTable.name;
+          tables.topic = updatedTable.topic;
+          tables.info = updatedTable.info;
+          tables.created_at = updatedTable.created_at;
+          tables.updated_at = updatedTable.updated_at;
+          return true;
+        }
+        return false;
+      });
+    },
   },
   watch: {
     async schema(newSchema) {
-      try {
-        this.tables = await CRUDService.tables.getAll({ schema_id: newSchema.id });
-        this.dbTables = await CRUDService.dbTables.getAll({ schema_name: newSchema.name });
-      } catch (e) {
-        this.$buefy.toast.open({
-          message: getErrorMessageAsHtml(e, 'An error occurred while loading tables!'),
-          type: 'is-danger',
-          duration: 5000,
-        });
-      }
+      await this.loadTables(newSchema);
     },
   },
 };
 </script>
+
+<style lang="scss">
+  #add-table-button {
+    margin-top: 1em;
+  }
+</style>
