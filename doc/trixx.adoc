@@ -103,32 +103,39 @@ You can configure TriXX either by defining config settings as environment variab
 
 Environment variables overrides values from configuration file.
 
-.Environment parameters evaluated at appliction start
-[cols="~,~,~,~"]
+.Mandatory environment parameters for evaluation at appliction start
+[cols="~,~"]
 |===
-|Variable|Description|Type|Default
+|Variable|Description
 
-|LOG_LEVEL|Log level of application (debug, info, warn, error)|optional|warn
-|TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work in config file|optional|Europe/Berlin
-|TNS_ADMIN|directory of tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|optional|
-|TRIXX_DB_PASSWORD|Password of TRIXX_DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.|required|
-|TRIXX_DB_TYPE|Defines the typ of observed database. Valid values: SQLITE, ORACLE|required|
+|TRIXX_DB_PASSWORD|Password of TRIXX_DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.
+|TRIXX_DB_TYPE|Defines the typ of observed database. Valid values: SQLITE, ORACLE
 |TRIXX_DB_URL|Database-URL for JDBC Connect:
-Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"|required|
-|TRIXX_DB_USER|Username of TriXX-Schema in observed database|required|
-|TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|optional|3
-|TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|optional|1000
+Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
+|TRIXX_DB_USER|Username of TriXX-Schema in observed database
 |TRIXX_KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
-"/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).|required|
-|TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|optional|
-|TRIXX_KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|optional|
-|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|optional|
-|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|optional|
-|TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the sum of allocated memory over all threads. If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|optional|10
-|TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaktion (both DB and Kafka)|optional|10000
-|TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|optional|APP_ROOT/config/trixx_run.yml
-
+"/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).
 |===
+
+.Optional environment parameters for evaluation at appliction start
+[cols="~,~,~"]
+|===
+|Variable|Description|Default value
+
+|LOG_LEVEL|Log level of application (debug, info, warn, error)|warn
+|TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work in config file|Europe/Berlin
+|TNS_ADMIN|directory of tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
+|TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
+|TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
+|TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
+|TRIXX_KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|
+|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
+|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
+|TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the sum of allocated memory over all threads. If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|10
+|TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaktion (both DB and Kafka)|10000
+|TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
+|===
+
 
 ==== Setup SSL-connection to Kafka ====
 Kafka supports encryption and authentication via SSL.
