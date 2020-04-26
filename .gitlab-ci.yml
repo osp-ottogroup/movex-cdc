@@ -86,7 +86,7 @@ build_trixx:
 
   variables:
     #IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_DEFAULT_BRANCH
+    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
 
   image:
     name: gcr.io/kaniko-project/executor:debug
