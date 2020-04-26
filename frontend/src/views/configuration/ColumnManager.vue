@@ -1,5 +1,5 @@
 <template>
-  <div class="content">
+  <div>
 <!--    <div class="loader-wrapper is-active">-->
 <!--      <div class="loader is-loading"></div>-->
 <!--    </div>-->
@@ -14,7 +14,7 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
-  name: 'ColumnSelector',
+  name: 'ColumnManager',
   components: {
     ColumnTable,
   },

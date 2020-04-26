@@ -1,40 +1,54 @@
 <template>
-  <div class="modal" :class="{'is-active': isActive}">
-    <div class="modal-background"
-         @click="onClose"/>
+  <b-modal ref="tableModal"
+           :active="true"
+           has-modal-card
+           trap-focus
+           aria-role="dialog"
+           aria-modal
+           @close="onClose">
     <div class="modal-card" style="width: auto">
       <header class="modal-card-head">
-        <p class="modal-card-title">Add Table</p>
+        <p class="modal-card-title">{{title}}</p>
         <button class="delete"
                 aria-label="close"
                 @click="onClose">
         </button>
       </header>
       <section class="modal-card-body">
-        <b-field label="Table">
-          <b-select v-model="table.name"
+        <b-field v-if="showTableSelect" label="Table">
+          <b-select v-model="internalTable.name"
                     placeholder="Select a table"
+                    required
+                    validation-message="Select a table to add"
                     expanded>
             <option v-for="table in tables" :key="table.id" :value="table.name">
               {{ table.name }}
             </option>
           </b-select>
         </b-field>
-
         <b-field label="Topic">
           <b-input placeholder="Enter Topic"
-                   v-model="table.topic">
-          </b-input>
+                   :required="!schema.topic && !internalTable.topic"
+                   validation-message="Add a topic to the table because the schema has none"
+                   v-model="internalTable.topic"/>
+        </b-field>
+        <b-field label="Info">
+          <b-input type="textarea"
+                   rows="1"
+                   v-model="internalTable.info"
+                   required
+                   validation-message="Add an info text why this table is used in TriXX"/>
         </b-field>
       </section>
       <footer class="modal-card-foot">
-        <button class="button is-primary"
-                @click="onAddButtonClicked">
-          Add
+        <button id="save-table-button"
+                class="button is-primary"
+                @click="onSave">
+          Save
         </button>
       </footer>
     </div>
-  </div>
+  </b-modal>
 </template>
 
 <script>
@@ -42,33 +56,36 @@ export default {
   name: 'TableModal',
   props: {
     tables: { type: Array, default: () => [] },
+    table: { type: Object, default: () => {} },
+    schema: { type: Object, default: () => {} },
     isActive: { type: Boolean, default: false },
+    mode: { type: String, default: 'ADD' }, // 'ADD' or 'EDIT'
   },
   data() {
     return {
-      table: {
-        name: null,
-        topic: null,
-      },
+      internalTable: { ...this.table },
     };
+  },
+  computed: {
+    title() {
+      if (this.mode === 'ADD') {
+        return 'Add Table';
+      }
+      return `Edit Table (${this.internalTable.name})`;
+    },
+    showTableSelect() {
+      return this.mode === 'ADD';
+    },
   },
   methods: {
     onClose() {
-      this.$emit('update:is-active', false);
+      this.$emit('close');
     },
-    onAddButtonClicked() {
-      this.$emit('add-table', this.table);
-    },
-    resetData() {
-      this.table.name = null;
-      this.table.topic = null;
-    },
-  },
-  watch: {
-    isActive(isActive) {
-      if (!isActive) {
-        this.resetData();
+    onSave() {
+      if (this.$refs.tableModal.$el.querySelectorAll(':invalid').length > 0) {
+        return;
       }
+      this.$emit('save', this.internalTable);
     },
   },
 };
