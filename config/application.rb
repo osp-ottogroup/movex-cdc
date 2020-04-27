@@ -128,6 +128,11 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
 
+    case config.trixx_db_type
+    when 'ORACLE' then
+      Trixx::Application.log_attribute('TNS_ADMIN', ENV['TNS_ADMIN'])
+    end
+
     # check if database supports partitioning (possible and licensed)
     def partitioning
       if !defined? @trixx_db_partitioning
