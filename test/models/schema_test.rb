@@ -13,5 +13,16 @@ class SchemaTest < ActiveSupport::TestCase
     assert(schemas.count > 0, 'Should return at least one schema')
   end
 
+  test "update schmema without topic" do
+    schema = schemas(:one)
+    # Remove topics from tables of schema
+    schema.tables.each do |table|
+      table.topic = nil
+      table.update topic:nil
+    end
+    success = schema.update(topic:nil)
+    assert success == false, 'Validation should suppress empty schema.topic if any table of schema has no topic'
+  end
+
 
 end

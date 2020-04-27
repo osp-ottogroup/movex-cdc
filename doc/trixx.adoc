@@ -175,6 +175,10 @@ There is a healthcheck service available at:
 Status code 200 (ok) is returned if the configured number of worker threads exists and is functional. +
 The http-response contains a JSON-object with detailled informations.
 
+==== Common error traps ====
+===== Oracle-DB =====
+* If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
+
 == Technical implementation ==
 === Module overview ===
 
