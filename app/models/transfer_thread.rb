@@ -55,10 +55,10 @@ class TransferThread
         client_id: "TriXX: TRIXX-#{Socket.gethostname}",
         logger: Rails.logger
     }
-    kafka_options[:ssl_ca_cert]                   = Trixx::Application.config.trixx_kafka_ssl_ca_cert                   if Trixx::Application.config.trixx_kafka_ssl_ca_cert
-    kafka_options[:ssl_client_cert]               = Trixx::Application.config.trixx_kafka_ssl_client_cert               if Trixx::Application.config.trixx_kafka_ssl_client_cert
-    kafka_options[:ssl_client_cert_key]           = Trixx::Application.config.trixx_kafka_ssl_client_cert_key           if Trixx::Application.config.trixx_kafka_ssl_client_cert_key
-    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password  if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
+    kafka_options[:ssl_ca_cert]                   = File.read(Trixx::Application.config.trixx_kafka_ssl_ca_cert)          if Trixx::Application.config.trixx_kafka_ssl_ca_cert
+    kafka_options[:ssl_client_cert]               = File.read(Trixx::Application.config.trixx_kafka_ssl_client_cert)      if Trixx::Application.config.trixx_kafka_ssl_client_cert
+    kafka_options[:ssl_client_cert_key]           = File.read(Trixx::Application.config.trixx_kafka_ssl_client_cert_key)  if Trixx::Application.config.trixx_kafka_ssl_client_cert_key
+    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password    if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
 
     kafka = kafka_class.new(seed_brokers, kafka_options)
     transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
