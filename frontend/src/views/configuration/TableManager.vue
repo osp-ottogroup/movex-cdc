@@ -7,8 +7,9 @@
     <b-button id="add-table-button"
               v-if="schema"
               class="is-pulled-right"
-              @click="onAddTable">
-      Add Table
+              @click="onAddTable"
+              expanded>
+      Add a table to observe
     </b-button>
     <template v-if="showTableModal">
       <table-modal :tables="selectableTables"

@@ -14,8 +14,8 @@
         </button>
       </header>
       <section class="modal-card-body">
-        <b-field label="Topic">
-          <b-input placeholder="Enter Topic"
+        <b-field label="Kafka-Topic">
+          <b-input placeholder="Enter Kafka-Topic"
                    v-model="internalSchema.topic"/>
         </b-field>
       </section>
