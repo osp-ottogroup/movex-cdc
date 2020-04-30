@@ -45,5 +45,17 @@ export default {
       this.$emit('edit-table', this.selectedTable);
     },
   },
+  watch: {
+    tables(newList, oldList) {
+      if (!newList || newList !== oldList) {
+        this.selectedTable = null;
+      }
+      if (newList && newList.length > 0 && this.selectedTable === null) {
+        // eslint-disable-next-line prefer-destructuring
+        this.selectedTable = newList[0];
+        this.$emit('table-selected', this.selectedTable);
+      }
+    },
+  },
 };
 </script>
