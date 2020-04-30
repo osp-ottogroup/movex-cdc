@@ -4,7 +4,7 @@ class CreateSchemaRights < ActiveRecord::Migration[6.0]
     create_table :schema_rights do |t|
       t.references  :user,           null: false,  comment: 'Reference to user'
       t.references  :schema,         null: false,  comment: 'Reference to schema'
-      t.string      :info, limit: 1000,  null: false,  comment: 'Additional info'
+      t.string      :info, limit: 1000,  null: true,  comment: 'Additional info'
       t.timestamps
     end
   end

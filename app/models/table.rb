@@ -3,10 +3,22 @@ class Table < ApplicationRecord
   has_many    :columns
   has_many    :conditions
   validate    :topic_in_table_or_schema
+  validate    :kafka_key_handling_validate
 
   def topic_in_table_or_schema
     if (topic.nil? || topic == '') && (schema.topic.nil? || schema.topic == '')
       errors.add(:topic, "cannot be empty if topic of schema is also empty")
+    end
+  end
+
+  def kafka_key_handling_validate
+    valid_kafka_key_handlings = ['N', 'P', 'F']
+    unless valid_kafka_key_handlings.include? kafka_key_handling
+      errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{valid_kafka_key_handlings}")
+    end
+
+    if kafka_key_handling != 'F' && !(fixed_message_key.nil? || fixed_message_key == '')
+      errors.add(:fixed_message_key, "Fixed message key should be empty if Kafka key handling is not 'F'")
     end
   end
 

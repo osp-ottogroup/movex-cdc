@@ -27,6 +27,21 @@ class TableTest < ActiveSupport::TestCase
     assert(tables.count > 0, 'Should return at least one table of schema')
   end
 
+  test "table validations" do
+    table = tables(:one)
+
+    result = table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
+    assert(!result, 'Validation should raise error for fixed_message_key')
+
+    result = table.update(kafka_key_handling: 'X')
+    assert(!result, 'Validation should raise error for wrong kafka_key_handling')
+
+    schemas(:one).update(topic: nil)
+    result = table.update(topic: nil)
+    assert(!result, 'Validation should raise error if neither table nor schema have valid topic')
+
+  end
+
   test "oldest trigger change dates per operation" do
     oldest_change_dates = tables(:victim1).oldest_trigger_change_dates_per_operation
     ['I', 'U', 'D'].each do |operation|
