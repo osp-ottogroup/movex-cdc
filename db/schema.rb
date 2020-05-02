@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_04_30_000000) do
+ActiveRecord::Schema.define(version: 2020_04_30_100000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -27,7 +27,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_000000) do
   create_table "columns", force: :cascade do |t|
     t.integer "table_id", null: false
     t.string "name", limit: 256, null: false
-    t.string "info", limit: 1000, null: false
+    t.string "info", limit: 1000
     t.string "yn_log_insert", limit: 1, null: false
     t.string "yn_log_update", limit: 1, null: false
     t.string "yn_log_delete", limit: 1, null: false
@@ -53,13 +53,14 @@ ActiveRecord::Schema.define(version: 2020_04_30_000000) do
     t.string "dbuser", limit: 128, null: false
     t.text "payload", null: false
     t.datetime "created_at", null: false
+    t.string "key", limit: 4000
     t.index ["table_id"], name: "index_event_logs_on_table_id"
   end
 
   create_table "schema_rights", force: :cascade do |t|
     t.integer "user_id", null: false
     t.integer "schema_id", null: false
-    t.string "info", limit: 1000, null: false
+    t.string "info", limit: 1000
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["schema_id"], name: "index_schema_rights_on_schema_id"
@@ -86,7 +87,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_000000) do
   create_table "tables", force: :cascade do |t|
     t.integer "schema_id", null: false
     t.string "name", limit: 256, null: false
-    t.string "info", limit: 1000, null: false
+    t.string "info", limit: 1000
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "topic", limit: 255

@@ -93,15 +93,17 @@ class DbTriggerOracle < TableLess
       tab[:operations].each do |op|
         trigger_name = DbTriggerOracle.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
-            schema_id:        @schema.id,
-            schema_name:      @schema.name,
-            table_id:         tab[:table_id],
-            table_name:       tab[:table_name],
-            trigger_name:     trigger_name,
-            operation:        operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
-            operation_short:  op[:operation],                                   # I/U/D
-            condition:        op[:condition],
-            columns:          op[:columns]
+            schema_id:          @schema.id,
+            schema_name:        @schema.name,
+            table_id:           tab[:table_id],
+            table_name:         tab[:table_name],
+            trigger_name:       trigger_name,
+            operation:          operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
+            operation_short:    op[:operation],                                   # I/U/D
+            kafka_key_handling: tab[:kafka_key_handling],
+            fixed_message_key:  tab[:fixed_message_key],
+            condition:          op[:condition],
+            columns:            op[:columns]
         }
 
         trigger_data[:columns].each do |c|
@@ -162,6 +164,60 @@ class DbTriggerOracle < TableLess
     "TRIXX_#{table_name.upcase}_#{operation}"
   end
 
+  # Build SQL expression for message key
+  def message_key_sql(target_trigger_data)
+    case target_trigger_data[:kafka_key_handling]
+    when 'N' then 'NULL'
+    when 'P' then primary_key_sql(target_trigger_data[:schema_name], target_trigger_data[:table_name], target_trigger_data[:operation])
+    when 'F' then "'#{target_trigger_data[:fixed_message_key]}'"
+    else
+      raise "Unsupported Kafka key handling type '#{target_trigger_data[:kafka_key_handling]}'"
+    end
+  end
+
+  # get primary key columns sql for conversion to string
+  def primary_key_sql(schema_name, table_name, operation)
+
+    pk_accessor =
+        case operation
+        when 'INSERT' then 'new'
+        when 'UPDATE' then 'new'
+        when 'DELETE' then 'old'
+        end
+
+    result = ''
+    first = true
+    pk_constraint_name = TableLess.select_one("SELECT Constraint_Name
+                                               FROM   DBA_Constraints
+                                               WHERE  Owner       = :schema_name
+                                               AND    Table_Name  = :table_name
+                                               AND    Constraint_Type = 'P'
+                                              ",
+                                              schema_name:  schema_name,
+                                              table_name:   table_name
+    )
+    raise "DbTriggerOracle.message_key_sql: Table #{schema_name}.#{table_name} does not have a primary key" if pk_constraint_name.nil?
+
+    TableLess.select_all("SELECT cc.column_name, tc.Data_Type
+                          FROM   DBA_Cons_Columns cc
+                          JOIN   DBA_Tab_Columns tc ON tc.Owner = cc.Owner AND tc.Table_name = cc.Table_Name AND tc.Column_Name = cc.Column_Name
+                          WHERE  cc.Owner           = :schema_name
+                          AND    cc.Table_Name      = :table_name
+                          AND    cc.Constraint_Name = :constraint_name
+                          ORDER BY cc.Position
+                         ",
+                         schema_name:     schema_name,
+                         table_name:      table_name,
+                         constraint_name: pk_constraint_name
+    ).each do |i|
+      result << " || " unless first
+      result << convert_col({column_name: i['column_name'] , data_type: i['data_type']}, pk_accessor)
+      first = false
+    end
+    result
+  end
+
+
   # Build trigger header from hash
   def build_trigger_header(target_trigger_data)
     result = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} FOR #{target_trigger_data[:operation]}"
@@ -174,8 +230,11 @@ class DbTriggerOracle < TableLess
   def build_trigger_body(target_trigger_data)
     "\
 COMPOUND TRIGGER
-
-TYPE Payload_Tab_Type IS TABLE OF CLOB INDEX BY PLS_INTEGER;
+TYPE Payload_Rec_Type IS RECORD (
+  Payload CLOB,
+  Key     VARCHAR2(4000)
+);
+TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
 payload_tab Payload_Tab_Type;
 tab_size    PLS_INTEGER;
 dbuser      VARCHAR2(128) := USER;
@@ -183,8 +242,8 @@ dbuser      VARCHAR2(128) := USER;
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At)
-    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i), SYSTIMESTAMP);
+    INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Key)
+    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i).Payload, SYSTIMESTAMP, payload_tab(i).key);
   payload_tab.DELETE;
 END Flush;
 
@@ -201,7 +260,8 @@ BEGIN
     tab_size := 0;
   END IF;
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
-  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := #{payload_command(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1).payload := #{payload_command(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1).key := #{message_key_sql(target_trigger_data)};
   #{"END IF;" if target_trigger_data[:condition]}
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
 
@@ -280,20 +340,20 @@ END #{target_trigger_data[:trigger_name]};
     result = "'#{old_new}: {\n'"
     target_trigger_data[:columns].each_index do |i|
       col = target_trigger_data[:columns][i]
-      result << "||'  #{col[:column_name]}: '||#{convert_col(target_trigger_data, col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
+      result << "||'  #{col[:column_name]}: '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
     end
     result << "||'}'"
     result
   end
 
   # convert values to string in PL/SQL
-  def convert_col(target_trigger_data, column_hash, old_new)
+  def convert_col(column_hash, old_new)
     accessor = ":#{old_new}"
 
     case column_hash[:data_type]
 
-    when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'    # character data types
-    then "''''||#{accessor}.#{column_hash[:column_name]}||''''"
+    when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'   # character data types
+    then "''''||REPLACE(#{accessor}.#{column_hash[:column_name]}, '''', '\\''')||''''"           # place between quotes 'xxx' and escape quote to \'
     when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
     then "TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')"
     when 'DATE'                         then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||''''"

@@ -18,7 +18,11 @@ class Table < ApplicationRecord
     end
 
     if kafka_key_handling != 'F' && !(fixed_message_key.nil? || fixed_message_key == '')
-      errors.add(:fixed_message_key, "Fixed message key should be empty if Kafka key handling is not 'F'")
+      errors.add(:fixed_message_key, "Fixed message key must be empty if Kafka key handling is not 'F' (Fixed)")
+    end
+
+    if kafka_key_handling == 'F' && (fixed_message_key.nil? || fixed_message_key == '')
+      errors.add(:fixed_message_key, "Fixed message key must not be empty if Kafka key handling is 'F' (Fixed)")
     end
   end
 

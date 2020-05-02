@@ -31,7 +31,10 @@ class TableTest < ActiveSupport::TestCase
     table = tables(:one)
 
     result = table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
-    assert(!result, 'Validation should raise error for fixed_message_key')
+    assert(!result, 'Validation should raise error for fixed_message_key if not empty')
+
+    result = table.update(kafka_key_handling: 'F', fixed_message_key: nil)
+    assert(!result, 'Validation should raise error for fixed_message_key if empty')
 
     result = table.update(kafka_key_handling: 'X')
     assert(!result, 'Validation should raise error for wrong kafka_key_handling')

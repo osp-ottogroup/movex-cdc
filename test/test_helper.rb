@@ -84,11 +84,11 @@ class ActiveSupport::TestCase
       nil
     end
 
-
+    pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
-        ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID
+        ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
@@ -110,7 +110,7 @@ class ActiveSupport::TestCase
       ")
     when 'SQLITE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
-        ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT      )")
+        ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
       exec_db_user_sql("\
         CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{tables(:victim1).name}
         BEGIN
@@ -126,6 +126,7 @@ class ActiveSupport::TestCase
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
+    "PRIMARY KEY(ID, Num_Val, Char_Name, Date_Val, TS_Val, Raw_Val, TSTZ_Val, RowID_Val)"
   end
 
   def drop_victim_structures(victim_connection)

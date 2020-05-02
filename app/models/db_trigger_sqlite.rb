@@ -61,14 +61,16 @@ class DbTriggerSqlite < TableLess
       tab[:operations].each do |op|
         trigger_name = DbTriggerSqlite.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
         trigger_data = {
-            schema_name:      @schema.name,
-            table_id:         tab[:table_id],
-            table_name:       tab[:table_name],
-            trigger_name:     trigger_name,
-            operation:        operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
-            operation_short:  op[:operation],                                   # I/U/D
-            condition:        op[:condition],
-            columns:          op[:columns]
+            schema_name:        @schema.name,
+            table_id:           tab[:table_id],
+            table_name:         tab[:table_name],
+            trigger_name:       trigger_name,
+            operation:          operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
+            operation_short:    op[:operation],                                   # I/U/D
+            kafka_key_handling: tab[:kafka_key_handling],
+            fixed_message_key:  tab[:fixed_message_key],
+            condition:          op[:condition],
+            columns:            op[:columns]
         }
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
@@ -119,6 +121,40 @@ class DbTriggerSqlite < TableLess
     "TRIXX_#{table_name.upcase}_#{operation}"
   end
 
+  # Build SQL expression for message key
+  def message_key_sql(target_trigger_data)
+    case target_trigger_data[:kafka_key_handling]
+    when 'N' then 'NULL'
+    when 'P' then primary_key_sql(target_trigger_data[:table_name], target_trigger_data[:operation])
+    when 'F' then "'#{target_trigger_data[:fixed_message_key]}'"
+    else
+      raise "Unsupported Kafka key handling type '#{target_trigger_data[:kafka_key_handling]}'"
+    end
+  end
+
+  # get primary key columns sql for conversion to string
+  def primary_key_sql(table_name, operation)
+
+    pk_accessor =
+        case operation
+        when 'INSERT' then 'new'
+        when 'UPDATE' then 'new'
+        when 'DELETE' then 'old'
+        end
+
+    result = ''
+    first = true
+    TableLess.select_all("PRAGMA table_info(#{table_name})").each do |i|
+      if i['pk'] > 0
+        result << " || " unless first
+        result << "#{pk_accessor}.#{i['name']}"
+        first = false
+      end
+    end
+    raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if first
+    result
+  end
+
   # Build trigger header from hash
   def build_trigger_header(target_trigger_data)
     result = "CREATE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} #{target_trigger_data[:operation]}"
@@ -135,6 +171,7 @@ class DbTriggerSqlite < TableLess
         when 'UPDATE' then ['old', 'new']
         when 'DELETE' then ['old']
         end
+
     payload = ''
     accessors.each do |accessor|
       payload << "#{accessor}: {"
@@ -144,7 +181,9 @@ class DbTriggerSqlite < TableLess
 
     "\
 BEGIN
-  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload) VALUES (#{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}');
+  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Key)
+  VALUES (#{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}', #{message_key_sql(target_trigger_data)})
+  ;
 END;"
   end
 
@@ -156,6 +195,8 @@ END;"
     else raise "Unknown short operation '#{short_op}'"
     end
   end
+
+
 
   def exec_trigger_sql(sql, trigger_name)
     Rails.logger.info "Execute trigger action: #{sql}"
