@@ -5,7 +5,7 @@
              :selected.sync="selectedTable"
              @click="onTableSelected">
       <template slot-scope="props">
-        <b-table-column field="name" label="Tables">
+        <b-table-column field="name" label="Observed Tables">
           {{ props.row.name }}
           <b-button v-show="selectedTable && selectedTable.id === props.row.id"
                     icon-right="pen"
@@ -18,7 +18,7 @@
         <div class="content has-text-grey has-text-centered is-size-7">
           <b-icon icon="info-circle" />
           <p v-if="!schema">Select a schema.</p>
-          <p v-else>Add a table.</p>
+          <p v-else>Add a table to observe.</p>
         </div>
       </template>
     </b-table>
@@ -43,6 +43,18 @@ export default {
     },
     onEditClicked() {
       this.$emit('edit-table', this.selectedTable);
+    },
+  },
+  watch: {
+    tables(newList, oldList) {
+      if (!newList || newList !== oldList) {
+        this.selectedTable = null;
+      }
+      if (newList && newList.length > 0 && this.selectedTable === null) {
+        // eslint-disable-next-line prefer-destructuring
+        this.selectedTable = newList[0];
+      }
+      this.$emit('table-selected', this.selectedTable);
     },
   },
 };

@@ -7,8 +7,9 @@
     <b-button id="add-table-button"
               v-if="schema"
               class="is-pulled-right"
-              @click="onAddTable">
-      Add Table
+              @click="onAddTable"
+              expanded>
+      Add a table to observe
     </b-button>
     <template v-if="showTableModal">
       <table-modal :tables="selectableTables"
@@ -38,13 +39,18 @@ export default {
   },
   data() {
     return {
-      tables: [],
+      // initialize array with one empty object; will be reseted in 'mounted' hook
+      // this is because buefy-table would otherwise not render headers
+      tables: [{}],
       dbTables: [],
       modal: {
         table: null,
         mode: null,
       },
     };
+  },
+  mounted() {
+    this.tables = [];
   },
   computed: {
     selectableTables() {

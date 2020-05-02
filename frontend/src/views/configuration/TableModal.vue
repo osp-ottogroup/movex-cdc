@@ -26,8 +26,8 @@
             </option>
           </b-select>
         </b-field>
-        <b-field label="Topic">
-          <b-input placeholder="Enter Topic"
+        <b-field label="Kafka-Topic">
+          <b-input placeholder="Enter Kafka-Topic"
                    :required="!schema.topic && !internalTable.topic"
                    validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
@@ -69,9 +69,9 @@ export default {
   computed: {
     title() {
       if (this.mode === 'ADD') {
-        return 'Add Table';
+        return 'Add observed Table';
       }
-      return `Edit Table (${this.internalTable.name})`;
+      return `Edit observed Table (${this.internalTable.name})`;
     },
     showTableSelect() {
       return this.mode === 'ADD';

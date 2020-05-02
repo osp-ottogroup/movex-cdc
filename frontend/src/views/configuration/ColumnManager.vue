@@ -97,7 +97,13 @@ export default {
   },
   watch: {
     async table(newTable) {
-      await this.reload(newTable);
+      if (newTable) {
+        await this.reload(newTable);
+      } else {
+        this.columns = [];
+        this.dbColumns = [];
+        this.mergedColumns = [];
+      }
     },
   },
 };

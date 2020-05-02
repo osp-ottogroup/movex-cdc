@@ -19,6 +19,9 @@
         <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
           Configuration
         </b-navbar-item>
+        <b-navbar-item tag="router-link" :to="{ path: '/deployment' }">
+          Deployment
+        </b-navbar-item>
       </template>
 
       <template slot="end">

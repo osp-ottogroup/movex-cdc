@@ -43,5 +43,14 @@ export default {
       this.$emit('edit-schema', this.selectedSchema);
     },
   },
+  watch: {
+    schemas(newList, oldList) {
+      if (newList && newList !== oldList && newList.length > 0) {
+        // eslint-disable-next-line prefer-destructuring
+        this.selectedSchema = newList[0];
+        this.$emit('schema-selected', this.selectedSchema);
+      }
+    },
+  },
 };
 </script>
