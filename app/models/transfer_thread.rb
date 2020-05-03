@@ -115,7 +115,7 @@ class TransferThread
                     kafka_message = prepare_message_from_event_log(event_log, schema, table)
                     topic = table.topic_to_use
                     begin
-                      kafka_producer.produce(kafka_message, topic: topic, key: event_log.key) # Store messages in local collection
+                      kafka_producer.produce(kafka_message, topic: topic, key: event_log['key']) # Store messages in local collection
                     rescue Kafka::BufferOverflow => e
                       Rails.logger.warn "#{e.class} #{e.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{schema.name}, table = #{table.name}"
                       reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
