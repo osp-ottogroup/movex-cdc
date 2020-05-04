@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_04_30_100000) do
+ActiveRecord::Schema.define(version: 2020_05_04_100000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -54,6 +54,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_100000) do
     t.text "payload", null: false
     t.datetime "created_at", precision: 6, null: false
     t.string "key", limit: 4000, comment: "Optional Kafka message key to ensure all messages of same key are stored in same partition"
+    t.string "msg_key", limit: 4000, comment: "Optional Kafka message key to ensure all messages of same key are stored in same partition"
   end
 
   create_table "schema_rights", force: :cascade do |t|

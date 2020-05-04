@@ -232,7 +232,7 @@ class DbTriggerOracle < TableLess
 COMPOUND TRIGGER
 TYPE Payload_Rec_Type IS RECORD (
   Payload CLOB,
-  Key     VARCHAR2(4000)
+  Msg_Key VARCHAR2(4000)
 );
 TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
 payload_rec Payload_Rec_Type;
@@ -243,8 +243,8 @@ dbuser      VARCHAR2(128) := USER;
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Key)
-    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i).Payload, SYSTIMESTAMP, payload_tab(i).key);
+    INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key)
+    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i).Payload, SYSTIMESTAMP, payload_tab(i).msg_key);
   payload_tab.DELETE;
 END Flush;
 
@@ -262,7 +262,7 @@ BEGIN
   END IF;
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
   #{"  " if target_trigger_data[:condition]}payload_rec.payload := #{payload_command(target_trigger_data)};
-  #{"  " if target_trigger_data[:condition]}payload_rec.key     := #{message_key_sql(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_rec.msg_key := #{message_key_sql(target_trigger_data)};
   #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := payload_rec;
   #{"END IF;" if target_trigger_data[:condition]}
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
