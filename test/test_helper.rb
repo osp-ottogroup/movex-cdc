@@ -56,12 +56,13 @@ class ActiveSupport::TestCase
   end
 
   def exec_victim_sql(connection, sql)
-    Rails.logger.debug "exec_victim_sql: #{sql}"
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then connection.exec sql
-    when 'SQLITE' then connection.execute sql                                   # standard method for AR.connection
-    else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    ActiveSupport::Notifications.instrumenter.instrument("sql.active_record", sql: sql, name: 'exec_victim_sql') do
+      case Trixx::Application.config.trixx_db_type
+      when 'ORACLE' then connection.exec sql
+      when 'SQLITE' then connection.execute sql                                   # standard method for AR.connection
+      else
+        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      end
     end
   rescue Exception => e
     msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
