@@ -14,8 +14,24 @@ echo "TriXX build version is `cat /app/build_version`"
 
 export RAILS_LOG_TO_STDOUT=true
 export RAILS_SERVE_STATIC_FILES=true
-exec rails server --port 8080 --environment production
 
+_term() {
+  echo "Caught SIGTERM signal! Terminating TriXX server process now."
+  kill -TERM "$child"
+}
+
+_int() {
+  echo "Caught SIGINT signal! Terminating TriXX server process now."
+  kill -TERM "$child"
+}
+
+trap _term SIGTERM
+trap _int  SIGINT
+
+rails server --port 8080 --environment production &
+
+child=$!
+wait $child
 
 
 
