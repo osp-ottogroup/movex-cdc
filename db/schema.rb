@@ -27,7 +27,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_100000) do
   create_table "columns", comment: "Columns with flags for DML operation to trigger", force: :cascade do |t|
     t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "name", limit: 256, null: false, comment: "Column name of database table"
-    t.string "info", limit: 1000, null: false, comment: "Additional info"
+    t.string "info", limit: 1000, comment: "Additional info"
     t.string "yn_log_insert", limit: 1, null: false, comment: "Log this column at insert operation (Y/N)"
     t.string "yn_log_update", limit: 1, null: false, comment: "Log this column at update operation (Y/N)"
     t.string "yn_log_delete", limit: 1, null: false, comment: "Log this column at delete operation (Y/N)"
@@ -59,7 +59,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_100000) do
   create_table "schema_rights", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
     t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
-    t.string "info", limit: 1000, null: false, comment: "Additional info"
+    t.string "info", limit: 1000, comment: "Additional info"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["schema_id"], name: "index_schema_rights_on_schema_id"
@@ -86,7 +86,7 @@ ActiveRecord::Schema.define(version: 2020_04_30_100000) do
   create_table "tables", comment: "Tables planned for triger creation", force: :cascade do |t|
     t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
     t.string "name", limit: 256, null: false, comment: "Table name of database table"
-    t.string "info", limit: 1000, null: false, comment: "Additional info like responsible team"
+    t.string "info", limit: 1000, comment: "Additional info like responsible team"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "topic", comment: "Topic name for table. Topic name of schema is used s default if Null"

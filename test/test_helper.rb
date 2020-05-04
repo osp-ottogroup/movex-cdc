@@ -56,6 +56,7 @@ class ActiveSupport::TestCase
   end
 
   def exec_victim_sql(connection, sql)
+    Rails.logger.debug "exec_victim_sql: #{sql}"
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then connection.exec sql
     when 'SQLITE' then connection.execute sql                                   # standard method for AR.connection

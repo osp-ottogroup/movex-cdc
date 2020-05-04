@@ -80,6 +80,14 @@ test_oracle_11.2:
   variables:
     TRIXX_DB_URL: "oracle-db:1521/ORCL"
 
+test_oracle_12.1:
+  stage: test
+  extends: .tests_ORACLE
+  services:
+    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-ee
+      alias: oracle-db
+  variables:
+    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
 
 build_trixx:
   stage: build
