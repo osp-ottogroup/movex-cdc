@@ -235,6 +235,7 @@ TYPE Payload_Rec_Type IS RECORD (
   Key     VARCHAR2(4000)
 );
 TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
+payload_rec Payload_Rec_Type;
 payload_tab Payload_Tab_Type;
 tab_size    PLS_INTEGER;
 dbuser      VARCHAR2(128) := USER;
@@ -260,8 +261,9 @@ BEGIN
     tab_size := 0;
   END IF;
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
-  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1).payload := #{payload_command(target_trigger_data)};
-  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1).key := #{message_key_sql(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_rec.payload := #{payload_command(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_rec.key     := #{message_key_sql(target_trigger_data)};
+  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := payload_rec;
   #{"END IF;" if target_trigger_data[:condition]}
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
 
