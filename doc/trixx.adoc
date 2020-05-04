@@ -32,6 +32,20 @@ low complexity in the operation of the solution and minimal intervention in the 
 In particular, compared with alternative solutions such as Oracle Golden Gate, Quest Shareplex or Red Hat Debezium,
 it is not necessary to drastically increase the retention period of the DB online transaction log.
 
+=== Concept ===
+
+==== Using Kafka keys to ensure sequential order of messages ====
+For Kafka consumers the original sequence of messages is guaranteed only for messages consumed from the same partition of a topic. +
+Therefore you must place messages within the same partition of a topic if you want to consume them in original order. +
+Kafka has the concept of message keys for that. Kafka ensures that messages with the same key value are placed in the same partition and this way are consumed in original sequence.
+
+TriXX supports three kinds of message keys for Kafka that can be defined by GUI at table level:
+
+* No message key: Messages are placed randomly in partitions
+* Fixed value: All change events of a table are placed in the same partition (makes sense only if events of multiple tables are produced to the same Kafka topic)
+* Primary key values: Ensures that the change history of a single DB record is always consumed in original sequence
+
+
 === Differentiation from other solutions for CDC ===
 There are a number of existing solutions for change capture, commercial as well as open source.
 Most of them are based on processing of DB's transaction log. +
@@ -49,21 +63,21 @@ Accepting the synchroneous overhead of triggers in business transactions the sol
 
 === Supported databases ===
 
-* Oracle Database
-* SQLite
-* MS SQL Server (planned)
-* PostgreSQL (planned)
+==== Oracle Database ====
+Oracle Database is supported for release 12.1. and higher. +
+Release 11.2 may function depending on the patch level. There are several issues with compound triggers in Oracle 11 up to release 11.2.0.4.
 
-.Limitations for the supported databases
-[cols="~,~"]
-|===
-|DB|Limitation
-
-|Oracle|Enterprise Edition with Partitioning Option in Release >= 11.2 is needed until now +
+NOTE: Enterprise Edition with Partitioning Option in Release >= 11.2 is needed until now +
 Solution for Standard Edition without partitioning is in progress
-|===
 
+==== SQLite ====
+SQLite is used as development database for TriXX. There might be no useful production use case but it works.
 
+==== Microsoft SQL Server ====
+Support for MS SQL Server is planned in the future.
+
+==== PostgreSQL ====
+Support for PostgreSQL is planned in the future.
 
 == Operation ==
 === Preconditions for usage ===
