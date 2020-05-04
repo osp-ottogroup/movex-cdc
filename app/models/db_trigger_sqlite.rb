@@ -142,16 +142,17 @@ class DbTriggerSqlite < TableLess
         when 'DELETE' then 'old'
         end
 
-    result = ''
+    result = "'{'"
     first = true
     TableLess.select_all("PRAGMA table_info(#{table_name})").each do |i|
       if i['pk'] > 0
-        result << " || " unless first
-        result << "#{pk_accessor}.#{i['name']}"
+        # TODO: put quotes on string and date
+        result << "||'#{',' unless first} #{i['name']}: '|| #{pk_accessor}.#{i['name']}"
         first = false
       end
     end
     raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if first
+    result << "|| ' }'"
     result
   end
 
@@ -175,6 +176,7 @@ class DbTriggerSqlite < TableLess
     payload = ''
     accessors.each do |accessor|
       payload << "#{accessor}: {"
+      # TODO: put quotes on string and date
       payload << target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||ifnull(#{accessor}.#{c[:column_name]}, '')||'"}.join(",\n")
       payload << "}"
     end

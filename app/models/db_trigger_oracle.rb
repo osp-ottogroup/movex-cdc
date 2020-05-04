@@ -185,7 +185,7 @@ class DbTriggerOracle < TableLess
         when 'DELETE' then 'old'
         end
 
-    result = ''
+    result = "'{'"
     first = true
     pk_constraint_name = TableLess.select_one("SELECT Constraint_Name
                                                FROM   DBA_Constraints
@@ -210,10 +210,10 @@ class DbTriggerOracle < TableLess
                          table_name:      table_name,
                          constraint_name: pk_constraint_name
     ).each do |i|
-      result << " || " unless first
-      result << convert_col({column_name: i['column_name'] , data_type: i['data_type']}, pk_accessor)
+      result << "||'#{',' unless first} #{i['column_name']}: '||#{convert_col({column_name: i['column_name'] , data_type: i['data_type']}, pk_accessor)}"
       first = false
     end
+    result << " || ' }'"
     result
   end
 
