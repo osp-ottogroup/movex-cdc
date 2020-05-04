@@ -183,7 +183,7 @@ class DbTriggerSqlite < TableLess
 
     "\
 BEGIN
-  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Key)
+  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key)
   VALUES (#{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}', #{message_key_sql(target_trigger_data)})
   ;
 END;"
