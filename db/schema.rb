@@ -63,7 +63,7 @@ ActiveRecord::Schema.define(version: 2020_05_04_100000) do
     t.string "info", limit: 1000, comment: "Additional info"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.index ["schema_id"], name: "i_schema_rights_schema_id"
+    t.index ["schema_id"], name: "index_schema_rights_on_schema_id"
     t.index ["user_id", "schema_id"], name: "ix_schema_rights_logical_pkey", unique: true
     t.index ["user_id"], name: "index_schema_rights_on_user_id"
   end

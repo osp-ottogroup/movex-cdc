@@ -12,6 +12,7 @@ class HealthCheckController < ApplicationController
         start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         health_check_timestamp:       Time.now,
         warnings:                     '',
+        log_level:                    log_level_as_string,
         memory:                       ExceptionHelper.memory_info_hash,
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
@@ -51,6 +52,31 @@ class HealthCheckController < ApplicationController
     @health_data[:threads] = thread_info
 
     render json: JSON.pretty_generate(@health_data), status: @health_status
+  end
+
+  # POST /health_check/set_log_levl
+  def set_log_level
+    if @current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    else
+      level = params.permit(:log_level)[:log_level]
+      raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
+      Rails.logger.level = "Logger::#{level}".constantize
+    end
+  end
+
+  private
+  def log_level_as_string
+    result = case Rails.logger.level
+             when 0 then 'DEBUG'
+             when 1 then 'INFO'
+             when 2 then 'WARN'
+             when 3 then 'ERROR'
+             when 4 then 'FATAL'
+             when 5 then 'UNKNOWN'
+             else '[Unsupported]'
+             end
+    "#{result} (#{Rails.logger.level})"
   end
 
 end

@@ -27,4 +27,18 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     ThreadHandling.get_instance.shutdown_processing
   end
 
+  test "should post set_log_level" do
+    post "/health_check/set_log_level", headers: jwt_header, params: { log_level: 'ERROR'}, as: :json
+    assert_response :unauthorized
+
+    post "/health_check/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'ERROR'}, as: :json
+    assert_response :success
+    assert Rails.logger.level == 3, 'Log level should be set to ERROR now'
+
+    # reset level to DEBUG
+    post "/health_check/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'DEBUG'}, as: :json
+    assert_response :success
+    assert Rails.logger.level == 0, 'Log level should be set to DEBUG now'
+
+  end
 end

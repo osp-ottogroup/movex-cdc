@@ -209,6 +209,21 @@ The following things are executed at startup of application / docker container i
 ==== Transfer of triggered events to Kafka ====
 ==== Houskeeping ====
 
+==== Health check ====
+
+=== API endpoints ===
+Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside TriXX.
+
+.API endpoints for additional usage from outside TriXX application
+[cols="~,~,~,~"]
+|===
+|Verb|URL|Parameter|Description
+
+|GET|/health_check|no|ask health status (200=ok) and get some condensed status information
+|POST|/health_check/set_log_level|Log-Level (DEBUG, INFO, WARN, ERROR, FATAL)|Set log level of server instance, requires valid admin JWT in request header
+|===
+
+
 === Security considerations ===
 
 ==== Isolation between production schemas at database and TriXX ====
