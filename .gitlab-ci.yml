@@ -115,6 +115,7 @@ build_trixx:
       - dev
 
   script:
+    - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
