@@ -23,20 +23,21 @@ echo "Starting Kafka"
 /opt/kafka/bin/kafka-server-start.sh     -daemon /opt/kafka/config/server.properties
 
 typeset -i LOOP_COUNT=0
-KAFKA_AVAIL=NO
+KAFKA_STARTED="started (kafka.server.KafkaServer)"
 echo "Wait for Kafka operation"
-while [ "$KAFKA_AVAIL" == 'NO' ]
+while [ 1 -eq 1 ]
 do
-  grep "started (kafka.server.KafkaServer)" /opt/kafka/logs/kafkaServer.out >/dev/null
+  grep "$KAFKA_STARTED" /opt/kafka/logs/kafkaServer.out >/dev/null
   if [ $? -eq 0 ]; then
     echo ""
-    grep "started (kafka.server.KafkaServer)" /opt/kafka/logs/kafkaServer.out
+    grep "$KAFKA_STARTED" /opt/kafka/logs/kafkaServer.out
     exit 0
   fi
 
   LOOP_COUNT=$LOOP_COUNT+1
-  if [ $LOOP_COUNT -gt 10 ]; then
-    echo "\nKafka not in operation after x seconds, terminating"
+  if [ $LOOP_COUNT -gt 20 ]; then
+    echo ""
+    echo "Kafka not in operation after 20 seconds, terminating"
     echo ""
     echo "############# Zookeeper log ##############"
     cat /opt/kafka/logs/zookeeper.out
