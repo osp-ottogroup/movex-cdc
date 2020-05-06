@@ -225,6 +225,8 @@ Most of the API endpoints are useful only when called from GUI, but several of t
 
 
 === Security considerations ===
+==== Suppress frequent access ====
+* Email/password check at logon is delayed for up to 5 secobds if subsequent logon requests occur within 5 seconds
 
 ==== Isolation between production schemas at database and TriXX ====
 The TriXX application requires an own schema on database for TriXX. This schema must not contain any foreign structures.

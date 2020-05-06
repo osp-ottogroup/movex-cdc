@@ -10,11 +10,22 @@ class LoginController < ApplicationController
   # POST /login/do_logon
   # logon bei EMail/password or DB-User/password
   # DB-User requires that exactly one user is registered with this DB-user
+  LOGON_DELAY_LIMIT = 5                                                         # Number of seconds between logons without delay
+  @@last_call_time_do_logon = Time.now-100.seconds                              # ensure enough distance at startup
   def do_logon
     permitted = params.permit(:email, :password)
     email     = prepare_param permitted, :email
     password  = prepare_param permitted, :password
     error_msg = ''
+
+    # prevent logon attacks
+    if Time.now - LOGON_DELAY_LIMIT.seconds < @@last_call_time_do_logon   # suppress DOS attacks
+      sleep_time = LOGON_DELAY_LIMIT - (Time.now - @@last_call_time_do_logon)
+      Rails.logger.warn("Logon delayed by #{sleep_time} seconds due to subsequent logons within less than #{LOGON_DELAY_LIMIT} seconds for user = '#{email}'")
+      sleep sleep_time
+    end
+    @@last_call_time_do_logon = Time.now
+
     user = User.find_by_email email
 
     unless user                                                                 # try with db-user instead of email if email is not valid
