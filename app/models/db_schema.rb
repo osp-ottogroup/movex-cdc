@@ -27,7 +27,12 @@ class DbSchema
                             WHERE  sr.User_ID = :user_id
                            ", { user_id: user&.id}
       )
-    when 'SQLITE' then []                                                       # 'main' should be excluded because it is in Schema_Rights
+    when 'SQLITE' then
+      if user.nil?                                                              # Full list for not existing user
+        [ 'name' => 'main']
+      else
+        []                                                                      # 'main' should be excluded because it is in Schema_Rights
+      end
     end
   end
 end
