@@ -48,4 +48,9 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, 'Access should be possible with valid JWT'
   end
 
+  test "should get release_info" do
+    get login_release_info_url, as: :json
+    assert_response :success, 'Access should be possible without valid JWT'
+  end
+
 end

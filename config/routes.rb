@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   post '/health_check/set_log_level',   to: 'health_check#set_log_level'
   post 'login/do_logon'
   get  'login/check_jwt'
+  get  'login/release_info'
   resources :schemas
   resources :schema_rights
   resources :tables
