@@ -21,14 +21,13 @@ class DbSchema
     when 'ORACLE' then
       TableLess.select_all("SELECT DISTINCT Owner Name FROM DBA_Tables
                             MINUS
-                            SELECT s.Name
+                            SELECT UPPER(s.Name)
                             FROM   Schemas s
                             JOIN   Schema_Rights sr ON sr.Schema_ID = s.ID
                             WHERE  sr.User_ID = :user_id
                            ", { user_id: user&.id}
       )
-    when 'SQLITE' then
-      [{ 'name' => 'main'}]
+    when 'SQLITE' then []                                                       # 'main' should be excluded because it is in Schema_Rights
     end
   end
 end
