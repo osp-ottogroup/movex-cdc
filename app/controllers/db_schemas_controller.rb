@@ -18,4 +18,14 @@ class DbSchemasController < ApplicationController
     render json: @db_schemas
   end
 
+  # get /db_schemas/validate_user_name
+  def validate_user_name
+    user_name = params.permit(:user_name)[:user_name]
+    if DbSchema.valid_schema_name?(user_name)
+      render '', status: :ok
+    else
+      render '', status: :not_found
+    end
+  end
+
 end

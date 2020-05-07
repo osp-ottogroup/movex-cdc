@@ -9,6 +9,7 @@ Rails.application.routes.draw do
   get  '/db_columns',                   to: 'db_columns#index'                  # only one method for resource established
   get  '/db_schemas',                   to: 'db_schemas#index'                  # only one method for resource established
   get  '/db_schemas/remaining_schemas', to: 'db_schemas#remaining_schemas'
+  get  '/db_schemas/validate_user_name',to: 'db_schemas#validate_user_name'
   get  '/db_tables',                    to: 'db_tables#index'                   # only one method for resource established
   get  '/db_triggers',                  to: 'db_triggers#index'
   get  '/db_triggers/details',          to: 'db_triggers#show'
