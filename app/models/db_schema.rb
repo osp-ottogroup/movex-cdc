@@ -5,7 +5,7 @@ class DbSchema
   def self.all
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      ActiveRecord::Base.connection.exec_query("SELECT UserName name FROM All_Users")
+      ActiveRecord::Base.connection.exec_query("SELECT UserName name FROM All_Users ORDER BY UserName")
     when 'SQLITE' then
       [{ 'name' => 'main'}]
     end
@@ -19,12 +19,16 @@ class DbSchema
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      TableLess.select_all("SELECT DISTINCT Owner Name FROM DBA_Tables
-                            MINUS
-                            SELECT UPPER(s.Name)
-                            FROM   Schemas s
-                            JOIN   Schema_Rights sr ON sr.Schema_ID = s.ID
-                            WHERE  sr.User_ID = :user_id
+      TableLess.select_all("SELECT Name
+                            FROM   (
+                                    SELECT DISTINCT Owner Name FROM DBA_Tables
+                                    MINUS
+                                    SELECT UPPER(s.Name)
+                                    FROM   Schemas s
+                                    JOIN   Schema_Rights sr ON sr.Schema_ID = s.ID
+                                    WHERE  sr.User_ID = :user_id
+                                   )
+                            ORDER BY Name
                            ", { user_id: user&.id}
       )
     when 'SQLITE' then
