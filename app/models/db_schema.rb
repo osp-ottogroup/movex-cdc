@@ -28,10 +28,15 @@ class DbSchema
                            ", { user_id: user&.id}
       )
     when 'SQLITE' then
-      if user.nil?                                                              # Full list for not existing user
+      authorizedSchema = TableLess.select_all(
+                        "SELECT schema_id
+                             FROM Schema_Rights
+                             WHERE  user_id = :user_id",
+                        { user_id: user&.id})
+      if authorizedSchema.count == 0 # user is not authorized for schema 'main'
         [ 'name' => 'main']
       else
-        []                                                                      # 'main' should be excluded because it is in Schema_Rights
+        []                     # user is already authorized for schema 'main'
       end
     end
   end
