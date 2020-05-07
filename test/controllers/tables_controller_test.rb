@@ -10,8 +10,9 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     get "/tables?schema_id=1", headers: jwt_header, as: :json
     assert_response :success
 
-    get "/tables?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get "/tables?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should create table" do
@@ -25,25 +26,27 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
-
+    assert_raise 'Should not get access without schema rights' do
+      post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
+    end
   end
 
   test "should show table" do
     get table_url(@table), headers: jwt_header, as: :json
     assert_response :success
 
-    get table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should get trigger dates of table" do
     get "/trigger_dates/#{@table.id}", headers: jwt_header, as: :json
     assert_response :success
 
-    get "/trigger_dates/#{@table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get "/trigger_dates/#{@table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
 
@@ -51,8 +54,9 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic' } }, as: :json
     assert_response 200
 
-    patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
+    end
   end
 
   test "should destroy table" do
@@ -63,7 +67,8 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not destroy table" do
-    delete table_url(tables(:deletable)), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      delete table_url(tables(:deletable)), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 end

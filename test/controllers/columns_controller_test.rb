@@ -10,8 +10,9 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
     get "/columns?table_id=1", headers: jwt_header, as: :json
     assert_response :success
 
-    get "/columns?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get "/columns?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should create column" do
@@ -20,24 +21,27 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    post columns_url, headers: jwt_header(@jwt_no_schema_right_token), params: { column: {  table_id: 1, name: 'New column', info: 'New info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y'  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      post columns_url, headers: jwt_header(@jwt_no_schema_right_token), params: { column: {  table_id: 1, name: 'New column', info: 'New info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y'  } }, as: :json
+    end
   end
 
   test "should show column" do
     get column_url(@column), headers: jwt_header, as: :json
     assert_response :success
 
-    get column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should update column" do
     patch column_url(@column), headers: jwt_header, params: { column: {  } }, as: :json
     assert_response 200
 
-    patch column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), params: { column: {  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      patch column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), params: { column: {  } }, as: :json
+    end
   end
 
   test "should destroy column" do
@@ -48,8 +52,9 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not destroy column" do
-    delete column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      delete column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
 end
