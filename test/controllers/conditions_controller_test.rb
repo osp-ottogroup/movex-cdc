@@ -10,8 +10,9 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     get "/conditions?table_id=1", headers: jwt_header, as: :json
     assert_response :success
 
-    get "/conditions?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get "/conditions?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should create condition" do
@@ -20,24 +21,27 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    post conditions_url, headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: 1, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      post conditions_url, headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: 1, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
+    end
   end
 
   test "should show condition" do
     get condition_url(@condition), headers: jwt_header, as: :json
     assert_response :success
 
-    get condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      get condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
   test "should update condition" do
     patch condition_url(@condition), headers: jwt_header, params: { condition: {  } }, as: :json
     assert_response 200
 
-    patch condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      patch condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
+    end
   end
 
   test "should destroy condition" do
@@ -48,8 +52,9 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not destroy condition" do
-    delete condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :unauthorized, 'Should not get access without schema rights'
+    assert_raise 'Should not get access without schema rights' do
+      delete condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    end
   end
 
 end
