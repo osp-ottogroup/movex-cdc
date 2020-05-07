@@ -10,15 +10,15 @@ class Column < ApplicationRecord
     retval
   end
 
-  def to_json(*args)
+  def as_json(*args)
     calc_yn_pending                                                             # Calculate pending state before returning values to GUI
-    super.to_json(*args)
+    super.as_json(*args)
   end
 
   private
   # set yn_pending to 'Y' if change is younger than last trigger generation check
   def calc_yn_pending
     last_trigger_deployment = table.schema.last_trigger_deployment
-    last_trigger_deployment.nil? || last_trigger_deployment < updated_at
+    self.yn_pending = last_trigger_deployment.nil? || last_trigger_deployment < updated_at ? 'Y' : 'N'
   end
 end

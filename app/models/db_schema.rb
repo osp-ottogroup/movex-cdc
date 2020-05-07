@@ -13,7 +13,7 @@ class DbSchema
 
   # delivers filtered list of schemas really owning tables
   # schemas already attached to the user are not listed again
-  def self.remaining_schemas(email)
+  def self.authorizable_schemas(email)
      users = User.where email: email
     user = users.count > 0 ? users[0] : nil
 
@@ -32,10 +32,15 @@ class DbSchema
                            ", { user_id: user&.id}
       )
     when 'SQLITE' then
-      if user.nil?                                                              # Full list for not existing user
+      authorizedSchema = TableLess.select_all(
+                        "SELECT schema_id
+                             FROM Schema_Rights
+                             WHERE  user_id = :user_id",
+                        { user_id: user&.id})
+      if authorizedSchema.count == 0 # user is not authorized for schema 'main'
         [ 'name' => 'main']
       else
-        []                                                                      # 'main' should be excluded because it is in Schema_Rights
+        []                     # user is already authorized for schema 'main'
       end
     end
   end

@@ -62,9 +62,9 @@
             <label class="label">DB Schemas</label>
             <button class="button is-fullwidth is-small"
                     @click="onAddSchemaRight(index)"
-                    v-for="(selectableDbSchema, index) in selectableDbSchemas"
+                    v-for="(authorizableDbSchema, index) in authorizableDbSchemas"
                     :key="index">
-              <span class="flex-auto">{{ selectableDbSchema.name }}</span>
+              <span class="flex-auto">{{ authorizableDbSchema.name }}</span>
               <span class="icon is-small">
                 <i class="fas fa-greater-than"></i>
               </span>
@@ -114,13 +114,7 @@ export default {
   async mounted() {
     try {
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
-      // eslint-disable-next-line
-      this.selectableDbSchemas = this.dbSchemas.filter((dbSchema) => {
-        // eslint-disable-next-line
-        return !this.internalUser.schema_rights.some((schemaRight) => {
-          return schemaRight.schema.name === dbSchema.name;
-        });
-      });
+      this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email });
     } catch (e) {
       this.$buefy.toast.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
@@ -137,7 +131,7 @@ export default {
       // user -> schema_rights -> schema, schema would be a reference
       internalUser: JSON.parse(JSON.stringify(this.user)),
       dbSchemas: [],
-      selectableDbSchemas: [],
+      authorizableDbSchemas: [],
     };
   },
   computed: {
@@ -168,16 +162,16 @@ export default {
     onAddSchemaRight(index) {
       this.internalUser.schema_rights.push({
         info: 'TODO',
-        schema: this.selectableDbSchemas[index],
+        schema: this.authorizableDbSchemas[index],
       });
       this.internalUser.schema_rights.sort((a, b) => (
         a.schema.name.toUpperCase() > b.schema.name.toUpperCase() ? 1 : -1
       ));
-      this.selectableDbSchemas.splice(index, 1);
+      this.authorizableDbSchemas.splice(index, 1);
     },
     onRemoveSchemaRight(index) {
-      this.selectableDbSchemas.push(this.internalUser.schema_rights[index].schema);
-      this.selectableDbSchemas.sort((a, b) => (
+      this.authorizableDbSchemas.push(this.internalUser.schema_rights[index].schema);
+      this.authorizableDbSchemas.sort((a, b) => (
         a.name.toUpperCase() > b.name.toUpperCase() ? 1 : -1
       ));
       this.internalUser.schema_rights.splice(index, 1);
