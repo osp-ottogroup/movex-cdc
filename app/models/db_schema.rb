@@ -13,7 +13,7 @@ class DbSchema
 
   # delivers filtered list of schemas really owning tables
   # schemas already attached to the user are not listed again
-  def self.remaining_schemas(email)
+  def self.authorizable_schemas(email)
      users = User.where email: email
     user = users.count > 0 ? users[0] : nil
 
