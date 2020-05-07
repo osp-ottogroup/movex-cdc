@@ -52,11 +52,11 @@ class ApplicationController < ActionController::API
 
   # Requires execution of 'authorize_request' in before_filter to fill @current_user
   def check_user_for_valid_schema_right(schema_id)
-    raise ApplicationController::NotAuthorized, "Missing parameter schema_id for check of schema_rights for current user '#{@current_user.email}'" if schema_id.nil?
+    raise "Missing parameter schema_id for check of schema_rights for current user '#{@current_user.email}'" if schema_id.nil?
     schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
     if schema_right.nil?
       schema = Schema.find_by_id schema_id
-      raise ApplicationController::NotAuthorized, "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
+      raise "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
     end
   end
 
