@@ -37,7 +37,7 @@ class DbTriggersController < ApplicationController
   def generate_all
     schema_rights = SchemaRight.where(user_id: @current_user.id)
     if schema_rights.empty?
-      render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :unauthorized
+      render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
     else
       result = []
       status = :ok

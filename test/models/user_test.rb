@@ -3,20 +3,15 @@ require 'test_helper'
 class UserTest < ActiveSupport::TestCase
   test "create user" do
     assert_difference('User.count') do
-      User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf').save!
+      User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.trixx_db_victim_user.downcase).save!
     end
 
-    # Second user without db_name
+    # Second user
     assert_difference('User.count') do
-      User.new(email: 'Hans.Dampf2@web.de', first_name: 'Hans', last_name: 'Dampf').save!
+      User.new(email: 'Hans.Dampf2@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.trixx_db_victim_user.upcase).save!
     end
 
-    assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf').save! }
-
-    user = User.new(email: 'DowncaseTest@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: 'HUGO')
-    user.save!
-    assert_equal('hugo', user.db_user, 'db_user should be converted to lower case')
-
+    assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.trixx_db_victim_user.downcase).save! }
   end
 
   test "select user" do

@@ -212,21 +212,24 @@ The following things are executed at startup of application / docker container i
 ==== Health check ====
 
 === API endpoints ===
-Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside TriXX.
+Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside TriXX. +
+API Responses are JSON objects.
 
 .API endpoints for additional usage from outside TriXX application
-[cols="~,~,~,~"]
+[cols="~,~,~,~,~"]
 |===
-|Verb|URL|Parameter|Description
+|Verb|URL|Parameter|Response|Description
 
-|GET|/health_check|no|ask health status (200=ok) and get some condensed status information
-|POST|/health_check/set_log_level|Log-Level (DEBUG, INFO, WARN, ERROR, FATAL)|Set log level of server instance, requires valid admin JWT in request header
+|GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
+|POST|/health_check/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
+|POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |===
 
 
 === Security considerations ===
 ==== Suppress frequent access ====
-* Email/password check at logon is delayed for up to 5 secobds if subsequent logon requests occur within 5 seconds
+* Email/password check at /login/do_logon is delayed for up to 5 secobds if subsequent logon requests occur within 5 seconds
+* Subsequent calls to /health_check are rejected within the same second
 
 ==== Isolation between production schemas at database and TriXX ====
 The TriXX application requires an own schema on database for TriXX. This schema must not contain any foreign structures.
