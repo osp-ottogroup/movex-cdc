@@ -43,7 +43,7 @@ class DbSchema
     when 'ORACLE' then
       TableLess.select_one("SELECT COUNT(*) FROM All_Users WHERE UserName = :schema_name", { schema_name: schema_name.upcase}) > 0
     when 'SQLITE' then
-      schema_name == 'main'
+      schema_name.downcase == 'main'
     end
   end
 end
