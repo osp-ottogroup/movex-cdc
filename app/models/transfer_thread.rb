@@ -258,12 +258,14 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     when 'ORACLE' then
       begin
         sql = "DELETE FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
-        jdbc_conn = ActiveRecord::Base.connection.raw_connection
-        cursor = jdbc_conn.prepareStatement sql
-        array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
-        cursor.setArray(1, array)
-        result = cursor.executeUpdate
-        raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
+        ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: 'TransferThread DELETE') do
+          jdbc_conn = ActiveRecord::Base.connection.raw_connection
+          cursor = jdbc_conn.prepareStatement sql
+          array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
+          cursor.setArray(1, array)
+          result = cursor.executeUpdate
+          raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
+        end
       rescue Exception => e
         log_exception(e, "Erroneous SQL:\n#{sql}")
         raise
