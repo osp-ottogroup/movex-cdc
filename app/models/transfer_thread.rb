@@ -38,6 +38,7 @@ class TransferThread
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
     @max_event_logs_id              = 0                                         # maximum processed id
+    @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
   end
 
   MAX_EXCEPTION_RETRY=3                                                         # max. number of retries after exception
@@ -61,7 +62,6 @@ class TransferThread
     kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password    if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
 
     kafka = kafka_class.new(seed_brokers, kafka_options)
-    transactional_id = "TRIXX-#{Socket.gethostname}-#{@worker_id}"
 
     init_transactions_successfull = false
     init_transactions_retry_count = 0
@@ -73,18 +73,18 @@ class TransferThread
             max_buffer_size:      @max_message_bulk_count,
             max_buffer_bytesize:  @max_buffer_bytesize,
             transactional:        true,
-            transactional_id:     transactional_id
+            transactional_id:     @transactional_id
         )
 
         kafka_producer.init_transactions                                        # Should be called once before starting transactions
         init_transactions_successfull = true                                    # no exception raise
       rescue Exception => e
         kafka_producer&.shutdown                                                # clear existing producer
-        ExceptionHelper.log_exception(e, "kafka_producer.init_transactions: retry-count = #{init_transactions_retry_count}")
+        log_exception(e, "kafka_producer.init_transactions: retry-count = #{init_transactions_retry_count}")
         if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
           sleep 1
           init_transactions_retry_count += 1
-          transactional_id << '-' if e.class == Kafka::ConcurrentTransactionError # change transactional_id as workaround for Kafka::ConcurrentTransactionError
+          @transactional_id << '-' if e.class == Kafka::ConcurrentTransactionError # change @transactional_id as workaround for Kafka::ConcurrentTransactionError
         else
           raise
         end
@@ -134,9 +134,9 @@ class TransferThread
                   fix_message_size_too_large(kafka, event_logs_slice)
                   raise                                                       # Ensure transaction is rolled back an retried
                 rescue Exception => e
-                  msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{transactional_id}. Aborting transaction now.\n"
+                  msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
                   msg << "Number of records to deliver to kafka = #{event_logs_slice.count}"
-                  ExceptionHelper.log_exception(e, msg)
+                  log_exception(e, msg)
                   raise
                 end
               end
@@ -153,22 +153,22 @@ class TransferThread
         if retry_count_on_exception < MAX_EXCEPTION_RETRY
           retry_count_on_exception += 1
           sleep_and_watch 10                                                    # spend some time if problem is only temporary
-          ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Retrying after exception (#{retry_count_on_exception}. try)")
+          log_exception(e, "TransferThread.process #{@worker_id}: Retrying after exception (#{retry_count_on_exception}. try)")
         else
-          ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
+          log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
           raise
         end
       end
     end                                                                         # while
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
+    log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
     raise
   ensure
     begin
       kafka_producer&.clear_buffer                                              # remove all pending (not processed by kafka) messages from producer buffer
       kafka_producer&.shutdown                                                  # free kafka connections
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
+      log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
     Rails.logger.info thread_state
@@ -190,6 +190,7 @@ class TransferThread
     {
         worker_id:                      @worker_id,
         thread_id:                      @thread_id,
+        transactional_id:               @transactional_id,
         db_session_info:                @db_session_info,
         start_time:                     @start_time,
         last_active_time:               @last_active_time,
@@ -264,7 +265,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
         result = cursor.executeUpdate
         raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
       rescue Exception => e
-        ExceptionHelper.log_exception(e, "Erroneous SQL:\n#{sql}")
+        log_exception(e, "Erroneous SQL:\n#{sql}")
         raise
       ensure
         cursor.close if defined? cursor
@@ -379,6 +380,10 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
   def require_option(options, option_name)
     raise "Option ':#{option_name}' required!" unless options[option_name]
     options[option_name]
+  end
+
+  def log_exception(exception, message)
+    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state}")
   end
 
 end

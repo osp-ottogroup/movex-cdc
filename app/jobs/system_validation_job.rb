@@ -1,3 +1,4 @@
+# This Job runs repeats itself permanent
 class SystemValidationJob < ApplicationJob
   queue_as :default
 

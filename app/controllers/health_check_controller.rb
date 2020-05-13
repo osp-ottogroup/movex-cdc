@@ -23,6 +23,8 @@ class HealthCheckController < ApplicationController
       @health_status = :conflict
     end
 
+    @health_data[:expected_number_of_worker_threads] = Trixx::Application.config.trixx_initial_worker_threads
+    @health_data[:current_number_of_worker_threads]  = ThreadHandling.get_instance.thread_count
     @health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
 
     connection_info = []

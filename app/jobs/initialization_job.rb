@@ -1,5 +1,6 @@
 require 'rake'
 
+# This Job runs only once at application start
 class InitializationJob < ApplicationJob
   queue_as :default
 

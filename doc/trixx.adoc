@@ -190,6 +190,24 @@ Status code 200 (ok) is returned if the configured number of worker threads exis
 The http-response contains a JSON-object with detailled informations.
 
 ==== Common error traps ====
+===== Kafka =====
+.possible problems accessing or using Kafka
+[cols="~,~,~"]
+|===
+|Error|Description|Solution
+|Log-Output: +
+Disconnecting broker 0 +
+Closing socket to kafka-itdr-dev:9092 +
+Module: Kafka::UnknownError: Unknown error with code 53
+|Error 53 means: TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
+The transactional id used by TriXX is not authorized to produce messages
+|Explicite authorization of transactional id is required, optional as wildcard: +
+kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf
+--add --transactional-id * --allow-principal User:* --operation write
+|===
+
+
+
 ===== Oracle-DB =====
 * If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
 
