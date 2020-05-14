@@ -164,12 +164,22 @@ The TriXX application is provided as Docker-Image by:
 [source]
 docker pull git.osp-dd.de:5005/main/trixx
 
+==== Start Docker container ====
 You can run the this image like:
 [source]
-docker run -p 8080:8080 -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml -v /my_local_dir/trixx_run.yml:/etc/trixx_run.yml git.osp-dd.de:5005/main/trixx
+docker run -p 8080:8080 \
+  --stop-timeout=120 \
+  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
+  -v /my_local_dir/trixx_run.yml:/etc/trixx_run.yml \
+  git.osp-dd.de:5005/main/trixx
 
 The web-GUI would be available by http://localhost:8080 in this case.
 It is recommended to place an own reverse proxy nearby for SSL encryption.
+
+==== Stop Docker container ====
+To stop the Docker container you should provide a timeout (at "docker run" or with "docker stop") that allows TriXX to gracefully shutdown all worker threads before Docker terminates hard with "kill -9".
+
+ docker stop -t 120 trixx
 
 === Configuration of capturing with TriXX-GUI ===
 TODO: Describe GUI workflow

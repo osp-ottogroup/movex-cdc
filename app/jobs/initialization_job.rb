@@ -19,7 +19,10 @@ class InitializationJob < ApplicationJob
     ensure_admin_existence
 
     # LOG JDBC driver version
-    Rails.logger.info "ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion"
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then Rails.logger.info "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
+    else "JDBC driver version not checked"
+    end
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
@@ -31,7 +34,12 @@ class InitializationJob < ApplicationJob
     unless admin
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do
-        user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: Trixx::Application.config.trixx_db_user, yn_admin: 'Y')
+        db_user = case Trixx::Application.config.trixx_db_type
+                  when 'ORACLE' then Trixx::Application.config.trixx_db_user.upcase   # all schemas/users are handled in upper case
+                  else
+                    Trixx::Application.config.trixx_db_user
+                  end
+        user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: db_user, yn_admin: 'Y')
         user.save!
       end
     end

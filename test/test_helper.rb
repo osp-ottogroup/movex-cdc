@@ -144,6 +144,8 @@ class ActionDispatch::IntegrationTest
     @jwt_token                  = jwt_token users(:one).id
     @jwt_admin_token            = jwt_token users(:admin).id
     @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
+
+    JdbcInfo.log_version
   end
 
   def jwt_token(user_id)
@@ -157,3 +159,24 @@ class ActionDispatch::IntegrationTest
 
 end
 
+class ActiveSupport::TestCase
+  setup do
+    JdbcInfo.log_version
+  end
+
+end
+
+
+class JdbcInfo
+  @@jdbc_driver_logged = false
+  def self.log_version
+    unless @@jdbc_driver_logged
+      case Trixx::Application.config.trixx_db_type
+      when 'ORACLE' then puts "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
+      else puts "No JDBC version checked"
+      end
+
+      @@jdbc_driver_logged = true
+    end
+  end
+end

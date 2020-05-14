@@ -36,7 +36,7 @@ class ThreadHandling
 
   end
 
-  SHUTDOWN_TIMEOUT_SECS = 20
+  SHUTDOWN_TIMEOUT_SECS = 100
   # graceful shutdown processing of transfer threads at rails exit
   def shutdown_processing
     @thread_pool_mutex.synchronize do

@@ -106,7 +106,9 @@ class TransferThread
             # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
             kafka_producer.transaction do                                       # make messages visible at kafka only if all messages of the batch are processed
               event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
+              Rails.logger.debug "Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"
               event_logs_slices.each do |event_logs_slice|
+                Rails.logger.debug "Process event_logs_slice with #{event_logs_slice.count} records"
                 begin
                   event_logs_slice.each do |event_log|
                     @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
@@ -258,13 +260,20 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     when 'ORACLE' then
       begin
         sql = "DELETE FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
-        ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: 'TransferThread DELETE') do
+        ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
           jdbc_conn = ActiveRecord::Base.connection.raw_connection
           cursor = jdbc_conn.prepareStatement sql
           array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
           cursor.setArray(1, array)
           result = cursor.executeUpdate
-          raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}" if result != event_logs.length
+          if result != event_logs.length
+            # check real existing records after delete
+            still_existing = 0
+            event_logs.each do |event_log|
+              still_existing += TableLess.select_one "SELECT COUNT(*) FROM Event_Logs WHERE RowID = :rowid", { rowid: event_log['row_id']}
+            end
+            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. #{still_existing} records are still existing after DELETE"
+          end
         end
       rescue Exception => e
         log_exception(e, "Erroneous SQL:\n#{sql}")

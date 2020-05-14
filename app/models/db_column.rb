@@ -1,4 +1,7 @@
 class DbColumn < ApplicationRecord
+  validates :yn_log_insert, acceptance: { accept: ['Y', 'N'] }
+  validates :yn_log_update, acceptance: { accept: ['Y', 'N'] }
+  validates :yn_log_delete, acceptance: { accept: ['Y', 'N'] }
 
   # get array of objects with
   def self.all_by_table(schema_name, table_name)
