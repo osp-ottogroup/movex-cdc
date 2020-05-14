@@ -7,6 +7,7 @@ class EventLogTest < ActiveSupport::TestCase
   end
 
   test "select event log" do
+    create_event_logs_for_test(2)
     event_logs = EventLog.all
     assert(event_logs.count > 0, 'Should return at least one record')
   end

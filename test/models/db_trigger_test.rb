@@ -25,7 +25,8 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "find_by_table_id_and_trigger_name" do
-    trigger = DbTrigger.find_by_table_id_and_trigger_name(4, 'Trixx_Victim1_I')
+    victim1_table = tables(:victim1)
+    trigger = DbTrigger.find_by_table_id_and_trigger_name(victim1_table.id, DbTrigger.build_trigger_name(victim1_table.name, victim1_table.id, 'I'))
     assert_not_equal(nil, trigger, 'Should find the trigger in victim schema')
   end
 

@@ -5,18 +5,4 @@
 # below each fixture, per the syntax in the comments below
 #
 
-one:
-  id: 1
-  table_id: 1
-  operation: I
-  dbuser: HUGO
-  payload: Dummy
-  created_at: <%= 5.seconds.ago.to_s(:db) %>  # must be younger than Oracle partition timestamp for MIN
-
-two:
-  id: 2
-  table_id: 1
-  operation: U
-  dbuser: ALFRED
-  payload: Dummy2
-  created_at: <%= 4.seconds.ago.to_s(:db) %> # must be younger than Oracle partition timestamp for MIN
+# Ramm, 2020-05-14 Each test should create it's fixtures itself because other tests will delete this records and commit this

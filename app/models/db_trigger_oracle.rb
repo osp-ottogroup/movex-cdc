@@ -121,11 +121,12 @@ class DbTriggerOracle < TableLess
          FROM   All_Triggers
          WHERE  Owner       = :owner
          AND    Table_Owner = :table_owner
-         AND    Trigger_Name LIKE 'TRIXX%'
+         AND    Trigger_Name LIKE :prefix ||'%'
         ",
         {
             owner:        Trixx::Application.config.trixx_db_user.upcase,
-            table_owner:  @schema.name.upcase
+            table_owner:  @schema.name.upcase,
+            prefix:       DbTriggerOracle.trigger_name_prefix
         }
     )
 
@@ -156,12 +157,19 @@ class DbTriggerOracle < TableLess
   end
 
   private
+  @@trigger_name_prefix = nil
+  def self.trigger_name_prefix
+    if @@trigger_name_prefix.nil?
+      @@trigger_name_prefix = "TRIXX_#{TableLess.select_one("SELECT ORA_HASH(:db_user, 1000000000) FROM DUAL", {db_user: Trixx::Application.config.trixx_db_user.upcase})}"
+    end
+    @@trigger_name_prefix
+  end
 
   # generate trigger name from short operation (I/U/D) and table name
+  # Trigger name consists of TRIXX_<Hash over trixx owner>_<operation>_<Hash over table name>
   def self.build_trigger_name(table_name, table_id, operation)
-    middle_name = table_name
-    middle_name = table_id.to_s if table_name.length > 22  # Ensure trigger name is less than 30 character
-    "TRIXX_#{table_name.upcase}_#{operation}"
+    table_name_hash = TableLess.select_one("SELECT ORA_HASH(:table_name, 1000000000) FROM DUAL", {table_name: table_name})
+    "TRIXX_#{trigger_name_prefix}_#{operation}_#{table_name_hash}"
   end
 
   # Build SQL expression for message key

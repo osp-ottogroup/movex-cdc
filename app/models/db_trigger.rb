@@ -2,6 +2,7 @@ class DbTrigger < ApplicationRecord
 
   # delegate method calls to DB-specific implementation classes
   METHODS_TO_DELEGATE = [
+      :build_trigger_name,
       :find_all_by_schema_id,
       :find_all_by_table,
       :find_by_table_id_and_trigger_name,

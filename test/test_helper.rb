@@ -10,7 +10,9 @@ class ActiveSupport::TestCase
   # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
   fixtures :all
 
-  # Add more helper methods to be used by all tests here...
+  setup do
+    JdbcInfo.log_version
+  end
 
   # schema for tables with triggers for tests
   def victim_schema_id
@@ -87,13 +89,14 @@ class ActiveSupport::TestCase
     end
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
+    victim1_table = tables(:victim1)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_VICTIM1_I FOR INSERT ON #{victim_schema_prefix}#{tables(:victim1).name}
+        CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.name, victim1_table.id, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -102,7 +105,7 @@ class ActiveSupport::TestCase
         END TRIXX_Victim1_I;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{tables(:victim1).name}
+        CREATE TRIGGER #{DbTriggerOracle.trigger_name_prefix}_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -111,16 +114,16 @@ class ActiveSupport::TestCase
         END TRIXX_Victim1_U;
       ")
     when 'SQLITE' then
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim1).name} (
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_I INSERT ON #{victim1_table.name}
         BEGIN
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP UPDATE ON #{tables(:victim1).name}
+        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP UPDATE ON #{victim1_table.name}
         BEGIN
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
@@ -135,6 +138,14 @@ class ActiveSupport::TestCase
     exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
   end
 
+  def create_event_logs_for_test(number_of_records)
+    number_of_records.downto(0).each do
+      event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: 'Dummy', created_at: Time.now)
+      unless event_log.save
+        raise event_log.errors.full_messages
+      end
+    end
+  end
 
 end
 
@@ -158,14 +169,6 @@ class ActionDispatch::IntegrationTest
   end
 
 end
-
-class ActiveSupport::TestCase
-  setup do
-    JdbcInfo.log_version
-  end
-
-end
-
 
 class JdbcInfo
   @@jdbc_driver_logged = false

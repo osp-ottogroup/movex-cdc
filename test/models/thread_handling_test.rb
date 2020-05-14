@@ -11,16 +11,11 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       TableLess.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At)
                        SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', 'Dummy', SYSDATE
                        FROM DUAL
-                       CONNECT BY Level <= 100000
+                       CONNECT BY Level <= 80000
       "
     else
       Trixx::Application.config.trixx_max_transaction_size = 10                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      100.downto(0).each do                                                     # store more than trixx_max_transaction_size records in queue
-        event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: 'Dummy', created_at: Time.now)
-        unless event_log.save
-          raise event_log.errors.full_messages
-        end
-      end
+      create_event_logs_for_test(100)
     end
 
     messages_to_process = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
@@ -29,7 +24,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     loop_count = 0
-    while loop_count < 60 do                                                    # wait up to x * 10 seconds for processing of event_logs records
+    while loop_count < 80 do                                                    # wait up to x * 10 seconds for processing of event_logs records
       loop_count += 1
       event_logs = TableLess.select_one("SELECT COUNT(*) FROM Event_Logs")
       break if event_logs == 0                                                  # All records processed, no need to wait anymore

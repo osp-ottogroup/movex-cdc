@@ -181,6 +181,24 @@ To stop the Docker container you should provide a timeout (at "docker run" or wi
 
  docker stop -t 120 trixx
 
+==== Uniqueness of TriXX instances ====
+Depending on the database type you may run multiple TriXX instances at one database or not.
+
+.Multiple instances allowed for TriXX
+[cols="~,~,~"]
+|===
+|DB type|Multiple instances with same configuration (same TriXX schema)|Multiple instances with different configuration (different TriXX schemas, different Kafka targets)
+
+|SQLite
+|Not allowed: No synchronization between multiple instances exist
+|Not allowed: No config-specific trigger names are used
+|ORACLE
+|Possible: Messages to transfer to Kafka are selected with FOR UPDATE.
+|Possible: Trigger names contain numeric hash value of TriXX' owner schema. +
+Therefore multiple triggers from several independent TriXX configurations at one table are possible.
+|===
+
+
 === Configuration of capturing with TriXX-GUI ===
 TODO: Describe GUI workflow
 
