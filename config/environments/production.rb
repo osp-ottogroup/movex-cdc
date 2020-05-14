@@ -70,6 +70,11 @@ Rails.application.configure do
   # Use default logging formatter so that PID and timestamp are not suppressed.
   config.log_formatter = ::Logger::Formatter.new
 
+  config.log_formatter = proc do |severity, datetime, progname, msg|
+    date_format = datetime.strftime("%Y-%m-%d %H:%M:%S")
+    "[#{date_format}] #{severity} (#{progname}): #{msg}\n"
+  end
+
   # Use a different logger for distributed setups.
   # require 'syslog/logger'
   # config.logger = ActiveSupport::TaggedLogging.new(Syslog::Logger.new 'app-name')
@@ -80,7 +85,17 @@ Rails.application.configure do
     config.logger    = ActiveSupport::TaggedLogging.new(logger)
   end
 
-  # Do not dump schema after migrations.
+  if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
+    console_logger = ActiveSupport::Logger.new(STDOUT)
+    console_logger.formatter = config.log_formatter
+    tagged_console_logger = ActiveSupport::TaggedLogging.new(console_logger)
+    file_logger = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile
+    file_logger.formatter = config.log_formatter
+    combined_logger = tagged_console_logger.extend(ActiveSupport::Logger.broadcast(file_logger))
+    config.logger = combined_logger
+  end
+
+    # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
   # Inserts middleware to perform automatic connection switching.

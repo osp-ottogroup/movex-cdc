@@ -90,7 +90,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
         result << result_hash
       end
 
-      Rails.logger << "#{row_count} records " if Rails.logger.debug?
+      Rails.logger.debug "#{row_count} records selected with following SQL"
       cursor.close
       result
     end

@@ -45,7 +45,7 @@ class TransferThread
   MAX_INIT_TRANSACTION_RETRY=3                                                  # max. number of retries after Kafka::ConcurrentTransactionError
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
-    Rails.logger.info "TransferThread.process: New worker thread created with ID=#{@worker_id}"
+    Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}"}
     @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
     @thread_id = Thread.current.object_id
 
