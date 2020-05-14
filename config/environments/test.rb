@@ -49,4 +49,9 @@ Rails.application.configure do
   # config.action_view.raise_on_missing_translations = true
   #
 
+  config.log_formatter = proc do |severity, datetime, progname, msg|
+    date_format = datetime.strftime("%Y-%m-%d %H:%M:%S")
+    "[#{date_format}] #{msg}\n"
+  end
+
 end
