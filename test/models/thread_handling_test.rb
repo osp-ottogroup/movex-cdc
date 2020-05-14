@@ -4,18 +4,22 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
   test "process" do
     original_max_transaction_size = Trixx::Application.config.trixx_max_transaction_size # Remember previous setting
+    original_kafka_max_bulk_count = Trixx::Application.config.trixx_kafka_max_bulk_count
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
+      Trixx::Application.config.trixx_max_transaction_size = 1000              # Ensure that two pass access is done in TransferThread.read_event_logs_batch
+      Trixx::Application.config.trixx_kafka_max_bulk_count = 100
       # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
       TableLess.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At)
                        SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', 'Dummy', SYSDATE
                        FROM DUAL
-                       CONNECT BY Level <= 80000
+                       CONNECT BY Level <= 10000
       "
     else
-      Trixx::Application.config.trixx_max_transaction_size = 10                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      create_event_logs_for_test(100)
+      Trixx::Application.config.trixx_max_transaction_size = 100                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
+      Trixx::Application.config.trixx_kafka_max_bulk_count = 10
+      create_event_logs_for_test(1000)
     end
 
     messages_to_process = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
@@ -48,7 +52,9 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal(0, ThreadHandling.get_instance.thread_count, 'No threads should run after shutdown')
     assert_equal(0, TableLess.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All event_logs should be processed after shutdown')
 
-     Trixx::Application.config.trixx_max_transaction_size = original_max_transaction_size # Restore previous setting
+    Trixx::Application.config.trixx_max_transaction_size = original_max_transaction_size # Restore previous setting
+    Trixx::Application.config.trixx_kafka_max_bulk_count = original_kafka_max_bulk_count # Restore previous setting
+
   end
 
 end

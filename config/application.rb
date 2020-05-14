@@ -60,19 +60,25 @@ module Trixx
       puts "#{key.ljust(40, ' ')} #{outval}"
     end
 
+    # Return print value to log
     def self.set_attrib_from_env(key, options={})
       up_key = key.to_s.upcase
       value = options[:default]
       value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
-      value = ENV[up_key] if ENV[up_key]
+      value = ENV[up_key] if ENV[up_key]                                        # Environment over previous config value
+      log_value = value
+      if !value.nil? && !options[:maximum].nil? && value > options[:maximum]
+        log_value = "#{options[:maximum]}, configured value #{value} reduced to allowed maximum"
+        value = options[:maximum]
+      end
       Trixx::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
 
       raise "Missing configuration value for '#{up_key}'! Aborting..." if !options[:accept_empty] && Trixx::Application.config.send(key).nil?
+      log_value
     end
 
     def self.set_and_log_attrib_from_env(key, options={})
-      Trixx::Application.set_attrib_from_env(key, options)
-      Trixx::Application.log_attribute(key.to_s.upcase, Trixx::Application.config.send(key))
+      Trixx::Application.log_attribute(key.to_s.upcase, set_attrib_from_env(key, options))
     end
 
 
@@ -119,7 +125,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_user)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: (config.trixx_db_type == 'SQLITE' ? 1 : nil))
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
