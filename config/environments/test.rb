@@ -51,7 +51,7 @@ Rails.application.configure do
 
   config.log_formatter = proc do |severity, datetime, progname, msg|
     date_format = datetime.strftime("%Y-%m-%d %H:%M:%S")
-    "[#{date_format}] #{msg}\n"
+    "[#{date_format}] (#{Thread.current.object_id}): #{msg}\n"
   end
 
 end
