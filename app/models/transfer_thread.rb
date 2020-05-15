@@ -276,6 +276,22 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     end
   end
 
+  def count_records_by_rowid_in(event_logs)
+    sql = "SELECT /*+ ROWID */ COUNT(*) records FROM Event_Logs WHERE RowID IN ("
+    i = 0
+    binds = {}
+    event_logs.each do |e|
+      sql << ":a#{i}"
+      sql << ", " if i < event_logs.length-1
+      binds["a#{i}".to_sym] = e['row_id']
+      i += 1
+    end
+    sql << ")"
+
+    result = TableLess.select_one sql, binds
+    result
+  end
+
   def delete_event_logs_batch(event_logs)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
@@ -287,11 +303,13 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
           array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
 
           existing_records_before_delete = count_records_by_rowid(jdbc_conn, array)
+          existing_records_before_delete_in = count_records_by_rowid_in(event_logs)
 
           cursor.setArray(1, array)
           result = cursor.executeUpdate
           if result != event_logs.length
-            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. Before DELETE #{existing_records_before_delete} have existed, #{count_records_by_rowid(jdbc_conn, array)} records are still existing after DELETE"
+            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. Before DELETE #{existing_records_before_delete} have existed, #{count_records_by_rowid(jdbc_conn, array)} records are still existing after DELETE.
+IN: Before DELETE #{existing_records_before_delete_in} have existed, #{count_records_by_rowid_in(event_logs)} records are still existing after DELETE"
           end
         end
       rescue Exception => e
