@@ -67,6 +67,11 @@ class HealthCheckController < ApplicationController
     end
   end
 
+  # GET /health_check/log_file
+  def log_file
+    send_file("#{Rails.root.join("log", Rails.env + ".log" )}", :filename => "#{Rails.env}.doc")
+  end
+
   private
   def log_level_as_string
     result = case Rails.logger.level

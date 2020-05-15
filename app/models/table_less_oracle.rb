@@ -67,7 +67,12 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
       cursor.bind_params(type_casted_binds) if !binds.empty?
 
       cursor.get_raw_statement.setQueryTimeout(options[:query_timeout].to_i) if options[:query_timeout]          # Erweiterunge gegenüber exec_query
-      cursor.get_raw_statement.setFetchSize(5)
+      if options[:fetch_limit]
+        fetch_size = options[:fetch_limit] < 1000 ? options[:fetch_limit] : 1000    # Limit fetch size
+      else
+        fetch_size = 100
+      end
+      cursor.get_raw_statement.setFetchSize(fetch_size)
       cursor.exec
 
       columns = cursor.get_col_names.map do |col_name|

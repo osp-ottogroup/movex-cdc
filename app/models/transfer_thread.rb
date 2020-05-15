@@ -255,31 +255,50 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     end
   end
 
+  def count_records_by_rowid(connection, java_array)
+    sql = "SELECT /*+ ROWID */ COUNT(*) records FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
+    ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread count existing rowids") do
+      begin
+        cursor = connection.prepareStatement sql
+        cursor.setArray(1, java_array)
+
+        resultset = cursor.executeQuery
+        resultset.next
+        records = resultset.get_int('records')
+        records
+      rescue Exception => e
+        log_exception(e, "Erroneous SQL:\n#{sql}")
+        raise
+      ensure
+        resultset.close if defined? resultset && !resultset.nil?
+        cursor.close if defined? cursor && !cursor.nil?
+      end
+    end
+  end
+
   def delete_event_logs_batch(event_logs)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       begin
-        sql = "DELETE FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
+        sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
+        jdbc_conn = ActiveRecord::Base.connection.raw_connection
+        cursor = jdbc_conn.prepareStatement sql
         ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
-          jdbc_conn = ActiveRecord::Base.connection.raw_connection
-          cursor = jdbc_conn.prepareStatement sql
           array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
+
+          existing_records_before_delete = count_records_by_rowid(jdbc_conn, array)
+
           cursor.setArray(1, array)
           result = cursor.executeUpdate
           if result != event_logs.length
-            # check real existing records after delete
-            still_existing = 0
-            event_logs.each do |event_log|
-              still_existing += TableLess.select_one "SELECT COUNT(*) FROM Event_Logs WHERE RowID = :rowid", { rowid: event_log['row_id']}
-            end
-            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. #{still_existing} records are still existing after DELETE"
+            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. Before DELETE #{existing_records_before_delete} have existed, #{count_records_by_rowid(jdbc_conn, array)} records are still existing after DELETE"
           end
         end
       rescue Exception => e
         log_exception(e, "Erroneous SQL:\n#{sql}")
         raise
       ensure
-        cursor.close if defined? cursor
+        cursor.close if defined? cursor && !cursor.nil?
       end
     when 'SQLITE' then
       event_logs.each do |e|

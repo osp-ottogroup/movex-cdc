@@ -17,6 +17,7 @@ Rails.application.routes.draw do
   post '/db_triggers/generate_all',        to: 'db_triggers#generate_all'
   get  '/health_check',                    to: 'health_check#index'                # only one method for resource established
   post '/health_check/set_log_level',      to: 'health_check#set_log_level'
+  get   '/health_check/log_file',          to: 'health_check#log_file'
   post 'login/do_logon'
   get  'login/check_jwt'
   get  'login/release_info'

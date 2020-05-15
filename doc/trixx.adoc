@@ -267,9 +267,24 @@ API Responses are JSON objects.
 |Verb|URL|Parameter|Response|Description
 
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
+|GET|/health_check|no|current log file of application|Download log file of TriXX application. +
+Requires valid user JWT in request header.
 |POST|/health_check/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
 |POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |===
+
+==== Using API endpoints from command line ====
+You can use curl or wget to call API funktions with valid autorization by email and password. +
+Example is for setting log level to DEBUG, adjust hostname, port, email and password to your needs. +
+Needed tools are curl, jq, sed.
+
+[source]
+curl -H "Authorization: \
+`curl -d "email=admin&password=trixx" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+-d "log_level=ERROR" \
+http://localhost:8080/health_check/set_log_level
+
 
 
 === Security considerations ===
