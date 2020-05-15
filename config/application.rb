@@ -47,6 +47,12 @@ module Trixx
       end
     end
 
+    def self.maximum_initial_worker_threads
+      retval = nil                                                              # No limit as default
+      retval = 1 if config.trixx_db_type == 'SQLITE'
+      retval
+    end
+
     def self.log_attribute(key, value)
       if value.nil? || value == ''
         outval = '< not set >'
@@ -125,7 +131,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_user)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: (config.trixx_db_type == 'SQLITE' ? 1 : nil))
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
@@ -153,6 +159,5 @@ module Trixx
       end
       @trixx_db_partitioning
     end
-
   end
 end

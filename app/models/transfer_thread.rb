@@ -176,7 +176,7 @@ class TransferThread
     Rails.logger.info thread_state
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
 
-    # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised
+    # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
     if !Rails.env.test?                                                         # not for test because threads have all the same DB connection in test
       ActiveRecord::Base.connection_handler.clear_active_connections!           # Ensure that connections are freed in connection pool
     end
