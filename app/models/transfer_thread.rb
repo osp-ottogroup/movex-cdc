@@ -225,11 +225,12 @@ class TransferThread
                                                                {max_id: @max_event_logs_id}, fetch_limit: remaining_records
             ))
             remaining_records = @max_transaction_size - event_logs.count        # available space for more result records
-            if remaining_records > 0                                            # fill rest of buffer with all unlocked records
+            if remaining_records > 0                                            # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
               event_logs.concat(TableLessOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs PARTITION (#{part['partition_name']}) e
+                                                                WHERE  e.ID >= :max_id
                                                                 FOR UPDATE SKIP LOCKED",
-                                                                 {}, fetch_limit: remaining_records
+                                                                 {max_id: @max_event_logs_id}, fetch_limit: remaining_records
               ))
             end
           end
@@ -255,43 +256,6 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     end
   end
 
-  def count_records_by_rowid(connection, java_array)
-    sql = "SELECT /*+ ROWID */ COUNT(*) records FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
-    ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread count existing rowids") do
-      begin
-        cursor = connection.prepareStatement sql
-        cursor.setArray(1, java_array)
-
-        resultset = cursor.executeQuery
-        resultset.next
-        records = resultset.get_int('records')
-        records
-      rescue Exception => e
-        log_exception(e, "Erroneous SQL:\n#{sql}")
-        raise
-      ensure
-        resultset.close if defined? resultset && !resultset.nil?
-        cursor.close if defined? cursor && !cursor.nil?
-      end
-    end
-  end
-
-  def count_records_by_rowid_in(event_logs)
-    sql = "SELECT /*+ ROWID */ COUNT(*) records FROM Event_Logs WHERE RowID IN ("
-    i = 0
-    binds = {}
-    event_logs.each do |e|
-      sql << ":a#{i}"
-      sql << ", " if i < event_logs.length-1
-      binds["a#{i}".to_sym] = e['row_id']
-      i += 1
-    end
-    sql << ")"
-
-    result = TableLess.select_one sql, binds
-    result
-  end
-
   def delete_event_logs_batch(event_logs)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
@@ -301,15 +265,10 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
         cursor = jdbc_conn.prepareStatement sql
         ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
           array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
-
-          existing_records_before_delete = count_records_by_rowid(jdbc_conn, array)
-          existing_records_before_delete_in = count_records_by_rowid_in(event_logs)
-
           cursor.setArray(1, array)
           result = cursor.executeUpdate
           if result != event_logs.length
-            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}. Before DELETE #{existing_records_before_delete} have existed, #{count_records_by_rowid(jdbc_conn, array)} records are still existing after DELETE.
-IN: Before DELETE #{existing_records_before_delete_in} have existed, #{count_records_by_rowid_in(event_logs)} records are still existing after DELETE"
+            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}."
           end
         end
       rescue Exception => e
