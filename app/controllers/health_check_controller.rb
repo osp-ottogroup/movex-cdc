@@ -9,6 +9,7 @@ class HealthCheckController < ApplicationController
 
 
     @health_data = {
+        build_version:                'unknown',
         start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         health_check_timestamp:       Time.now,
         warnings:                     '',
@@ -17,6 +18,14 @@ class HealthCheckController < ApplicationController
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
     @health_status = :ok
+
+    begin
+      @health_data[:build_version] = File.read(Rails.root.join('build_version'))
+    rescue Errno::ENOENT
+      @health_data[:build_version] = 'File ./build_version does not exist'
+    end
+
+
 
     if Trixx::Application.config.trixx_initial_worker_threads != ThreadHandling.get_instance.thread_count
       @health_data[:warnings] << "\nThread count = #{ThreadHandling.get_instance.thread_count} but should be #{Trixx::Application.config.trixx_initial_worker_threads}"
@@ -37,7 +46,7 @@ class HealthCheckController < ApplicationController
           seconds_idle: conn.seconds_idle
       }
     end
-    @health_data[:number_of_connections] = connection_info.count
+    @health_data[:connection_pool_stat] = ActiveRecord::Base.connection_pool.stat
     @health_data[:connection_pool] = connection_info
 
     thread_info = []

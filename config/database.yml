@@ -13,7 +13,8 @@ default: &default
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
   %>
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 20 } %>
+  # Ensure connection pool is large enough for number of threads
+  pool: <%= Trixx::Application.config.trixx_initial_worker_threads + 20  %>
 
   driver: <%=
     case Trixx::Application.config.trixx_db_type

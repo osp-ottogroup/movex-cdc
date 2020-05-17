@@ -34,7 +34,7 @@ class TransferThread
     @messages_processed_with_error  = 0                                         # Number of messages processing trials ending with error
     @max_message_size               = 0                                         # Max. size of single message in bytes
     @db_session_info                = 'set later in new thread'                 # Session ID etc.
-    @thread_id                      = 'set later in new thread'                 # Object_ID of thread
+    @thread                         = nil                                       # Reference to thread, set in new thread in method process
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
     @max_event_logs_id              = 0                                         # maximum processed id
@@ -47,7 +47,7 @@ class TransferThread
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}"}
     @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
-    @thread_id = Thread.current.object_id
+    @thread = Thread.current
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
     seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
@@ -98,6 +98,7 @@ class TransferThread
     while !@thread_mutex.synchronize { @stop_requested }
       begin
         ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
+puts ActiveRecord::Base.connection_pool.stat
           event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
           if event_logs.count > 0
             @total_messages_processed += event_logs.count
@@ -191,7 +192,7 @@ class TransferThread
   def thread_state
     {
         worker_id:                      @worker_id,
-        thread_id:                      @thread_id,
+        thread_id:                      @thread&.object_id,
         transactional_id:               @transactional_id,
         db_session_info:                @db_session_info,
         start_time:                     @start_time,
@@ -199,7 +200,8 @@ class TransferThread
         max_message_size:               @max_message_size,
         max_event_logs_id:              @max_event_logs_id,
         successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
-        message_processing_errors:      @messages_processed_with_error
+        message_processing_errors:      @messages_processed_with_error,
+        stacktrace:                     @thread.backtrace
     }
   end
 
