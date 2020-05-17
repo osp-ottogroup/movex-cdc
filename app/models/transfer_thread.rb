@@ -98,7 +98,6 @@ class TransferThread
     while !@thread_mutex.synchronize { @stop_requested }
       begin
         ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
-puts ActiveRecord::Base.connection_pool.stat
           event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
           if event_logs.count > 0
             @total_messages_processed += event_logs.count
