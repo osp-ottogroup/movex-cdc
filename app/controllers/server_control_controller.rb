@@ -26,4 +26,14 @@ class ServerControlController < ApplicationController
     end
   end
 
+  # POST /server_control/terminate
+  def terminate
+    if @current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    else
+      Rails.logger.warn "ServerControl.terminate: shutdown requested by API function! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Process.kill(:TERM, Process.pid)                                          # send TERM signal to myself
+    end
+  end
+
 end

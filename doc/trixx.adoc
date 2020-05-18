@@ -271,7 +271,8 @@ API Responses are JSON objects.
 Requires valid user JWT in request header.
 |POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |POST|/server_controller/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
-|POST|/server_controller/set_worker_threads_countl|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
+|POST|/server_controller/set_worker_threads_count|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
+|POST|/server_controller/terminate|no|no|Terminate the current TriXX process by sending SIGTERM, requires valid admin JWT in request header
 |===
 
 ==== Using API endpoints from command line ====
@@ -280,7 +281,7 @@ Example is for setting log level to DEBUG, adjust hostname, port, email and pass
 Needed tools are curl, jq, sed.
 
 [source]
-curl -H "Authorization: \
+curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=trixx" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \

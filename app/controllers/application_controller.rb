@@ -60,6 +60,10 @@ class ApplicationController < ActionController::API
     end
   end
 
+  def client_ip_info
+    request.env['HTTP_X_FORWARDED_FOR'] || request.remote_ip
+  end
+
   # requires successful user login and hash with optional and required keys
   # optional: :schema_name, :table_name, :column_name
   # required: :action
@@ -72,7 +76,8 @@ class ApplicationController < ActionController::API
         schema_name:  activity[:schema_name],
         table_name:   activity[:table_name],
         column_name:  activity[:column_name],
-        action:       activity[:action]
+        action:       activity[:action],
+        client_ip:    client_ip_info,
     ).save!
   end
 
