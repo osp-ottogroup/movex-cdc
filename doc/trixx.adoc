@@ -290,8 +290,12 @@ http://localhost:8080/server_control/set_log_level
 
 
 === Security considerations ===
+==== Lock user account after multiple failed logons ====
+User account is locked after 5 subsequent failed logon tries. +
+Unlocking a locked account is possible via GUI for admin users.
+
 ==== Suppress frequent access ====
-* Email/password check at /login/do_logon is delayed for up to 5 secobds if subsequent logon requests occur within 5 seconds
+* Email/password check at /login/do_logon is delayed for up to 5 seconds if subsequent logon requests occur within 5 seconds
 * Subsequent calls to /health_check are rejected within the same second
 
 ==== Isolation between production schemas at database and TriXX ====

@@ -43,6 +43,7 @@ class LoginController < ApplicationController
     if user
       auth_error = authenticate(user, password)
       if auth_error.nil?
+        user.reset_failed_logons
         token_lifetime_hours = 24
         token = JsonWebToken.encode(
           {
@@ -57,10 +58,11 @@ class LoginController < ApplicationController
         render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
         Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
+        user.increment_failed_logons
         render json: { errors: [auth_error] }, status: :unauthorized
       end
     else
-      render json: { errors: [error_msg] }, status: :unauthorized
+      render json: { errors: [error_msg] }, status: :unauthorized               # User does not exists for email or db_user
     end
   end
 
@@ -90,6 +92,7 @@ class LoginController < ApplicationController
 
   # do authenticate against database, return nil for success or error message
   def authenticate(user, password)
+    raise "Account is locked for '#{user.email}'" if user.yn_account_locked == 'Y'
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       db_config = Rails.configuration.database_configuration[Rails.env].clone
@@ -98,7 +101,7 @@ class LoginController < ApplicationController
 
       db_config.symbolize_keys!
 
-      connection = ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
+      connection = ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)  # raises connect errors if user or password is wrong
       connection.logoff
     when 'SQLITE' then
       raise "Wrong user/email #{user.email}"  if user.email != 'admin'

@@ -28,4 +28,15 @@ class User < ApplicationRecord
     result[0].amount
   end
 
+  MAX_FAILED_LOGONS = 5
+  def increment_failed_logons
+    self.failed_logons = self.failed_logons + 1
+    self.yn_account_locked='Y' if self.failed_logons >= MAX_FAILED_LOGONS
+    save!
+  end
+
+  def reset_failed_logons
+    self.failed_logons = 0
+    save!
+  end
 end

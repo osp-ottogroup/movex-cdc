@@ -61,7 +61,7 @@ class ApplicationController < ActionController::API
   end
 
   def client_ip_info
-    request.env['HTTP_X_FORWARDED_FOR'] || request.remote_ip
+    request.env['HTTP_X_FORWARDED_FOR'] || request.env['HTTP_X_REAL_IP']  || request.remote_ip
   end
 
   # requires successful user login and hash with optional and required keys
@@ -82,9 +82,7 @@ class ApplicationController < ActionController::API
   end
 
   def request_log_attributes
-    text = "controller='#{controller_name}' action='#{action_name}' client_ip='#{request.remote_ip||'localhost'}'"
-    text << " client_ip_behind_proxy='#{request.env['HTTP_X_REAL_IP'] }'" if  request.env['HTTP_X_REAL_IP']  # original address behind reverse proxy
-    text
+    text = "controller='#{controller_name}' action='#{action_name}' client_ip='#{client_ip_info}'"
   end
 
   def check_for_current_user_admin

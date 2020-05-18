@@ -6,8 +6,9 @@ class ServerControlController < ApplicationController
     if @current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
-      level = params.permit(:log_level)[:log_level]
+      level = params.permit(:log_level)[:log_level]&.upcase
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
+      Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
       Rails.logger.level = "Logger::#{level}".constantize
     end
   end
@@ -18,11 +19,16 @@ class ServerControlController < ApplicationController
     if @current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
-      worker_threads_count = params.permit(:worker_threads_count)[:worker_threads_count]
+      worker_threads_count = params.permit(:worker_threads_count)[:worker_threads_count].to_i
       raise "Number of worker threads (#{worker_threads_count}) not in valid range (0 .. #{MAX_WORKER_THREADS})" if worker_threads_count < 0 || worker_threads_count > MAX_WORKER_THREADS
-      ThreadHandling.get_instance.shutdown_processing
-      Trixx::Application.config.trixx_initial_worker_threads = worker_threads_count
-      ThreadHandling.get_instance.ensure_processing
+      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      if worker_threads_count == ThreadHandling.get_instance.thread_count
+        Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
+      else
+        ThreadHandling.get_instance.shutdown_processing
+        Trixx::Application.config.trixx_initial_worker_threads = worker_threads_count
+        ThreadHandling.get_instance.ensure_processing
+      end
     end
   end
 
