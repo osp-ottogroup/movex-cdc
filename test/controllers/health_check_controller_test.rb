@@ -27,18 +27,11 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     ThreadHandling.get_instance.shutdown_processing
   end
 
-  test "should post set_log_level" do
-    post "/health_check/set_log_level", headers: jwt_header, params: { log_level: 'ERROR'}, as: :json
-    assert_response :unauthorized
+  test "should get log_file" do
+    get "/health_check/log_file", as: :json
+    assert_response :unauthorized, 'No access without JWT'
 
-    post "/health_check/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'ERROR'}, as: :json
-    assert_response :success
-    assert Rails.logger.level == 3, 'Log level should be set to ERROR now'
-
-    # reset level to DEBUG
-    post "/health_check/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'DEBUG'}, as: :json
-    assert_response :success
-    assert Rails.logger.level == 0, 'Log level should be set to DEBUG now'
-
+    get "/health_check/log_file", headers: jwt_header, as: :json
+    assert_response :success, 'should get log file with JWT'
   end
 end

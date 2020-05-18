@@ -65,17 +65,6 @@ class HealthCheckController < ApplicationController
     render json: JSON.pretty_generate(@health_data), status: @health_status
   end
 
-  # POST /health_check/set_log_levl
-  def set_log_level
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
-    else
-      level = params.permit(:log_level)[:log_level]
-      raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
-      Rails.logger.level = "Logger::#{level}".constantize
-    end
-  end
-
   # GET /health_check/log_file
   def log_file
     send_file("#{Rails.root.join("log", Rails.env + ".log" )}", :filename => "#{Rails.env}.doc")
