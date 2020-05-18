@@ -344,7 +344,9 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
   def sleep_and_watch(sleeptime)
     1.upto(sleeptime) do
       sleep(1)
-      return if @thread_mutex.synchronize { @stop_requested }                   # Cancel sleep if stop requested
+      if @thread_mutex.synchronize { @stop_requested }                          # Cancel sleep if stop requested
+        return                                                                  # return immediate
+      end
     end
   end
 

@@ -71,6 +71,7 @@ class ThreadHandling
     @thread_pool_mutex.synchronize { @thread_pool.count }
   end
 
+  # get health check status from all worker threads
   def health_check_data
     result = []
     @thread_pool_mutex.synchronize do

@@ -26,15 +26,14 @@ class LoginController < ApplicationController
     end
     @@last_call_time_do_logon = Time.now
 
-    user = User.find_by_email email
+    user = User.find_by_email_case_insensitive email
 
     unless user                                                                 # try with db-user instead of email if email is not valid
-      existing_users = User.where(db_user: email).count
-      case existing_users
+      case User.count_by_db_user_case_insensitive email
       when 0 then
         Rails.logger.error "Logon request with not existing email/db-user='#{email}': #{request_log_attributes}"
         error_msg = "No user found for email / db-user = '#{email}'"
-      when 1 then user = User.find_by_db_user email
+      when 1 then user = User.find_by_db_user_case_insensitive email
       else
         Rails.logger.error "Logon request with multiple registered db-user='#{email}': #{request_log_attributes}"
         error_msg = "Multiple users are registered for db-user = '#{email}'! Please login with mail address."
