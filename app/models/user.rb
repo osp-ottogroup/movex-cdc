@@ -23,7 +23,7 @@ class User < ApplicationRecord
   end
 
   def self.count_by_db_user_case_insensitive(db_user)
-    result = find_by_sql "SELECT COUNT(*) Amount FROM Users WHERE UPPER(DB_User) = UPPER(:db_user)",
+    result = find_by_sql "SELECT COUNT(*) amount FROM Users WHERE UPPER(DB_User) = UPPER(:db_user)",
                         [ActiveRecord::Relation::QueryAttribute.new(':db_user', db_user, ActiveRecord::Type::Value.new)]
     result[0].amount
   end
