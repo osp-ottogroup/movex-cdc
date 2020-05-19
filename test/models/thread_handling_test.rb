@@ -21,6 +21,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     else
       Trixx::Application.config.trixx_max_transaction_size = 100                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
       Trixx::Application.config.trixx_kafka_max_bulk_count = 10
+      Trixx::Application.config.trixx_initial_worker_threads = 1                # Needed as long as test uses the same DB connection for all threads (different to development and production)
       create_event_logs_for_test(1000)
     end
 
