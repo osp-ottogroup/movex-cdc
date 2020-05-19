@@ -31,3 +31,5 @@
 /coverage/.resultset.json.lock
 
 .idea
+
+build_version

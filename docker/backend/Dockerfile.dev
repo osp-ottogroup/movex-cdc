@@ -12,4 +12,4 @@ COPY . .
 
 EXPOSE 3000
 
-CMD rm -f tmp/pids/server.pid && rails server -b 0.0.0.0
+CMD (echo "local-build `date "+%Y-%m-%d_%H-%M-%S"`") > /app/build_version && rm -f tmp/pids/server.pid && rails server -b 0.0.0.0
