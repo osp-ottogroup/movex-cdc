@@ -46,6 +46,9 @@ class ActiveSupport::TestCase
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'create_victim_connection')
+    raise
   end
 
   def logoff_victim_connection(connection)
