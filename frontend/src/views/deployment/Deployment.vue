@@ -30,7 +30,9 @@
           <h5 class="subtitle is-5">Schema: {{result.schema_name}}</h5>
           <div v-for="(entry, index) in result.successes" :key="index" class="columns result-entry">
             <div class="column is-3">{{entry.trigger_name}}</div>
-            <div class="column is-8">{{entry.sql}}</div>
+            <div class="column is-9">
+              <pre>{{entry.sql}}</pre>
+            </div>
           </div>
         </div>
       </div>
