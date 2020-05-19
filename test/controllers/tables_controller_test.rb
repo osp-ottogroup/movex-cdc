@@ -29,6 +29,14 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_raise 'Should not get access without schema rights' do
       post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
     end
+
+    # reopen hidden table instead of creation
+    tables_deletable = tables(:deletable)
+    tables_deletable.update(yn_hidden: 'Y')
+    post tables_url, headers: jwt_header, params: { table: { schema_id: tables_deletable.schema_id, name: tables_deletable.name, info: 'different info', topic: 'with_topic' } }, as: :json
+    result_table = Table.find(tables_deletable.id)
+    assert_equal 'N', result_table.yn_hidden, 'Table should not be hidden after create'
+    assert_equal 'different info', result_table.info, 'Hidden table should be updated with new values'
   end
 
   test "should show table" do
@@ -60,10 +68,11 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy table" do
-    assert_difference('Table.count', -1) do
+    assert_difference('Table.count', 0) do                                      # Table should be marked hidden
       delete table_url(tables(:deletable)), headers: jwt_header, as: :json
     end
     assert_response 204
+    assert_equal 'Y', Table.find(tables(:deletable).id).yn_hidden, 'Table should be hidden after destroy'
   end
 
   test "should not destroy table" do
