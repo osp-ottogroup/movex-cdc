@@ -19,6 +19,11 @@
                    v-model="internalSchema.topic"/>
         </b-field>
       </section>
+      <section class="modal-card-body">
+        <b-field label="Last Trigger Deployment">
+          <b-input disabled :value="lastTriggerDeployment()"/>
+        </b-field>
+      </section>
       <footer class="modal-card-foot">
         <button id="save-schema-button"
                 class="button is-primary"
@@ -48,6 +53,13 @@ export default {
     },
     onSave() {
       this.$emit('save', this.internalSchema);
+    },
+    lastTriggerDeployment() {
+      if (this.internalSchema.last_trigger_deployment) {
+        const date = new Date(this.internalSchema.last_trigger_deployment);
+        return date.toLocaleString();
+      }
+      return 'never before';
     },
   },
 };
