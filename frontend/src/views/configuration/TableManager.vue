@@ -9,7 +9,7 @@
               class="is-pulled-right"
               @click="onAddTable"
               expanded>
-      Add a table to observe
+      Add table to observe
     </b-button>
     <template v-if="showTableModal">
       <table-modal :tables="selectableTables"
@@ -77,7 +77,13 @@ export default {
     },
     onAddTable() {
       this.modal.mode = 'ADD';
-      this.modal.table = {};
+      this.modal.table = {
+        id: null,
+        schema_id: this.schema.id,
+        name: '',
+        info: '',
+        topic: '',
+      };
     },
     onEditTable(table) {
       this.modal.mode = 'EDIT';

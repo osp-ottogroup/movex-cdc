@@ -1,5 +1,5 @@
 <template>
-  <b-modal ref="tableModal"
+  <b-modal id="table-modal"
            :active="true"
            has-modal-card
            trap-focus
@@ -16,7 +16,8 @@
       </header>
       <section class="modal-card-body">
         <b-field v-if="showTableSelect" label="Table">
-          <b-select v-model="internalTable.name"
+          <b-select ref="tableSelect"
+                    v-model="internalTable.name"
                     placeholder="Select a table"
                     required
                     validation-message="Select a table to add"
@@ -27,13 +28,15 @@
           </b-select>
         </b-field>
         <b-field label="Kafka-Topic">
-          <b-input placeholder="Enter Kafka-Topic"
+          <b-input ref="topicInput"
+                   placeholder="Enter Kafka-Topic"
                    :required="!schema.topic && !internalTable.topic"
                    validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
         </b-field>
         <b-field label="Info">
-          <b-input type="textarea"
+          <b-input ref="infoTextarea"
+                   type="textarea"
                    rows="1"
                    v-model="internalTable.info"
                    required
@@ -69,9 +72,9 @@ export default {
   computed: {
     title() {
       if (this.mode === 'ADD') {
-        return 'Add observed Table';
+        return 'Add table to observe';
       }
-      return `Edit observed Table (${this.internalTable.name})`;
+      return `Edit observed table (${this.internalTable.name})`;
     },
     showTableSelect() {
       return this.mode === 'ADD';
@@ -82,7 +85,12 @@ export default {
       this.$emit('close');
     },
     onSave() {
-      if (this.$refs.tableModal.$el.querySelectorAll(':invalid').length > 0) {
+      this.$refs.tableSelect.checkHtml5Validity();
+      this.$refs.topicInput.checkHtml5Validity();
+      this.$refs.infoTextarea.checkHtml5Validity();
+      const invalidFields = document.querySelectorAll('#table-modal :invalid');
+      if (invalidFields.length > 0) {
+        // invalidFields.forEach(field => field.dispatchEvent(new Event('blur')));
         return;
       }
       this.$emit('save', this.internalTable);
