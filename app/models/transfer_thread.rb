@@ -39,6 +39,7 @@ class TransferThread
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
     @max_event_logs_id              = 0                                         # maximum processed id
     @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
+    @statistic_counter              = StatisticCounter.new
   end
 
   MAX_EXCEPTION_RETRY=3                                                         # max. number of retries after exception
@@ -117,6 +118,7 @@ class TransferThread
                     kafka_message = prepare_message_from_event_log(event_log, schema, table)
                     topic = table.topic_to_use
                     begin
+                      @statistic_counter.increment(table.id, event_log['operation'])
                       kafka_producer.produce(kafka_message, topic: topic, key: event_log['key']) # Store messages in local collection
                     rescue Kafka::BufferOverflow => e
                       Rails.logger.warn "#{e.class} #{e.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{schema.name}, table = #{table.name}"
@@ -142,16 +144,18 @@ class TransferThread
                   raise
                 end
               end
-            end
+            end                                                                 # kafka_producer.transaction do
           else
             idle_sleep_time += 1 if idle_sleep_time < 60
           end
-        end
+        end                                                                     # ActiveRecord::Base.transaction do
         sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                 # sleep some time outside transaction if no records are to be processed
         retry_count_on_exception = 0                                            # reset retry counter if successful processed
+        @statistic_counter.flush_success                                        # Mark cumulated statistics as success and write to disk
       rescue Exception => e
         kafka_producer.clear_buffer                                             # remove all pending (not processed by kafka) messages from producer buffer
         @messages_processed_with_error +=  event_logs.count
+        @statistic_counter.flush_failure                                        # Mark cumulated statistics as failure and write to disk
         if retry_count_on_exception < MAX_EXCEPTION_RETRY
           retry_count_on_exception += 1
           sleep_and_watch 10                                                    # spend some time if problem is only temporary
