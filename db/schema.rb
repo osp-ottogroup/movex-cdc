@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_19_000000) do
+ActiveRecord::Schema.define(version: 2020_05_19_100000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -84,6 +84,15 @@ ActiveRecord::Schema.define(version: 2020_05_19_000000) do
     t.integer "thread_id", null: false
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+  end
+
+  create_table "statistics", force: :cascade do |t|
+    t.integer "table_id", null: false
+    t.string "operation", limit: 1, null: false
+    t.integer "events_success", null: false
+    t.integer "events_failure", null: false
+    t.datetime "end_timestamp", null: false
+    t.index ["table_id"], name: "index_statistics_on_table_id"
   end
 
   create_table "tables", force: :cascade do |t|
