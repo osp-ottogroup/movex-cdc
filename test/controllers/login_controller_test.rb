@@ -38,6 +38,11 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
     end
 
+    # Unlock account for further use
+    user = User.find_by_email_case_insensitive('Peter.Ramm@ottogroup.com')
+    user.yn_account_locked = 'N'
+    user.save!
+
     # login  existing user with db-user (admin) in downcase
     post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: Trixx::Application.config.trixx_db_password}
     case Trixx::Application.config.trixx_db_type
