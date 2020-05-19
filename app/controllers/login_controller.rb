@@ -22,7 +22,7 @@ class LoginController < ApplicationController
     if Time.now - LOGON_DELAY_LIMIT.seconds < @@last_call_time_do_logon   # suppress DOS attacks
       sleep_time = LOGON_DELAY_LIMIT - (Time.now - @@last_call_time_do_logon)
       Rails.logger.warn("Logon delayed by #{sleep_time} seconds due to subsequent logons within less than #{LOGON_DELAY_LIMIT} seconds for user = '#{email}'")
-      sleep sleep_time
+      sleep sleep_time unless Rails.env.test?
     end
     @@last_call_time_do_logon = Time.now
 
