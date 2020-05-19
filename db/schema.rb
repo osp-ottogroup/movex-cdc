@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_05_18_163000) do
+ActiveRecord::Schema.define(version: 2020_05_19_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -95,6 +95,7 @@ ActiveRecord::Schema.define(version: 2020_05_18_163000) do
     t.string "topic", limit: 255
     t.string "kafka_key_handling", limit: 1, default: "N", null: false
     t.string "fixed_message_key", limit: 255
+    t.string "yn_hidden", limit: 1, default: "N", null: false
     t.index ["schema_id", "name"], name: "IX_TABLES_SCHEMA_NAME", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end

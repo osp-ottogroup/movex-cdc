@@ -29,6 +29,17 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
       when 'ORACLE' then assert_response :unauthorized
       when 'SQLITE' then assert_response :unauthorized                            # Only 'admin' allowed for SQLite
       end
+
+      # Login with right password to prevent database account from beeing locked after x unsuccessful trials
+      case Trixx::Application.config.trixx_db_type
+      when 'ORACLE' then
+        db_config = Rails.configuration.database_configuration[Rails.env].clone
+        db_config['username'] = Trixx::Application.config.trixx_db_victim_user
+        db_config['password'] = Trixx::Application.config.trixx_db_victim_password
+        db_config.symbolize_keys!
+        Rails.logger.debug "LoginControllerTest.should post do_logon: creating JDBCConnection with right credentials"
+        ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
+      end
     end
 
     # login existing user with email upcase, account should be locked now

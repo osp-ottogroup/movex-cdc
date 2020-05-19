@@ -7,7 +7,7 @@ class TablesController < ApplicationController
     schema_id = params.require(:schema_id)                                      # should only list tables of specific schema
     check_user_for_valid_schema_right(schema_id)
 
-    @tables = Table.where schema_id: schema_id
+    @tables = Table.where schema_id: schema_id, yn_hidden: 'N'                  # list only tables not marked as hidden
     render json: @tables
   end
 
@@ -25,10 +25,18 @@ class TablesController < ApplicationController
   # POST /tables
   def create
     table_params.require([:schema_id, :name])
-    @table = Table.new(table_params)
-    check_user_for_valid_schema_right(@table.schema_id)
+    check_user_for_valid_schema_right(table_params[:schema_id].to_i)
 
-    if @table.save
+    tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
+    if tables.length > 0                                                        # table still exists
+      @table = tables[0]
+      save_result = @table.update(table_params.to_h.merge({yn_hidden: 'N'}))    # mark visible for GUI
+    else
+      @table = Table.new(table_params)
+      save_result = @table.save
+    end
+
+    if save_result
       log_activity(
           schema_name:  @table.schema.name,
           table_name:   @table.name,
@@ -56,11 +64,11 @@ class TablesController < ApplicationController
 
   # DELETE /tables/1
   def destroy
-    @table.destroy
+    @table.update(yn_hidden: 'Y')
     log_activity(
         schema_name:  @table.schema.name,
         table_name:   @table.name,
-        action:       "table deleted: #{@table.attributes}"
+        action:       "table marked hidden: #{@table.attributes}"
     )
   end
 

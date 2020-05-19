@@ -41,11 +41,15 @@ class ActiveSupport::TestCase
       db_config['username'] = Trixx::Application.config.trixx_db_victim_user
       db_config['password'] = Trixx::Application.config.trixx_db_victim_password
       db_config.symbolize_keys!
+      Rails.logger.debug "create_victim_connection: creating JDBCConnection"
       ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
     when 'SQLITE' then ActiveRecord::Base.connection                            # SQLite uses default AR connection
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'create_victim_connection')
+    raise
   end
 
   def logoff_victim_connection(connection)
