@@ -287,7 +287,8 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \
 http://localhost:8080/server_control/set_log_level
 
-
+=== Entity relationship model ===
+image:trixx_er_model.svg.drawio[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Lock user account after multiple failed logons ====
