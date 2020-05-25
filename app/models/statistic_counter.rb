@@ -24,11 +24,7 @@ class StatisticCounter
 
   # Write cumulated values to database
   def flush(counter_type)
-    @values.each do |table_id, operations|
-      operations.each do |operation, counter|
-        Statistic.write_record(table_id: table_id, operation: operation, counter_type => counter)
-      end
-    end
+    StatisticCounterConcentrator.get_instance.cumulate(@values, counter_type)
     @values = {}                                                                # reset cached statistics
   end
 end

@@ -113,8 +113,8 @@ class TransferThread
                 begin
                   event_logs_slice.each do |event_log|
                     @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-                    table = table_cache(event_log['table_id'])
-                    schema = schema_cache(table.schema_id)
+                    table = CacheHelper.table_cache(event_log['table_id'])
+                    schema = CacheHelper.schema_cache(table.schema_id)
                     kafka_message = prepare_message_from_event_log(event_log, schema, table)
                     topic = table.topic_to_use
                     begin
@@ -312,20 +312,6 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     end
   end
 
-  # Cache schema names for repeated usage
-  def schema_cache(schema_id)
-    Rails.cache.fetch("Schema_#{schema_id}", expires_in: 1.minutes) do
-      Schema.find schema_id
-    end
-  end
-
-  # Cache tables for repeated usage
-  def table_cache(table_id)
-    Rails.cache.fetch("Table_#{table_id}", expires_in: 1.minutes) do
-      Table.find table_id
-    end
-  end
-
   def timestamp_as_iso_string(timestamp)
     timestamp_as_time =
         case timestamp.class.name
@@ -360,8 +346,8 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     # get max. message value sizes per topic
     topic_info = {}
     event_logs.each do |event_log|
-      table = table_cache(event_log['table_id'])
-      schema = schema_cache(table.schema_id)
+      table = CacheHelper.table_cache(event_log['table_id'])
+      schema = CacheHelper.schema_cache(table.schema_id)
       kafka_message = prepare_message_from_event_log(event_log, schema, table)
       topic = table.topic_to_use
 

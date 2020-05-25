@@ -14,14 +14,14 @@ class ThreadHandling
     # calculate required number of worker threads
     required_number_of_threads = Trixx::Application.config.trixx_initial_worker_threads
     Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
-    unless @shutdown_requested                                                # don't start new worker during server shutdown
+    unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
       @thread_pool_mutex.synchronize do
-        current_thread_pool_size.downto(required_number_of_threads+1) do |i|  # reduce the number of threads if necessary
-          @thread_pool[i-1].stop_thread                                       # inform TransferThread.process it should terminate
+        current_thread_pool_size.downto(required_number_of_threads+1) do |i|    # reduce the number of threads if necessary
+          @thread_pool[i-1].stop_thread                                         # inform TransferThread.process it should terminate
         end
 
-        current_thread_pool_size.upto(required_number_of_threads-1) do        # increase the number of threads if necessary
+        current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
           memory_buffer_per_worker = Trixx::Application.config.trixx_kafka_total_buffer_size_mb * 1024 * 1024 / required_number_of_threads
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
               max_transaction_size:     Trixx::Application.config.trixx_max_transaction_size,
@@ -29,10 +29,11 @@ class ThreadHandling
               max_buffer_bytesize:      memory_buffer_per_worker
           }
           )  # add worker to pool
-          sleep 2                                                             # don't start all workers at once
+          sleep 2                                                               # don't start all workers at once
         end
       end
     end
+    StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB
 
   end
 
@@ -58,6 +59,7 @@ class ThreadHandling
     else
       Rails.logger.info "ThreadHandling.shutdown_processing: Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
     end
+    StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB after stop of worker threads
   end
 
   # remove worker from pool: called from other threads after finishing TransferThread.process
@@ -85,7 +87,7 @@ class ThreadHandling
   private
   def initialize                                                                # get singleton by get_instance only
     @thread_pool = []
-    @thread_pool_mutex = Mutex.new                                              # Ensure synchronized operations on @@thread_pool
+    @thread_pool_mutex = Mutex.new                                              # Ensure synchronized operations on @thread_pool
     @shutdown_requested = false                                                 # Semaphore to prevent ensure_processing from recreating shut down threads
     @application_startup_timestamp = Time.now
   end
