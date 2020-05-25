@@ -1,1 +1,4 @@
 This directory contains fragments for several docker images
+
+kafka-jruby:    Basis-Image für CI-Pipeline
+trixx:          Production-Image für TriXX

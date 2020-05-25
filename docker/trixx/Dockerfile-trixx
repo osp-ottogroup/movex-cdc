@@ -2,7 +2,7 @@
 # Sandro Preuß, Peter Ramm, 2020-04-01
 
 # Usage:
-# Build image:      > docker pull jruby:9.2.8.0
+# Build image:      > docker pull jruby:9.2.11.1
 #                   > docker build -f docker/trixx/Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t trixx .
 # Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx -e LOG_LEVEL=debug trixx
 # Store image at git.osp-dd.de:5005/main/trixx/trixx for deployment
@@ -26,7 +26,7 @@ COPY $FRONTEND_SRC_PATH .
 RUN npm run build
 
 # STAGE 2: build trixx backend
-FROM jruby:9.2.8.0
+FROM jruby:9.2.11.1
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
