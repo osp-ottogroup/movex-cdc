@@ -142,9 +142,9 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
 
-    raise "RAILS_MAX_THREADS not set! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + 20 !" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
-    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < config.trixx_initial_worker_threads + 20
-      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + 20 !"
+    raise "RAILS_MAX_THREADS not set! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) * 2 !" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
+    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < config.trixx_initial_worker_threads * 2
+      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) * 2 !"
     end
 
     case config.trixx_db_type
