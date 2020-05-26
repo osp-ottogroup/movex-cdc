@@ -14,4 +14,8 @@ echo "TriXX build version is `cat /app/build_version`"
 
 export RAILS_LOG_TO_STDOUT_AND_FILE=true
 export RAILS_SERVE_STATIC_FILES=true
+export RAILS_MIN_THREADS=10
+if [ -z "$RAILS_MAX_THREADS" ]; then
+  export RAILS_MAX_THREADS=300
+fi
 exec rails server --port 8080 --environment production

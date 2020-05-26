@@ -17,11 +17,14 @@ class ThreadHandling
     unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
       @thread_pool_mutex.synchronize do
+        Rails.logger.debug "ThreadHandling.ensure_processing: within @thread_pool_mutex.synchronize"
         current_thread_pool_size.downto(required_number_of_threads+1) do |i|    # reduce the number of threads if necessary
+          Rails.logger.debug "ThreadHandling.ensure_processing: stopping thread if there are too much threads"
           @thread_pool[i-1].stop_thread                                         # inform TransferThread.process it should terminate
         end
 
         current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
+          Rails.logger.debug "ThreadHandling.ensure_processing: starting thread if there are not enough threads"
           memory_buffer_per_worker = Trixx::Application.config.trixx_kafka_total_buffer_size_mb * 1024 * 1024 / required_number_of_threads
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
               max_transaction_size:     Trixx::Application.config.trixx_max_transaction_size,

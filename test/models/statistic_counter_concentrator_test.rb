@@ -2,6 +2,8 @@ require 'test_helper'
 
 class StatisticCounterConcentratorTest < ActiveSupport::TestCase
   test "create statistics" do
+    TableLess.execute "DELETE FROM Statistics"                                  # Ensure valid counters
+
     sc = StatisticCounter.new
 
     sc.increment(tables(:one).id, 'I')

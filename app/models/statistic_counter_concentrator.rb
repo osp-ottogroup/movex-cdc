@@ -22,11 +22,25 @@ class StatisticCounterConcentrator
   end
 
   def flush_to_db
+    Rails.logger.debug "StatisticCounterConcentrator.flush_to_db: Writing statistics record into table"
     @values_mutex.synchronize do
       @values.each do |table_id, operations|
         operations.each do |operation, counter_types|
           counter_types.each do |counter_type, counter|
-            Statistic.write_record(table_id: table_id, operation: operation, counter_type => counter)
+
+            events_success = counter_type == :events_success ? counter : 0
+            events_failure = counter_type == :events_failure ? counter : 0
+            Statistic.write_record(table_id:        table_id,
+                                   operation:       operation,
+                                   events_success:  events_success,
+                                   events_failure:  events_failure
+            )
+
+            table   = table_cache(table_id)
+            schema  = schema_cache(table.schema_id)
+            # allow transferring log output to time series database
+            Rails.logger.info "Statistics: Schema=#{schema.name} Table=#{table.name} Operation=#{KeyHelper.operation_from_short_op(operation)} Events_Success=#{events_success} Events_Failure=#{events_failure}"
+
           end
         end
       end
@@ -38,5 +52,24 @@ class StatisticCounterConcentrator
   def initialize
     @values = {}
     @values_mutex = Mutex.new                                                   # Ensure synchronized operations on @values
+    @record_cache = {}                                                          # cache Tables and Schemas for ever
   end
+
+  def schema_cache(schema_id)
+    key = "Schema #{schema_id}"
+    unless @record_cache.has_key? key
+      @record_cache[key] = Schema.find schema_id
+    end
+    @record_cache[key]
+  end
+
+  def table_cache(schema_id)
+    key = "Table #{schema_id}"
+    unless @record_cache.has_key? key
+      @record_cache[key] = Table.find schema_id
+    end
+    @record_cache[key]
+  end
+
+
 end

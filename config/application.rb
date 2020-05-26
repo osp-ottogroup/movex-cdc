@@ -90,6 +90,7 @@ module Trixx
 
     puts "\nStarting TriXX application at #{Time.now}:"
     Trixx::Application.log_attribute('RAILS_ENV', Rails.env)
+    Trixx::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
     # Load configuration file, should always exist, at leastwith default values
     config.trixx_run_config = ENV['TRIXX_RUN_CONFIG'] || "#{Rails.root}/config/trixx_run.yml"
@@ -140,6 +141,11 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
+
+    raise "RAILS_MAX_THREADS not set! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + 20 !" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
+    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < config.trixx_initial_worker_threads + 20
+      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + 20 !"
+    end
 
     case config.trixx_db_type
     when 'ORACLE' then
