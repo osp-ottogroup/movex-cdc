@@ -85,7 +85,9 @@ export default {
       this.$emit('close');
     },
     onSave() {
-      this.$refs.tableSelect.checkHtml5Validity();
+      if (this.showTableSelect) {
+        this.$refs.tableSelect.checkHtml5Validity();
+      }
       this.$refs.topicInput.checkHtml5Validity();
       this.$refs.infoTextarea.checkHtml5Validity();
       const invalidFields = document.querySelectorAll('#table-modal :invalid');
