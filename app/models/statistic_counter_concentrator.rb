@@ -24,23 +24,24 @@ class StatisticCounterConcentrator
   def flush_to_db
     Rails.logger.debug "StatisticCounterConcentrator.flush_to_db: Writing statistics record into table"
     @values_mutex.synchronize do
-      @values.each do |table_id, operations|
-        operations.each do |operation, counter_types|
-          counter_types.each do |counter_type, counter|
+      ActiveRecord::Base.transaction do
+        @values.each do |table_id, operations|
+          operations.each do |operation, counter_types|
+            counter_types.each do |counter_type, counter|
 
-            events_success = counter_type == :events_success ? counter : 0
-            events_failure = counter_type == :events_failure ? counter : 0
-            Statistic.write_record(table_id:        table_id,
-                                   operation:       operation,
-                                   events_success:  events_success,
-                                   events_failure:  events_failure
-            )
+              events_success = counter_type == :events_success ? counter : 0
+              events_failure = counter_type == :events_failure ? counter : 0
+              Statistic.write_record(table_id:        table_id,
+                                     operation:       operation,
+                                     events_success:  events_success,
+                                     events_failure:  events_failure
+              )
 
-            table   = table_cache(table_id)
-            schema  = schema_cache(table.schema_id)
-            # allow transferring log output to time series database
-            Rails.logger.info "Statistics: Schema=#{schema.name} Table=#{table.name} Operation=#{KeyHelper.operation_from_short_op(operation)} Events_Success=#{events_success} Events_Failure=#{events_failure}"
-
+              table   = table_cache(table_id)
+              schema  = schema_cache(table.schema_id)
+              # allow transferring log output to time series database
+              Rails.logger.info "Statistics: Schema=#{schema.name} Table=#{table.name} Operation=#{KeyHelper.operation_from_short_op(operation)} Events_Success=#{events_success} Events_Failure=#{events_failure}"
+            end
           end
         end
       end

@@ -133,6 +133,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
@@ -142,9 +143,12 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
 
-    raise "RAILS_MAX_THREADS not set! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) * 2 !" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
-    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < config.trixx_initial_worker_threads * 2
-      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) * 2 !"
+    # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
+    config.puma_internal_thread_limit = 10                                      # Number of threads to calculate for puma
+    rails_max_thread_msg = "Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + #{config.trixx_threads_for_api_requests + config.puma_internal_thread_limit}!"
+    raise "RAILS_MAX_THREADS not set! #{rails_max_thread_msg}" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
+    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < (config.trixx_initial_worker_threads + config.trixx_threads_for_api_requests + config.puma_internal_thread_limit)
+      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! #{rails_max_thread_msg}"
     end
 
     case config.trixx_db_type

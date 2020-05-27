@@ -137,7 +137,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |Variable|Description|Default value
 
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
-|RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than twice of TRIXX_INITIAL_WORKER_THREADS if default is not sufficient|300
+|RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than TRIXX_INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
 |TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work from config file.|Europe/Berlin
 |TNS_ADMIN|directory of tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only. Must be directly set as environment of container, does not work from config file|
 |TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
