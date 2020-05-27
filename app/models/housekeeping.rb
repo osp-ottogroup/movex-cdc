@@ -8,6 +8,7 @@ class Housekeeping
 
   def do_housekeeping
     if @last_housekeeping_started.nil?
+      Rails.logger.debug "Housekeeping.do_housekeeping: Start housekeeping"
       do_housekeeping_internal
       true
     else

@@ -40,6 +40,7 @@ class TransferThread
     @max_event_logs_id              = 0                                         # maximum processed id
     @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
     @statistic_counter              = StatisticCounter.new
+    @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
   end
 
   MAX_EXCEPTION_RETRY=3                                                         # max. number of retries after exception
@@ -312,20 +313,6 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     end
   end
 
-  # Cache schema names for repeated usage
-  def schema_cache(schema_id)
-    Rails.cache.fetch("Schema_#{schema_id}", expires_in: 1.minutes) do
-      Schema.find schema_id
-    end
-  end
-
-  # Cache tables for repeated usage
-  def table_cache(table_id)
-    Rails.cache.fetch("Table_#{table_id}", expires_in: 1.minutes) do
-      Table.find table_id
-    end
-  end
-
   def timestamp_as_iso_string(timestamp)
     timestamp_as_time =
         case timestamp.class.name
@@ -400,6 +387,34 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state}")
   end
 
+  def schema_cache(schema_id)
+    check_record_cache_for_aging
+    key = "Schema #{schema_id}"
+    unless @record_cache.has_key? key
+      @record_cache[key] = Schema.find schema_id
+    end
+    @record_cache[key]
+  end
+
+  def table_cache(schema_id)
+    check_record_cache_for_aging
+    key = "Table #{schema_id}"
+    unless @record_cache.has_key? key
+      @record_cache[key] = Table.find schema_id
+    end
+    @record_cache[key]
+  end
+
+  RECORD_CACHE_REFRESH_CYCLE = 60                                               # Number of seconds between cache refeshes
+  def check_record_cache_for_aging
+    unless @record_cache.has_key? :first_access
+      @record_cache[:first_access] = Time.now
+    end
+    if @record_cache[:first_access] + RECORD_CACHE_REFRESH_CYCLE < Time.now
+      Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after#{RECORD_CACHE_REFRESH_CYCLE} seconds"
+      @record_cache = {}                                                        # reset record cache after 1 minute to reread possibly changed topic names
+    end
+  end
 end
 
 

@@ -136,9 +136,11 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |===
 |Variable|Description|Default value
 
-|LOG_LEVEL|Log level of application (debug, info, warn, error)|warn
+|LOG_LEVEL|Log level of application (debug, info, warn, error)|info
+|RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than TRIXX_INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
 |TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work from config file.|Europe/Berlin
 |TNS_ADMIN|directory of tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only. Must be directly set as environment of container, does not work from config file|
+|TRIXX_DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
 |TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
 |TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
@@ -287,7 +289,8 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \
 http://localhost:8080/server_control/set_log_level
 
-
+=== Entity relationship model ===
+image:trixx_er_model.svg.drawio[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Lock user account after multiple failed logons ====

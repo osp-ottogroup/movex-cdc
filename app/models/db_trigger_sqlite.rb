@@ -65,7 +65,7 @@ class DbTriggerSqlite < TableLess
             table_id:           tab[:table_id],
             table_name:         tab[:table_name],
             trigger_name:       trigger_name,
-            operation:          operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
+            operation:          KeyHelper.operation_from_short_op(op[:operation]),          # INSERT/UPDATE/DELETE
             operation_short:    op[:operation],                                   # I/U/D
             kafka_key_handling: tab[:kafka_key_handling],
             fixed_message_key:  tab[:fixed_message_key],
@@ -188,17 +188,6 @@ BEGIN
   ;
 END;"
   end
-
-  def operation_from_short_op(short_op)
-    case short_op
-    when 'I' then 'INSERT'
-    when 'U' then 'UPDATE'
-    when 'D' then 'DELETE'
-    else raise "Unknown short operation '#{short_op}'"
-    end
-  end
-
-
 
   def exec_trigger_sql(sql, trigger_name)
     Rails.logger.info "Execute trigger action: #{sql}"

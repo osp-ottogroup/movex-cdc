@@ -90,6 +90,7 @@ module Trixx
 
     puts "\nStarting TriXX application at #{Time.now}:"
     Trixx::Application.log_attribute('RAILS_ENV', Rails.env)
+    Trixx::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
     # Load configuration file, should always exist, at leastwith default values
     config.trixx_run_config = ENV['TRIXX_RUN_CONFIG'] || "#{Rails.root}/config/trixx_run.yml"
@@ -98,7 +99,7 @@ module Trixx
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config
     end
-    config.log_level = (Rails.env.production? ? :warn : :debug)                 # Default log level is already set to :debug at this point
+    config.log_level = (Rails.env.production? ? :info : :debug)                 # Default log level is already set to :debug at this point
     Trixx::Application.set_and_log_attrib_from_env(:log_level)
     config.log_level = config.log_level.to_sym if config.log_level.class == String
 
@@ -132,6 +133,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
@@ -140,6 +142,15 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_query_timeout,                   default: 600)
+
+    # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
+    config.puma_internal_thread_limit = 10                                      # Number of threads to calculate for puma
+    rails_max_thread_msg = "Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + #{config.trixx_threads_for_api_requests + config.puma_internal_thread_limit}!"
+    raise "RAILS_MAX_THREADS not set! #{rails_max_thread_msg}" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
+    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < (config.trixx_initial_worker_threads + config.trixx_threads_for_api_requests + config.puma_internal_thread_limit)
+      raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! #{rails_max_thread_msg}"
+    end
 
     case config.trixx_db_type
     when 'ORACLE' then

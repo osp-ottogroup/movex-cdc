@@ -50,6 +50,9 @@ Rails.application.configure do
   # Use a different cache store in production.
   # config.cache_store = :mem_cache_store
 
+  # Don't persist cache content
+  config.cache_store = :memory_store
+
   # Use a real queuing backend for Active Job (and separate queues per environment).
   # config.active_job.queue_adapter     = :resque
   # config.active_job.queue_name_prefix = "trixx_production"
@@ -71,7 +74,7 @@ Rails.application.configure do
   # config.log_formatter = ::Logger::Formatter.new
 
   config.log_formatter = proc do |severity, datetime, progname, msg|
-    date_format = datetime.strftime("%Y-%m-%d %H:%M:%S")
+    date_format = datetime.strftime("%Y-%m-%d %H:%M:%S.%3N")
     "[#{date_format}] #{severity} (#{Thread.current.object_id}#{' ' if progname}#{progname}): #{msg}\n"
   end
 

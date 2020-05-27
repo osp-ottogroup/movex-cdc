@@ -14,13 +14,17 @@ class ServerControlController < ApplicationController
   end
 
   # POST /server_control/set_worker_threads_count
-  MAX_WORKER_THREADS=200
   def set_worker_threads_count
     if @current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
       worker_threads_count = params.permit(:worker_threads_count)[:worker_threads_count].to_i
-      raise "Number of worker threads (#{worker_threads_count}) not in valid range (0 .. #{MAX_WORKER_THREADS})" if worker_threads_count < 0 || worker_threads_count > MAX_WORKER_THREADS
+
+      if ENV['RAILS_MAX_THREADS'] && ENV['RAILS_MAX_THREADS'].to_i < worker_threads_count + Trixx::Application.config.trixx_threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit
+        raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low for the requested number of threads! Should be set to greater than the expected number of threads (#{worker_threads_count}) + #{Trixx::Application.config.trixx_threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit}!"
+      end
+      raise "Number of worker threads (#{worker_threads_count}) should not be negative" if worker_threads_count < 0
+
       Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
