@@ -142,6 +142,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_query_timeout,                   default: 600)
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
     config.puma_internal_thread_limit = 10                                      # Number of threads to calculate for puma
