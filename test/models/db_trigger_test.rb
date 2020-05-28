@@ -47,9 +47,11 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors)
-      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_I_']}.length, 'Should have created one insert trigger'
-      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_U_']}.length, 'Should have created one update trigger'
-      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_D_']}.length, 'Should have created one delete trigger'
+
+      created_trigger_names = result[:successes].select{|x| x[:sql]['CREATE']}.map{|x| x[:trigger_name]}
+      assert_equal 1, created_trigger_names.select{|x| x['_I']}.length, 'Should have created one insert trigger'
+      assert_equal 1, created_trigger_names.select{|x| x['_U']}.length, 'Should have created one update trigger'
+      assert_equal 1, created_trigger_names.select{|x| x['_D']}.length, 'Should have created one delete trigger'
 
 =begin
     puts "Successes:" if result[:successes].count > 0
