@@ -20,13 +20,13 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "find_all_by_table" do
-    triggers = DbTrigger.find_all_by_table(tables(:victim1).id, tables(:victim1).schema.name, tables(:victim1).name)
+    triggers = DbTrigger.find_all_by_table(tables(:victim1).schema_id, tables(:victim1).id, tables(:victim1).schema.name, tables(:victim1).name)
     assert_equal(1, triggers.count, 'Should find triggers for table with valid trixx trigger names')
   end
 
   test "find_by_table_id_and_trigger_name" do
     victim1_table = tables(:victim1)
-    trigger = DbTrigger.find_by_table_id_and_trigger_name(victim1_table.id, DbTrigger.build_trigger_name(victim1_table.name, victim1_table.id, 'I'))
+    trigger = DbTrigger.find_by_table_id_and_trigger_name(victim1_table.id, DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I'))
     assert_not_equal(nil, trigger, 'Should find the trigger in victim schema')
   end
 

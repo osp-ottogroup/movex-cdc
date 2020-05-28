@@ -15,7 +15,7 @@ class DbTriggerOracle < TableLess
   end
 
   # get Array of Hash with trigger info
-  def self.find_all_by_table(table_id, schema_name, table_name)
+  def self.find_all_by_table(schema_id, table_id, schema_name, table_name)
     result = []
     select_all("\
       SELECT t.Trigger_name, o.Last_DDL_Time
@@ -30,7 +30,7 @@ class DbTriggerOracle < TableLess
         table_name:   table_name.upcase
     }).each do |t|
       ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
-        if t['trigger_name'] == build_trigger_name(table_name, table_id, operation)
+        if t['trigger_name'] == build_trigger_name(schema_id, table_id, operation)
           result << {
               operation:  operation,
               name:       t['trigger_name'],
@@ -71,7 +71,6 @@ class DbTriggerOracle < TableLess
 
   def initialize(schema_id, target_trigger_data)
     @schema               = Schema.find schema_id
-    @schema_name_hash     = TableLess.select_one("SELECT ORA_HASH(:schema_name, 1000000000) FROM DUAL", {schema_name: @schema.name})
     @target_trigger_data  = target_trigger_data
     @trigger_errors       = []
     @trigger_successes    = []
@@ -92,7 +91,7 @@ class DbTriggerOracle < TableLess
       end
 
       tab[:operations].each do |op|
-        trigger_name = DbTriggerOracle.build_trigger_name(tab[:table_name], tab[:table_id], op[:operation])
+        trigger_name = DbTriggerOracle.build_trigger_name(@schema.id, tab[:table_id], op[:operation])
         trigger_data = {
             schema_id:          @schema.id,
             schema_name:        @schema.name,
@@ -111,7 +110,6 @@ class DbTriggerOracle < TableLess
           raise "Column '#{c[:column_name]}' does not exists in DB for table '#{@schema.name}.#{tab[:table_name]}'" if !ora_columns.has_key?(c[:column_name])
           c[:data_type] = ora_columns[c[:column_name]]&.fetch(:data_type)
         end
-
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
       end
@@ -175,10 +173,8 @@ class DbTriggerOracle < TableLess
 
   # generate trigger name from short operation (I/U/D) and table name
   # Trigger name consists of TRIXX_<Hash over trixx owner>_<operation>_<Hash over table name>
-  def self.build_trigger_name(table_name, table_id, operation)
-    # TODO !!! Build unique trigger names! Hashes are not unique enough. Check for unique names and add one number if already exists
-    table_name_hash = TableLess.select_one("SELECT ORA_HASH(:table_name, 1000000000) FROM DUAL", {table_name: table_name})
-    "#{trigger_name_prefix}_#{operation}_#{@schema_name_hash}_#{table_name_hash}"
+  def self.build_trigger_name(schema_id, table_id, operation)
+    "#{trigger_name_prefix}#{operation}_#{schema_id}_#{table_id}"
   end
 
   # Build SQL expression for message key
