@@ -49,6 +49,7 @@ class TransferThread
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}"}
     @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
+    set_query_timeouts                                                     # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
@@ -205,7 +206,7 @@ class TransferThread
         max_event_logs_id:              @max_event_logs_id,
         successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
         message_processing_errors:      @messages_processed_with_error,
-        stacktrace:                     @thread.backtrace
+        stacktrace:                     @thread&.backtrace
     }
   end
 
@@ -228,7 +229,7 @@ class TransferThread
                                                                 FROM   Event_Logs PARTITION (#{part['partition_name']}) e
                                                                 WHERE  e.ID < :max_id
                                                                 FOR UPDATE SKIP LOCKED",
-                                                               {max_id: @max_event_logs_id}, fetch_limit: remaining_records
+                                                               {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
             ))
             remaining_records = @max_transaction_size - event_logs.count        # available space for more result records
             if remaining_records > 0                                            # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
@@ -236,7 +237,7 @@ class TransferThread
                                                                 FROM   Event_Logs PARTITION (#{part['partition_name']}) e
                                                                 WHERE  e.ID >= :max_id
                                                                 FOR UPDATE SKIP LOCKED",
-                                                                 {max_id: @max_event_logs_id}, fetch_limit: remaining_records
+                                                                 {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
               ))
             end
           end
@@ -413,6 +414,15 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
     if @record_cache[:first_access] + RECORD_CACHE_REFRESH_CYCLE < Time.now
       Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after#{RECORD_CACHE_REFRESH_CYCLE} seconds"
       @record_cache = {}                                                        # reset record cache after 1 minute to reread possibly changed topic names
+    end
+  end
+
+  def set_query_timeouts
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      raw_conn = ActiveRecord::Base.connection.raw_connection
+      # Ensure that hanging SQL executions are cancelled after timeout
+      raw_conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor, Trixx::Application.config.trixx_db_query_timeout * 2 * 1000)
     end
   end
 end

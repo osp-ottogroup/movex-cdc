@@ -44,8 +44,12 @@ class DbTriggerTest < ActiveSupport::TestCase
       exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
 
       result = DbTrigger.generate_triggers(victim_schema_id)
+
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors)
+      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_I_']}.length, 'Should have created one insert trigger'
+      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_U_']}.length, 'Should have created one update trigger'
+      assert_equal 1, result[:successes].map{|x| x[:trigger_name]}.select{|x| x['_D_']}.length, 'Should have created one delete trigger'
 
 =begin
     puts "Successes:" if result[:successes].count > 0
@@ -65,6 +69,11 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
       assert_not_nil Schema.find(victim_schema_id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
+
+      # second run of trigger generation should not touch the already existing triggers
+      result = DbTrigger.generate_triggers(victim_schema_id)
+      assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
+      assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
       fixture_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
       expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture

@@ -71,6 +71,7 @@ class DbTriggerOracle < TableLess
 
   def initialize(schema_id, target_trigger_data)
     @schema               = Schema.find schema_id
+    @schema_name_hash     = TableLess.select_one("SELECT ORA_HASH(:schema_name, 1000000000) FROM DUAL", {schema_name: @schema.name})
     @target_trigger_data  = target_trigger_data
     @trigger_errors       = []
     @trigger_successes    = []
@@ -117,7 +118,7 @@ class DbTriggerOracle < TableLess
     end
 
     existing_triggers = TableLess.select_all(
-        "SELECT Trigger_Name, When_Clause, Trigger_Body
+        "SELECT Table_Name, Trigger_Name, Description, Trigger_Body
          FROM   All_Triggers
          WHERE  Owner       = :owner
          AND    Table_Owner = :table_owner
@@ -130,14 +131,20 @@ class DbTriggerOracle < TableLess
         }
     )
 
-    # Remove trigger that are no more part of target structure
+    # Check trigger for removal or replacement
     existing_triggers.each do |trigger|                                         # iterate over existing trigger of target schema
       trigger_name = trigger['trigger_name']                                    # Name of existing trigger
-      if target_triggers.has_key? trigger_name                                  # existing trigger should survive
-        body = build_trigger_body(target_triggers[trigger_name])                # target body structure
-        # TODO: Check trigger for difference on body and whenclause and replace only if different
+      if target_triggers.has_key?(trigger_name)                                 # existing trigger should survive
+        target_trigger_data = target_triggers[trigger_name]
+        body = build_trigger_body(target_trigger_data)                          # target body structure
 
-        exec_trigger_sql "#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name
+        if trigger['trigger_body']                != body ||
+            trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data)
+          exec_trigger_sql "#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name  # replace existing trigger
+        else
+          Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing hs changed"
+        end
+
         target_triggers.delete trigger_name                                     # remove processed trigger from target triggers at success and also at error
       else                                                                      # existing trigger is no more part of target structure
         exec_trigger_sql "DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger_name}", trigger_name
@@ -160,7 +167,8 @@ class DbTriggerOracle < TableLess
   @@trigger_name_prefix = nil
   def self.trigger_name_prefix
     if @@trigger_name_prefix.nil?
-      @@trigger_name_prefix = "TRIXX_#{TableLess.select_one("SELECT ORA_HASH(:db_user, 1000000000) FROM DUAL", {db_user: Trixx::Application.config.trixx_db_user.upcase})}"
+      @@trigger_name_prefix = "TRIXX_"                                          # owner of trigger is always trixx_db_user, must not be part of trigger name
+      # @@trigger_name_prefix = "TRIXX_#{TableLess.select_one("SELECT ORA_HASH(:db_user, 1000000000) FROM DUAL", {db_user: Trixx::Application.config.trixx_db_user.upcase})}"
     end
     @@trigger_name_prefix
   end
@@ -168,8 +176,9 @@ class DbTriggerOracle < TableLess
   # generate trigger name from short operation (I/U/D) and table name
   # Trigger name consists of TRIXX_<Hash over trixx owner>_<operation>_<Hash over table name>
   def self.build_trigger_name(table_name, table_id, operation)
+    # TODO !!! Build unique trigger names! Hashes are not unique enough. Check for unique names and add one number if already exists
     table_name_hash = TableLess.select_one("SELECT ORA_HASH(:table_name, 1000000000) FROM DUAL", {table_name: table_name})
-    "TRIXX_#{trigger_name_prefix}_#{operation}_#{table_name_hash}"
+    "#{trigger_name_prefix}_#{operation}_#{@schema_name_hash}_#{table_name_hash}"
   end
 
   # Build SQL expression for message key
@@ -225,13 +234,16 @@ class DbTriggerOracle < TableLess
     result
   end
 
-
-  # Build trigger header from hash
-  def build_trigger_header(target_trigger_data)
-    result = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} FOR #{target_trigger_data[:operation]}"
+  def build_trigger_description(target_trigger_data)
+    result = "#{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} FOR #{target_trigger_data[:operation]}"
     result << " OF #{target_trigger_data[:columns].map{|x| x[:column_name]}.join(',')}" if target_trigger_data[:operation] == 'UPDATE'
     result << " ON #{target_trigger_data[:schema_name]}.#{target_trigger_data[:table_name]}"
     result
+  end
+
+  # Build trigger header from hash
+  def build_trigger_header(target_trigger_data)
+    "CREATE OR REPLACE TRIGGER #{build_trigger_description(target_trigger_data)}"
   end
 
   # Build trigger code from hash

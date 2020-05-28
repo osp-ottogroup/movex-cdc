@@ -24,7 +24,7 @@ class ThreadHandling
         end
 
         current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
-          Rails.logger.debug "ThreadHandling.ensure_processing: starting thread if there are not enough threads"
+          Rails.logger.debug "ThreadHandling.ensure_processing: starting worker thread because there are not enough"
           memory_buffer_per_worker = Trixx::Application.config.trixx_kafka_total_buffer_size_mb * 1024 * 1024 / required_number_of_threads
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
               max_transaction_size:     Trixx::Application.config.trixx_max_transaction_size,
