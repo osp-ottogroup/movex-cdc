@@ -73,6 +73,16 @@ class DbTriggerSqlite < TableLess
             columns:            op[:columns]
         }
 
+        # Find matching type and notnull for trigger columns
+        TableLess.select_all("PRAGMA table_info(#{tab[:table_name]})").each do |table_column|
+          trigger_data[:columns].each do |trigger_column|
+            if table_column['name'].upcase == trigger_column[:column_name].upcase
+              trigger_column[:type]     = table_column['type']
+              trigger_column[:notnull]  = table_column['notnull']
+            end
+          end
+        end
+
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
       end
     end
@@ -158,9 +168,24 @@ class DbTriggerSqlite < TableLess
   def build_trigger_header(target_trigger_data)
     result = "CREATE TRIGGER #{target_trigger_data[:trigger_name]} #{target_trigger_data[:operation]}"
     result << " ON #{target_trigger_data[:table_name]} FOR EACH ROW"
-    result << " WHEN #{target_trigger_data[:condition]}" if target_trigger_data[:condition]
+    result << " WHEN " if target_trigger_data[:condition] || target_trigger_data[:operation] == 'UPDATE'
+    result << " (#{target_trigger_data[:condition]})" if target_trigger_data[:condition]
+    result << " AND " if target_trigger_data[:condition] && target_trigger_data[:operation] == 'UPDATE'
+    result << " (#{old_new_compare(target_trigger_data[:columns])}) " if target_trigger_data[:operation] == 'UPDATE'
     result
   end
+
+  def old_new_compare(columns)
+    columns.map{|c|
+      result = "old.#{c[:column_name]} != new.#{c[:column_name]}"
+      if c[:notnull] == 0
+        result << " OR (old.#{c[:column_name]} IS NULL AND new.#{c[:column_name]} IS NOT NULL)"
+        result << " OR (old.#{c[:column_name]} IS NOT NULL AND new.#{c[:column_name]} IS NULL)"
+      end
+      result
+    }.join(' OR ')
+  end
+
 
   # Build trigger code from hash
   def build_trigger_body(target_trigger_data)
