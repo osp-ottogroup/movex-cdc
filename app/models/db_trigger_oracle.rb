@@ -82,11 +82,12 @@ class DbTriggerOracle < TableLess
     @target_trigger_data.each do |tab|
       ora_columns = {}                                                          # list of table columns from db with column_name as key
       TableLess.select_all(
-          "SELECT Column_Name, Data_Type FROM DBA_Tab_Columns WHERE Owner = :owner AND Table_Name = :table_name",
+          "SELECT Column_Name, Data_Type, Nullable FROM DBA_Tab_Columns WHERE Owner = :owner AND Table_Name = :table_name",
           { owner: @schema.name, table_name: tab[:table_name]}
       ).each do |c|
         ora_columns[c['column_name']] = {
-            data_type: c['data_type']
+            data_type: c['data_type'],
+            nullable:  c['nullable']
         }
       end
 
@@ -109,6 +110,7 @@ class DbTriggerOracle < TableLess
         trigger_data[:columns].each do |c|
           raise "Column '#{c[:column_name]}' does not exists in DB for table '#{@schema.name}.#{tab[:table_name]}'" if !ora_columns.has_key?(c[:column_name])
           c[:data_type] = ora_columns[c[:column_name]]&.fetch(:data_type)
+          c[:nullable]  = ora_columns[c[:column_name]]&.fetch(:nullable)
         end
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
@@ -244,6 +246,9 @@ class DbTriggerOracle < TableLess
 
   # Build trigger code from hash
   def build_trigger_body(target_trigger_data)
+    condition_indent = target_trigger_data[:condition] ? '  ' : ''              # Number of chars for row indent
+    update_indent    = target_trigger_data[:operation] == 'UPDATE' ? '  ' : ''
+
     "\
 COMPOUND TRIGGER
 TYPE Payload_Rec_Type IS RECORD (
@@ -276,11 +281,15 @@ BEGIN
     Flush;
     tab_size := 0;
   END IF;
+
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
-  #{"  " if target_trigger_data[:condition]}payload_rec.payload := #{payload_command(target_trigger_data)};
-  #{"  " if target_trigger_data[:condition]}payload_rec.msg_key := #{message_key_sql(target_trigger_data)};
-  #{"  " if target_trigger_data[:condition]}payload_tab(tab_size + 1) := payload_rec;
+  #{"#{condition_indent}IF #{old_new_compare(target_trigger_data[:columns])} THEN" if target_trigger_data[:operation] == 'UPDATE'}
+  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(target_trigger_data)};
+  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(target_trigger_data)};
+  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;
+  #{"#{condition_indent}END IF;" if target_trigger_data[:operation] == 'UPDATE'}
   #{"END IF;" if target_trigger_data[:condition]}
+
 END #{position_from_operation(target_trigger_data[:operation])} EACH ROW;
 
 AFTER STATEMENT IS
@@ -295,6 +304,18 @@ END #{target_trigger_data[:trigger_name]};
   def position_from_operation(operation)
     return 'BEFORE' if operation == 'DELETE'
     'AFTER'
+  end
+
+  # compare old and new values for update trigger
+  def old_new_compare(columns)
+    columns.map{|c|
+      result = ":old.#{c[:column_name]} != :new.#{c[:column_name]}"
+      if c[:nullable] == 'Y'
+        result << " OR (:old.#{c[:column_name]} IS NULL AND :new.#{c[:column_name]} IS NOT NULL)"
+        result << " OR (:old.#{c[:column_name]} IS NOT NULL AND :new.#{c[:column_name]} IS NULL)"
+      end
+      result
+    }.join(' OR ')
   end
 
   def exec_trigger_sql(sql, trigger_name)
