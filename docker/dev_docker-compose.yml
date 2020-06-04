@@ -22,6 +22,7 @@ services:
     environment:
       TRIXX_DB_PASSWORD: test
       TRIXX_DB_TYPE: SQLITE
+      RAILS_MAX_THREADS: 50
 
 networks:
   default:
