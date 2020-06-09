@@ -5,7 +5,7 @@
     </template>
     <template v-else>
       <template v-if="loggedIn">
-        <app-header class="header" :userName="userName"/>
+        <app-header class="header" :user="user"/>
         <router-view />
         <app-footer />
       </template>
@@ -44,7 +44,7 @@ export default {
     return {
       loggedIn: false,
       isLoginCheckPending: true,
-      userName: null,
+      user: null,
     };
   },
   async created() {
@@ -53,17 +53,20 @@ export default {
   methods: {
     onLogin() {
       this.loggedIn = true;
-      this.setUserName();
+      this.setUser();
     },
-    setUserName() {
-      this.userName = `${TokenService.getPayload().first_name} ${TokenService.getPayload().last_name}`;
+    setUser() {
+      this.user = {
+        name: `${TokenService.getPayload().first_name} ${TokenService.getPayload().last_name}`,
+        isAdmin: TokenService.getPayload().is_admin,
+      };
     },
     async onCreated() {
       this.loggedIn = LoginService.loginWithExistingToken();
       if (this.loggedIn) {
         try {
           await HttpService.get(`${Config.backendUrl}/login/check_jwt`);
-          this.setUserName();
+          this.setUser();
         } catch (e) {
           this.$buefy.toast.open({
             message: getErrorMessageAsHtml(e, 'An error occurred while checking the user session'),

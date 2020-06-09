@@ -13,13 +13,13 @@
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
             Home
         </b-navbar-item>
-        <b-navbar-item tag="router-link" :to="{ path: '/users' }">
+        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/users' }">
             Users
         </b-navbar-item>
         <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
           Configuration
         </b-navbar-item>
-        <b-navbar-item tag="router-link" :to="{ path: '/deployment' }">
+        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
       </template>
@@ -29,8 +29,11 @@
           <div class="is-size-7">
             logged in as:
             <b class="is-size-7">
-              {{ userName }}
+              {{ user.name }}
             </b>
+            <span v-if="isAdminUser">
+              (Admin)
+            </span>
           </div>
         </b-navbar-item>
         <b-navbar-item tag="div">
@@ -50,7 +53,12 @@ import LoginService from '../services/LoginService';
 export default {
   name: 'AppHeader',
   props: {
-    userName: { type: String },
+    user: { type: Object, default: () => {} },
+  },
+  computed: {
+    isAdminUser() {
+      return this.user.isAdmin;
+    },
   },
   methods: {
     logout() {
