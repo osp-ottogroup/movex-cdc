@@ -34,6 +34,21 @@
                    validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
         </b-field>
+        <b-field label="Kafka Key Handling">
+          <b-field>
+            <b-select v-model="internalTable.kafka_key_handling" expanded>
+              <option v-for="option in kafkaKeyHandlingOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
+              </option>
+            </b-select>
+            <b-field v-if="internalTable.kafka_key_handling === 'F'">
+              <b-input ref="fixedMessageInput"
+                       v-model="internalTable.fixed_message_key"
+                       placeholder="Fixed Message Key"
+                       required/>
+            </b-field>
+          </b-field>
+        </b-field>
         <b-field label="Info">
           <b-input ref="infoTextarea"
                    type="textarea"
@@ -67,6 +82,11 @@ export default {
   data() {
     return {
       internalTable: { ...this.table },
+      kafkaKeyHandlingOptions: [
+        { value: 'N', label: 'N - None' },
+        { value: 'P', label: 'P - Primary Key' },
+        { value: 'F', label: 'F - Fixed Key' },
+      ],
     };
   },
   computed: {
@@ -90,6 +110,11 @@ export default {
       }
       this.$refs.topicInput.checkHtml5Validity();
       this.$refs.infoTextarea.checkHtml5Validity();
+      if (this.internalTable.kafka_key_handling === 'F') {
+        this.$refs.fixedMessageInput.checkHtml5Validity();
+      } else {
+        this.internalTable.fixed_message_key = null;
+      }
       const invalidFields = document.querySelectorAll('#table-modal :invalid');
       if (invalidFields.length > 0) {
         // invalidFields.forEach(field => field.dispatchEvent(new Event('blur')));

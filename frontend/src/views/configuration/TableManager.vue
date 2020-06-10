@@ -83,6 +83,8 @@ export default {
         name: '',
         info: '',
         topic: '',
+        kafka_key_handling: 'N',
+        fixed_message_key: '',
       };
     },
     onEditTable(table) {
@@ -111,14 +113,7 @@ export default {
     },
     async createTable(table) {
       try {
-        const createdTable = await CRUDService.tables.create({
-          table: {
-            schema_id: this.schema.id,
-            name: table.name,
-            topic: table.topic,
-            info: table.info,
-          },
-        });
+        const createdTable = await CRUDService.tables.create({ table });
         this.tables.push(createdTable);
         this.$buefy.toast.open({
           message: `Table '${createdTable.name}' added to TriXX configuration!`,
@@ -144,6 +139,8 @@ export default {
           tables.name = updatedTable.name;
           tables.topic = updatedTable.topic;
           tables.info = updatedTable.info;
+          tables.kafka_key_handling = updatedTable.kafka_key_handling;
+          tables.fixed_message_key = updatedTable.fixed_message_key;
           tables.created_at = updatedTable.created_at;
           tables.updated_at = updatedTable.updated_at;
           return true;
