@@ -205,8 +205,27 @@ Therefore multiple triggers from several independent TriXX configurations at one
 TODO: Describe GUI workflow
 
 ==== Managing users, schemas and rights ====
+Menu "Users" shows the already created named users for TriXX. Initially there is always a predefined user 'admin'. +
+Users are identified by E-Mail.
+For authentification at logon one DB-User is associated to each TriXX user, the password of this DB-user is used for logon.
+
+The TriXX-user is authorized for certain schemas for which tables can be tagged for event capturing.
+This schemas can be picked from the list of schemas where the user has select grants at at least one table.
 
 ==== Configuring events to capture at column level ====
+This dialog shows:
+
+* schemas for which the user has the right to configure
+* already configured tables of a schema (limited to tables where the user has SELECT grants for)
+* columns of a configured table with marks for Insert/Update/Delete-trigger
+
+Possible onfiguration actions are:
+
+* add tables to configuration for a schema (only possible for tables where the user has SELECT grant for)
+* modify topic name per table
+* modify triggering of change events per column
+
+WARNING: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
 
 ==== Generation of database triggers ====
 

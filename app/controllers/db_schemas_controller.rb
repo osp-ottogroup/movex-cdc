@@ -1,10 +1,9 @@
 class DbSchemasController < ApplicationController
 
   # GET /db_schemas
-  # delivers all existing schemas where the current user has read grants on tables
+  # delivers all existing schemas
   def index
     @db_schemas = DbSchema.all
-
     render json: @db_schemas
   end
 
