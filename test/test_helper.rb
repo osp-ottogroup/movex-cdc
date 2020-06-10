@@ -99,6 +99,7 @@ class ActiveSupport::TestCase
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
+      exec_victim_sql(victim_connection, "GRANT SELECT ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.trixx_db_user}")
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER

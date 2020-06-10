@@ -1,7 +1,7 @@
 class DbSchemasController < ApplicationController
 
   # GET /db_schemas
-  # delivers all existing schemas
+  # delivers all existing schemas where the current user has read grants on tables
   def index
     @db_schemas = DbSchema.all
 
@@ -9,7 +9,7 @@ class DbSchemasController < ApplicationController
   end
 
   # GET /db_schemas/authorizable_schemas
-  # delivers filtered list of schemas really owning tables
+  # delivers filtered list of schemas where the current user has read grants on tables
   # schemas already attached to the user are not listed again
   def authorizable_schemas
     email = params.permit(:email)[:email]
