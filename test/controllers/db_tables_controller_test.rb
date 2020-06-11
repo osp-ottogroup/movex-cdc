@@ -15,11 +15,13 @@ class DbTablesControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+=begin
   test "should get remaining with parameters" do
     # Setting params for get leads to switch GET to POST, only in test
     get "/db_tables/remaining?schema_id=#{schemas(:one).id}", headers: jwt_header, as: :json
     #    get db_tables_url, headers: jwt_header, as: :json, params: { schema_name: Trixx::Application.config.trixx_db_user}
     assert_response :success
   end
+=end
 
 end

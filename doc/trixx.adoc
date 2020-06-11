@@ -90,7 +90,7 @@ This schema contains configuration tables which TriXX will create itself at firs
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
 
 ==== Rights for owner of TriXX DB schema ====
-The owner of the TriXX.schema requires the following grants at database:
+The owner of the TriXX schema requires the following grants at database:
 
 .Grants required for Oracle
 [cols="~,~"]
@@ -98,10 +98,17 @@ The owner of the TriXX.schema requires the following grants at database:
 |Grant|Description
 
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
-|SELECT ON sys.DBA_Tables|Allows listing of table names for tables without SELECT grant (not included in All_Tables). This right must be granted by user SYS or SYSDBA.
-|SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT grant (not included in All_Tab_Columns). This right must be granted by user SYS or SYSDBA.
+|SELECT ON sys.DBA_Constraints|For primary key info of table.
+|SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
+|SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT grant for a table.
+|SELECT ON sys.DBA_Tables|Allows listing of table names for tables without SELECT grant (not included in All_Tables).
+|SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT grant (not included in All_Tab_Columns).
+|SELECT ON sys.DBA_Tab_Privs|Allows check if GUI-user has SELECT grant for a table.
+|SELECT ON sys.gv_$Lock|Allows check for housekeeping if there are pending transactions. Accessed via synonym public.gv$Lock.
+|SELECT ON sys.v_$Session|Allows DB session info in health check.
 
 |===
+If suitable an alternative for the detailed single grants may also be to grant 'SELECT ANY DICTIONARY' to the TriXX DB-user.
 
 ==== Kafka configuration ====
 .Options for Kafka consumer
@@ -205,8 +212,27 @@ Therefore multiple triggers from several independent TriXX configurations at one
 TODO: Describe GUI workflow
 
 ==== Managing users, schemas and rights ====
+Menu "Users" shows the already created named users for TriXX. Initially there is always a predefined user 'admin'. +
+Users are identified by E-Mail.
+For authentification at logon one DB-User is associated to each TriXX user, the password of this DB-user is used for logon.
+
+The TriXX-user is authorized for certain schemas for which tables can be tagged for event capturing.
+This schemas can be picked from the list of schemas where the user has select grants at at least one table.
 
 ==== Configuring events to capture at column level ====
+This dialog shows:
+
+* schemas for which the user has the right to configure (via TriXX user configuration)
+* already configured tables of a schema (limited to tables where the user has SELECT grants for)
+* columns of a configured table with marks for Insert/Update/Delete-trigger
+
+Possible onfiguration actions are:
+
+* add tables to configuration for a schema (only possible for tables where the user has SELECT grant for)
+* modify topic name per table
+* modify triggering of change events per column
+
+NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
 
 ==== Generation of database triggers ====
 

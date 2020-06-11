@@ -8,7 +8,7 @@ class ColumnsController < ApplicationController
     table = Table.find table_id
     check_user_for_valid_schema_right(table.schema_id)
 
-    @columns = Column.joins(:table).where(table_id: table_id)
+    @columns = Column.includes(table: :schema).joins(table: :schema).where(table_id: table_id)
     render json: @columns
   end
 
