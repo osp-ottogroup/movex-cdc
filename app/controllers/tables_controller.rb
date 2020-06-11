@@ -7,7 +7,7 @@ class TablesController < ApplicationController
     schema_id = params.require(:schema_id)                                      # should only list tables of specific schema
     check_user_for_valid_schema_right(schema_id)
 
-    @tables = Table.where schema_id: schema_id, yn_hidden: 'N'                  # list only tables not marked as hidden
+    @tables = Table.all_allowed_tables_for_schema(schema_id, @current_user.db_user)
     render json: @tables
   end
 

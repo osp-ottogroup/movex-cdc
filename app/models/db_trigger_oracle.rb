@@ -8,8 +8,8 @@ class DbTriggerOracle < TableLess
       WHERE  Owner        = :owner
       AND    Table_Owner  = :table_owner
     ", {
-        owner:        Trixx::Application.config.trixx_db_user.upcase,
-        table_owner:  schema.name.upcase
+        owner:        Trixx::Application.config.trixx_db_user,
+        table_owner:  schema.name
     }
     )
   end
@@ -25,9 +25,9 @@ class DbTriggerOracle < TableLess
       AND    t.Table_Owner  = :table_owner
       AND    t.Table_Name   = :table_name
     ", {
-        owner:        Trixx::Application.config.trixx_db_user.upcase,
-        table_owner:  schema_name.upcase,
-        table_name:   table_name.upcase
+        owner:        Trixx::Application.config.trixx_db_user,
+        table_owner:  schema_name,
+        table_name:   table_name
     }).each do |t|
       ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
         if t['trigger_name'] == build_trigger_name(schema_id, table_id, operation)
@@ -53,10 +53,10 @@ class DbTriggerOracle < TableLess
       AND    Table_Name   = :table_name
       AND    Trigger_Name = :trigger_name
     ", {
-        owner:          Trixx::Application.config.trixx_db_user.upcase,
-        table_owner:    schema.name.upcase,
-        table_name:     table.name.upcase,
-        trigger_name:   trigger_name.upcase
+        owner:          Trixx::Application.config.trixx_db_user,
+        table_owner:    schema.name,
+        table_name:     table.name,
+        trigger_name:   trigger_name
     }
     )
   end
@@ -125,8 +125,8 @@ class DbTriggerOracle < TableLess
          AND    Trigger_Name LIKE :prefix ||'%'
         ",
         {
-            owner:        Trixx::Application.config.trixx_db_user.upcase,
-            table_owner:  @schema.name.upcase,
+            owner:        Trixx::Application.config.trixx_db_user,
+            table_owner:  @schema.name,
             prefix:       DbTriggerOracle.trigger_name_prefix
         }
     )
@@ -168,7 +168,6 @@ class DbTriggerOracle < TableLess
   def self.trigger_name_prefix
     if @@trigger_name_prefix.nil?
       @@trigger_name_prefix = "TRIXX_"                                          # owner of trigger is always trixx_db_user, must not be part of trigger name
-      # @@trigger_name_prefix = "TRIXX_#{TableLess.select_one("SELECT ORA_HASH(:db_user, 1000000000) FROM DUAL", {db_user: Trixx::Application.config.trixx_db_user.upcase})}"
     end
     @@trigger_name_prefix
   end
@@ -324,8 +323,8 @@ END #{target_trigger_data[:trigger_name]};
     errors = TableLess.select_all(
         "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
         {
-            owner:  Trixx::Application.config.trixx_db_user.upcase,
-            name:   trigger_name.upcase
+            owner:  Trixx::Application.config.trixx_db_user,
+            name:   trigger_name
         }
     )
     if errors.count == 0

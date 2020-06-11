@@ -64,7 +64,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     # login  existing user with db-user (admin) in upcase
     post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.upcase, password: Trixx::Application.config.trixx_db_password}
     case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then assert_response :success, 'Login with DB password should be possible with downcase'
+    when 'ORACLE' then assert_response :success, 'Login with DB password should be possible with upcase'
     when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
     end
 

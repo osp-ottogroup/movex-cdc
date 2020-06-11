@@ -271,7 +271,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
         jdbc_conn = ActiveRecord::Base.connection.raw_connection
         cursor = jdbc_conn.prepareStatement sql
         ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
-          array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user.upcase}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
+          array = jdbc_conn.createARRAY("#{Trixx::Application.config.trixx_db_user}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
           cursor.setArray(1, array)
           result = cursor.executeUpdate
           if result != event_logs.length
