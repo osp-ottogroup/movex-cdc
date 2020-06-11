@@ -38,8 +38,12 @@ namespace :ci_preparation do
       exec(conn, "GRANT CONNECT TO #{username}")                if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'CONNECT'")                == 0
       exec(conn, "GRANT RESOURCE TO #{username}")               if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'RESOURCE'")               == 0
       exec(conn, "GRANT CREATE ANY TRIGGER TO #{username}")     if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'CREATE ANY TRIGGER'")     == 0
-      exec(conn, "GRANT SELECT ANY DICTIONARY TO #{username}")  if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'SELECT ANY DICTIONARY'")  == 0
-
+#      exec(conn, "GRANT SELECT ANY DICTIONARY TO #{username}")  if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'SELECT ANY DICTIONARY'")  == 0
+      exec(conn, "GRANT SELECT ON DBA_Sys_Privs TO #{username}")
+      exec(conn, "GRANT SELECT ON DBA_Tables TO #{username}")
+      exec(conn, "GRANT SELECT ON DBA_Tab_Columns TO #{username}")
+      exec(conn, "GRANT SELECT ON DBA_Tab_Privs TO #{username}")
+      exec(conn, "GRANT SELECT ON gv_$Lock TO #{username}")
     end
 
     puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
