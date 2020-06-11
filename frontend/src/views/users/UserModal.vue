@@ -52,10 +52,24 @@
             </b-field>
 
             <b-field label="Admin User">
-              <b-checkbox v-model="internalUser.yn_admin"
-                          true-value="Y"
-                          false-value="N"/>
+              <b-switch v-model="internalUser.yn_admin"
+                        true-value="Y"
+                        false-value="N"/>
             </b-field>
+
+            <b-field label="Account Locked">
+              <b-field>
+                <b-switch v-model="internalUser.yn_account_locked"
+                          true-value="Y"
+                          false-value="N"
+                          type="is-danger"/>
+                <p v-if="internalUser.failed_logons > 0" class="control">
+                  <b-icon icon="exclamation-triangle" size="is-small" type="is-warning"/>
+                  The user has {{internalUser.failed_logons}} failed logons.
+                </p>
+              </b-field>
+            </b-field>
+
           </div>
 
           <div class="column border-left">
