@@ -44,6 +44,7 @@ namespace :ci_preparation do
       exec(conn, "GRANT SELECT ON DBA_Tab_Columns TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tab_Privs TO #{username}")
       exec(conn, "GRANT SELECT ON gv_$Lock TO #{username}")
+      exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
     end
 
     puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
