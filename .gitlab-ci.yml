@@ -63,7 +63,7 @@ stages:
   extends: .tests
   variables:
     TRIXX_DB_TYPE: "ORACLE"
-    TRIXX_DB_SYSTEM_PASSWORD: "oracle"
+    TRIXX_DB_SYS_PASSWORD: "oracle"
     TEST_SERVICENAME: "ORCL"
 
 test_sqlite:
