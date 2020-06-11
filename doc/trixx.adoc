@@ -215,7 +215,7 @@ This schemas can be picked from the list of schemas where the user has select gr
 ==== Configuring events to capture at column level ====
 This dialog shows:
 
-* schemas for which the user has the right to configure
+* schemas for which the user has the right to configure (via TriXX user configuration)
 * already configured tables of a schema (limited to tables where the user has SELECT grants for)
 * columns of a configured table with marks for Insert/Update/Delete-trigger
 
