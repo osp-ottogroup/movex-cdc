@@ -98,6 +98,7 @@ The owner of the TriXX schema requires the following grants at database:
 |Grant|Description
 
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
+|CREATE VIEW|Allows creation of views in TriXX schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
 |SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT grant for a table.

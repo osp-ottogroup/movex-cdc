@@ -38,7 +38,7 @@ namespace :ci_preparation do
       exec(conn, "GRANT CONNECT TO #{username}")                if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'CONNECT'")                == 0
       exec(conn, "GRANT RESOURCE TO #{username}")               if select_single(conn, "SELECT COUNT(*) FROM DBA_Role_Privs WHERE Grantee  = UPPER('#{username}') AND Granted_Role = 'RESOURCE'")               == 0
       exec(conn, "GRANT CREATE ANY TRIGGER TO #{username}")     if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'CREATE ANY TRIGGER'")     == 0
-#      exec(conn, "GRANT SELECT ANY DICTIONARY TO #{username}")  if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'SELECT ANY DICTIONARY'")  == 0
+      exec(conn, "GRANT CREATE VIEW TO #{username}")            if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'CREATE VIEW'")  == 0
       exec(conn, "GRANT SELECT ON DBA_Constraints TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Cons_Columns TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Sys_Privs TO #{username}")
