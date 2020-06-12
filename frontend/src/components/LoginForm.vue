@@ -1,5 +1,6 @@
 <template>
   <div class="modal-card" style="width: auto">
+    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
     <form @submit.prevent="onSubmit">
       <header class="modal-card-head">
         <p class="modal-card-title">Login</p>
@@ -25,6 +26,10 @@
             validation-message="Password must not be empty">>
           </b-input>
         </b-field>
+
+        <b-message v-if="errorMessage" type="is-danger">
+          <span v-html="errorMessage"></span>
+        </b-message>
       </section>
       <footer class="modal-card-foot">
         <b-button native-type="submit" class="button is-primary is-fullwidth">
@@ -36,7 +41,6 @@
 </template>
 
 <script>
-import { ToastProgrammatic as Toast } from 'buefy';
 import LoginService from '../services/LoginService';
 import { getErrorMessageAsHtml } from '@/helpers';
 
@@ -45,7 +49,8 @@ export default {
     return {
       userName: null,
       password: null,
-      toast: null,
+      isLoading: false,
+      errorMessage: null,
     };
   },
   computed: {
@@ -59,17 +64,14 @@ export default {
   methods: {
     async onSubmit() {
       try {
-        if (this.toast !== null) {
-          this.toast.close();
-        }
+        this.isLoading = true;
+        this.errorMessage = null;
         await LoginService.login(this.credentials);
         this.$emit('login');
       } catch (e) {
-        this.toast = Toast.open({
-          duration: 10000,
-          message: getErrorMessageAsHtml(e, 'Login failed'),
-          type: 'is-danger',
-        });
+        this.errorMessage = getErrorMessageAsHtml(e, 'Login failed');
+      } finally {
+        this.isLoading = false;
       }
     },
   },

@@ -12,7 +12,7 @@ describe('helpers.js', () => {
     it('should get message from arbitrary Error with prepended message', () => {
       const error = new Error('ERROR');
       const errorMessage = getErrorMessageAsHtml(error, 'PREPEND');
-      expect(errorMessage).toEqual('<div>PREPEND</div><div>ERROR</div>');
+      expect(errorMessage).toEqual('<div><b>PREPEND</b></div><div>ERROR</div>');
     });
 
     it('should get message from ServerError if errors list is empty', () => {
@@ -24,7 +24,7 @@ describe('helpers.js', () => {
     it('should get message from ServerError if errors list is empty with prepended message', () => {
       const error = new ServerError('SERVER_ERROR', [], 500);
       const errorMessage = getErrorMessageAsHtml(error, 'PREPEND');
-      expect(errorMessage).toEqual('<div>PREPEND</div><div>SERVER_ERROR</div>');
+      expect(errorMessage).toEqual('<div><b>PREPEND</b></div><div>SERVER_ERROR</div>');
     });
 
     it('should get errors from ServerError if errors list is not empty', () => {
@@ -36,7 +36,7 @@ describe('helpers.js', () => {
     it('should get errors from ServerError if errors list is not empty with prepended message', () => {
       const error = new ServerError('SERVER_ERROR', ['ERROR_1', 'ERROR_2'], 500);
       const errorMessage = getErrorMessageAsHtml(error, 'PREPEND');
-      expect(errorMessage).toEqual('<div>PREPEND</div><div>ERROR_1</div><div>ERROR_2</div>');
+      expect(errorMessage).toEqual('<div><b>PREPEND</b></div><div>ERROR_1</div><div>ERROR_2</div>');
     });
 
     it('should get default message if Error has no message', () => {
@@ -48,7 +48,7 @@ describe('helpers.js', () => {
     it('should get default message if Error has no message with prepended message', () => {
       const error = new Error();
       const errorMessage = getErrorMessageAsHtml(error, 'PREPEND');
-      expect(errorMessage).toEqual('<div>PREPEND</div><div>An unknown error occurred!</div>');
+      expect(errorMessage).toEqual('<div><b>PREPEND</b></div><div>An unknown error occurred!</div>');
     });
   });
 });

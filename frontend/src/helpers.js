@@ -15,7 +15,7 @@ export const getErrorMessageAsHtml = (error, prependMessage = '') => {
   }
 
   if (prependMessage !== '') {
-    errorMessage = `<div>${prependMessage}</div>${errorMessage}`;
+    errorMessage = `<div><b>${prependMessage}</b></div>${errorMessage}`;
   }
 
   return errorMessage;
