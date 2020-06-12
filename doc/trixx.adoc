@@ -90,7 +90,9 @@ This schema contains configuration tables which TriXX will create itself at firs
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
 
 ==== Rights for owner of TriXX DB schema ====
-The owner of the TriXX schema requires the following grants at database:
+The owner of the TriXX schema requires some preconditions/grants at database.
+
+===== Rights for owner of TriXX DB schema: Oracle =====
 
 .Grants required for Oracle
 [cols="~,~"]
