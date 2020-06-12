@@ -13,7 +13,7 @@ class DbSchemaTest < ActiveSupport::TestCase
   end
 
   test "get authorizable_schemas" do
-    db_schemas = DbSchema.authorizable_schemas('quark')                            # non existing user name
+    db_schemas = DbSchema.authorizable_schemas('quark', nil)                    # non existing user name
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       assert_equal 0, db_schemas.count, 'Non existing email should not find any schema'
@@ -23,14 +23,18 @@ class DbSchemaTest < ActiveSupport::TestCase
       raise "Specify test condition for trixx_db_type"
     end
 
-    db_schemas = DbSchema.authorizable_schemas('Peter.Ramm@ottogroup.com')         # existing user name
+    db_schemas = DbSchema.authorizable_schemas(users(:one).email, nil) # existing user name
     match_schemas = db_schemas.to_a.map{|s| s['name']}
-    assert(!match_schemas.include?(Trixx::Application.config.trixx_db_user),         'Corresponding schema_right from user should not be in list')
+    assert(!match_schemas.include?(users(:one).db_user), 'Corresponding schema_right from user should not be in list')
 
     SchemaRight.delete_all
-    db_schemas = DbSchema.authorizable_schemas('Peter.Ramm@ottogroup.com')         # existing user name
+    db_schemas = DbSchema.authorizable_schemas(users(:one).email, nil) # existing user name
     match_schemas = db_schemas.to_a.map{|s| s['name']}
-    assert(match_schemas.include?(Trixx::Application.config.trixx_db_victim_user),      'victim user should be in list now')
+    assert(match_schemas.include?(users(:one).db_user), 'users DB_User should be in list now for existing user')
+
+    db_schemas = DbSchema.authorizable_schemas(nil, users(:one).db_user) # while creating user (not already saved)
+    match_schemas = db_schemas.to_a.map{|s| s['name']}
+    assert(match_schemas.include?(users(:one).db_user), 'users DB_User should be in list now for new user')
 
   end
 
