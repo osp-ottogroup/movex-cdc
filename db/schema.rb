@@ -48,14 +48,12 @@ ActiveRecord::Schema.define(version: 2020_06_11_000000) do
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
-  create_table "event_logs", id: false, force: :cascade do |t|
-    t.integer "id", precision: 38, null: false
+  create_table "event_logs", force: :cascade do |t|
     t.integer "table_id", precision: 38, null: false
     t.string "operation", limit: 1, null: false
     t.string "dbuser", limit: 128, null: false
     t.text "payload", null: false
     t.datetime "created_at", precision: 6, null: false
-    t.string "key", limit: 4000, comment: "Optional Kafka message key to ensure all messages of same key are stored in same partition"
     t.string "msg_key", limit: 4000, comment: "Optional Kafka message key to ensure all messages of same key are stored in same partition"
   end
 
@@ -107,13 +105,6 @@ ActiveRecord::Schema.define(version: 2020_06_11_000000) do
     t.string "yn_hidden", limit: 1, default: "N", null: false, comment: "Is table hidden for GUI ? Tables are marked hidden instead of physical deletion."
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
-  end
-
-  create_table "trixx_test", id: :decimal, force: :cascade do |t|
-    t.string "name", limit: 30
-    t.decimal "attr1"
-    t.decimal "attr2"
-    t.decimal "attr3"
   end
 
   create_table "users", comment: "Users allowed to login", force: :cascade do |t|

@@ -18,8 +18,8 @@ class TablesController < ApplicationController
 
   # GET /trigger_dates/1
   def trigger_dates
-    dates = @table.oldest_trigger_change_dates_per_operation
-    render json: {oldest_insert_trigger_changed_at: dates['I'], oldest_update_trigger_changed_at: dates['U'], oldest_delete_trigger_changed_at: dates['D']}
+    dates = @table.youngest_trigger_change_dates_per_operation
+    render json: {youngest_insert_trigger_changed_at: dates['I'], youngest_update_trigger_changed_at: dates['U'], youngest_delete_trigger_changed_at: dates['D']}
   end
 
   # POST /tables
