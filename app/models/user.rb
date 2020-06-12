@@ -5,6 +5,7 @@ class User < ApplicationRecord
   validates :yn_admin, acceptance: { accept: ['Y', 'N'] }
 
   def validate_schema_name
+    self.db_user = db_user.upcase if Trixx::Application.config.trixx_db_type == 'ORACLE' && !db_user.nil?
     unless DbSchema.valid_schema_name?(db_user)
       errors.add(:db_user, "User '#{db_user}' does not exists in database")
     end

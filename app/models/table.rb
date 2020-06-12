@@ -5,6 +5,13 @@ class Table < ApplicationRecord
   validate    :topic_in_table_or_schema
   validate    :kafka_key_handling_validate
 
+  # get all tables for schema where the current user has SELECT grant
+  def self.all_allowed_tables_for_schema(schema_id, db_user)
+    schema = Schema.find schema_id
+    Table.where({schema_id: schema_id, yn_hidden: 'N' })
+        .where(["Name IN (SELECT Table_Name FROM Allowed_DB_Tables WHERE Owner = ? AND Grantee = ?)", schema.name, db_user])
+  end
+
   def topic_in_table_or_schema
     if (topic.nil? || topic == '') && (schema.topic.nil? || schema.topic == '')
       errors.add(:topic, "cannot be empty if topic of schema is also empty")
@@ -41,14 +48,13 @@ class Table < ApplicationRecord
 
   # get oldest change date of existing trigger for every operation (I/U/D)
   # there may exist multiple triggers for one operation (BEFORE, AFTER etc.)
-  def oldest_trigger_change_dates_per_operation
-    oldest_change_dates = {}
+  def youngest_trigger_change_dates_per_operation
+    youngest_change_dates = {}
     db_triggers.each do |t|
-      if oldest_change_dates[t[:operation]].nil? || ( !t[:changed_at].nil? && t[:changed_at] < oldest_change_dates[t[:operation]] )
-        oldest_change_dates[t[:operation]] = t[:changed_at]
+      if youngest_change_dates[t[:operation]].nil? || ( !t[:changed_at].nil? && t[:changed_at] > youngest_change_dates[t[:operation]] )
+        youngest_change_dates[t[:operation]] = t[:changed_at]
       end
     end
-    oldest_change_dates
+    youngest_change_dates
   end
-
 end

@@ -90,7 +90,9 @@ This schema contains configuration tables which TriXX will create itself at firs
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
 
 ==== Rights for owner of TriXX DB schema ====
-The owner of the TriXX schema requires the following grants at database:
+The owner of the TriXX schema requires some preconditions/grants at database.
+
+===== Rights for owner of TriXX DB schema: Oracle =====
 
 .Grants required for Oracle
 [cols="~,~"]
@@ -98,6 +100,7 @@ The owner of the TriXX schema requires the following grants at database:
 |Grant|Description
 
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
+|CREATE VIEW|Allows creation of views in TriXX schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
 |SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT grant for a table.

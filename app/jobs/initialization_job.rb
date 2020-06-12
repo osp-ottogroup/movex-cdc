@@ -35,7 +35,7 @@ class InitializationJob < ApplicationJob
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do
         db_user = case Trixx::Application.config.trixx_db_type
-                  when 'ORACLE' then Trixx::Application.config.trixx_db_user.upcase   # all schemas/users are handled in upper case
+                  when 'ORACLE' then Trixx::Application.config.trixx_db_user   # all schemas/users are handled in upper case
                   else
                     Trixx::Application.config.trixx_db_user
                   end

@@ -11,8 +11,8 @@ class DbSchemasController < ApplicationController
   # delivers filtered list of schemas where the current user has read grants on tables
   # schemas already attached to the user are not listed again
   def authorizable_schemas
-    email = params.permit(:email)[:email]
-    @db_schemas = DbSchema.authorizable_schemas(email)
+    permitted_params = params.permit(:email, :db_user)
+    @db_schemas = DbSchema.authorizable_schemas(permitted_params[:email], permitted_params[:db_user])
 
     render json: @db_schemas
   end

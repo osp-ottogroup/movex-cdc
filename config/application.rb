@@ -117,7 +117,9 @@ module Trixx
     when 'ORACLE' then
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.trixx_db_user            = "test_#{config.respond_to?(:trixx_db_user) ? config.trixx_db_user : 'trixx'}"
-        Trixx::Application.set_and_log_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim') if Rails.env.test? # Schema for tables observed by trixx
+        Trixx::Application.set_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim')
+        config.trixx_db_victim_user = config.trixx_db_victim_user.upcase
+        Trixx::Application.log_attribute(:trixx_db_victim_user.to_s.upcase, config.trixx_db_victim_user)
         Trixx::Application.set_and_log_attrib_from_env(:trixx_db_sys_password, default: 'oracle')
       end
     when 'SQLITE' then
@@ -129,7 +131,10 @@ module Trixx
       raise "unsupported DB type '#{config.trixx_db_type}'"
     end
 
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_user)
+    Trixx::Application.set_attrib_from_env(:trixx_db_user)
+    config.trixx_db_user = config.trixx_db_user.upcase if config.trixx_db_type == 'ORACLE'
+    Trixx::Application.log_attribute(:trixx_db_user.to_s.upcase, config.trixx_db_user)
+
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads)
