@@ -16,7 +16,7 @@ class TransferThreadTest < ActiveSupport::TestCase
       loop_count = 0
       while loop_count < 10 do                                                  # wait up to x seconds for processing
         loop_count += 1
-        event_logs = TableLess.select_one("SELECT COUNT(*) FROM Event_Logs")
+        event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
         break if event_logs == 0                                                # All records processed, no need to wait anymore
         sleep 1
       end
@@ -24,7 +24,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     end
 
     worker.process                                                              # only synchrone execution ensures valid test of function
-    assert_equal 0, TableLess.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All Records from Event_Logs should be processed and deleted now'
+    assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All Records from Event_Logs should be processed and deleted now'
   end
 
 end

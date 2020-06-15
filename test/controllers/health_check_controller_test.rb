@@ -7,7 +7,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     loop_count = 0
     while loop_count < 10 do                                                  # wait up to x seconds for processing of event_logs records
       loop_count += 1
-      event_logs = TableLess.select_one("SELECT COUNT(*) FROM Event_Logs")
+      event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
       break if event_logs == 0                                                # All records processed, no need to wait anymore
       sleep 1
     end

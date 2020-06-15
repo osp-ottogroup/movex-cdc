@@ -29,7 +29,7 @@ class Housekeeping
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       # check all partitions for deletion except the youngest one
-      TableLess.select_all("\
+      Database.select_all("\
         WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
                             FROM   User_Tab_Partitions
                             WHERE  Table_Name = 'EVENT_LOGS'
@@ -41,10 +41,10 @@ class Housekeeping
         "
       ).each do |part|
         part_high_value_ts = Time.parse(part['high_value'])
-        oldest_high_value = TableLess.select_one "SELECT SYSDATE - 1/24 FROM DUAL" # Use time from DB because of possibe different time zone compared to client
+        oldest_high_value = Database.select_one "SELECT SYSDATE - 1/24 FROM DUAL" # Use time from DB because of possibe different time zone compared to client
         if part_high_value_ts < oldest_high_value                               # Check partitions only with high_value older than x hours
           Rails.logger.info "Housekeeping: Check partition #{part['partition_name']} with high value #{part['high_value']} for deletion"
-          pending_transactions = TableLess.select_one("\
+          pending_transactions = Database.select_one("\
             SELECT COUNT(*)
             FROM   gv$Lock l
             JOIN   All_Objects o ON o.Object_ID = l.ID1
@@ -55,12 +55,12 @@ class Housekeeping
           if pending_transactions > 0
             Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{pending_transactions} pending transactions"
           else
-            existing_records = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{part['partition_name']})"
+            existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{part['partition_name']})"
             if existing_records > 0
               Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{existing_records} records remaining"
             else
               Rails.logger.info "Housekeeping: Execute drop partition #{part['partition_name']} with high value #{part['high_value']}"
-              TableLess.execute "ALTER TABLE Event_Logs DROP PARTITION #{part['partition_name']}"
+              Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{part['partition_name']}"
               Rails.logger.info "Housekeeping: Successful dropped partition #{part['partition_name']} with high value #{part['high_value']}"
             end
           end

@@ -48,9 +48,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy user" do
+    ActivityLog.new(user_id: @user.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
+    assert_difference('User.count', 0, 'User should be deactivated instead of deleted if foreign key supresses delete') do
+      delete user_url(@user), headers: jwt_header(@jwt_admin_token), as: :json
+    end
+    assert_response 204
+
+
     # Remove objects that may cause foreign key error
     ActivityLog.all.each do |al|
-      al.destroy
+      al.destroy!
     end
 
     assert_difference('User.count', -1) do

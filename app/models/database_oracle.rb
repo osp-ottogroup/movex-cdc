@@ -103,7 +103,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 
 end #class_eval
 
-class TableLessOracle
+class DatabaseOracle
   # options: :query_name, :query_timeout, :fetch_limit
   def self.select_all_limit(stmt, filter={}, options={})
     options[:query_name] = 'select_all_limit' unless options[:query_name]
@@ -116,4 +116,10 @@ class TableLessOracle
 
     ActiveRecord::Base.connection.get_jdbc_connection.select_all_limit(stmt, binds,options)
   end
+
+  # Set context info at database session
+  def self.set_application_info(action_info)
+    Database.execute "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)", {module: "TriXX", action: action_info}
+  end
+
 end

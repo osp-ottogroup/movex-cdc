@@ -1,4 +1,4 @@
-class DbTriggerSqlite < TableLess
+class DbTriggerSqlite < Database
 
   # get ActiveRecord::Result with trigger records
   def self.find_all_by_schema_id(schema_id)
@@ -74,7 +74,7 @@ class DbTriggerSqlite < TableLess
         }
 
         # Find matching type and notnull for trigger columns
-        TableLess.select_all("PRAGMA table_info(#{tab[:table_name]})").each do |table_column|
+        Database.select_all("PRAGMA table_info(#{tab[:table_name]})").each do |table_column|
           trigger_data[:columns].each do |trigger_column|
             if table_column['name'].upcase == trigger_column[:column_name].upcase
               trigger_column[:type]     = table_column['type']
@@ -87,7 +87,7 @@ class DbTriggerSqlite < TableLess
       end
     end
 
-    existing_triggers = TableLess.select_all(
+    existing_triggers = Database.select_all(
         "SELECT Name Trigger_Name, Tbl_Name Table_Name, SQL
          FROM   SQLite_Master
          WHERE  Type       = 'trigger'
@@ -152,7 +152,7 @@ class DbTriggerSqlite < TableLess
 
     result = "'{'"
     first = true
-    TableLess.select_all("PRAGMA table_info(#{table_name})").each do |i|
+    Database.select_all("PRAGMA table_info(#{table_name})").each do |i|
       if i['pk'] > 0
         # TODO: put quotes on string and date
         result << "||'#{',' unless first} #{i['name']}: '|| #{pk_accessor}.#{i['name']}"

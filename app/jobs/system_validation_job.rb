@@ -7,6 +7,7 @@ class SystemValidationJob < ApplicationJob
 
     # Ensure that enough worker threads are operating for event transfer
     begin
+      Database.set_application_info('SystemValidationJob/ensure_processing')
       ThreadHandling.get_instance.ensure_processing
     rescue Exception => e
       ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling ThreadHandling.ensure_processing! Proceeding with housekeeping.")
@@ -14,6 +15,7 @@ class SystemValidationJob < ApplicationJob
 
     # do housekeeping activities
     begin
+      Database.set_application_info('SystemValidationJob/do_housekeeping')
       Housekeeping.get_instance.do_housekeeping
     rescue Exception => e
       ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling Housekeeping!")

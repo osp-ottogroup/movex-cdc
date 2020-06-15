@@ -6,7 +6,7 @@ class InitializationJob < ApplicationJob
 
   def perform(*args)
     puts "Initialization at startup"
-
+    Database.set_application_info('InitializationJob/perform')
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
     Trixx::Application.load_tasks
     if ENV['TRIXX_SUPPRESS_MIGRATION_AT_STARTUP']

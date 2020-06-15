@@ -40,4 +40,11 @@ class User < ApplicationRecord
     self.failed_logons = 0
     save!
   end
+
+  def destroy
+    super
+  rescue Exception => e
+    self.update!(yn_account_locked: 'Y')
+    ActivityLog.new(user_id: self.id, action: 'User locked at delete request because foreign keys prevent the deletion').save!
+  end
 end

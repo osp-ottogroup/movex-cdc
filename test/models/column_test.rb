@@ -15,9 +15,9 @@ class ColumnTest < ActiveSupport::TestCase
   end
 
   test "count active columns" do
-    num_active_4        = TableLess.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 4 AND (YN_Log_Insert = 'Y' OR YN_Log_Update = 'Y' OR YN_Log_Delete = 'Y')"
-    num_active_4_update = TableLess.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 4 AND (YN_Log_Update = 'Y')"
-    num_active_1_delete = TableLess.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 1 AND (YN_Log_Delete = 'Y')"
+    num_active_4        = Database.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 4 AND (YN_Log_Insert = 'Y' OR YN_Log_Update = 'Y' OR YN_Log_Delete = 'Y')"
+    num_active_4_update = Database.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 4 AND (YN_Log_Update = 'Y')"
+    num_active_1_delete = Database.select_one "SELECT COUNT(*) FROM Columns WHERE Table_ID = 1 AND (YN_Log_Delete = 'Y')"
 
     assert_equal(num_active_4,        Column.count_active(table_id: 4),                     'Should return the number of active columns of table')
     assert_equal(num_active_4_update, Column.count_active(table_id: 4, yn_log_update: 'Y'), 'Should return the number of active columns of table for update')

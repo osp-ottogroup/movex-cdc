@@ -167,7 +167,7 @@ module Trixx
       if !defined? @trixx_db_partitioning
         @trixx_db_partitioning = case config.trixx_db_type
                                  when 'ORACLE' then
-                                   TableLess.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
+                                   Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
                                  else
                                    false
                                  end

@@ -1,4 +1,4 @@
-class DbTriggerOracle < TableLess
+class DbTriggerOracle < Database
   # get ActiveRecord::Result with trigger records
   def self.find_all_by_schema_id(schema_id)
     schema = Schema.find schema_id
@@ -81,7 +81,7 @@ class DbTriggerOracle < TableLess
     target_triggers = {}
     @target_trigger_data.each do |tab|
       ora_columns = {}                                                          # list of table columns from db with column_name as key
-      TableLess.select_all(
+      Database.select_all(
           "SELECT Column_Name, Data_Type, Nullable FROM DBA_Tab_Columns WHERE Owner = :owner AND Table_Name = :table_name",
           { owner: @schema.name, table_name: tab[:table_name]}
       ).each do |c|
@@ -117,7 +117,7 @@ class DbTriggerOracle < TableLess
       end
     end
 
-    existing_triggers = TableLess.select_all(
+    existing_triggers = Database.select_all(
         "SELECT Table_Name, Trigger_Name, Description, Trigger_Body
          FROM   All_Triggers
          WHERE  Owner       = :owner
@@ -201,18 +201,18 @@ class DbTriggerOracle < TableLess
 
     result = "'{'"
     first = true
-    pk_constraint_name = TableLess.select_one("SELECT Constraint_Name
+    pk_constraint_name = Database.select_one("SELECT Constraint_Name
                                                FROM   DBA_Constraints
                                                WHERE  Owner       = :schema_name
                                                AND    Table_Name  = :table_name
                                                AND    Constraint_Type = 'P'
                                               ",
-                                              schema_name:  schema_name,
-                                              table_name:   table_name
+                                             schema_name:  schema_name,
+                                             table_name:   table_name
     )
     raise "DbTriggerOracle.message_key_sql: Table #{schema_name}.#{table_name} does not have a primary key" if pk_constraint_name.nil?
 
-    TableLess.select_all("SELECT cc.column_name, tc.Data_Type
+    Database.select_all("SELECT cc.column_name, tc.Data_Type
                           FROM   DBA_Cons_Columns cc
                           JOIN   DBA_Tab_Columns tc ON tc.Owner = cc.Owner AND tc.Table_name = cc.Table_Name AND tc.Column_Name = cc.Column_Name
                           WHERE  cc.Owner           = :schema_name
@@ -220,9 +220,9 @@ class DbTriggerOracle < TableLess
                           AND    cc.Constraint_Name = :constraint_name
                           ORDER BY cc.Position
                          ",
-                         schema_name:     schema_name,
-                         table_name:      table_name,
-                         constraint_name: pk_constraint_name
+                        schema_name:     schema_name,
+                        table_name:      table_name,
+                        constraint_name: pk_constraint_name
     ).each do |i|
       result << "||'#{',' unless first} #{i['column_name']}: '||#{convert_col({column_name: i['column_name'] , data_type: i['data_type']}, pk_accessor)}"
       first = false
@@ -320,7 +320,7 @@ END #{target_trigger_data[:trigger_name]};
   def exec_trigger_sql(sql, trigger_name)
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql)
-    errors = TableLess.select_all(
+    errors = Database.select_all(
         "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
         {
             owner:  Trixx::Application.config.trixx_db_user,

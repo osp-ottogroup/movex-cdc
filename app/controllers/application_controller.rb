@@ -26,6 +26,8 @@ class ApplicationController < ActionController::API
   # If user not exist it will return ActiveRecord::RecordNotFound and it will render error message with http status unauthorized.
   @@authorize_exceptions = [{ controller: :login, action: :do_logon}, { controller: :login, action: :index}, { controller: :login, action: :release_info}, { controller: :health_check, action: :index}]
   def authorize_request
+    Database.set_application_info("#{controller_name}/#{action_name}")
+
     return if @@authorize_exceptions.include?(controller: controller_name.to_sym, action: action_name.to_sym)
 
     header = request.headers['Authorization']

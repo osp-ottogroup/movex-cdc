@@ -77,7 +77,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
-      fixture_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
+      fixture_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
 
       case Trixx::Application.config.trixx_db_type
@@ -112,12 +112,12 @@ class DbTriggerTest < ActiveSupport::TestCase
       # Next record should not generate record in Event_Logs
       exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (5, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
 
-      real_event_logs     = TableLess.select_one "SELECT COUNT(*) FROM Event_Logs"
+      real_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
 
       # Dump Event_Logs
       Rails.logger.info "======== Dump all event_logs ========="
-      TableLess.select_all("SELECT * FROM Event_Logs").each do |e|
+      Database.select_all("SELECT * FROM Event_Logs").each do |e|
         Rails.logger.info e
       end
 

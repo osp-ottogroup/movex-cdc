@@ -2,7 +2,7 @@ require 'test_helper'
 
 class StatisticCounterConcentratorTest < ActiveSupport::TestCase
   test "create statistics" do
-    TableLess.execute "DELETE FROM Statistics"                                  # Ensure valid counters
+    Database.execute "DELETE FROM Statistics"                                  # Ensure valid counters
 
     sc = StatisticCounter.new
 
@@ -41,24 +41,24 @@ class StatisticCounterConcentratorTest < ActiveSupport::TestCase
 
     StatisticCounterConcentrator.get_instance.flush_to_db
 
-    assert_equal 4,   TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts success'
-    assert_equal 2,   TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts success'
+    assert_equal 4, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts success'
+    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts success'
 
-    assert_nil TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates success'
-    assert_equal 4,   TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates success'
+    assert_nil Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates success'
+    assert_equal 4, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates success'
 
-    assert_equal 2,   TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates deletes'
-    assert_equal 2,   TableLess.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates deletes'
+    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates deletes'
+    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates deletes'
 
 
-    assert_equal 2,   TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts failure'
-    assert_equal 1,   TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts failure'
+    assert_equal 2, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts failure'
+    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts failure'
 
-    assert_nil TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates failure'
-    assert_equal 2,   TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates failure'
+    assert_nil Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates failure'
+    assert_equal 2, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates failure'
 
-    assert_equal 1,   TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates failure'
-    assert_equal 1,   TableLess.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates failure'
+    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates failure'
+    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates failure'
 
 
   end

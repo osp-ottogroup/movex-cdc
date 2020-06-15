@@ -3,7 +3,7 @@ require 'kafka_mock'
 require 'socket'
 
 # preload classes to prevent from 'RuntimeError: Circular dependency detected while autoloading constant' if multiple threads start working simultaneously
-require 'table_less'
+require 'database'
 require 'schema'
 require 'table'
 require 'exception_helper'
@@ -48,8 +48,9 @@ class TransferThread
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}"}
+    Database.set_application_info("worker #{@worker_id}/process")
     @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
-    set_query_timeouts                                                     # ensure hanging sessions are cancelled sometimes
+    set_query_timeouts                                                          # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
     kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
@@ -220,43 +221,43 @@ class TransferThread
       if Trixx::Application.partitioning
         event_logs = []
         # Iterate over partitions starting with oldest up to @max_transaction_size records
-        TableLess.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
+        Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
             .sort_by{|x| x['high_value']}.each do |part|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
           if remaining_records > 0                                              # add records from next partition to result
             # First step: look for records with smaller ID than largest of lst run (older records)
-            event_logs.concat(TableLessOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+            event_logs.concat(DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs PARTITION (#{part['partition_name']}) e
                                                                 WHERE  e.ID < :max_id
                                                                 FOR UPDATE SKIP LOCKED",
-                                                               {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
+                                                              {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
             ))
             remaining_records = @max_transaction_size - event_logs.count        # available space for more result records
             if remaining_records > 0                                            # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
-              event_logs.concat(TableLessOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+              event_logs.concat(DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs PARTITION (#{part['partition_name']}) e
                                                                 WHERE  e.ID >= :max_id
                                                                 FOR UPDATE SKIP LOCKED",
-                                                                 {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
+                                                                {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
               ))
             end
           end
         end
         event_logs
       else
-        TableLess.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
-                             {max_id: @max_event_logs_id, max_message_bulk_count1: @max_transaction_size, max_message_bulk_count2: @max_transaction_size }
+        Database.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
+                            {max_id: @max_event_logs_id, max_message_bulk_count1: @max_transaction_size, max_message_bulk_count2: @max_transaction_size }
         )
       end
     when 'SQLITE' then
       # Ensure that older IDs are processed first
       # only half of @max_transaction_size is processed with newer IDs than last execution
       # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
-      TableLess.select_all("\
+      Database.select_all("\
 SELECT * FROM (SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{@max_transaction_size})
 UNION
 SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
-                           {max_id: @max_event_logs_id}
+                          {max_id: @max_event_logs_id}
       )
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
@@ -286,7 +287,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
       end
     when 'SQLITE' then
       event_logs.each do |e|
-        rows = TableLess.execute "DELETE FROM Event_Logs WHERE ID = :id", id: e['id']  # No known way for SQLite to execute in array binding
+        rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", id: e['id']  # No known way for SQLite to execute in array binding
         raise "Error in TransferThread.delete_event_logs_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
       end
     end
@@ -328,7 +329,7 @@ timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
   def db_session_info
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      TableLess.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
+      Database.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
     else '< not implemented >'
     end
   end

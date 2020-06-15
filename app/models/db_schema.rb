@@ -22,7 +22,7 @@ class DbSchema
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      TableLess.select_all("\
+      Database.select_all("\
         SELECT Name
         FROM   (SELECT DISTINCT Owner Name FROM Allowed_DB_Tables WHERE Grantee = :user_name )
         MINUS
@@ -35,7 +35,7 @@ class DbSchema
       }
       )
     when 'SQLITE' then
-      authorizedSchema = TableLess.select_all(
+      authorizedSchema = Database.select_all(
                         "SELECT schema_id
                              FROM Schema_Rights
                              WHERE  user_id = :user_id",
@@ -53,7 +53,7 @@ class DbSchema
     return false if schema_name.nil?
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      TableLess.select_one("SELECT COUNT(*) FROM All_Users WHERE UserName = :schema_name", { schema_name: schema_name}) > 0
+      Database.select_one("SELECT COUNT(*) FROM All_Users WHERE UserName = :schema_name", {schema_name: schema_name}) > 0
     when 'SQLITE' then
       schema_name.downcase == 'main'
     end

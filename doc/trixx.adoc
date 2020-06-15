@@ -220,7 +220,7 @@ Users are identified by E-Mail.
 For authentification at logon one DB-User is associated to each TriXX user, the password of this DB-user is used for logon.
 
 The TriXX-user is authorized for certain schemas for which tables can be tagged for event capturing.
-This schemas can be picked from the list of schemas where the user has select grants at at least one table.
+This schemas can be picked from the list of schemas where the user has select grants at at least one table of this schema.
 
 ==== Configuring events to capture at column level ====
 This dialog shows:
