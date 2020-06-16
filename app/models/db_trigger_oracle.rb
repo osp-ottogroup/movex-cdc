@@ -263,7 +263,7 @@ dbuser      VARCHAR2(128) := USER;
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key)
+    INSERT INTO #{Trixx::Application.config.trixx_db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key)
     VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i).Payload, SYSTIMESTAMP, payload_tab(i).msg_key);
   payload_tab.DELETE;
 END Flush;
