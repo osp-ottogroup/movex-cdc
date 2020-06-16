@@ -26,6 +26,12 @@ class InitializationJob < ApplicationJob
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
+  rescue Exception => e
+    begin
+      ExceptionHelper.log_exception e, 'Initialization failed, abort application now!'
+    ensure
+      exit! 1
+    end
   end
 
   # ensure that user admin exists
