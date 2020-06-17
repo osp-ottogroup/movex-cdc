@@ -477,7 +477,7 @@ image:trixx_er_model.svg.drawio[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Lock user account after multiple failed logons ====
-User account is locked after 5 subsequent failed logon tries. +
+User account is locked after 3 subsequent failed logon tries. +
 Unlocking a locked account is possible via GUI for admin users.
 
 ==== Suppress frequent access ====

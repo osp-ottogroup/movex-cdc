@@ -78,6 +78,24 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
   end
 
+  test "lock account after 5 attempts" do
+    if Trixx::Application.config.trixx_db_type != 'SQLITE'
+      # try wrong password until account is locked for user 'admin'
+      3.downto(1) do
+        post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: 'wrong password'}
+      end
+
+      post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: Trixx::Application.config.trixx_db_password}
+      assert_response :unauthorized, 'Also the valid password should not function now'
+
+      User.find(users(:admin).id).update!(yn_account_locked: 'N')
+
+      post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: Trixx::Application.config.trixx_db_password}
+      assert_response :success, 'After unlock user logon should be possible again'
+    end
+
+  end
+
   test "should get check_jwt" do
     get login_check_jwt_url, as: :json
     assert_response :unauthorized, 'No access should be possible without valid JWT'

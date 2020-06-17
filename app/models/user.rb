@@ -1,13 +1,19 @@
 class User < ApplicationRecord
   has_many :activity_logs
   has_many :schema_rights
-  validate :validate_schema_name
+  validate :validate_values
   validates :yn_admin, acceptance: { accept: ['Y', 'N'] }
 
-  def validate_schema_name
+  def validate_values
     self.db_user = db_user.upcase if Trixx::Application.config.trixx_db_type == 'ORACLE' && !db_user.nil?
     unless DbSchema.valid_schema_name?(db_user)
       errors.add(:db_user, "User '#{db_user}' does not exists in database")
+    end
+
+    # reset failed logons if user becomes unlocked
+    prev_values = User.find self.id
+    if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N'   # chenge of locked state
+      self.failed_logons = 0                                                    # start with no failed logons after unlock
     end
   end
 
@@ -29,7 +35,7 @@ class User < ApplicationRecord
     result[0].amount
   end
 
-  MAX_FAILED_LOGONS = 5
+  MAX_FAILED_LOGONS = 3                                                         # should be small enough to prevent DB account from beeing locked
   def increment_failed_logons
     self.failed_logons = self.failed_logons + 1
     self.yn_account_locked='Y' if self.failed_logons >= MAX_FAILED_LOGONS
