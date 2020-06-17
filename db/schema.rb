@@ -48,7 +48,8 @@ ActiveRecord::Schema.define(version: 2020_06_11_000000) do
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
-  create_table "event_logs", force: :cascade do |t|
+  create_table "event_logs", id: false, force: :cascade do |t|
+    t.integer "id", precision: 38, null: false
     t.integer "table_id", precision: 38, null: false
     t.string "operation", limit: 1, null: false
     t.string "dbuser", limit: 128, null: false

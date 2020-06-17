@@ -134,6 +134,7 @@ class TransferThread
                       raise                                                       # Ensure transaction is rolled back an retried
                     end
                   end
+
                   kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
                   delete_event_logs_batch(event_logs_slice)                     # delete the part in DB currently processed by kafka
                 rescue Kafka::MessageSizeTooLarge => e
@@ -294,14 +295,14 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
   end
 
   def prepare_message_from_event_log(event_log, schema, table)
-    msg = "\
-id: #{event_log['id']},
-schema: '#{schema.name}',
-tablename: '#{table.name}',
-operation: '#{long_operation_from_short(event_log['operation'])}',
-timestamp: '#{timestamp_as_iso_string(event_log['created_at'])}',
+    msg = "{
+\"id\": #{event_log['id']},
+\"schema\": \"#{schema.name}\",
+\"tablename\": \"#{table.name}\",
+\"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
+\"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
 #{event_log['payload']}
-    "
+}"
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
     msg
   end
