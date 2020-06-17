@@ -11,9 +11,11 @@ class User < ApplicationRecord
     end
 
     # reset failed logons if user becomes unlocked
-    prev_values = User.find self.id
-    if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N'   # chenge of locked state
-      self.failed_logons = 0                                                    # start with no failed logons after unlock
+    unless self.id.nil?                                                         # unsaved created user
+      prev_values = User.find self.id
+      if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N' # chenge of locked state
+        self.failed_logons = 0                                                  # start with no failed logons after unlock
+      end
     end
   end
 
