@@ -36,7 +36,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update column" do
-    patch column_url(@column), headers: jwt_header, params: { column: {  } }, as: :json
+    patch column_url(@column), headers: jwt_header, params: { column: { yn_lock_delete: 'Y', lock_version: @column.lock_version } }, as: :json
     assert_response 200
 
     assert_raise 'Should not get access without schema rights' do

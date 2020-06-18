@@ -73,7 +73,7 @@ class ColumnsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def column_params
-      params.fetch(:column, {}).permit(:table_id, :name, :info, :yn_log_insert, :yn_log_update, :yn_log_delete)
+      params.fetch(:column, {}).permit(:table_id, :name, :info, :yn_log_insert, :yn_log_update, :yn_log_delete, :lock_version)
     end
 
 

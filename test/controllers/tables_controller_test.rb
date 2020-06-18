@@ -59,7 +59,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
 
   test "should update table" do
-    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic' } }, as: :json
+    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic', lock_version: @table.lock_version } }, as: :json
     assert_response 200
 
     assert_raise 'Should not get access without schema rights' do

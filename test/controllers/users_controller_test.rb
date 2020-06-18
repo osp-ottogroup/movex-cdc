@@ -38,8 +38,17 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update user" do
+    schema_right = SchemaRight.where(user_id: @user.id, schema_id: 1)[0]        # schema_right regularly already exists
+
     patch user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: { email: 'Dummy@dummy.com',
-                                                                                    schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}}]
+                                                                                    schema_rights: [
+                                                                                        {
+                                                                                            info: 'Info for right',
+                                                                                            schema: { name: Trixx::Application.config.trixx_db_user},
+                                                                                            lock_version: schema_right&.lock_version
+                                                                                        }
+                                                                                    ],
+                                                                                    lock_version: @user.lock_version
     } }, as: :json
     assert_response 200
 

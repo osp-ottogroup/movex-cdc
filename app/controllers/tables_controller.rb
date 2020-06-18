@@ -81,7 +81,7 @@ class TablesController < ApplicationController
 
   # Only allow a trusted parameter "white list" through.
   def table_params
-    params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key)
+    params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key, :lock_version)
   end
 
 

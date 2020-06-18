@@ -36,7 +36,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update condition" do
-    patch condition_url(@condition), headers: jwt_header, params: { condition: {  } }, as: :json
+    patch condition_url(@condition), headers: jwt_header, params: { condition: { filter: 'new filter', lock_version: @condition.lock_version } }, as: :json
     assert_response 200
 
     assert_raise 'Should not get access without schema rights' do

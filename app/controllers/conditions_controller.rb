@@ -68,6 +68,6 @@ class ConditionsController < ApplicationController
 
     # Only allow a trusted parameter "white list" through.
     def condition_params
-      params.fetch(:condition, {}).permit(:table_id, :operation, :filter)
+      params.fetch(:condition, {}).permit(:table_id, :operation, :filter, :lock_version)
     end
 end

@@ -36,7 +36,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update schema_right" do
-    patch schema_right_url(@schema_right), headers: jwt_header(@jwt_admin_token), params: { schema_right: {  } }, as: :json
+    patch schema_right_url(@schema_right), headers: jwt_header(@jwt_admin_token), params: { schema_right: { info: 'changed info', lock_version: @schema_right.lock_version } }, as: :json
     assert_response 200
 
     patch schema_right_url(@schema_right), headers: jwt_header, params: { schema_right: {  } }, as: :json
