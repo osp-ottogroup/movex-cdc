@@ -19,7 +19,12 @@ class SchemaRight < ApplicationRecord
       end
       schema_right = SchemaRight.find_by_user_id_and_schema_id(user.id, schema.id)
       if schema_right
-        schema_right.update!(info: p[:info])                                    # update existing schema_right
+        # TODO: reduce to variant with lock_version when lock_version is sent from GUI
+        if p[:lock_version]
+          schema_right.update!(info: p[:info], lock_version: p[:lock_version])  # update existing schema_right
+        else
+          schema_right.update!(info: p[:info])                                  # update existing schema_right
+        end
       else                                                                      # create schema_right if not yet exists
         schema_right = SchemaRight.new(user_id: user.id, schema_id: schema.id, info: p[:info])
         schema_right.save!

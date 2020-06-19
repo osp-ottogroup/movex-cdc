@@ -36,7 +36,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update schema" do
-    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: 'new topic'} }, as: :json
+    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: 'new topic', lock_version: @schema.lock_version} }, as: :json
     assert_response 200
   end
 

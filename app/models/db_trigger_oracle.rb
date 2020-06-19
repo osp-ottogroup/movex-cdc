@@ -366,10 +366,10 @@ END #{target_trigger_data[:trigger_name]};
   end
 
   def payload_command_internal(target_trigger_data, old_new)
-    result = "'#{old_new}: {\n'"
+    result = "'\"#{old_new}\": {\n'"
     target_trigger_data[:columns].each_index do |i|
       col = target_trigger_data[:columns][i]
-      result << "||'  #{col[:column_name]}: '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
+      result << "||'  \"#{col[:column_name]}\": '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
     end
     result << "||'}'"
     result
@@ -382,15 +382,15 @@ END #{target_trigger_data[:trigger_name]};
     case column_hash[:data_type]
 
     when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'   # character data types
-    then "''''||REPLACE(#{accessor}.#{column_hash[:column_name]}, '''', '\\''')||''''"           # place between quotes 'xxx' and escape quote to \'
+    then "'\"'||REPLACE(#{accessor}.#{column_hash[:column_name]}, '\"', '\\\"')||'\"'"           # place between double quotes "xxx" and escape double quote to \"
     when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
     then "TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')"
     when 'DATE'                         then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||''''"
     when 'RAW'                          then "''''||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||''''"
     when /^TIMESTAMP\([0-9]\)$/
-    then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||''''"
+    then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
     when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
-    then "''''||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||''''"
+    then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||'\"'"
     else
       raise "Unsupported column type '#{column_hash[:data_type]}' for column '#{column_hash[:column_name]}'"
     end
