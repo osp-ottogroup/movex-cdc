@@ -68,10 +68,11 @@ export default {
           await HttpService.get(`${Config.backendUrl}/login/check_jwt`);
           this.setUser();
         } catch (e) {
-          this.$buefy.toast.open({
+          this.$buefy.notification.open({
             message: getErrorMessageAsHtml(e, 'An error occurred while checking the user session'),
             type: 'is-danger',
-            duration: 5000,
+            indefinite: true,
+            position: 'is-top',
           });
         }
       }

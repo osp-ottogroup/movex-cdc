@@ -69,10 +69,11 @@ export default {
       try {
         this.schemas = await CRUDService.schemas.getAll();
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -85,10 +86,11 @@ export default {
           this.resultList = [response.data];
         }
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while generating the triggers'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -98,10 +100,11 @@ export default {
         // response is already an array
         this.resultList = response.data;
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while generating the triggers'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },

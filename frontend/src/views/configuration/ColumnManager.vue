@@ -71,10 +71,11 @@ export default {
         });
         await this.reload(this.table);
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -87,10 +88,11 @@ export default {
         this.columns = await CRUDService.columns.getAll({ table_id: table.id });
         this.mergeColumns();
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },

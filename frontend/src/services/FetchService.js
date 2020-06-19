@@ -53,7 +53,11 @@ const doFetch = (url, requestOptions) => {
       } else {
         const errorMessage = `The request to ${url.toString()} responded with http-status-code ${response.status}: ${response.statusText}`;
         let errors = [];
-        if (data.errors && data.errors instanceof Array) {
+        if (httpStatus === 500 && data.error && data.exception) { // obviously default rails error
+          errors.push(data.error);
+          errors.push(data.exception);
+          data.traces['Application Trace'].forEach(t => errors.push(t.trace));
+        } else if (data.errors && data.errors instanceof Array) { // obviously custom rails error
           // eslint-disable-next-line prefer-destructuring
           errors = data.errors;
         }

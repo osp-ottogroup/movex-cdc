@@ -50,5 +50,11 @@ describe('helpers.js', () => {
       const errorMessage = getErrorMessageAsHtml(error, 'PREPEND');
       expect(errorMessage).toEqual('<div><b>PREPEND</b></div><div>An unknown error occurred!</div>');
     });
+
+    it('should escape html chars correctly', () => {
+      const error = new Error('_&_<_>_"_\'_/_');
+      const errorMessage = getErrorMessageAsHtml(error);
+      expect(errorMessage).toEqual('<div>_&amp;_&lt;_&gt;_&quot;_&#x27;_&#x2F;_</div>');
+    });
   });
 });

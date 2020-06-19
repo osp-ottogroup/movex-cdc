@@ -44,10 +44,11 @@ export default {
       try {
         this.schemas = await CRUDService.schemas.getAll();
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -77,10 +78,11 @@ export default {
         });
         this.modal.schema = null;
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },

@@ -68,10 +68,11 @@ export default {
         this.tables = await CRUDService.tables.getAll({ schema_id: schema.id });
         this.dbTables = await CRUDService.dbTables.getAll({ schema_name: schema.name });
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading tables!'),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -104,10 +105,11 @@ export default {
         this.modal.table = null;
         this.modal.mode = null;
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -120,10 +122,11 @@ export default {
           type: 'is-success',
         });
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },

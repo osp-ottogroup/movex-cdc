@@ -53,10 +53,11 @@ export default {
     try {
       this.users = await CRUD.users.getAll();
     } catch (e) {
-      this.$buefy.toast.open({
+      this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading users!'),
         type: 'is-danger',
-        duration: 5000,
+        indefinite: true,
+        position: 'is-top',
       });
     }
   },
@@ -87,10 +88,11 @@ export default {
           type: 'is-success',
         });
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -105,10 +107,11 @@ export default {
           type: 'is-success',
         });
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },
@@ -122,10 +125,11 @@ export default {
           type: 'is-success',
         });
       } catch (e) {
-        this.$buefy.toast.open({
+        this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
           type: 'is-danger',
-          duration: 5000,
+          indefinite: true,
+          position: 'is-top',
         });
       }
     },

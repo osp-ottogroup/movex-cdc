@@ -130,10 +130,11 @@ export default {
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
       this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email });
     } catch (e) {
-      this.$buefy.toast.open({
+      this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
         type: 'is-danger',
-        duration: 5000,
+        indefinite: true,
+        position: 'is-top',
       });
     }
   },
