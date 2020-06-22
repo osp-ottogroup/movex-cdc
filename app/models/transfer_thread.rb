@@ -53,19 +53,7 @@ class TransferThread
     set_query_timeouts                                                          # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
-    kafka_class = Trixx::Application.config.trixx_kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
-    seed_brokers = Trixx::Application.config.trixx_kafka_seed_broker.split(',').map{|b| b.strip}
-
-    kafka_options = {
-        client_id: "TriXX: TRIXX-#{Socket.gethostname}",
-        logger: Rails.logger
-    }
-    kafka_options[:ssl_ca_cert]                   = File.read(Trixx::Application.config.trixx_kafka_ssl_ca_cert)          if Trixx::Application.config.trixx_kafka_ssl_ca_cert
-    kafka_options[:ssl_client_cert]               = File.read(Trixx::Application.config.trixx_kafka_ssl_client_cert)      if Trixx::Application.config.trixx_kafka_ssl_client_cert
-    kafka_options[:ssl_client_cert_key]           = File.read(Trixx::Application.config.trixx_kafka_ssl_client_cert_key)  if Trixx::Application.config.trixx_kafka_ssl_client_cert_key
-    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password    if Trixx::Application.config.trixx_kafka_ssl_client_cert_key_password
-
-    kafka = kafka_class.new(seed_brokers, kafka_options)
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
 
     init_transactions_successfull = false
     init_transactions_retry_count = 0
