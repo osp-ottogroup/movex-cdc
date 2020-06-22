@@ -51,8 +51,10 @@ class User < ApplicationRecord
 
   def destroy
     super
+    :destroyed
   rescue Exception => e
     self.update!(yn_account_locked: 'Y')
     ActivityLog.new(user_id: self.id, action: 'User locked at delete request because foreign keys prevent the deletion').save!
+    :locked
   end
 end

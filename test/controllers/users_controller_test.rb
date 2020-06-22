@@ -61,7 +61,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_difference('User.count', 0, 'User should be deactivated instead of deleted if foreign key supresses delete') do
       delete user_url(@user), headers: jwt_header(@jwt_admin_token), as: :json
     end
-    assert_response 204
+    assert_response 200
 
 
     # Remove objects that may cause foreign key error

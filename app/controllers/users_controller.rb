@@ -44,10 +44,11 @@ class UsersController < ApplicationController
 
   # DELETE /users/1
   def destroy
-    @user.destroy
-    log_activity(
-        action:       "user deleted: #{@user.attributes}"
-    )
+    if @user.destroy == :destroyed                                              # return status = 204 No Content
+      log_activity(action: "user deleted: #{@user.attributes}")
+    else
+      render json: @user, include: { schema_rights: {include: :schema} }        # return status = 200
+    end
   end
 
   private
