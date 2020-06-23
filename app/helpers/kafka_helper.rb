@@ -16,4 +16,20 @@ module KafkaHelper
 
     kafka_class.new(seed_brokers, kafka_options)                                # return instance of Kafka
   end
+
+  # Check topic for existence at Kafka
+  def self.has_topic?(topic)
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
+    kafka.has_topic?(topic)
+  end
+
+  # get name of existing topic
+  def self.existing_topic_for_test
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
+    topics = kafka.topics
+    raise "No topic configured yet at Kafka" if topics.length == 0
+    topics[0]                                                                   # use first existing topic as sample
+  end
+
+
 end

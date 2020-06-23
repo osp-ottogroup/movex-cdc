@@ -32,15 +32,21 @@ class KafkaMock
     Producer.new
   end
 
+  EXISTING_TOPICS = ['Topic1', 'Topic2']
   def topics
-    ['Topic1', 'Topic2']
+    EXISTING_TOPICS
   end
 
-  def describe_topic(topic)
-    if ['Topic1', 'Topic2'].include? topic
+  def describe_topic(topic, configs = [])
+    if EXISTING_TOPICS.include? topic
       {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
     else
       raise "Not existing topic '#{topic}'"
     end
   end
+
+  def has_topic?(topic)
+    EXISTING_TOPICS.include? topic
+  end
+
 end

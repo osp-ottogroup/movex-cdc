@@ -21,4 +21,16 @@ class KafkaController < ApplicationController
     ]
     render json: kafka.describe_topic(topic, configs)
   end
+
+  # Check if topic exists
+  # GET kafka/has_topic
+  def has_topic
+    topic = params.permit(:topic)[:topic]
+    if KafkaHelper.has_topic?(topic)
+      render json: { has_topic: true}
+    else
+      render json: { has_topic: false}
+    end
+  end
+
 end

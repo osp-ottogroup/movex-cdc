@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   get  '/health_check',                               to: 'health_check#index'  # only one method for resource established
   get  '/health_check/log_file',                      to: 'health_check#log_file'
   get  '/kafka/describe_topic',                       to: 'kafka#describe_topic'
+  get  '/kafka/has_topic',                            to: 'kafka#has_topic'
   get  '/kafka/topics',                               to: 'kafka#topics'
   post 'login/do_logon'
   get  'login/check_jwt'

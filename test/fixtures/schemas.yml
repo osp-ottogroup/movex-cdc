@@ -4,13 +4,13 @@
 one:
   id:   1
   name: <%= Trixx::Application.config.trixx_db_user %>
-  topic: trixx_schema_topic
+  topic: <%= KafkaHelper.existing_topic_for_test %>
 
 <% if Trixx::Application.config.trixx_db_type != 'SQLITE' %>
 victim:
   id:   2
   name: <%= Trixx::Application.config.trixx_db_victim_user %>
-  topic: victim_schema_topic
+  topic: <%= KafkaHelper.existing_topic_for_test %>
 
 without_topic:
   id:   3

@@ -69,7 +69,7 @@ class DbTrigger < ApplicationRecord
       Rails.logger.error "#{error[:sql]}"
     end
 
-    Schema.find(schema_id).update(last_trigger_deployment: Time.now) if result[:errors].count == 0  # Flag trigger generation successful
+    Schema.find(schema_id).update!(last_trigger_deployment: Time.now) if result[:errors].count == 0  # Flag trigger generation successful
 
     result
   end
