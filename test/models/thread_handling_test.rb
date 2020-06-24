@@ -31,7 +31,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     loop_count = 0
-    while loop_count < 80 do                                                    # wait up to x * 10 seconds for processing of event_logs records
+    while loop_count < 10 do                                                    # wait up to x * 10 seconds for processing of event_logs records
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
       break if event_logs == 0                                                  # All records processed, no need to wait anymore
