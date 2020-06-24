@@ -5,6 +5,7 @@
         @click="onCreateUserButtonClicked">
         Create User
       </b-button>
+
       <b-table
         id="users-table"
         :data="users"
@@ -14,9 +15,10 @@
         @click="onRowClicked">
       </b-table>
     </div>
+
     <template v-if="isUserSelected">
       <user-modal
-        :user="selectedUser"
+        :user-id="selectedUser.id"
         @create="onCreate"
         @save="onSave"
         @delete="onDelete"
@@ -71,11 +73,7 @@ export default {
       this.selectedUser = user;
     },
     onCreateUserButtonClicked() {
-      this.selectedUser = {
-        id: null,
-        schema_rights: [],
-        yn_admin: 'N',
-      };
+      this.selectedUser = { id: null };
     },
     async onSave(user) {
       try {

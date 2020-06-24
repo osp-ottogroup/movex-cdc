@@ -14,7 +14,7 @@
         <div class="columns">
           <div class="column">
             <b-field label="First Name">
-              <b-input v-model="internalUser.first_name"
+              <b-input v-model="user.first_name"
                        type="text"
                        placeholder="The users first name"
                        required
@@ -23,7 +23,7 @@
             </b-field>
 
             <b-field label="Last Name">
-              <b-input v-model="internalUser.last_name"
+              <b-input v-model="user.last_name"
                        type="text"
                        placeholder="The users last name"
                        required
@@ -32,7 +32,7 @@
             </b-field>
 
             <b-field label="e-Mail">
-              <b-input v-model="internalUser.email"
+              <b-input v-model="user.email"
                        type="text"
                        placeholder="The users e-mail address"
                        required
@@ -41,7 +41,7 @@
             </b-field>
 
             <b-field label="DB User">
-              <b-select v-model="internalUser.db_user"
+              <b-select v-model="user.db_user"
                         placeholder="Select a schema"
                         expanded
                         required>
@@ -52,20 +52,20 @@
             </b-field>
 
             <b-field label="Admin User">
-              <b-switch v-model="internalUser.yn_admin"
+              <b-switch v-model="user.yn_admin"
                         true-value="Y"
                         false-value="N"/>
             </b-field>
 
             <b-field label="Account Locked">
               <b-field>
-                <b-switch v-model="internalUser.yn_account_locked"
+                <b-switch v-model="user.yn_account_locked"
                           true-value="Y"
                           false-value="N"
                           type="is-danger"/>
-                <p v-if="internalUser.failed_logons > 0" class="control">
+                <p v-if="user.failed_logons > 0" class="control">
                   <b-icon icon="exclamation-triangle" size="is-small" type="is-warning"/>
-                  The user has {{internalUser.failed_logons}} failed logons.
+                  The user has {{user.failed_logons}} failed logons.
                 </p>
               </b-field>
             </b-field>
@@ -89,7 +89,7 @@
             <label class="label">Authorized Schemas</label>
             <button class="button is-fullwidth is-small"
                     @click="onRemoveSchemaRight(index)"
-                    v-for="(schemaRight, index) in internalUser.schema_rights"
+                    v-for="(schemaRight, index) in user.schema_rights"
                     :key="index">
               <span class="icon is-small">
                 <i class="fas fa-less-than"></i>
@@ -123,10 +123,19 @@ import { getErrorMessageAsHtml } from '@/helpers';
 export default {
   name: 'UserModal',
   props: {
-    user: { type: Object, required: true },
+    userId: { type: Number, default: null },
   },
-  async mounted() {
+  async created() {
     try {
+      if (this.isUpdateMode) {
+        this.user = await CRUDService.users.get(this.userId);
+      } else {
+        this.user = {
+          id: null,
+          schema_rights: [],
+          yn_admin: 'N',
+        };
+      }
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
       this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email });
     } catch (e) {
@@ -140,22 +149,18 @@ export default {
   },
   data() {
     return {
-      // a copy of the user property to work with inside this component
-      // (because of changing properties directly is bad practice)
-      // need JSON here, because of destructuring ( {...this.user} ) will do only a shallow copy
-      // user -> schema_rights -> schema, schema would be a reference
-      internalUser: JSON.parse(JSON.stringify(this.user)),
+      user: {},
       dbSchemas: [],
       authorizableDbSchemas: [],
     };
   },
   computed: {
     isUpdateMode() {
-      return this.user && this.user.id;
+      return this.userId !== null;
     },
     modalTitle() {
       if (this.isUpdateMode) {
-        return `Edit User (ID: ${this.user.id})`;
+        return `Edit User (ID: ${this.userId})`;
       }
       return 'Create User';
     },
@@ -165,31 +170,37 @@ export default {
       this.$emit('close');
     },
     onDeleteButtonClicked() {
-      this.$emit('delete', this.internalUser);
+      this.$emit('delete', this.user);
     },
     onSaveButtonClicked() {
+      const invalidElements = this.$el.querySelectorAll(':invalid');
+      if (invalidElements.length > 0) {
+        invalidElements.forEach(e => e.reportValidity());
+        return;
+      }
+
       if (this.isUpdateMode) {
-        this.$emit('save', this.internalUser);
+        this.$emit('save', this.user);
       } else {
-        this.$emit('create', this.internalUser);
+        this.$emit('create', this.user);
       }
     },
     onAddSchemaRight(index) {
-      this.internalUser.schema_rights.push({
+      this.user.schema_rights.push({
         info: 'TODO',
         schema: this.authorizableDbSchemas[index],
       });
-      this.internalUser.schema_rights.sort((a, b) => (
+      this.user.schema_rights.sort((a, b) => (
         a.schema.name.toUpperCase() > b.schema.name.toUpperCase() ? 1 : -1
       ));
       this.authorizableDbSchemas.splice(index, 1);
     },
     onRemoveSchemaRight(index) {
-      this.authorizableDbSchemas.push(this.internalUser.schema_rights[index].schema);
+      this.authorizableDbSchemas.push(this.user.schema_rights[index].schema);
       this.authorizableDbSchemas.sort((a, b) => (
         a.name.toUpperCase() > b.name.toUpperCase() ? 1 : -1
       ));
-      this.internalUser.schema_rights.splice(index, 1);
+      this.user.schema_rights.splice(index, 1);
     },
   },
 };
