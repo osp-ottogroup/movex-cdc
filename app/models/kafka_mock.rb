@@ -54,7 +54,7 @@ class KafkaMock
     EXISTING_GROUPS
   end
 
-  def describe_group(group_id, configs = [])
+  def describe_group(group_id)
     if EXISTING_GROUPS.include? group_id
       {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
     else

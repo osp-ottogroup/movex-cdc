@@ -45,9 +45,7 @@ class KafkaController < ApplicationController
   def describe_group
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
     group_id = params.permit(:group_id)[:group_id]
-    configs = [
-    ]
-    render json: kafka.describe_group(group_id, configs)
+    render json: kafka.describe_group(group_id)
   end
 
 end
