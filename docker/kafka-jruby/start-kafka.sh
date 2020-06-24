@@ -49,6 +49,9 @@ do
   echo -n "."
   sleep 1
 done
+echo "Creating topics"
+/opt/kafka/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --zookeeper localhost:2181 --replication-factor 1
+/opt/kafka/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --zookeeper localhost:2181 --replication-factor 1
 
 
 
