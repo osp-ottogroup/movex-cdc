@@ -28,8 +28,8 @@ module KafkaHelper
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
     topics = kafka.topics
     raise "No topic configured yet at Kafka" if topics.length == 0
-    topics.delete '__consumer_offsets'                                          # remove possibly existing default topic
-    topics[0]                                                                   # use first remaining topic as sample
+    test_topics = topic.select {|t| !t['__']}                                   # discard all topics with '__'
+    test_topics[0]                                                              # use first remaining topic as sample
   end
 
   def self.existing_group_id_for_test
