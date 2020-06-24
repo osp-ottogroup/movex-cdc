@@ -22,7 +22,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     assert_difference('Table.count') do
-      post tables_url, headers: jwt_header, params: { table: { schema_id: 1, name: 'New table2', info: 'New info', topic: 'with_topic' } }, as: :json
+      post tables_url, headers: jwt_header, params: { table: { schema_id: 1, name: 'New table2', info: 'New info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
     end
     assert_response 201
 
@@ -33,7 +33,8 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     # reopen hidden table instead of creation
     tables_deletable = tables(:deletable)
     tables_deletable.update(yn_hidden: 'Y')
-    post tables_url, headers: jwt_header, params: { table: { schema_id: tables_deletable.schema_id, name: tables_deletable.name, info: 'different info', topic: 'with_topic' } }, as: :json
+    post tables_url, headers: jwt_header, params: { table: { schema_id: tables_deletable.schema_id, name: tables_deletable.name, info: 'different info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
+    assert_response :success, 'Table should be updated'
     result_table = Table.find(tables_deletable.id)
     assert_equal 'N', result_table.yn_hidden, 'Table should not be hidden after create'
     assert_equal 'different info', result_table.info, 'Hidden table should be updated with new values'
@@ -59,7 +60,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
 
   test "should update table" do
-    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: 'new topic', lock_version: @table.lock_version } }, as: :json
+    patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: KafkaHelper.existing_topic_for_test, lock_version: @table.lock_version } }, as: :json
     assert_response 200
 
     assert_raise 'Should not get access without schema rights' do

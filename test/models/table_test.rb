@@ -16,7 +16,7 @@ class TableTest < ActiveSupport::TestCase
 
   test "create table" do
     Table.new(schema_id: 1, name: 'Table_new',  info: 'info').save!
-    Table.new(schema_id: 1, name: 'Table_new2', info: 'info', topic: 'TOPIC').save!
+    Table.new(schema_id: 1, name: 'Table_new2', info: 'info', topic: KafkaHelper.existing_topic_for_test).save!
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { Table.new(schema_id: 1, name: 'Table_new', info: 'info').save! }
     assert_raise(Exception, 'No topic at table and schema should raise validation error') { Table.new(schema_id: 3, name: 'Without_Topic', info: 'info').save! }

@@ -25,7 +25,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     assert_difference('Schema.count') do
-      post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new2', topic: 'with_topic'  } }, as: :json
+      post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new2', topic: KafkaHelper.existing_topic_for_test  } }, as: :json
     end
     assert_response 201
   end
@@ -36,7 +36,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should update schema" do
-    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: 'new topic', lock_version: @schema.lock_version} }, as: :json
+    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: KafkaHelper.existing_topic_for_test, lock_version: @schema.lock_version} }, as: :json
     assert_response 200
   end
 
