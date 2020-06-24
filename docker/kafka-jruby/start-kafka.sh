@@ -31,11 +31,12 @@ do
   if [ $? -eq 0 ]; then
     echo ""
     grep "$KAFKA_STARTED" /opt/kafka/logs/kafkaServer.out
-    echo "Creating topics"
+    echo "Creating topics and consumer groups"
     /opt/kafka/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --zookeeper localhost:2181 --replication-factor 1
     /opt/kafka/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --zookeeper localhost:2181 --replication-factor 1
     /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group1 --timeout-ms 1000
     /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group2 --timeout-ms 1000
+    /opt/kafka/bin/kafka-consumer-groups.sh --bootstrap-server=localhost:9092 --list
     exit 0
   fi
 
