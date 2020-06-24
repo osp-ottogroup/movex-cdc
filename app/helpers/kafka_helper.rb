@@ -28,7 +28,7 @@ module KafkaHelper
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
     topics = kafka.topics
     raise "No topic configured yet at Kafka" if topics.length == 0
-    test_topics = topic.select {|t| !t['__']}                                   # discard all topics with '__'
+    test_topics = topics.select {|t| !t['__']}                                   # discard all topics with '__' like '__consumer_offsets', '__transaction_state' etc.
     test_topics[0]                                                              # use first remaining topic as sample
   end
 
