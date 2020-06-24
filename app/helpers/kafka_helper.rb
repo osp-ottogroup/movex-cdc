@@ -31,5 +31,11 @@ module KafkaHelper
     topics[0]                                                                   # use first existing topic as sample
   end
 
+  def self.existing_group_id_for_test
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
+    groups = kafka.groups
+    raise "No consumer group configured yet at Kafka" if groups.length == 0
+    groups[0]                                                                   # use first existing group as sample
+  end
 
 end

@@ -4,7 +4,7 @@ class KafkaController < ApplicationController
   # GET kafka/topics
   def topics
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
-    render json: { topics: kafka.topics}
+    render json: { topics: kafka.topics.sort}
   end
 
   # get info for topic from Kafka
@@ -31,6 +31,23 @@ class KafkaController < ApplicationController
     else
       render json: { has_topic: false}
     end
+  end
+
+  # list existing consumer groups
+  # GET kafka/groups
+  def groups
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
+    render json: { topics: kafka.groups.sort}
+  end
+
+  # get info about a group by group_id
+  # GET kafka/describe_group
+  def describe_group
+    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
+    group_id = params.permit(:group_id)[:group_id]
+    configs = [
+    ]
+    render json: kafka.describe_group(group_id, configs)
   end
 
 end

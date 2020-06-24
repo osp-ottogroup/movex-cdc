@@ -31,4 +31,20 @@ class KafkaControllerTest < ActionDispatch::IntegrationTest
 
   end
 
+  test "should get groups" do
+    get "/kafka/groups", as: :json
+    assert_response :unauthorized, 'No access without JWT'
+
+    get "/kafka/groups", headers: jwt_header, as: :json
+    assert_response :success, 'should get groups with JWT'
+  end
+
+  test "should describe group" do
+    get "/kafka/describe_group", as: :json
+    assert_response :unauthorized, 'No access without JWT'
+
+    get "/kafka/describe_group?group_id=#{KafkaHelper.existing_group_id_for_test}", headers: jwt_header, as: :json
+    assert_response :success, 'should get group description with JWT'
+  end
+
 end

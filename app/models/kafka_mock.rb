@@ -49,4 +49,16 @@ class KafkaMock
     EXISTING_TOPICS.include? topic
   end
 
+  EXISTING_GROUPS = ['Group1', 'Group2']
+  def groups
+    EXISTING_GROUPS
+  end
+
+  def describe_group(group_id, configs = [])
+    if EXISTING_GROUPS.include? group_id
+      {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
+    else
+      raise "Not existing group '#{group_id}'"
+    end
+  end
 end
