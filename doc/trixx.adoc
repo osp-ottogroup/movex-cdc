@@ -491,4 +491,7 @@ The TriXX application requires an own schema on database for TriXX. This schema 
 All database changes made by TriXX are isolated to this schema.
 The owner of the TriXX-schema requires only a minimum set of rights on foreign objects, especially no right to read the full table content.
 
-
+==== Restricted definition of triggers ====
+There might be a security gap if users may define trigger on tables where they don't have read rights.
+This way they could possibly read hidden table content via Kafka. +
+Therefore only tables are accessible for trigger definition at TriXX-GUI where the connected user has at least read rights.

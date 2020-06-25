@@ -41,6 +41,7 @@ namespace :ci_preparation do
       exec(conn, "GRANT CREATE VIEW TO #{username}")            if select_single(conn, "SELECT COUNT(*) FROM DBA_Sys_Privs  WHERE Grantee  = UPPER('#{username}') AND Privilege    = 'CREATE VIEW'")  == 0
       exec(conn, "GRANT SELECT ON DBA_Constraints TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Cons_Columns TO #{username}")
+      exec(conn, "GRANT SELECT ON DBA_Role_Privs TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Sys_Privs TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tables TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tab_Columns TO #{username}")
