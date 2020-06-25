@@ -257,7 +257,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       begin
-        sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT Column_Value FROM TABLE(?))"
+        sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)"
         jdbc_conn = ActiveRecord::Base.connection.raw_connection
         cursor = jdbc_conn.prepareStatement sql
         ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
