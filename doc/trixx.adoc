@@ -103,6 +103,7 @@ The owner of the TriXX schema requires some preconditions/grants at database.
 |CREATE VIEW|Allows creation of views in TriXX schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
+|SELECT ON sys.DBA_Role_Privs|Allows check if GUI-user has SELECT grant for a table.
 |SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT grant for a table.
 |SELECT ON sys.DBA_Tables|Allows listing of table names for tables without SELECT grant (not included in All_Tables).
 |SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT grant (not included in All_Tab_Columns).
