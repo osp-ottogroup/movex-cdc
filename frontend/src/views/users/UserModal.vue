@@ -46,7 +46,8 @@
               <b-select v-model="user.db_user"
                         placeholder="Select a schema"
                         expanded
-                        required>
+                        required
+                        @input="onDbUserChanged">
                 <option v-for="(dbSchema, index) in dbSchemas" :key="index">
                   {{ dbSchema.name }}
                 </option>
@@ -76,6 +77,11 @@
 
           <div class="column border-left">
             <label class="label">DB Schemas</label>
+            <div v-if="authorizableDbSchemas.length === 0 && !user.db_user"
+                 class="content has-text-grey has-text-centered is-size-7">
+              <b-icon icon="information" />
+              <p>Select a DB User</p>
+            </div>
             <button class="button is-fullwidth is-small"
                     @click="onAddSchemaRight(index)"
                     v-for="(authorizableDbSchema, index) in authorizableDbSchemas"
@@ -131,9 +137,9 @@ export default {
     try {
       if (this.isUpdateMode) {
         this.user = await CRUDService.users.get(this.userId);
+        this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email, db_user: this.user.db_user });
       }
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
-      this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email });
     } catch (e) {
       this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
@@ -247,6 +253,21 @@ export default {
         a.name.toUpperCase() > b.name.toUpperCase() ? 1 : -1
       ));
       this.user.schema_rights.splice(index, 1);
+    },
+    async onDbUserChanged(dbUser) {
+      try {
+        this.isLoading = true;
+        this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email, db_user: dbUser });
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
     },
   },
 };
