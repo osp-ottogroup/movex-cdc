@@ -109,7 +109,7 @@
         <button id="save-button"
                 class="button is-primary"
                 @click="onSaveButtonClicked">
-          Save
+          {{ buttonLabel }}
         </button>
       </footer>
     </div>
@@ -129,12 +129,6 @@ export default {
     try {
       if (this.isUpdateMode) {
         this.user = await CRUDService.users.get(this.userId);
-      } else {
-        this.user = {
-          id: null,
-          schema_rights: [],
-          yn_admin: 'N',
-        };
       }
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
       this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email });
@@ -149,7 +143,16 @@ export default {
   },
   data() {
     return {
-      user: {},
+      user: {
+        id: null,
+        email: null,
+        db_user: null,
+        first_name: null,
+        last_name: null,
+        yn_admin: 'N',
+        yn_account_locked: 'N',
+        schema_rights: [],
+      },
       dbSchemas: [],
       authorizableDbSchemas: [],
     };
@@ -164,25 +167,52 @@ export default {
       }
       return 'Create User';
     },
+    buttonLabel() {
+      if (this.isUpdateMode) {
+        return 'Save';
+      }
+      return 'Create';
+    },
   },
   methods: {
     onClose() {
       this.$emit('close');
     },
-    onDeleteButtonClicked() {
-      this.$emit('delete', this.user);
+    async onDeleteButtonClicked() {
+      try {
+        await CRUDService.users.delete(this.user.id);
+        this.$emit('deleted', this.user);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      }
     },
-    onSaveButtonClicked() {
+    async onSaveButtonClicked() {
       const invalidElements = this.$el.querySelectorAll(':invalid');
       if (invalidElements.length > 0) {
         invalidElements.forEach(e => e.reportValidity());
         return;
       }
 
-      if (this.isUpdateMode) {
-        this.$emit('save', this.user);
-      } else {
-        this.$emit('create', this.user);
+      try {
+        if (this.isUpdateMode) {
+          await CRUDService.users.update(this.user.id, { user: this.user });
+          this.$emit('saved', this.user);
+        } else {
+          const newUser = await CRUDService.users.create({ user: this.user });
+          this.$emit('created', newUser);
+        }
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
       }
     },
     onAddSchemaRight(index) {

@@ -2,6 +2,7 @@
   <div class="columns is-centered">
     <div class="column is-half">
       <b-button
+        type="is-primary"
         @click="onCreateUserButtonClicked">
         Create User
       </b-button>
@@ -16,20 +17,20 @@
       </b-table>
     </div>
 
-    <template v-if="isUserSelected">
+    <template v-if="modal.show">
       <user-modal
-        :user-id="selectedUser.id"
-        @create="onCreate"
-        @save="onSave"
-        @delete="onDelete"
-        @close="onClose">
+        :user-id="modal.userId"
+        @created="onCreated"
+        @saved="onSaved"
+        @deleted="onDeleted"
+        @close="closeModal">
       </user-modal>
     </template>
   </div>
 </template>
 
 <script>
-import CRUD from '../../services/CRUDService';
+import CRUDService from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
 import { getErrorMessageAsHtml } from '@/helpers';
 
@@ -41,7 +42,10 @@ export default {
   data() {
     return {
       users: [],
-      selectedUser: null,
+      modal: {
+        show: false,
+        userId: null,
+      },
       columns: [
         { field: 'id', label: 'ID', numeric: true },
         { field: 'first_name', label: 'First Name' },
@@ -51,9 +55,9 @@ export default {
       ],
     };
   },
-  async mounted() {
+  async created() {
     try {
-      this.users = await CRUD.users.getAll();
+      this.users = await CRUDService.users.getAll();
     } catch (e) {
       this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading users!'),
@@ -63,83 +67,44 @@ export default {
       });
     }
   },
-  computed: {
-    isUserSelected() {
-      return this.selectedUser !== null;
-    },
-  },
   methods: {
+    showModal(userId) {
+      this.modal.userId = userId;
+      this.modal.show = true;
+    },
+    closeModal() {
+      this.modal.userId = null;
+      this.modal.show = false;
+    },
     onRowClicked(user) {
-      this.selectedUser = user;
+      this.showModal(user.id);
     },
     onCreateUserButtonClicked() {
-      this.selectedUser = { id: null };
+      this.showModal(null);
     },
-    async onSave(user) {
-      try {
-        await CRUD.users.update(user.id, { user });
-        const index = this.users.findIndex(elem => elem.id === user.id);
-        this.$set(this.users, index, user);
-        this.selectedUser = null;
-        this.$buefy.toast.open({
-          message: 'Saved changes to user!',
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
+    onSaved(savedUser) {
+      const index = this.users.findIndex(user => user.id === savedUser.id);
+      this.$set(this.users, index, savedUser);
+      this.closeModal();
     },
-    async onDelete(user) {
-      try {
-        await CRUD.users.delete(user.id);
-        const index = this.users.findIndex(elem => elem.id === user.id);
-        this.users.splice(index, 1);
-        this.selectedUser = null;
-        this.$buefy.toast.open({
-          message: 'User deleted!',
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
+    onDeleted(deletedUser) {
+      const index = this.users.findIndex(user => user.id === deletedUser.id);
+      this.users.splice(index, 1);
+      this.closeModal();
     },
-    async onCreate(user) {
-      try {
-        const newUser = await CRUD.users.create({ user });
-        this.users.push(newUser);
-        this.selectedUser = null;
-        this.$buefy.toast.open({
-          message: 'User Created!',
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
-    },
-    onClose() {
-      this.selectedUser = null;
+    onCreated(createdUser) {
+      this.users.push(createdUser);
+      this.closeModal();
     },
   },
 };
 </script>
 
-<style lang="scss">
-  #users-table tbody tr {
-    cursor: pointer;
+<style lang="scss" scoped>
+  #users-table {
+    margin-top: 1rem;
+    ::v-deep tbody tr {
+      cursor: pointer;
+    }
   }
 </style>
