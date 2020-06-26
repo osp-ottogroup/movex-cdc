@@ -8,7 +8,7 @@
         <b-table-column field="name" label="Schemas">
           {{ props.row.name }}
           <b-button v-show="selectedSchema && selectedSchema.id === props.row.id"
-                    icon-right="pen"
+                    icon-right="pencil"
                     class="is-pulled-right is-small"
                     @click="onEditClicked()" />
         </b-table-column>

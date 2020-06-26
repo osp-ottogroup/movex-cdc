@@ -8,7 +8,7 @@
         <b-table-column field="name" label="Observed Tables">
           {{ props.row.name }}
           <b-button v-show="selectedTable && selectedTable.id === props.row.id"
-                    icon-right="pen"
+                    icon-right="pencil"
                     class="is-pulled-right is-small"
                     @click="onEditClicked()" />
         </b-table-column>

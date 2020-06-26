@@ -66,7 +66,7 @@
                           false-value="N"
                           type="is-danger"/>
                 <p v-if="user.failed_logons > 0" class="control">
-                  <b-icon icon="exclamation-triangle" size="is-small" type="is-warning"/>
+                  <b-icon icon="alert" size="is-small" type="is-warning"/>
                   The user has {{user.failed_logons}} failed logons.
                 </p>
               </b-field>
@@ -82,7 +82,7 @@
                     :key="index">
               <span class="flex-auto">{{ authorizableDbSchema.name }}</span>
               <span class="icon is-small">
-                <i class="fas fa-greater-than"></i>
+                <i class="mdi greater-than"></i>
               </span>
             </button>
           </div>
@@ -94,7 +94,7 @@
                     v-for="(schemaRight, index) in user.schema_rights"
                     :key="index">
               <span class="icon is-small">
-                <i class="fas fa-less-than"></i>
+                <i class="mdi less-than"></i>
               </span>
               <span class="flex-auto">{{ schemaRight.schema.name }}</span>
             </button>
