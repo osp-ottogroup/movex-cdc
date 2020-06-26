@@ -16,7 +16,7 @@
 
       <template slot="empty">
         <div class="content has-text-grey has-text-centered is-size-7">
-          <b-icon icon="info-circle" />
+          <b-icon icon="information" />
           <p>Your user has no authorized schemas</p>
         </div>
       </template>

@@ -16,7 +16,7 @@
 
       <template slot="empty">
         <div class="content has-text-grey has-text-centered is-size-7">
-          <b-icon icon="info-circle" />
+          <b-icon icon="information" />
           <p v-if="!schema">Select a schema.</p>
           <p v-else>Add a table to observe.</p>
         </div>

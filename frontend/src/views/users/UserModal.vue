@@ -82,7 +82,7 @@
                     :key="index">
               <span class="flex-auto">{{ authorizableDbSchema.name }}</span>
               <span class="icon is-small">
-                <i class="mdi greater-than"></i>
+                <i class="mdi mdi-greater-than"></i>
               </span>
             </button>
           </div>
@@ -94,7 +94,7 @@
                     v-for="(schemaRight, index) in user.schema_rights"
                     :key="index">
               <span class="icon is-small">
-                <i class="mdi less-than"></i>
+                <i class="mdi mdi-less-than"></i>
               </span>
               <span class="flex-auto">{{ schemaRight.schema.name }}</span>
             </button>
