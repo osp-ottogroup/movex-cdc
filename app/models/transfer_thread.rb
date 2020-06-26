@@ -83,7 +83,7 @@ class TransferThread
       end
     end
 
-    # Loop for ever, check cancel criterial in threadhandling
+    # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
     event_logs = []                                                             # ensure variable is also known in exception handling
     retry_count_on_exception = 0                                                # limit retries
@@ -205,10 +205,10 @@ class TransferThread
     # Ensure that older IDs are processed first
     # only half of @max_transaction_size is processed with newer IDs than last execution
     # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
+    event_logs = []
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning
-        event_logs = []
         # Iterate over partitions starting with oldest up to @max_transaction_size records
         Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
             .sort_by{|x| x['high_value']}.each do |part|
@@ -232,9 +232,8 @@ class TransferThread
             end
           end
         end
-        event_logs
       else
-        Database.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
+        event_logs = Database.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
                             {max_id: @max_event_logs_id, max_message_bulk_count1: @max_transaction_size, max_message_bulk_count2: @max_transaction_size }
         )
       end
@@ -242,7 +241,7 @@ class TransferThread
       # Ensure that older IDs are processed first
       # only half of @max_transaction_size is processed with newer IDs than last execution
       # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
-      Database.select_all("\
+      event_logs = Database.select_all("\
 SELECT * FROM (SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{@max_transaction_size})
 UNION
 SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
@@ -251,6 +250,8 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
+    event_logs.sort_by! {|e| e['id']}                                           # ensure original order of event creation
+    event_logs
   end
 
   def delete_event_logs_batch(event_logs)
