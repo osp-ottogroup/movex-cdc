@@ -9,6 +9,7 @@ class TransferThreadTest < ActiveSupport::TestCase
   end
 
   test "process" do
+    create_event_logs_for_test(10)
     worker = TransferThread.new(1, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
 
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that

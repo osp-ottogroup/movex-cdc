@@ -2,12 +2,12 @@
 class Database
 
   # delegate method calls to DB-specific implementation classes
-  METHODS_TO_DELEGATE = [
+  @@METHODS_TO_DELEGATE = [
       :set_application_info,
   ]
 
   def self.method_missing(method, *args, &block)
-    if METHODS_TO_DELEGATE.include?(method)
+    if @@METHODS_TO_DELEGATE.include?(method)
       target_class = case Trixx::Application.config.trixx_db_type
                      when 'ORACLE' then DatabaseOracle
                      when 'SQLITE' then DatabaseSqlite
@@ -21,7 +21,7 @@ class Database
   end
 
   def self.respond_to?(method, include_private = false)
-    METHODS_TO_DELEGATE.include?(method) || super
+    @@METHODS_TO_DELEGATE.include?(method) || super
   end
 
 

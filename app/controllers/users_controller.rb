@@ -16,9 +16,16 @@ class UsersController < ApplicationController
 
   # POST /users
   def create
-    @user = User.new(user_params)
+    users = User.where email: user_params[:email]
+    if users.length > 0 && user[0].yn_hidden == 'Y'
+      @user = users[0]
+      save_result = @user.update(user_params.to_h.merge({yn_account_locked: 'N', yn_hidden: 'N'}))    # mark visible for GUI and unlocked
+    else
+      @user = User.new(user_params)
+      save_result = @user.save
+    end
 
-    if  @user.save
+    if save_result
       SchemaRight.process_user_request(@user, schema_rights_params)
       log_activity(
           action:       "user inserted: #{@user.attributes}"
@@ -44,11 +51,12 @@ class UsersController < ApplicationController
 
   # DELETE /users/1
   def destroy
-    if @user.destroy == :destroyed                                              # return status = 204 No Content
+    if @user.destroy == :destroyed
       log_activity(action: "user deleted: #{@user.attributes}")
     else
-      render json: @user, include: { schema_rights: {include: :schema} }        # return status = 200
+      log_activity(action: "user set hidden: #{@user.attributes}")
     end
+    # always return status = 204 No Content
   end
 
   private

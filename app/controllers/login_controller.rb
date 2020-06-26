@@ -55,7 +55,7 @@ class LoginController < ApplicationController
           token_lifetime_hours.hours.from_now
         )
         time = Time.now + token_lifetime_hours.hours.to_i
-        render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
+        render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M"), home_screen_info: build_screen_info}, status: :ok
       else
         Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
         user.increment_failed_logons
@@ -110,5 +110,12 @@ class LoginController < ApplicationController
     nil                                                                         # Indicator for successful connection
   rescue Exception => e
     e.message
+  end
+
+  # array with info-hashes to display at home screen { name: xxx, value: yyy }
+  def build_screen_info
+    info = []
+    info<< { name: 'Contact person', value: Trixx::Application.config.trixx_info_contact_person } if Trixx::Application.config.trixx_info_contact_person
+    info
   end
 end

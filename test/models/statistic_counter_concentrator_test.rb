@@ -2,7 +2,8 @@ require 'test_helper'
 
 class StatisticCounterConcentratorTest < ActiveSupport::TestCase
   test "create statistics" do
-    Database.execute "DELETE FROM Statistics"                                  # Ensure valid counters
+    StatisticCounterConcentrator.get_instance.flush_to_db                       # Flush all pending statistics from memory
+    Database.execute "DELETE FROM Statistics"                                   # Ensure valid counters
 
     sc = StatisticCounter.new
 

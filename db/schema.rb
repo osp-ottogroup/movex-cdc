@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_06_18_060000) do
+ActiveRecord::Schema.define(version: 2020_06_25_010000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -123,6 +123,7 @@ ActiveRecord::Schema.define(version: 2020_06_18_060000) do
     t.string "yn_account_locked", limit: 1, default: "N", null: false, comment: "Is user account locked (Y/N)"
     t.integer "failed_logons", limit: 2, precision: 2, default: 0, null: false, comment: "Number of subsequent failed logons"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
+    t.string "yn_hidden", limit: 1, default: "N", null: false, comment: "Is user hidden for GUI ? Users are marked hidden instead of physical deletion if they have dependencies."
     t.index ["db_user"], name: "ix_users_db_user"
     t.index ["email"], name: "ix_users_email", unique: true
   end
