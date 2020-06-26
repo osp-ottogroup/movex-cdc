@@ -11,6 +11,7 @@
         id="users-table"
         :data="users"
         :columns="columns"
+        :loading="isLoading"
         striped
         hoverable
         @click="onRowClicked">
@@ -41,6 +42,7 @@ export default {
   },
   data() {
     return {
+      isLoading: true,
       users: [],
       modal: {
         show: false,
@@ -65,6 +67,8 @@ export default {
         indefinite: true,
         position: 'is-top',
       });
+    } finally {
+      this.isLoading = false;
     }
   },
   methods: {

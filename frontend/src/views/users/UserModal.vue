@@ -11,6 +11,8 @@
         </button>
       </header>
       <section class="modal-card-body">
+        <b-loading :active="isActionPending" :is-full-page="false"/>
+
         <div class="columns">
           <div class="column">
             <b-field label="First Name">
@@ -100,17 +102,17 @@
         </div>
       </section>
       <footer class="modal-card-foot">
-        <button v-if="isUpdateMode"
-                id="delete-button"
-                class="button is-danger"
-                @click="onDeleteButtonClicked">
+        <b-button v-if="isUpdateMode"
+                  id="delete-button"
+                  type="is-danger"
+                  @click="onDeleteButtonClicked">
           Delete
-        </button>
-        <button id="save-button"
-                class="button is-primary"
-                @click="onSaveButtonClicked">
+        </b-button>
+        <b-button id="save-button"
+                  type="is-primary"
+                  @click="onSaveButtonClicked">
           {{ buttonLabel }}
-        </button>
+        </b-button>
       </footer>
     </div>
   </div>
@@ -139,6 +141,8 @@ export default {
         indefinite: true,
         position: 'is-top',
       });
+    } finally {
+      this.isLoading = false;
     }
   },
   data() {
@@ -153,6 +157,9 @@ export default {
         yn_account_locked: 'N',
         schema_rights: [],
       },
+      isLoading: true,
+      isSaving: false,
+      isDeleting: false,
       dbSchemas: [],
       authorizableDbSchemas: [],
     };
@@ -173,6 +180,9 @@ export default {
       }
       return 'Create';
     },
+    isActionPending() {
+      return this.isLoading || this.isSaving || this.isDeleting;
+    },
   },
   methods: {
     onClose() {
@@ -180,6 +190,7 @@ export default {
     },
     async onDeleteButtonClicked() {
       try {
+        this.isDeleting = true;
         await CRUDService.users.delete(this.user.id);
         this.$emit('deleted', this.user);
       } catch (e) {
@@ -189,6 +200,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isDeleting = false;
       }
     },
     async onSaveButtonClicked() {
@@ -199,6 +212,7 @@ export default {
       }
 
       try {
+        this.isSaving = true;
         if (this.isUpdateMode) {
           await CRUDService.users.update(this.user.id, { user: this.user });
           this.$emit('saved', this.user);
@@ -213,6 +227,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isSaving = false;
       }
     },
     onAddSchemaRight(index) {
