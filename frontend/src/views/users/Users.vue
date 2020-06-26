@@ -10,11 +10,37 @@
       <b-table
         id="users-table"
         :data="users"
-        :columns="columns"
         :loading="isLoading"
         striped
         hoverable
         @click="onRowClicked">
+          <template slot-scope="props">
+            <b-table-column field="id" label="ID" numeric>
+              {{ props.row.id }}
+            </b-table-column>
+            <b-table-column field="first_name" label="First Name">
+              {{ props.row.first_name }}
+            </b-table-column>
+            <b-table-column field="last_name" label="Last Name">
+              {{ props.row.last_name }}
+            </b-table-column>
+            <b-table-column field="email" label="e-Mail">
+              {{ props.row.email }}
+            </b-table-column>
+            <b-table-column field="db_user" label="DB-User">
+              {{ props.row.db_user }}
+            </b-table-column>
+            <b-table-column label="Info" width="4rem">
+              <span>
+                <b-tooltip label="Admin User" type="is-light">
+                  <b-icon v-if="props.row.yn_admin === 'Y'" icon="account-circle" size="is-small"/>
+                </b-tooltip>
+                <b-tooltip label="Account is locked" type="is-light">
+                  <b-icon v-if="props.row.yn_account_locked === 'Y'" icon="lock" size="is-small"/>
+                </b-tooltip>
+              </span>
+            </b-table-column>
+        </template>
       </b-table>
     </div>
 
@@ -48,13 +74,6 @@ export default {
         show: false,
         userId: null,
       },
-      columns: [
-        { field: 'id', label: 'ID', numeric: true },
-        { field: 'first_name', label: 'First Name' },
-        { field: 'last_name', label: 'Last Name' },
-        { field: 'email', label: 'e-Mail' },
-        { field: 'db_user', label: 'DB-User' },
-      ],
     };
   },
   async created() {
