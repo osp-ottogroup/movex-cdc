@@ -1,3 +1,5 @@
+require 'statistic_counter_concentrator'                                        # fast exit requires this for at_exit
+
 class ThreadHandling
   attr_reader :application_startup_timestamp
 

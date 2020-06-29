@@ -6,9 +6,10 @@ class InitializationJob < ApplicationJob
 
   def perform(*args)
     puts "Initialization at startup"
+    ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
-    Trixx::Application.load_tasks
+    Trixx::Application.load_tasks                                               # precondition for invoke of db:migrate
     if ENV['TRIXX_SUPPRESS_MIGRATION_AT_STARTUP']
       Rails.logger.info "Migration suppressed because TRIXX_SUPPRESS_MIGRATION_AT_STARTUP is set in environment"
     else
@@ -34,6 +35,7 @@ class InitializationJob < ApplicationJob
     end
   end
 
+  private
   # ensure that user admin exists
   def ensure_admin_existence
     admin = User.find_by_email 'admin'
@@ -49,6 +51,53 @@ class InitializationJob < ApplicationJob
         user.save!
       end
     end
+  end
+
+  # ensure required rights and grants
+  def ensure_required_rights
+    check_create_table
+    check_create_view
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      check_readable 'DBA_Constraints'
+      check_readable 'DBA_Cons_Columns'
+      check_readable 'DBA_Role_Privs'
+      check_readable 'DBA_Sys_Privs'
+      check_readable 'DBA_Tables'
+      check_readable 'DBA_Tab_Columns'
+      check_readable 'DBA_Tab_Privs'
+      check_readable 'GV$Lock'
+      check_readable 'V$Session'
+    end
+  end
+
+  # check if read/select is possible on object
+  def check_readable(object_name)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
+    end
+  rescue Exception => e
+    raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
+  end
+
+  # check if create table is possible
+  def check_create_table
+    Database.execute "CREATE  TABLE Trixx_Table_Test (ID NUMBER)"
+    Database.execute "DROP TABLE Trixx_Table_Test"
+  rescue Exception => e
+    raise "Missing database right!!! CREATE TABLE is not possible!\n#{e.class}: #{e.message}"
+  end
+
+  # check if create view is possible
+  def check_create_view
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      Database.execute "CREATE OR REPLACE View Trixx_View_Test AS SELECT * FROM DUAL"
+      Database.execute "DROP View Trixx_View_Test"
+    end
+  rescue Exception => e
+    raise "Missing database right!!! CREATE VIEW is not possible!\n#{e.class}: #{e.message}"
   end
 
 end
