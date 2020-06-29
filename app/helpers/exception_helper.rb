@@ -10,12 +10,20 @@ module ExceptionHelper
     Rails.logger.error "Stack-Trace for exception: #{exception.class} #{exception.message}\n#{output}"
   end
 
+  $trixx_debug_hint_posted=false
   def self.log_exception(exception, context)
     Rails.logger.error "#{self.class}: #{exception.class}: #{exception.message}"
     Rails.logger.error "Context: #{context}"
-    mem_info = memory_info_string
-    Rails.logger.error mem_info if mem_info && mem_info != ''
-    log_exception_backtrace(exception)
+    if Rails.logger.level == 0 # DEBUG
+      mem_info = memory_info_string
+      Rails.logger.error mem_info if mem_info && mem_info != ''
+      log_exception_backtrace(exception)
+    else
+      unless $trixx_debug_hint_posted
+        Rails.logger.error "Switch log level to DEBUG to get additional stack trace and memory info for exception!"
+        $trixx_debug_hint_posted = true
+      end
+    end
   end
 
 

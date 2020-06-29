@@ -91,6 +91,7 @@ Storage quotas for this schema should allow storage of buffered events as long a
 
 ==== Rights for owner of TriXX DB schema ====
 The owner of the TriXX schema requires some preconditions/grants at database.
+The existence of this grants is checked at application start.
 
 ===== Rights for owner of TriXX DB schema: Oracle =====
 
@@ -101,6 +102,7 @@ The owner of the TriXX schema requires some preconditions/grants at database.
 
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
 |CREATE VIEW|Allows creation of views in TriXX schema
+|RESOURCE|Allows creation of tables in own schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
 |SELECT ON sys.DBA_Role_Privs|Allows check if GUI-user has SELECT grant for a table.
