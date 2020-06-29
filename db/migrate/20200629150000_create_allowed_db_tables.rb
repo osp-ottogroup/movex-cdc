@@ -40,7 +40,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
         "
     when 'SQLITE' then
       ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables" if view_exists? 'Allowed_DB_Tables'
-      ActiveRecord::Base.connection.execute "CREATE VIEW Allowed_DB_Tables AS SELECT 'main' Owner, 'main' Grantee, Name Table_Name FROM SQLite_Master"
+      ActiveRecord::Base.connection.execute "CREATE VIEW Allowed_DB_Tables AS SELECT 'main' Owner, 'main' Grantee, Name Table_Name FROM SQLite_Master WHERE type='table'"
     end
   end
 
