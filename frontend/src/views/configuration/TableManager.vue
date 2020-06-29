@@ -55,7 +55,6 @@ export default {
   computed: {
     selectableTables() {
       // filter all tables out of db tables, that are not included in trixx tables
-      // eslint-disable-next-line max-len
       return this.dbTables.filter(dbTable => !this.tables.some(table => dbTable.name === table.name));
     },
     showTableModal() {
@@ -117,6 +116,13 @@ export default {
       try {
         const createdTable = await CRUDService.tables.create({ table });
         this.tables.push(createdTable);
+        this.tables = this.tables.sort((a, b) => {
+          const aName = a.name.toUpperCase();
+          const bName = b.name.toUpperCase();
+          if (aName < bName) { return -1; }
+          if (aName > bName) { return 1; }
+          return 0;
+        });
         this.$buefy.toast.open({
           message: `Table '${createdTable.name}' added to TriXX configuration!`,
           type: 'is-success',
