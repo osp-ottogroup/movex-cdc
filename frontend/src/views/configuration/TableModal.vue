@@ -14,6 +14,7 @@
                 @click="onClose">
         </button>
       </header>
+
       <section class="modal-card-body">
         <b-field v-if="showTableSelect" label="Table">
           <b-select ref="tableSelect"
@@ -22,11 +23,12 @@
                     required
                     validation-message="Select a table to add"
                     expanded>
-            <option v-for="table in tables" :key="table.id" :value="table.name">
+            <option v-for="(table, index) in tables" :key="index" :value="table.name">
               {{ table.name }}
             </option>
           </b-select>
         </b-field>
+
         <b-field label="Kafka-Topic">
           <b-input ref="topicInput"
                    placeholder="Enter Kafka-Topic"
@@ -34,6 +36,7 @@
                    validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
         </b-field>
+
         <b-field label="Kafka Key Handling">
           <b-field>
             <b-select v-model="internalTable.kafka_key_handling" expanded>
@@ -49,6 +52,7 @@
             </b-field>
           </b-field>
         </b-field>
+
         <b-field label="Info">
           <b-input ref="infoTextarea"
                    type="textarea"
@@ -57,7 +61,30 @@
                    required
                    validation-message="Add an info text why this table is used in TriXX"/>
         </b-field>
+
+        <template v-if="!isAddMode">
+          <b-field label="Date Of Last Trigger Deployment" custom-class="is-small" class="trigger-dates">
+            <div class="columns is-1 is-variable">
+              <div class="column">
+                <b-field label="Insert" custom-class="is-small has-text-grey">
+                  <b-input size="is-small" disabled :value="triggerDates.youngest_insert_trigger_changed_at"/>
+                </b-field>
+              </div>
+              <div class="column">
+                <b-field label="Update" custom-class="is-small has-text-grey">
+                  <b-input size="is-small" disabled :value="triggerDates.youngest_update_trigger_changed_at"/>
+                </b-field>
+              </div>
+              <div class="column">
+                <b-field label="Delete" custom-class="is-small has-text-grey">
+                  <b-input size="is-small" disabled :value="triggerDates.youngest_delete_trigger_changed_at"/>
+                </b-field>
+              </div>
+            </div>
+          </b-field>
+        </template>
       </section>
+
       <footer class="modal-card-foot">
         <button id="save-table-button"
                 class="button is-primary"
@@ -70,6 +97,8 @@
 </template>
 
 <script>
+import CRUDService from '@/services/CRUDService';
+
 export default {
   name: 'TableModal',
   props: {
@@ -82,12 +111,27 @@ export default {
   data() {
     return {
       internalTable: { ...this.table },
+      triggerDates: {},
       kafkaKeyHandlingOptions: [
         { value: 'N', label: 'N - None' },
         { value: 'P', label: 'P - Primary Key' },
         { value: 'F', label: 'F - Fixed Key' },
       ],
     };
+  },
+  async created() {
+    if (!this.isAddMode) {
+      this.triggerDates = await CRUDService.tables.triggerDates(this.table.id);
+      if (!this.triggerDates.youngest_insert_trigger_changed_at) {
+        this.triggerDates.youngest_insert_trigger_changed_at = 'never';
+      }
+      if (!this.triggerDates.youngest_update_trigger_changed_at) {
+        this.triggerDates.youngest_update_trigger_changed_at = 'never';
+      }
+      if (!this.triggerDates.youngest_delete_trigger_changed_at) {
+        this.triggerDates.youngest_delete_trigger_changed_at = 'never';
+      }
+    }
   },
   computed: {
     title() {
@@ -97,6 +141,9 @@ export default {
       return `Edit observed table (${this.internalTable.name})`;
     },
     showTableSelect() {
+      return this.isAddMode;
+    },
+    isAddMode() {
       return this.mode === 'ADD';
     },
   },
@@ -129,5 +176,8 @@ export default {
 <style lang="scss" scoped>
   footer button {
     margin-left: auto;
+  }
+  .trigger-dates {
+    margin-top: 2rem;
   }
 </style>

@@ -6,7 +6,10 @@ export default {
   columns: BaseCRUDService('columns'),
   schemaRights: BaseCRUDService('schema_rights'),
   schemas: BaseCRUDService('schemas'),
-  tables: BaseCRUDService('tables'),
+  tables: {
+    ...BaseCRUDService('tables'),
+    triggerDates: BaseCRUDService('/trigger_dates').get,
+  },
   users: BaseCRUDService('users'),
   dbColumns: { getAll: BaseCRUDService('db_columns').getAll },
   dbSchemas: {
