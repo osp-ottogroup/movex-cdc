@@ -241,12 +241,12 @@ class TransferThread
       # Ensure that older IDs are processed first
       # only half of @max_transaction_size is processed with newer IDs than last execution
       # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
-      event_logs = Database.select_all("\
+      event_logs.concat(Database.select_all("\
 SELECT * FROM (SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{@max_transaction_size})
 UNION
 SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
                           {max_id: @max_event_logs_id}
-      )
+      ))
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
