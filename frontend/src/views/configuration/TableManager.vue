@@ -17,6 +17,7 @@
                    :schema="schema"
                    :mode="modal.mode"
                    @save="onSave"
+                   @remove="onRemove"
                    @close="onClose"/>
     </template>
   </div>
@@ -93,6 +94,22 @@ export default {
     },
     onClose() {
       this.modal.table = null;
+    },
+    async onRemove(table) {
+      try {
+        await CRUDService.tables.delete(table.id);
+        const index = this.tables.findIndex(t => t.id === table.id);
+        this.tables.splice(index, 1);
+        this.modal.table = null;
+        this.modal.mode = null;
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      }
     },
     async onSave(table) {
       try {

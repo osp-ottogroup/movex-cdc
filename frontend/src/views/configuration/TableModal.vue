@@ -85,12 +85,18 @@
         </template>
       </section>
 
-      <footer class="modal-card-foot">
-        <button id="save-table-button"
-                class="button is-primary"
-                @click="onSave">
+      <footer class="modal-card-foot" :class="isAddMode ? 'flex-end' : 'space-between'">
+        <b-button v-if="!isAddMode"
+                  id="delete-table-button"
+                  type="is-danger"
+                  @click="onRemove">
+          Remove from observation
+        </b-button>
+        <b-button id="save-table-button"
+                  type="is-primary"
+                  @click="onSave">
           Save
-        </button>
+        </b-button>
       </footer>
     </div>
   </b-modal>
@@ -169,13 +175,19 @@ export default {
       }
       this.$emit('save', this.internalTable);
     },
+    onRemove() {
+      this.$emit('remove', this.internalTable);
+    },
   },
 };
 </script>
 
 <style lang="scss" scoped>
-  footer button {
-    margin-left: auto;
+  .space-between {
+    justify-content: space-between;
+  }
+  .flex-end {
+    justify-content: flex-end;
   }
   .trigger-dates {
     margin-top: 2rem;
