@@ -8,10 +8,12 @@ one:
   user_id: 1
   schema_id: 1
   info: Info1
+  lock_version: 1
 
 <% if Trixx::Application.config.trixx_db_type == 'ORACLE' %>
 two:
   user_id: 1
   schema_id: 2
   info: Info1
-<% end %>
+  lock_version: 1
+  <% end %>

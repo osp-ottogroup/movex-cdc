@@ -69,16 +69,18 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy table" do
+    @deletable = tables(:deletable)
     assert_difference('Table.count', 0) do                                      # Table should be marked hidden
-      delete table_url(tables(:deletable)), headers: jwt_header, as: :json
+      delete table_url(@deletable), headers: jwt_header, params: { table: @deletable.attributes}, as: :json
     end
     assert_response 204
     assert_equal 'Y', Table.find(tables(:deletable).id).yn_hidden, 'Table should be hidden after destroy'
   end
 
   test "should not destroy table" do
+    @deletable = tables(:deletable)
     assert_raise 'Should not get access without schema rights' do
-      delete table_url(tables(:deletable)), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+      delete table_url(@deletable), headers: jwt_header(@jwt_no_schema_right_token), params: { table: @deletable.attributes}, as: :json
     end
   end
 end

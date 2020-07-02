@@ -43,10 +43,10 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   test "should destroy schema" do
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      @deletable = Schema.new(name: 'Deletable')
+      @deletable = Schema.new(name: 'Deletable', lock_version: 1)
       @deletable.save!
       assert_difference('Schema.count', -1) do
-        delete schema_url(@deletable), headers: jwt_header, as: :json
+        delete schema_url(@deletable), headers: jwt_header, params: { schema: @deletable.attributes}, as: :json
       end
       assert_response 204
     when 'SQLITE' then                                                          # onle one schema exists for SQLite that should not be deleted

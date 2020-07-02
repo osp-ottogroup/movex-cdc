@@ -36,6 +36,7 @@ class ConditionsController < ApplicationController
 
   # PATCH/PUT /conditions/1
   def update
+    condition_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @condition.update(condition_params)
       log_activity(
           schema_name:  @condition.table.schema.name,
@@ -50,6 +51,7 @@ class ConditionsController < ApplicationController
 
   # DELETE /conditions/1
   def destroy
+    condition_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @condition.destroy
     log_activity(
         schema_name:  @condition.table.schema.name,

@@ -4,7 +4,7 @@ class UsersController < ApplicationController
 
   # GET /users
   def index
-    @users = User.all
+    @users = User.all.order(:last_name, :first_name)
 
     render json: @users, include: { schema_rights: {include: :schema} }
   end
@@ -38,6 +38,8 @@ class UsersController < ApplicationController
 
   # PATCH/PUT /users/1
   def update
+    user_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
+
     if @user.update(user_params)
       SchemaRight.process_user_request(@user, schema_rights_params)
       log_activity(
@@ -51,6 +53,7 @@ class UsersController < ApplicationController
 
   # DELETE /users/1
   def destroy
+    user_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @user.destroy == :destroyed
       log_activity(action: "user deleted: #{@user.attributes}")
     else

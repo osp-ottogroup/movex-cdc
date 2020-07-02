@@ -50,6 +50,7 @@ class TablesController < ApplicationController
 
   # PATCH/PUT /tables/1
   def update
+    table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @table.update(table_params)
       log_activity(
           schema_name:  @table.schema.name,
@@ -64,6 +65,7 @@ class TablesController < ApplicationController
 
   # DELETE /tables/1
   def destroy
+    table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @table.update(yn_hidden: 'Y')
     log_activity(
         schema_name:  @table.schema.name,

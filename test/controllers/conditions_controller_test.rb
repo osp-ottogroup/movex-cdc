@@ -46,14 +46,14 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy condition" do
     assert_difference('Condition.count', -1) do
-      delete condition_url(@condition), headers: jwt_header, as: :json
+      delete condition_url(@condition), headers: jwt_header, params: { condition: @condition.attributes}, as: :json
     end
     assert_response 204
   end
 
   test "should not destroy condition" do
     assert_raise 'Should not get access without schema rights' do
-      delete condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+      delete condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: @condition.attributes}, as: :json
     end
   end
 

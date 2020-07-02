@@ -46,14 +46,14 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy column" do
     assert_difference('Column.count', -1) do
-      delete column_url(@column), headers: jwt_header, as: :json
+      delete column_url(@column), headers: jwt_header, params: { column: @column.attributes}, as: :json
     end
     assert_response 204
   end
 
   test "should not destroy column" do
     assert_raise 'Should not get access without schema rights' do
-      delete column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+      delete column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), params: { column: @column.attributes}, as: :json
     end
   end
 

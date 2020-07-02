@@ -45,7 +45,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy schema_right" do
     assert_difference('SchemaRight.count', -1) do
-      delete schema_right_url(@schema_right), headers: jwt_header(@jwt_admin_token), as: :json
+      delete schema_right_url(@schema_right), headers: jwt_header(@jwt_admin_token), params: { schema_right: @schema_right.attributes}, as: :json
     end
     assert_response 204
 

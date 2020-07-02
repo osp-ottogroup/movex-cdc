@@ -6,7 +6,7 @@ admin:
   first_name: Admin
   last_name: from fixture
   yn_admin: Y
-
+  lock_version: 1
 one:
   id: 1
   email: Peter.Ramm@ottogroup.com
@@ -14,7 +14,7 @@ one:
   first_name: Peter
   last_name: Ramm
   yn_admin: N
-
+  lock_version: 1
 two:
   id: 2
   email: Sandro.Preuss@ottogroup.com
@@ -22,6 +22,7 @@ two:
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
+  lock_version: 1
 
 double_db_user1:
   email: double_db_user1@ottogroup.com
@@ -29,6 +30,7 @@ double_db_user1:
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
+  lock_version: 1
 
 double_db_user2:
   email: double_db_user2@ottogroup.com
@@ -36,16 +38,18 @@ double_db_user2:
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
+  lock_version: 1
 
 user2delete:
   email: user2delete@ottogroup.com
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
+  lock_version: 1
 
 no_schema_right:
   email: no_schema_right@ottogroup.com
   first_name: Has no right for
   last_name: Schemas
   yn_admin: N
-
+  lock_version: 1

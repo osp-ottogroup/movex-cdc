@@ -378,9 +378,9 @@ END #{target_trigger_data[:trigger_name]};
   # convert values to string in PL/SQL
   def convert_col(column_hash, old_new)
     accessor = ":#{old_new}"
-
-    case column_hash[:data_type]
-
+    result = ''
+    result << "CASE WHEN #{accessor}.#{column_hash[:column_name]} IS NULL THEN 'NULL' ELSE " if column_hash[:nullable] == 'Y'
+    result << case column_hash[:data_type]
     when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'   # character data types
     then "'\"'||REPLACE(#{accessor}.#{column_hash[:column_name]}, '\"', '\\\"')||'\"'"           # place between double quotes "xxx" and escape double quote to \"
     when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
@@ -394,5 +394,8 @@ END #{target_trigger_data[:trigger_name]};
     else
       raise "Unsupported column type '#{column_hash[:data_type]}' for column '#{column_hash[:column_name]}'"
     end
+    result << " END" if column_hash[:nullable] == 'Y'
+    result
   end
+
 end
