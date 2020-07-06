@@ -363,7 +363,8 @@ Depending on table configuration Kafka messages may contain an additional key va
     "TS_VAL": "2020-02-21T12:07:43,396153000",
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
-    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC"
+    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
+    "NULL_VAL": NULL
   }
 }
 
@@ -385,7 +386,8 @@ Depending on table configuration Kafka messages may contain an additional key va
     "TS_VAL": "2020-02-21T12:07:43,396153000",
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
-    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC"
+    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
+    "NULL_VAL": NULL
   },
   "new": {
     "ID": 1,
@@ -395,7 +397,8 @@ Depending on table configuration Kafka messages may contain an additional key va
     "TS_VAL": "2020-02-21T12:07:43,396153000",
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
-    "ROWID_VAL": "AAAUQ6AAMAAAAJlAACAAAUQ6AAMAAAAJlAAC"
+    "ROWID_VAL": "AAAUQ6AAMAAAAJlAACAAAUQ6AAMAAAAJlAAC",
+    "NULL_VAL": NULL
   }
 }
 
@@ -416,7 +419,8 @@ Depending on table configuration Kafka messages may contain an additional key va
     "TS_VAL": "2020-02-21T12:07:43,396153000",
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
-    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC"
+    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
+    "NULL_VAL": NULL
   }
 }
 
