@@ -1,11 +1,22 @@
 <template>
   <div class="columns is-centered">
     <div class="column is-half">
-      <b-button
-        type="is-primary"
-        @click="onCreateUserButtonClicked">
-        Create User
-      </b-button>
+      <div class="level">
+        <div class="level-left">
+          <b-button
+            type="is-primary"
+            @click="onCreateUserButtonClicked">
+            Create User
+          </b-button>
+        </div>
+        <div class="level-right">
+          <b-button
+            type="is-info"
+            icon-left="magnify"
+            @click="onSearchButtonClicked"/>
+        </div>
+      </div>
+
 
       <b-table
         id="users-table"
@@ -16,19 +27,19 @@
         hoverable
         @click="onRowClicked">
           <template slot-scope="props">
-            <b-table-column field="id" label="ID" numeric sortable>
+            <b-table-column field="id" label="ID" numeric sortable :searchable="showSearchFields">
               {{ props.row.id }}
             </b-table-column>
-            <b-table-column field="first_name" label="First Name" sortable>
+            <b-table-column field="first_name" label="First Name" sortable :searchable="showSearchFields">
               {{ props.row.first_name }}
             </b-table-column>
-            <b-table-column field="last_name" label="Last Name" sortable>
+            <b-table-column field="last_name" label="Last Name" sortable :searchable="showSearchFields">
               {{ props.row.last_name }}
             </b-table-column>
-            <b-table-column field="email" label="e-Mail" sortable>
+            <b-table-column field="email" label="e-Mail" sortable :searchable="showSearchFields">
               {{ props.row.email }}
             </b-table-column>
-            <b-table-column field="db_user" label="DB-User" sortable>
+            <b-table-column field="db_user" label="DB-User" sortable :searchable="showSearchFields">
               {{ props.row.db_user }}
             </b-table-column>
             <b-table-column label="Info" width="4rem">
@@ -71,6 +82,7 @@ export default {
     return {
       isLoading: true,
       users: [],
+      showSearchFields: false,
       modal: {
         show: false,
         userId: null,
@@ -105,6 +117,9 @@ export default {
     },
     onCreateUserButtonClicked() {
       this.showModal(null);
+    },
+    onSearchButtonClicked() {
+      this.showSearchFields = !this.showSearchFields;
     },
     onSaved(savedUser) {
       const index = this.users.findIndex(user => user.id === savedUser.id);
