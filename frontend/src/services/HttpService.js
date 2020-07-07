@@ -109,10 +109,11 @@ const put = (urlString, data = {}, headerOptions = {}) => {
 /**
  * Makes a HTTP request with method DELETE
  * @param {String} urlString URL to request
+ * @param {Object} data data to use in request body (will be stringified as JSON)
  * @param {Object} headerOptions custom header options
  * @returns {promise} see doc at FetchService.doFetch()
  */
-const callDelete = (urlString, data, headerOptions = {}) => {
+const callDelete = (urlString, data = {}, headerOptions = {}) => {
   const url = new URL(urlString);
   const json = JSON.stringify(data);
 

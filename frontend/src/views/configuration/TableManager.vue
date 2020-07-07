@@ -97,7 +97,7 @@ export default {
     },
     async onRemove(table) {
       try {
-        await CRUDService.tables.delete(table.id);
+        await CRUDService.tables.delete(table.id, table);
         const index = this.tables.findIndex(t => t.id === table.id);
         this.tables.splice(index, 1);
         this.modal.table = null;
