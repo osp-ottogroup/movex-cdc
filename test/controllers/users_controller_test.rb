@@ -68,6 +68,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
       al.destroy!
     end
 
+    @user = User.find @user.id                                                  # ensure record has correct lock_version after above update
     assert_difference('User.count', -1) do
       delete user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: @user.attributes}, as: :json
     end
@@ -77,4 +78,12 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized, 'Access allowed to supervisor only'
 
   end
+
+  test "should not destroy user" do                                             # separate test because connect requires existence of user :one
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      delete user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: {lock_version: 42}}, as: :json
+    end
+  end
+
+
 end

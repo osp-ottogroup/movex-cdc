@@ -75,6 +75,11 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 204
     assert_equal 'Y', Table.find(tables(:deletable).id).yn_hidden, 'Table should be hidden after destroy'
+
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      delete table_url(@deletable), headers: jwt_header, params: { table: {lock_version: 42}}, as: :json
+    end
+
   end
 
   test "should not destroy table" do

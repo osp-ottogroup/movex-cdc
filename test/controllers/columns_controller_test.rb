@@ -49,6 +49,11 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
       delete column_url(@column), headers: jwt_header, params: { column: @column.attributes}, as: :json
     end
     assert_response 204
+
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      delete column_url(columns(:two)), headers: jwt_header, params: { column: {lock_version: 42}}, as: :json
+    end
+
   end
 
   test "should not destroy column" do

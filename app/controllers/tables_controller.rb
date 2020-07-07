@@ -65,7 +65,7 @@ class TablesController < ApplicationController
 
   # DELETE /tables/1
   def destroy
-    table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
+    @table.lock_version = table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @table.update(yn_hidden: 'Y')
     Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", {id: @table.id}
     log_activity(

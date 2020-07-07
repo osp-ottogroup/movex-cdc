@@ -14,6 +14,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
         )
         PCTFREE 0
         INITRANS 16
+        LOB(Payload) STORE AS (CACHE)
         #{"PARTITION BY RANGE (Created_At) INTERVAL( NUMTODSINTERVAL(10,'MINUTE'))
            ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{Time.now.strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if Trixx::Application.partitioning}
       ")
