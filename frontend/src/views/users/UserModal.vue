@@ -197,7 +197,7 @@ export default {
     async onDeleteButtonClicked() {
       try {
         this.isDeleting = true;
-        await CRUDService.users.delete(this.user.id);
+        await CRUDService.users.delete(this.user.id, this.user);
         this.$emit('deleted', this.user);
       } catch (e) {
         this.$buefy.notification.open({
