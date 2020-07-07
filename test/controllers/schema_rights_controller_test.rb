@@ -49,6 +49,12 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 204
 
+    if Trixx::Application.config.trixx_db_type != 'SQLITE'
+      assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+        delete schema_right_url(schema_rights(:two)), headers: jwt_header(@jwt_admin_token), params: { schema_right: {lock_version: 42}}, as: :json
+      end
+    end
+
     delete schema_right_url(@schema_right), headers: jwt_header, as: :json
     assert_response :unauthorized, 'Should not get access without admin role'
   end

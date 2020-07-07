@@ -7,6 +7,7 @@ admin:
   last_name: from fixture
   yn_admin: Y
   lock_version: 1
+
 one:
   id: 1
   email: Peter.Ramm@ottogroup.com
@@ -15,6 +16,7 @@ one:
   last_name: Ramm
   yn_admin: N
   lock_version: 1
+
 two:
   id: 2
   email: Sandro.Preuss@ottogroup.com

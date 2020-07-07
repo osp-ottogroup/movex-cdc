@@ -53,7 +53,7 @@ class UsersController < ApplicationController
 
   # DELETE /users/1
   def destroy
-    user_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
+    @user.lock_version = user_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @user.destroy == :destroyed
       log_activity(action: "user deleted: #{@user.attributes}")
     else

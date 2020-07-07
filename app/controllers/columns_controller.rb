@@ -55,7 +55,7 @@ class ColumnsController < ApplicationController
 
   # DELETE /columns/1
   def destroy
-    column_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
+    @column.lock_version = column_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @column.destroy
     log_activity(
         schema_name:  @column.table.schema.name,

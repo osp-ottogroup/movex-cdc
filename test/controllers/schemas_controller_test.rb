@@ -49,6 +49,13 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
         delete schema_url(@deletable), headers: jwt_header, params: { schema: @deletable.attributes}, as: :json
       end
       assert_response 204
+
+      @deletable = Schema.new(name: 'Deletable', lock_version: 1)
+      @deletable.save!
+      assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+        delete schema_url(@deletable), headers: jwt_header, params: { schema: {lock_version: 42}}, as: :json
+      end
+
     when 'SQLITE' then                                                          # onle one schema exists for SQLite that should not be deleted
     end
   end

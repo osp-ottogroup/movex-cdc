@@ -49,6 +49,11 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
       delete condition_url(@condition), headers: jwt_header, params: { condition: @condition.attributes}, as: :json
     end
     assert_response 204
+
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      delete condition_url(conditions(:two)), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
+    end
+
   end
 
   test "should not destroy condition" do
