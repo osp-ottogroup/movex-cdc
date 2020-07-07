@@ -11,23 +11,24 @@
         id="users-table"
         :data="users"
         :loading="isLoading"
+        default-sort="last_name"
         striped
         hoverable
         @click="onRowClicked">
           <template slot-scope="props">
-            <b-table-column field="id" label="ID" numeric>
+            <b-table-column field="id" label="ID" numeric sortable>
               {{ props.row.id }}
             </b-table-column>
-            <b-table-column field="first_name" label="First Name">
+            <b-table-column field="first_name" label="First Name" sortable>
               {{ props.row.first_name }}
             </b-table-column>
-            <b-table-column field="last_name" label="Last Name">
+            <b-table-column field="last_name" label="Last Name" sortable>
               {{ props.row.last_name }}
             </b-table-column>
-            <b-table-column field="email" label="e-Mail">
+            <b-table-column field="email" label="e-Mail" sortable>
               {{ props.row.email }}
             </b-table-column>
-            <b-table-column field="db_user" label="DB-User">
+            <b-table-column field="db_user" label="DB-User" sortable>
               {{ props.row.db_user }}
             </b-table-column>
             <b-table-column label="Info" width="4rem">
