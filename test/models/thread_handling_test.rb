@@ -15,7 +15,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
       # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
       # MaxValue for sequence is 999999999999999999
-      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 999999999999999000"   # MaxValue -999
+      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 999999999999000000"   # MaxValue -999999, Distance to MaxValue should be greater than Cache size
       Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
       Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
 
