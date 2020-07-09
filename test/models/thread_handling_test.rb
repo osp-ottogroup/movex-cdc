@@ -12,6 +12,13 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       Trixx::Application.config.trixx_max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
       Trixx::Application.config.trixx_kafka_max_bulk_count   = 100
       Trixx::Application.config.trixx_initial_worker_threads = 1                # Needed as long as test uses the same DB connection for all threads (different to development and production)
+
+      # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
+      # MaxValue for sequence is 999999999999999999
+      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 999999999999999000"   # MaxValue -999
+      Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
+      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
+
       # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
       Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At)
                        SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', 'Dummy', SYSDATE
