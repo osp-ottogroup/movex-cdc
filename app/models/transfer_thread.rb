@@ -213,29 +213,10 @@ class TransferThread
         Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
             .sort_by{|x| x['high_value']}.each do |part|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
-          if remaining_records > 0                                              # add records from next partition to result
-            # First step: look for records with smaller ID than largest of lst run (older records)
-            event_logs.concat(DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
-                                                                FROM   Event_Logs PARTITION (#{part['partition_name']}) e
-                                                                WHERE  e.ID < :max_id
-                                                                FOR UPDATE SKIP LOCKED",
-                                                              {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
-            ))
-            remaining_records = @max_transaction_size - event_logs.count        # available space for more result records
-            if remaining_records > 0                                            # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
-              event_logs.concat(DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
-                                                                FROM   Event_Logs PARTITION (#{part['partition_name']}) e
-                                                                WHERE  e.ID >= :max_id
-                                                                FOR UPDATE SKIP LOCKED",
-                                                                {max_id: @max_event_logs_id}, fetch_limit: remaining_records, query_timeout: Trixx::Application.config.trixx_db_query_timeout
-              ))
-            end
-          end
+          event_logs.concat(read_event_logs_oracle(remaining_records, part['partition_name'])) if remaining_records > 0 # Skip next partitions if already read enough records
         end
       else
-        event_logs = Database.select_all("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID FROM Event_Logs e WHERE (ID < :max_id AND RowNum <= :max_message_bulk_count1) OR RowNum <= :max_message_bulk_count2 / 2 FOR UPDATE SKIP LOCKED",
-                            {max_id: @max_event_logs_id, max_message_bulk_count1: @max_transaction_size, max_message_bulk_count2: @max_transaction_size }
-        )
+        event_logs.concat(read_event_logs_oracle(@max_transaction_size, nil))
       end
     when 'SQLITE' then
       # Ensure that older IDs are processed first
@@ -252,6 +233,28 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
     end
     event_logs.sort_by! {|e| e['id']}                                           # ensure original order of event creation
     event_logs
+  end
+
+  # read event_logs with multiple selects
+  def read_event_logs_oracle(max_records_to_read, partition_name = nil)
+    result = []
+    # First step: look for records with smaller ID than largest of last run (older records)
+    result = read_event_logs_single_oracle(max_records_to_read, "e.ID < :max_id", {max_id: @max_event_logs_id}, partition_name)
+    remaining_records = max_records_to_read - result.count                      # available space for more result records
+    if remaining_records > 0                                                    # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
+      result.concat(read_event_logs_single_oracle(remaining_records, "e.ID >= :max_id", {max_id: @max_event_logs_id}, partition_name))
+    end
+    result
+  end
+
+  # Do SQL select for given conditions
+  def read_event_logs_single_oracle(fetch_limit, filter, params, partition_name)
+    DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+                                                                FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
+                                                                WHERE  #{filter}
+                                                                FOR UPDATE SKIP LOCKED",
+                                    params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.trixx_db_query_timeout
+    )
   end
 
   def delete_event_logs_batch(event_logs)
