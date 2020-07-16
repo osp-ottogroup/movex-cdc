@@ -1,9 +1,21 @@
+require 'json'
+
 class KafkaMock
   class Producer
-    def intialize(options)
+    def initialize(options)
+      @last_produced_id = 0                                                     # Check messages with key for proper ascending order
     end
 
     def produce(message, options)
+      msg_hash = JSON.parse message                                             # ensure correct JSON notation
+      if options[:key]                                                          # for keyed messages ID should be ascending
+        next_id = msg_hash['id'].to_i
+        if next_id <= @last_produced_id
+          raise "KafkaMock::Producer.produce: Ascending order of IDs violated for messages with key! Current ID = #{next_id}, Last used ID = #{@last_produced_id}"
+        end
+        @last_produced_id = next_id
+      end
+
 #      Rails.logger.debug "KafkaMock.produce: options = #{options}, message=\n#{message}"
     end
 
@@ -29,7 +41,7 @@ class KafkaMock
   end
 
   def producer(options = {})
-    Producer.new
+    Producer.new(options)
   end
 
   EXISTING_TOPICS = ['Topic1', 'Topic2']

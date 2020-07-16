@@ -28,6 +28,9 @@ class TransferThread
     @max_transaction_size           = require_option(options, :max_transaction_size)     # Maximum number of message in transaction
     @max_message_bulk_count         = require_option(options, :max_message_bulk_count)   # Maximum number of message in buffer before delivery to kafka
     @max_buffer_bytesize            = require_option(options, :max_buffer_bytesize)      # Maximum size of Kafka buffer in bytes
+    # Maximum distance between first and greatest ID to ensure that number of read events is less than maximum number of messages to read at once
+    # this value is dynamically adjusted at runtime so that the number of read records is as high as possible but below @max_transaction_size
+    @max_sorted_id_distances        = {}                                        # This values are maintained by increase/decrease_max_sorted_id_distance and get_max_sorted_id_distance
     @start_time                     = Time.now
     @last_active_time               = nil                                       # timestamp of last transfer to kafka
     @total_messages_processed       = 0                                         # Total number of message processings, no matter whether successful or not
@@ -37,10 +40,12 @@ class TransferThread
     @thread                         = nil                                       # Reference to thread, set in new thread in method process
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
-    @max_event_logs_id              = 0                                         # maximum processed id
+    @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
+    @max_key_event_logs_id          = get_max_event_logs_id_from_sequence                     # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
     @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
+    @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
   end
 
   MAX_EXCEPTION_RETRY=3                                                         # max. number of retries after exception
@@ -110,7 +115,7 @@ class TransferThread
                     topic = table.topic_to_use
                     begin
                       @statistic_counter.increment(table.id, event_log['operation'])
-                      kafka_producer.produce(kafka_message, topic: topic, key: event_log['key']) # Store messages in local collection
+                      kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection
                     rescue Kafka::BufferOverflow => e
                       Rails.logger.warn "#{e.class} #{e.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{schema.name}, table = #{table.name}"
                       reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
@@ -193,7 +198,9 @@ class TransferThread
         start_time:                     @start_time,
         last_active_time:               @last_active_time,
         max_message_size:               @max_message_size,
+        max_sorted_id_distances:        @max_sorted_id_distances,
         max_event_logs_id:              @max_event_logs_id,
+        max_key_event_logs_id:          @max_key_event_logs_id,
         successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
         message_processing_errors:      @messages_processed_with_error,
         stacktrace:                     @thread&.backtrace
@@ -210,24 +217,18 @@ class TransferThread
     when 'ORACLE' then
       if Trixx::Application.partitioning
         # Iterate over partitions starting with oldest up to @max_transaction_size records
-        Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ")
-            .sort_by{|x| x['high_value']}.each do |part|
+        Rails.logger.debug "TransferThread.read_event_logs_batch: Start iterating over partitions"
+        partitions = Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").sort_by{|x| x['high_value']}
+        partitions.each_index do |i|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
-          event_logs.concat(read_event_logs_oracle(remaining_records, part['partition_name'])) if remaining_records > 0 # Skip next partitions if already read enough records
+          event_logs.concat(read_event_logs_steps(remaining_records, partitions[i]['partition_name'], i == partitions.count-1)) if remaining_records > 0 # Skip next partitions if already read enough records
         end
+        housekeep_max_sorted_id_distance(partitions.map {|p| p['partition_name']})
       else
-        event_logs.concat(read_event_logs_oracle(@max_transaction_size, nil))
+        event_logs.concat(read_event_logs_steps(@max_transaction_size))
       end
     when 'SQLITE' then
-      # Ensure that older IDs are processed first
-      # only half of @max_transaction_size is processed with newer IDs than last execution
-      # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
-      event_logs.concat(Database.select_all("\
-SELECT * FROM (SELECT * FROM Event_Logs WHERE ID < :max_id LIMIT #{@max_transaction_size})
-UNION
-SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
-                          {max_id: @max_event_logs_id}
-      ))
+      event_logs.concat(read_event_logs_steps(@max_transaction_size))
     else
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
@@ -236,25 +237,123 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
   end
 
   # read event_logs with multiple selects
-  def read_event_logs_oracle(max_records_to_read, partition_name = nil)
+  # Steps for processing are:
+  # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
+  # 2. look for records without key value and with smaller ID than largest of last run (older records)
+  # 3. look for records without key value and with larger ID than largest of last run (newer records)
+  def read_event_logs_steps(max_records_to_read, partition_name = nil, last_partition = true)
     result = []
-    # First step: look for records with smaller ID than largest of last run (older records)
-    result = read_event_logs_single_oracle(max_records_to_read, "e.ID < :max_id", {max_id: @max_event_logs_id}, partition_name)
+    # 1.
+    # Condition to identify events with msg_key for which this worker instance is reponsible for processing
+    msg_key_filter_condition = case Trixx::Application.config.trixx_db_type
+                               when 'ORACLE' then "Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), #{Trixx::Application.config.trixx_initial_worker_threads}) = :worker_id"
+                               when 'SQLITE' then "Msg_Key IS NOT NULL AND LENGTH(Msg_Key) % #{Trixx::Application.config.trixx_initial_worker_threads} = :worker_id" # LENGTH as workaround for not existing hash function
+                               end
+
+
+
+    Rails.logger.debug "TransferThread.read_event_logs_steps: Start processing with @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
+    key_result = []                                                             # ensure existence of variable outside loop
+    max_processed_key_event_logs_id = 0                                         # Maximum ID already selected by previous loop
+    loop_count = 0                                                              # observe number of loops to prevent infinite loops
+    loop do                                                                     # loop until all records read or max_records_to_read reached
+      loop_count += 1
+      loop do                                                                   # loop until reords read at once are < @max_transaction_size to ensure sorted order
+        loop_count += 1                                                         # count inner loop like outer loop in sum
+
+        if loop_count > 1000                                                    # protect against infinite loop
+          msg = "TransferThread.read_event_logs_steps: risk of infinite loop. Cancelled now! @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, result.count = #{result.count}"
+          Rails.logger.error msg
+          raise msg
+        end
+
+        # @max_transaction_size instead of max_records_to_read is the limit here to ensure even distances also if events from previous and next partition are combined
+        key_result = read_event_logs_single(@max_transaction_size,
+                                            "ID > :min_ID AND ID < :max_id AND #{msg_key_filter_condition}",
+                                            {min_id: max_processed_key_event_logs_id, max_id: @max_key_event_logs_id + get_max_sorted_id_distance(partition_name), worker_id: @worker_id},
+                                            partition_name
+        )
+
+        break if key_result.count < @max_transaction_size                       # it is ensured that no unread records are remaining with key IS NOT NULL and ID < @max_key_event_logs_id (sorted order ensured)
+
+        # Discard the read result and prepare next loop execution to reach the limit key_result.count < @max_transaction_size and ensure processing of all smaller IDs
+        if get_max_sorted_id_distance(partition_name) >= @max_transaction_size  # Possible to read more than @max_transaction_size records
+          decrease_max_sorted_id_distance(partition_name, 2) # Reduce the distance to ensure all smaller records are catched at next run
+          Rails.logger.debug "TransferThread.read_event_logs_steps: max_sorted_id_distance decreased to #{get_max_sorted_id_distance(partition_name)} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"
+        else                                                                    # There must exist more records in table with id < @max_key_event_logs_id + max_sorted_id_distance than @max_transaction_size
+          @max_key_event_logs_id = get_min_key_id(msg_key_filter_condition, {worker_id: @worker_id}, partition_name) - 1 # Start next run with smaller max. id but ensure to catch at least one record
+          Rails.logger.debug "TransferThread.read_event_logs_steps: @max_key_event_logs_id decreased to #{@max_key_event_logs_id} because there are still to much records below @max_key_event_logs_id + max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}"
+        end
+      end                                                                       # inner loop
+
+      key_result.each {|r| @max_key_event_logs_id = r['id'] if r['id'] > @max_key_event_logs_id }  # remember the highest ID for next run
+      max_processed_key_event_logs_id = @max_key_event_logs_id
+      result.concat key_result
+
+      # it is sufficient if more than max_records_to_read are read even if select was done with full @max_transaction_size
+      break if result.count >= max_records_to_read || @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+
+      # Enlarge max_sorted_id_distance up to maximum if less than 1/2 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
+      if key_result.count < @max_transaction_size / 2
+        # adjust cached value to reality if old distance will exceed old cached max id
+        @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+        Rails.logger.debug "TransferThread.read_event_logs_steps: Check for increasing of max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}, @max_key_event_logs_id = #{@max_key_event_logs_id}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
+
+        # if old distance is below max known ID then increase distance
+        if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) <= @cached_max_event_logs_seq_id
+          increase_factor = 10                                                  # Default if key_result.count == 0
+          if key_result.count > 0
+            increase_factor = 1 + (@max_transaction_size/2.0 - key_result.count) * 2 / (@max_transaction_size/2.0) # should result in scored value from 1 up to 3
+          end
+          increase_max_sorted_id_distance(partition_name, increase_factor)
+          Rails.logger.debug "TransferThread.read_event_logs_steps: max_sorted_id_distance increased by factor #{increase_factor} to #{get_max_sorted_id_distance(partition_name)}#{" for partition #{partition_name}" if partition_name}"
+          # adjust cached value to reality again if new distance will exceed old cached max id
+          @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+        end
+
+      end
+    end                                                                         # outer loop
+
+
+    # 2.
     remaining_records = max_records_to_read - result.count                      # available space for more result records
-    if remaining_records > 0                                                    # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
-      result.concat(read_event_logs_single_oracle(remaining_records, "e.ID >= :max_id", {max_id: @max_event_logs_id}, partition_name))
-    end
+    result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID < :max_id", {max_id: @max_event_logs_id}, partition_name)
+
+    # 3.
+    remaining_records = max_records_to_read - result.count                      # available space for more result records
+    # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
+    result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID >= :max_id", {max_id: @max_event_logs_id}, partition_name)
+
     result
   end
 
   # Do SQL select for given conditions
-  def read_event_logs_single_oracle(fetch_limit, filter, params, partition_name)
-    DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+  def read_event_logs_single(fetch_limit, filter, params, partition_name)
+    if fetch_limit > 0
+      case Trixx::Application.config.trixx_db_type
+      when 'ORACLE' then
+        DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
                                                                 WHERE  #{filter}
                                                                 FOR UPDATE SKIP LOCKED",
-                                    params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.trixx_db_query_timeout
-    )
+                                        params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.trixx_db_query_timeout
+        )
+      when 'SQLITE' then
+        Database.select_all("SELECT * FROM Event_Logs WHERE #{filter} LIMIT #{fetch_limit}", params)
+      end
+    else
+      []
+    end
+  end
+
+  # get min id for event_logs with msg_key where this worker instance is responsible for
+  def get_min_key_id(msg_key_filter_condition, params, partition_name)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      Database.select_one("SELECT MIN(ID) FROM Event_Logs#{" PARTITION (#{partition_name})" if partition_name} WHERE #{msg_key_filter_condition}", params)
+    when 'SQLITE' then
+      Database.select_one("SELECT MIN(ID) FROM Event_Logs WHERE #{msg_key_filter_condition}", params)
+    end
   end
 
   def delete_event_logs_batch(event_logs)
@@ -337,6 +436,7 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
   end
 
   # fix Exception Kafka::MessageSizeTooLarge
+  # enlarge Topic property "max.message.bytes" to needed value
   def fix_message_size_too_large(kafka, event_logs)
 
     # get max. message value sizes per topic
@@ -417,6 +517,45 @@ SELECT * FROM (SELECT * FROM Event_Logs LIMIT #{@max_transaction_size / 2})",
       raw_conn = ActiveRecord::Base.connection.raw_connection
       # Ensure that hanging SQL executions are cancelled after timeout
       raw_conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor, Trixx::Application.config.trixx_db_query_timeout * 2 * 1000)
+    end
+  end
+
+  # get maxium used ID, preferred from sequence
+  def get_max_event_logs_id_from_sequence
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then Database.select_one "SELECT Last_Number+Cache_size FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
+    when 'SQLITE' then Database.select_one "SELECT seq FROM SQLITE_SEQUENCE WHERE Name = 'event_logs'"
+    end
+  end
+
+  # Set the value per partition
+  def increase_max_sorted_id_distance(partition_name, factor)
+    key = check_max_sorted_id_distance_for_init partition_name
+    @max_sorted_id_distances[key] = ((@max_sorted_id_distances[key] + 1) * factor).to_i
+  end
+
+  def decrease_max_sorted_id_distance(partition_name, factor)
+    key = check_max_sorted_id_distance_for_init partition_name
+    @max_sorted_id_distances[key] = (@max_sorted_id_distances[key] / factor).to_i
+  end
+
+  def get_max_sorted_id_distance(partition_name)
+    key = check_max_sorted_id_distance_for_init partition_name
+    @max_sorted_id_distances[key]
+  end
+
+  def check_max_sorted_id_distance_for_init(external_key)
+    key = external_key ? external_key : 'default'
+    @max_sorted_id_distances[key] = @max_transaction_size * Trixx::Application.config.trixx_initial_worker_threads unless @max_sorted_id_distances.has_key? key # Initialization
+    key
+  end
+
+  def housekeep_max_sorted_id_distance(partition_names)
+    @max_sorted_id_distances.each do |key, value|
+      if key != 'default' && !partition_names.include?(key)
+        @max_sorted_id_distances.delete(key)
+        Rails.logger.debug("TransferThread.housekeep_max_sorted_id_distance: Removed entry for partition #{key}")
+      end
     end
   end
 end

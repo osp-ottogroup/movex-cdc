@@ -19,12 +19,19 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
       Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
 
-      # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
-      Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                       SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', 'Dummy', SYSDATE
+      ['SYSDATE-1', 'SYSDATE-0.5', 'SYSDATE'].each do |created_at|              # ensure multiple partitions are filled with data
+        # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
+        Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At)
+                       SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', '  \"new\": {\n    \"ID\": 1\n  }',
+                              CASE WHEN RowNum BETWEEN 674 AND 2356 THEN 'Fixed Value'
+                              ELSE
+                                CASE WHEN MOD(RowNum, 11) = 0 AND RowNum NOT BETWEEN 3030 AND 4122 THEN TO_CHAR(MOD(RowNum, 100)) ELSE NULL END
+                              END, /* Ensure Msg_Key with different values and null */
+                              #{created_at}
                        FROM DUAL
-                       CONNECT BY Level <= 10000
-      "
+                       CONNECT BY Level <= 6174 /* Ensure last bulk array is not completely filled */
+        "
+      end
     else
       Trixx::Application.config.trixx_max_transaction_size = 100                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
       Trixx::Application.config.trixx_kafka_max_bulk_count = 10
@@ -53,6 +60,15 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     health_check_data.each do |hd|
       successful_messages_processed  += hd[:successful_messages_processed]
       message_processing_errors      += hd[:message_processing_errors]
+    end
+
+    if messages_to_process > successful_messages_processed                      # List remaining events from table
+      puts "First 100 remaining events in table:"
+      counter = 0
+      Database.select_all("SELECT * FROM Event_Logs").each do |e|
+        counter += 1
+        puts e if counter <= 100
+      end
     end
 
     assert_equal(messages_to_process, successful_messages_processed, 'Exactly the number of records in Event_Logs should be processed')

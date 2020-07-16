@@ -145,7 +145,7 @@ class ActiveSupport::TestCase
 
   def create_event_logs_for_test(number_of_records)
     number_of_records.downto(0).each do
-      event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: 'Dummy', created_at: Time.now)
+      event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: '"new": { "ID": 1 }', created_at: Time.now)
       unless event_log.save
         raise event_log.errors.full_messages
       end
