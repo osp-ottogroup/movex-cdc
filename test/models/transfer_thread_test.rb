@@ -15,7 +15,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
     Thread.new do
       loop_count = 0
-      while loop_count < 10 do                                                  # wait up to x seconds for processing
+      while loop_count < 30 do                                                  # wait up to x seconds for processing
         loop_count += 1
         event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
         break if event_logs == 0                                                # All records processed, no need to wait anymore
