@@ -148,7 +148,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert,              accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key,          accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 10)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 

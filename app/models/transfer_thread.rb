@@ -122,7 +122,7 @@ class TransferThread
                       if @max_message_bulk_count > reduce_step + 1
                         @max_message_bulk_count -= reduce_step
                         Trixx::Application.config.trixx_kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
-                        Rails.logger.warn "Reduce max_buffer_size by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
+                        Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
                       end
                       raise                                                       # Ensure transaction is rolled back an retried
                     end
