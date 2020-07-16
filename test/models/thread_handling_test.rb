@@ -48,7 +48,10 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     while loop_count < 30 do                                                    # wait up to x * 10 seconds for processing of event_logs records
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-      break if event_logs == 0                                                  # All records processed, no need to wait anymore
+      if event_logs == 0                                                  # All records processed, no need to wait anymore
+        Rails.logger.debug "Loop terminated because Event_Logs is Empty now"
+        break
+      end
       sleep 10
     end
 
