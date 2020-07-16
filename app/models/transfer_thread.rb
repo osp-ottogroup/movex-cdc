@@ -131,7 +131,7 @@ class TransferThread
                   kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
                   delete_event_logs_batch(event_logs_slice)                     # delete the part in DB currently processed by kafka
                 rescue Kafka::MessageSizeTooLarge => e
-                  Rails.logger.warn "#{e.class} #{e.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
+                  Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
                   fix_message_size_too_large(kafka, event_logs_slice)
                   raise                                                       # Ensure transaction is rolled back an retried
                 rescue Exception => e
@@ -451,6 +451,10 @@ class TransferThread
       topic_info[topic][:max_message_value_size] = kafka_message.bytesize if kafka_message.bytesize > topic_info[topic][:max_message_value_size]
     end
 
+    topic_info.each do |key, value|
+      Rails.logger.debug "TransferThread.fix_message_size_too_large: Topic #{key} has max. message size #{value[:max_message_value_size]} for transfer"
+    end
+
     # get current max.message.byte per topic
     topic_info.each do |key, value|
       current_max_message_bytes = kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
@@ -470,6 +474,8 @@ class TransferThread
           Rails.logger.warn "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge"
         end
       end
+    rescue Exception => e
+      Rails.logger.error "TransferThread.fix_message_size_too_large: #{e.class}: #{e.message} while getting or setting topic property max.message.bytes"
     end
   end
 
@@ -506,7 +512,7 @@ class TransferThread
       @record_cache[:first_access] = Time.now
     end
     if @record_cache[:first_access] + RECORD_CACHE_REFRESH_CYCLE < Time.now
-      Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after#{RECORD_CACHE_REFRESH_CYCLE} seconds"
+      Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after #{RECORD_CACHE_REFRESH_CYCLE} seconds"
       @record_cache = {}                                                        # reset record cache after 1 minute to reread possibly changed topic names
     end
   end
