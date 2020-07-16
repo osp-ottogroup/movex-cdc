@@ -48,7 +48,7 @@ class TransferThread
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
   end
 
-  MAX_EXCEPTION_RETRY=3                                                         # max. number of retries after exception
+  MAX_EXCEPTION_RETRY=2                                                         # max. number of retries after exception
   MAX_INIT_TRANSACTION_RETRY=3                                                  # max. number of retries after Kafka::ConcurrentTransactionError
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
