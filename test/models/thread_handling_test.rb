@@ -67,14 +67,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       message_processing_errors      += hd[:message_processing_errors]
     end
 
-    if messages_to_process > successful_messages_processed                      # List remaining events from table
-      puts "First 100 remaining events in table:"
-      counter = 0
-      Database.select_all("SELECT * FROM Event_Logs").each do |e|
-        counter += 1
-        puts e if counter <= 100
-      end
-    end
+    log_event_logs_content if messages_to_process > successful_messages_processed # List remaining events from table
 
     assert_equal(messages_to_process, successful_messages_processed, 'Exactly the number of records in Event_Logs should be processed')
     assert_equal(0, message_processing_errors, 'There should not be processing errors')

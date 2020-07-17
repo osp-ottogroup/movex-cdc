@@ -152,6 +152,26 @@ class ActiveSupport::TestCase
     end
   end
 
+  def log_event_logs_content
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      if Trixx::Application.partitioning
+        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
+          record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{})"
+          puts "Partition #{p['partition_name']}: #{record_count} records"
+        end
+      end
+    end
+
+    puts "First 100 remaining events in table Event_Logs:"
+    counter = 0
+    Database.select_all("SELECT * FROM Event_Logs").each do |e|
+      counter += 1
+      puts e if counter <= 100
+    end
+
+  end
+
 end
 
 class ActionDispatch::IntegrationTest
