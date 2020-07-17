@@ -19,20 +19,18 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
       Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
 
-      ActiveRecord::Base.transaction do                                         # Skip miracle that only first 6174 records have been visible by SELECT FOR UPDATE SKIP LOCKED
-        ['SYSDATE-1', 'SYSDATE-0.5', 'SYSDATE'].each do |created_at|            # ensure multiple partitions are filled with data
-          # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
-          Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At)
-                       SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', '  \"new\": {\n    \"ID\": 1\n  }',
-                              CASE WHEN RowNum BETWEEN 674 AND 2356 THEN 'Fixed Value'
-                              ELSE
-                                CASE WHEN MOD(RowNum, 11) = 0 AND RowNum NOT BETWEEN 3030 AND 4122 THEN TO_CHAR(MOD(RowNum, 100)) ELSE NULL END
-                              END, /* Ensure Msg_Key with different values and null */
-                              #{created_at}
-                       FROM DUAL
-                       CONNECT BY Level <= 6174 /* Ensure last bulk array is not completely filled */
-        "
-        end
+      ['SYSDATE', 'SYSDATE+0.5', 'SYSDATE+1'].each do |created_at|              # ensure multiple partitions are filled with data, Partitions are created only for newer dates, else MIN is used
+        # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
+        Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At)
+                     SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', '  \"new\": {\n    \"ID\": 1\n  }',
+                            CASE WHEN RowNum BETWEEN 674 AND 2356 THEN 'Fixed Value'
+                            ELSE
+                              CASE WHEN MOD(RowNum, 11) = 0 AND RowNum NOT BETWEEN 3030 AND 4122 THEN TO_CHAR(MOD(RowNum, 100)) ELSE NULL END
+                            END, /* Ensure Msg_Key with different values and null */
+                            #{created_at}
+                     FROM DUAL
+                     CONNECT BY Level <= 6174 /* Ensure last bulk array is not completely filled */
+      "
       end
     else
       Trixx::Application.config.trixx_max_transaction_size = 100                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
