@@ -257,8 +257,9 @@ class TransferThread
     ############################# Start Debugging 2020-07-17
     res = Database.select_all("SELECT * FROM Event_Logs WHERE  ID > 0 AND ID < 99999999999920809 AND Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), 1) = 0")
     Rails.logger.debug ("With Condition: #{res.count}")
-    res = Database.select_one("SELECT count(*) FROM Event_Logs")
-    Rails.logger.debug ("Without Condition: #{res}")
+    Rails.logger.debug ("Without Condition: #{Database.select_one("SELECT count(*) FROM Event_Logs")}")
+    Rails.logger.debug ("Without Condition key: #{Database.select_one("SELECT count(*) FROM Event_Logs WHERE Msg_Key IS NOT NULL")}")
+    Rails.logger.debug ("Without Condition not key: #{Database.select_one("SELECT count(*) FROM Event_Logs WHERE Msg_Key IS NULL")}")
     ############################# End Debugging 2020-07-17
     key_result = []                                                             # ensure existence of variable outside loop
     max_processed_key_event_logs_id = 0                                         # Maximum ID already selected by previous loop
