@@ -73,9 +73,19 @@ module Trixx
       value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
       value = ENV[up_key] if ENV[up_key]                                        # Environment over previous config value
       log_value = value
-      if !value.nil? && !options[:maximum].nil? && value > options[:maximum]
-        log_value = "#{options[:maximum]}, configured value #{value} reduced to allowed maximum"
-        value = options[:maximum]
+      if !value.nil?
+        if options[:minimum] || options[:maximum]
+          value = value.to_i
+
+          if !options[:maximum].nil? && value > options[:maximum]
+            log_value = "#{options[:maximum]}, configured value #{value} reduced to allowed maximum"
+            value = options[:maximum]
+          end
+
+          if !options[:minimum].nil? && value < options[:minimum]
+            raise "Configuration attribute #{up_key} (#{log_value}) should be at least #{options[:minimum]}"
+          end
+        end
       end
       Trixx::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
 
@@ -141,15 +151,15 @@ module Trixx
     Trixx::Application.log_attribute(:trixx_db_user.to_s.upcase, config.trixx_db_user)
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_info_contact_person,                accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads, minimum: 0)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert,              accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key,          accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100,   minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
