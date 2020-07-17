@@ -385,8 +385,8 @@ END #{target_trigger_data[:trigger_name]};
     then "'\"'||REPLACE(#{accessor}.#{column_hash[:column_name]}, '\"', '\\\"')||'\"'"           # place between double quotes "xxx" and escape double quote to \"
     when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
     then "TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')"
-    when 'DATE'                         then "'\"||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
-    when 'RAW'                          then "'\"||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||'\"'"
+    when 'DATE'                         then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
+    when 'RAW'                          then "'\"'||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||'\"'"
     when /^TIMESTAMP\([0-9]\)$/
     then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
     when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
