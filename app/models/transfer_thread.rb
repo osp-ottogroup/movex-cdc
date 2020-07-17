@@ -254,6 +254,12 @@ class TransferThread
 
 
     Rails.logger.debug "TransferThread.read_event_logs_steps: Start processing with @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
+    ############################# Start Debugging 2020-07-17
+    res = Database.select_all("SELECT * FROM Event_Logs WHERE  ID > 0 AND ID < 99999999999920809 AND Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), 1) = 0")
+    Rails.logger.debug ("With Condition: #{res.count}")
+    res = Database.select_one("SELECT count(*) FROM Event_Logs")
+    Rails.logger.debug ("Without Condition: #{res}")
+    ############################# End Debugging 2020-07-17
     key_result = []                                                             # ensure existence of variable outside loop
     max_processed_key_event_logs_id = 0                                         # Maximum ID already selected by previous loop
     loop_count = 0                                                              # observe number of loops to prevent infinite loops
