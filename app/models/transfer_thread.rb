@@ -219,6 +219,7 @@ class TransferThread
         # Iterate over partitions starting with oldest up to @max_transaction_size records
         Rails.logger.debug "TransferThread.read_event_logs_batch: Start iterating over partitions"
         partitions = Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").sort_by{|x| x['high_value']}
+        Rails.logger.debug "TranferThread.read_event_logs_batch: Found #{partitions.count} partitions to scan"
         partitions.each_index do |i|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
           event_logs.concat(read_event_logs_steps(remaining_records, partitions[i]['partition_name'], i == partitions.count-1)) if remaining_records > 0 # Skip next partitions if already read enough records
