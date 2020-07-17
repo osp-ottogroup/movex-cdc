@@ -379,7 +379,7 @@ END #{target_trigger_data[:trigger_name]};
   def convert_col(column_hash, old_new)
     accessor = ":#{old_new}"
     result = ''
-    result << "CASE WHEN #{accessor}.#{column_hash[:column_name]} IS NULL THEN 'NULL' ELSE " if column_hash[:nullable] == 'Y'
+    result << "CASE WHEN #{accessor}.#{column_hash[:column_name]} IS NULL THEN 'null' ELSE " if column_hash[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
     result << case column_hash[:data_type]
     when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'   # character data types
     then "'\"'||REPLACE(#{accessor}.#{column_hash[:column_name]}, '\"', '\\\"')||'\"'"           # place between double quotes "xxx" and escape double quote to \"
