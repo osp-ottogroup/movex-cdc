@@ -25,7 +25,18 @@ class TransferThreadTest < ActiveSupport::TestCase
     end
 
     worker.process                                                              # only synchrone execution ensures valid test of function
-    assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All Records from Event_Logs should be processed and deleted now'
+    event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
+
+    if event_log_count > 0                                                      # List remaining events from table
+      puts "First 100 remaining events in table:"
+      counter = 0
+      Database.select_all("SELECT * FROM Event_Logs").each do |e|
+        counter += 1
+        puts e if counter <= 100
+      end
+    end
+
+    assert_equal 0, event_log_count, 'All Records from Event_Logs should be processed and deleted now'
   end
 
 end
