@@ -157,7 +157,7 @@ class ActiveSupport::TestCase
     when 'ORACLE' then
       if Trixx::Application.partitioning
         Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
-          record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{})"
+          record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
           puts "Partition #{p['partition_name']}: #{record_count} records"
         end
       end
