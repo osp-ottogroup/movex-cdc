@@ -7,6 +7,8 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     original_kafka_max_bulk_count   = Trixx::Application.config.trixx_kafka_max_bulk_count
     original_initial_worker_threads = Trixx::Application.config.trixx_initial_worker_threads
 
+    Database.execute "DELETE FROM Event_Logs"                                   # Ensure table is empty before testing with super-large sequences
+
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       Trixx::Application.config.trixx_max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
