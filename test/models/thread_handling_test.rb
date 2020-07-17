@@ -19,9 +19,10 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
       Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
 
-      ['SYSDATE-1', 'SYSDATE-0.5', 'SYSDATE'].each do |created_at|              # ensure multiple partitions are filled with data
-        # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
-        Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At)
+      ActiveRecord::Base.transaction do                                         # Skip miracle that only first 6174 records have been visible by SELECT FOR UPDATE SKIP LOCKED
+        ['SYSDATE-1', 'SYSDATE-0.5', 'SYSDATE'].each do |created_at|            # ensure multiple partitions are filled with data
+          # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
+          Database.execute "INSERT INTO Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At)
                        SELECT Event_Logs_Seq.NextVal, 1, 'I', 'Hugo', '  \"new\": {\n    \"ID\": 1\n  }',
                               CASE WHEN RowNum BETWEEN 674 AND 2356 THEN 'Fixed Value'
                               ELSE
@@ -31,6 +32,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
                        FROM DUAL
                        CONNECT BY Level <= 6174 /* Ensure last bulk array is not completely filled */
         "
+        end
       end
     else
       Trixx::Application.config.trixx_max_transaction_size = 100                 # Ensure that two pass access is done in TransferThread.read_event_logs_batch
