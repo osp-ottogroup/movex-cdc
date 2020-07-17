@@ -27,7 +27,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     worker.process                                                              # only synchrone execution ensures valid test of function
     event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
 
-    log_event_logs_content if messages_to_process > successful_messages_processed if event_log_count > 0 # List remaining events from table
+    log_event_logs_content if event_log_count > 0                               # List remaining events from table
 
     assert_equal 0, event_log_count, 'All Records from Event_Logs should be processed and deleted now'
   end

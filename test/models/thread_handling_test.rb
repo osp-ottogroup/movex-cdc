@@ -43,8 +43,8 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
     messages_to_process = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
 
-    ThreadHandling.get_instance.ensure_processing
-    assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
+    #ThreadHandling.get_instance.ensure_processing
+    #assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     loop_count = 0
     while loop_count < 20 do                                                    # wait up to x * 10 seconds for processing of event_logs records
