@@ -4,11 +4,13 @@
                  :schema="schema"
                  v-on="$listeners"
                  @edit-table="onEditTable"/>
-    <b-button id="add-table-button"
-              v-if="schema"
-              class="is-pulled-right"
+    <b-button v-if="schema"
+              id="add-table-button"
+              type="is-primary"
+              icon-left="plus"
               @click="onAddTable"
-              expanded>
+              expanded
+              outlined>
       Add table to observe
     </b-button>
     <template v-if="showTableModal">

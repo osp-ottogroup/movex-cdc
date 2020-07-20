@@ -5,7 +5,13 @@
              striped
              hoverable>
       <template slot-scope="props">
-        <b-table-column field="name" label="Columns">
+        <b-table-column field="name" label="Columns" searchable>
+          <template slot="searchable" slot-scope="props">
+            <b-input v-model="props.filters[props.column.field]"
+                     icon="magnify"
+                     size="is-small"/>
+          </template>
+
           {{ props.row.name }}
         </b-table-column>
         <b-table-column centered field="name" label="Insert-Trigger">

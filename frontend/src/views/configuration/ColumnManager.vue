@@ -56,7 +56,13 @@ export default {
         }
       });
 
-      this.mergedColumns = Array.from(dbColumnsMap.values());
+      this.mergedColumns = Array.from(dbColumnsMap.values()).sort((a, b) => {
+        const aName = a.name.toUpperCase();
+        const bName = b.name.toUpperCase();
+        if (aName < bName) { return -1; }
+        if (aName > bName) { return 1; }
+        return 0;
+      });
     },
     async onColumnChanged(column) {
       try {
@@ -110,31 +116,3 @@ export default {
   },
 };
 </script>
-
-<!--<style lang="scss">-->
-<!--.loader-wrapper {-->
-<!--  position: absolute;-->
-<!--  top: 0;-->
-<!--  left: 0;-->
-<!--  height: 100%;-->
-<!--  width: 100%;-->
-<!--  background: #fff;-->
-<!--  opacity: 0;-->
-<!--  z-index: -1;-->
-<!--  transition: opacity .3s;-->
-<!--  display: flex;-->
-<!--  justify-content: center;-->
-<!--  align-items: center;-->
-<!--  border-radius: 6px;-->
-
-<!--  .loader {-->
-<!--    height: 80px;-->
-<!--    width: 80px;-->
-<!--  }-->
-
-<!--  &.is-active {-->
-<!--    opacity: 1;-->
-<!--    z-index: 1;-->
-<!--  }-->
-<!--}-->
-<!--</style>-->

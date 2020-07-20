@@ -1,11 +1,11 @@
 <template>
-  <div class="columns is-centered is-6 is-variable">
+  <div class="columns is-centered is-variable">
     <schema-manager class="column is-2 border-right"
                      @schema-selected="onSchemaSelected"></schema-manager>
     <table-manager class="column is-2 border-right"
                    :schema="selectedSchema"
                    @table-selected="onTableSelected"></table-manager>
-    <column-manager class="column is-4"
+    <column-manager class="column is-5"
                     :schema="selectedSchema"
                     :table="selectedTable"></column-manager>
   </div>

@@ -42,7 +42,14 @@ export default {
   methods: {
     async loadSchemas() {
       try {
-        this.schemas = await CRUDService.schemas.getAll();
+        const schemas = await CRUDService.schemas.getAll();
+        this.schemas = schemas.sort((a, b) => {
+          const aName = a.name.toUpperCase();
+          const bName = b.name.toUpperCase();
+          if (aName < bName) { return -1; }
+          if (aName > bName) { return 1; }
+          return 0;
+        });
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),

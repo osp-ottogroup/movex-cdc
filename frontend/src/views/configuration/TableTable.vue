@@ -5,7 +5,13 @@
              :selected.sync="selectedTable"
              @click="onTableSelected">
       <template slot-scope="props">
-        <b-table-column field="name" label="Observed Tables">
+        <b-table-column field="name" label="Observed Tables" searchable>
+          <template slot="searchable" slot-scope="props">
+            <b-input v-model="props.filters[props.column.field]"
+                     icon="magnify"
+                     size="is-small"/>
+          </template>
+
           {{ props.row.name }}
           <b-button v-show="selectedTable && selectedTable.id === props.row.id"
                     icon-right="pencil"
