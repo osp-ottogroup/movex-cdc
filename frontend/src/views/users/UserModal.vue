@@ -1,7 +1,10 @@
 <template>
-  <div class="modal is-active">
-    <div class="modal-background"
-         @click="onClose"/>
+  <b-modal :active="true"
+           has-modal-card
+           trap-focus
+           aria-role="dialog"
+           aria-modal
+           @close="onClose">
     <div class="modal-card">
       <header class="modal-card-head">
         <p class="modal-card-title">{{ modalTitle }}</p>
@@ -121,7 +124,7 @@
         </b-button>
       </footer>
     </div>
-  </div>
+  </b-modal>
 </template>
 
 <script>
