@@ -1,7 +1,6 @@
 <template>
   <div>
-    <b-table ref="table"
-             :data="columns"
+    <b-table :data="columns"
              striped
              hoverable>
       <template slot-scope="props">

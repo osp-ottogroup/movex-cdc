@@ -1,7 +1,6 @@
 <template>
   <div>
-    <b-table ref="table"
-             :data="tables"
+    <b-table :data="tables"
              :selected.sync="selectedTable"
              @click="onTableSelected">
       <template slot-scope="props">
@@ -18,13 +17,18 @@
                     class="is-pulled-right is-small"
                     @click="onEditClicked()" />
         </b-table-column>
+        <!-- Workaround to avoid disapearing header when filtering.
+             There is an issue in Buefy with tables, which have only one sortable column.
+        -->
+        <b-table-column header-class="workaround-column" cell-class="workaround-column"/>
       </template>
 
       <template slot="empty">
         <div class="content has-text-grey has-text-centered is-size-7">
           <b-icon icon="information" />
           <p v-if="!schema">Select a schema.</p>
-          <p v-else>Add a table to observe.</p>
+          <p v-else-if="tables.length === 0">Add a table to observe.</p>
+          <p v-else>No data found.</p>
         </div>
       </template>
     </b-table>
@@ -65,3 +69,16 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+  ::v-deep table {
+    table-layout: fixed;
+    th, td {
+      &.workaround-column, &.workaround-column .th-wrap {
+        padding: 0px !important;
+        width: 0px !important;
+        max-width: 0px !important;
+      }
+    }
+  }
+</style>
