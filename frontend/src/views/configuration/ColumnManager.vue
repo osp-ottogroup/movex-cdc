@@ -1,10 +1,9 @@
 <template>
   <div>
-<!--    <div class="loader-wrapper is-active">-->
-<!--      <div class="loader is-loading"></div>-->
-<!--    </div>-->
     <column-table :columns="mergedColumns"
-                  @column-changed="onColumnChanged"/>
+                  @column-changed="onColumnChanged"
+                  @select-all="onSelectAll"
+                  @deselect-all="onDeselectAll"/>
   </div>
 </template>
 
@@ -27,6 +26,7 @@ export default {
       columns: [],
       dbColumns: [],
       mergedColumns: [],
+      isLoading: true,
     };
   },
   methods: {
@@ -96,6 +96,52 @@ export default {
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      }
+    },
+    async onSelectAll(columnProperty) {
+      const promises = [];
+      // eslint-disable-next-line no-restricted-syntax
+      for (const column of this.mergedColumns) {
+        column[columnProperty] = 'Y';
+        if (column.id) { // update
+          promises.push(CRUDService.columns.update(column.id, { column }));
+        } else { // create
+          promises.push(CRUDService.columns.create({ column }));
+        }
+      }
+      try {
+        await Promise.all(promises);
+        await this.reload(this.table);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      }
+    },
+    async onDeselectAll(columnProperty) {
+      const promises = [];
+      // eslint-disable-next-line no-restricted-syntax
+      for (const column of this.mergedColumns) {
+        column[columnProperty] = 'N';
+        if (column.id) { // update
+          promises.push(CRUDService.columns.update(column.id, { column }));
+        } else { // create
+          promises.push(CRUDService.columns.create({ column }));
+        }
+      }
+      try {
+        await Promise.all(promises);
+        await this.reload(this.table);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
           type: 'is-danger',
           indefinite: true,
           position: 'is-top',
