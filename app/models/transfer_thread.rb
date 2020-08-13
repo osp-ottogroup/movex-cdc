@@ -529,10 +529,12 @@ class TransferThread
 
   # get maxium used ID, preferred from sequence
   def get_max_event_logs_id_from_sequence
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then Database.select_one "SELECT Last_Number+Cache_size FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
-    when 'SQLITE' then Database.select_one "SELECT seq FROM SQLITE_SEQUENCE WHERE Name = 'event_logs'"
-    end
+    max_event_logs_id_from_sequence = case Trixx::Application.config.trixx_db_type
+                                      when 'ORACLE' then Database.select_one "SELECT Last_Number+Cache_size FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
+                                      when 'SQLITE' then Database.select_one "SELECT seq FROM SQLITE_SEQUENCE WHERE Name = 'event_logs'"
+                                      end
+    max_event_logs_id_from_sequence = 0 if max_event_logs_id_from_sequence.nil? # No result found by not already initialized sequence
+    max_event_logs_id_from_sequence
   end
 
   # Set the value per partition
