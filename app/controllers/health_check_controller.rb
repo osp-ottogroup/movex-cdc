@@ -47,7 +47,7 @@ class HealthCheckController < ApplicationController
       }
     end
     @health_data[:connection_pool_stat] = ActiveRecord::Base.connection_pool.stat
-    @health_data[:connection_pool] = connection_info
+    @health_data[:connection_pool] = connection_info.sort_by {|c| "#{c[:owner_name]} #{c[:owner_thread]}" }
 
     thread_info = []
     Thread.list.each do |t|
@@ -60,7 +60,7 @@ class HealthCheckController < ApplicationController
       }
     end
     @health_data[:number_of_threads] = thread_info.count
-    @health_data[:threads] = thread_info
+    @health_data[:threads] = thread_info.sort_by {|t| t[:object_id] }
 
     render json: JSON.pretty_generate(@health_data), status: @health_status
   end
