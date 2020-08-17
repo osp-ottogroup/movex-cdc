@@ -85,7 +85,7 @@ class ThreadHandling
         result << t.thread_state
       end
     end
-    result
+    result.sort_by {|e| e[:worker_id]}
   end
 
   private
