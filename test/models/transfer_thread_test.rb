@@ -9,6 +9,8 @@ class TransferThreadTest < ActiveSupport::TestCase
   end
 
   test "process" do
+    original_worker_threads = Trixx::Application.config.trixx_initial_worker_threads
+    Trixx::Application.config.trixx_initial_worker_threads = 1                  # Ensure that all keys are matching to this worker thread by MOD
     create_event_logs_for_test(10)
     worker = TransferThread.new(1, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
 
@@ -30,6 +32,8 @@ class TransferThreadTest < ActiveSupport::TestCase
     log_event_logs_content if event_log_count > 0                               # List remaining events from table
 
     assert_equal 0, event_log_count, 'All Records from Event_Logs should be processed and deleted now'
+
+    Trixx::Application.config.trixx_initial_worker_threads = original_worker_threads  # Restore possibly differing value
   end
 
 end
