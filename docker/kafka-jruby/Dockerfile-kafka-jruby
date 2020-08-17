@@ -4,15 +4,17 @@
 
 # Usage:
 # Build image:      > docker build -f Dockerfile-kafka-jruby --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.11.1 .
-# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.1.11.1
+# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.11.1
 # Use
 
 FROM jruby:9.2.11.1
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG KAFKA_VERSION=2.5.0
-ARG SCALA_VERSION=2.12
+ARG KAFKA_VERSION=2.6.0
+ARG SCALA_VERSION=2.13
+ENV KAFKA_VERSION=$KAFKA_VERSION
+ENV SCALA_VERSION=$SCALA_VERSION
 
 #EXPOSE 2181/tcp 9092/tcp
 

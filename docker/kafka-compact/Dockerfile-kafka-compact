@@ -12,11 +12,14 @@ FROM openjdk:8-jre-alpine
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG KAFKA_VERSION=2.4.0
-ARG SCALA_VERSION=2.12
+ARG KAFKA_VERSION=2.6.0
+ARG SCALA_VERSION=2.13
+ENV KAFKA_VERSION=$KAFKA_VERSION
+ENV SCALA_VERSION=$SCALA_VERSION
 
 # generate unique id by default
 ENV BROKER_ID=-1
+ENV KAFKA_HOME=/opt/kafka
 ENV KAFKA_LISTENERS=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093
 ENV KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093
 ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
@@ -36,7 +39,9 @@ RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /t
     apk add --no-cache bash
 
 # Ensure container environment is used at container run time
-CMD sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" /opt/kafka/config/server.properties && \
+CMD echo "KAFKA_VERSION = $KAFKA_VERSION" && \
+    echo "SCALA_VERSION = $SCALA_VERSION" && \
+    sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" /opt/kafka/config/server.properties && \
     echo "########################### local settings"                               >> /opt/kafka/config/server.properties && \
     echo "listeners=$KAFKA_LISTENERS"                                               >> /opt/kafka/config/server.properties && \
     echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS"                         >> /opt/kafka/config/server.properties && \
