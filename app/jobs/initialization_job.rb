@@ -75,10 +75,21 @@ class InitializationJob < ApplicationJob
   def check_readable(object_name)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
+      begin
+        Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
+      rescue Exception => e
+        raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
+      end
+
+      begin
+        csql = "CREATE OR REPLACE View Trixx_View_Select_Test AS SELECT * FROM #{object_name}"
+        Database.execute csql
+        Database.execute "DROP View Trixx_View_Select_Test"
+      rescue Exception => e
+        raise "Missing database right!!!\n#{csql}; is not possible!\n#{e.class}: #{e.message}
+You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to select from table in view"
+      end
     end
-  rescue Exception => e
-    raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
   end
 
   # check if create table is possible
