@@ -165,7 +165,10 @@ class ActiveSupport::TestCase
       end
     end
 
-    puts "First 100 remaining events in table Event_Logs:"
+    msg = "First 100 remaining events in table Event_Logs:"
+    puts msg if options[:console_output]
+    Rails.logger.debug msg
+
     counter = 0
     Database.select_all("SELECT * FROM Event_Logs").each do |e|
       counter += 1
