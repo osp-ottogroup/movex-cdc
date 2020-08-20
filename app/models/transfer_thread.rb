@@ -41,7 +41,7 @@ class TransferThread
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
     @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
-    @max_key_event_logs_id          = get_max_event_logs_id_from_sequence                     # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
+    @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
     @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
@@ -201,6 +201,7 @@ class TransferThread
         max_sorted_id_distances:        @max_sorted_id_distances,
         max_event_logs_id:              @max_event_logs_id,
         max_key_event_logs_id:          @max_key_event_logs_id,
+        cached_max_event_logs_seq_id:   @cached_max_event_logs_seq_id,
         successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
         message_processing_errors:      @messages_processed_with_error,
         stacktrace:                     @thread&.backtrace
@@ -228,6 +229,10 @@ class TransferThread
       else
         event_logs.concat(read_event_logs_steps(@max_transaction_size))
       end
+
+      # adjust cached value to reality for next read if not maximum number of records has been read
+      @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if event_logs.count < @max_transaction_size
+
     when 'SQLITE' then
       event_logs.concat(read_event_logs_steps(@max_transaction_size))
     else
@@ -244,7 +249,7 @@ class TransferThread
   # 3. look for records without key value and with larger ID than largest of last run (newer records)
   def read_event_logs_steps(max_records_to_read, partition_name = nil, last_partition = true)
     result = []
-    # 1.
+    # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
     # Condition to identify events with msg_key for which this worker instance is reponsible for processing
     msg_key_filter_condition = case Trixx::Application.config.trixx_db_type
                                when 'ORACLE' then "Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), #{Trixx::Application.config.trixx_initial_worker_threads}) = :worker_id"
@@ -256,6 +261,7 @@ class TransferThread
     Rails.logger.debug "TransferThread.read_event_logs_steps: Start processing with @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
     key_result = []                                                             # ensure existence of variable outside loop
     max_processed_key_event_logs_id = 0                                         # Maximum ID already selected by previous loop
+    max_key_event_logs_id_used_for_sql = nil                                    # initialize auto variable to be set in local block
     loop_count = 0                                                              # observe number of loops to prevent infinite loops
     loop do                                                                     # loop until all records read or max_records_to_read reached
       loop_count += 1
@@ -268,10 +274,11 @@ class TransferThread
           raise msg
         end
 
+        max_key_event_logs_id_used_for_sql = @max_key_event_logs_id             # remember the value used for SQL for later comparison in break clause
         # @max_transaction_size instead of max_records_to_read is the limit here to ensure even distances also if events from previous and next partition are combined
         key_result = read_event_logs_single(@max_transaction_size,
                                             "ID > :min_ID AND ID < :max_id AND #{msg_key_filter_condition}",
-                                            {min_id: max_processed_key_event_logs_id, max_id: @max_key_event_logs_id + get_max_sorted_id_distance(partition_name), worker_id: @worker_id},
+                                            {min_id: max_processed_key_event_logs_id, max_id: max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name), worker_id: @worker_id},
                                             partition_name
         )
 
@@ -291,13 +298,14 @@ class TransferThread
       max_processed_key_event_logs_id = @max_key_event_logs_id
       result.concat key_result
 
-      # it is sufficient if more than max_records_to_read are read even if select was done with full @max_transaction_size
-      break if result.count >= max_records_to_read || @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+      # break loop if max. amount of record is reached. It is sufficient if more than max_records_to_read are read even if select was done with full @max_transaction_size
+      break if result.count >= max_records_to_read
+
+      # break loop if all possible values of ID have been covered by previous SQL
+      break if max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
 
       # Enlarge max_sorted_id_distance up to maximum if less than 1/2 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
       if key_result.count < @max_transaction_size / 2
-        # adjust cached value to reality if old distance will exceed old cached max id
-        @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
         Rails.logger.debug "TransferThread.read_event_logs_steps: Check for increasing of max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}, @max_key_event_logs_id = #{@max_key_event_logs_id}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
 
         # if old distance is below max known ID then increase distance
@@ -308,19 +316,17 @@ class TransferThread
           end
           increase_max_sorted_id_distance(partition_name, increase_factor)
           Rails.logger.debug "TransferThread.read_event_logs_steps: max_sorted_id_distance increased by factor #{increase_factor} to #{get_max_sorted_id_distance(partition_name)}#{" for partition #{partition_name}" if partition_name}"
-          # adjust cached value to reality again if new distance will exceed old cached max id
-          @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
         end
 
       end
     end                                                                         # outer loop
 
 
-    # 2.
+    # 2. look for records without key value and with smaller ID than largest of last run (older records)
     remaining_records = max_records_to_read - result.count                      # available space for more result records
     result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID < :max_id", {max_id: @max_event_logs_id}, partition_name)
 
-    # 3.
+    # 3. look for records without key value and with larger ID than largest of last run (newer records)
     remaining_records = max_records_to_read - result.count                      # available space for more result records
     # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
     result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID >= :max_id", {max_id: @max_event_logs_id}, partition_name)
@@ -530,7 +536,7 @@ class TransferThread
   # get maxium used ID, preferred from sequence
   def get_max_event_logs_id_from_sequence
     max_event_logs_id_from_sequence = case Trixx::Application.config.trixx_db_type
-                                      when 'ORACLE' then Database.select_one "SELECT Last_Number+Cache_size FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
+                                      when 'ORACLE' then Database.select_one "SELECT Last_Number FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
                                       when 'SQLITE' then Database.select_one "SELECT seq FROM SQLITE_SEQUENCE WHERE Name = 'event_logs'"
                                       end
     max_event_logs_id_from_sequence = 0 if max_event_logs_id_from_sequence.nil? # No result found by not already initialized sequence
