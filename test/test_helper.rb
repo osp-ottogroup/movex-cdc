@@ -152,13 +152,15 @@ class ActiveSupport::TestCase
     end
   end
 
-  def log_event_logs_content
+  def log_event_logs_content(options = {})
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning
         Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
-          puts "Partition #{p['partition_name']}: high_value = '#{p['high_value']}', #{record_count} records"
+          msg = "Partition #{p['partition_name']}: high_value = '#{p['high_value']}', #{record_count} records"
+          puts msg if options[:console_output]
+          Rails.logger.debug msg
         end
       end
     end
@@ -167,7 +169,10 @@ class ActiveSupport::TestCase
     counter = 0
     Database.select_all("SELECT * FROM Event_Logs").each do |e|
       counter += 1
-      puts e if counter <= 100
+      if counter <= 100
+        puts e if options[:console_output]
+        Rails.logger.debug e
+      end
     end
 
   end

@@ -12,6 +12,10 @@ class TransferThreadTest < ActiveSupport::TestCase
     original_worker_threads = Trixx::Application.config.trixx_initial_worker_threads
     Trixx::Application.config.trixx_initial_worker_threads = 1                  # Ensure that all keys are matching to this worker thread by MOD
     create_event_logs_for_test(10)
+
+    Rails.logger.debug "Event_Logs records before processing"
+    log_event_logs_content(console_output: false)
+
     worker = TransferThread.new(1, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
 
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
@@ -29,7 +33,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     worker.process                                                              # only synchrone execution ensures valid test of function
     event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
 
-    log_event_logs_content if event_log_count > 0                               # List remaining events from table
+    log_event_logs_content(console_output: true) if event_log_count > 0                               # List remaining events from table
 
     assert_equal 0, event_log_count, 'All Records from Event_Logs should be processed and deleted now'
 
