@@ -19,7 +19,7 @@ require 'yaml'
 require 'java'
 
 # Will be calling Java classes from this JRuby script
-#include Java
+include Java
 
 # Need to import System to avoid "uninitialized constant System (NameError)"
 import java.lang.System
