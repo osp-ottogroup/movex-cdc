@@ -55,8 +55,6 @@ class InitializationJob < ApplicationJob
 
   # ensure required rights and grants
   def ensure_required_rights
-    check_create_table
-    check_create_view
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       check_readable 'DBA_Constraints'
@@ -69,6 +67,8 @@ class InitializationJob < ApplicationJob
       check_readable 'GV$Lock'
       check_readable 'V$Session'
     end
+    check_create_table
+    check_create_view
   end
 
   # check if read/select is possible on object
@@ -94,6 +94,10 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
 
   # check if create table is possible
   def check_create_table
+    begin
+      Database.execute "DROP TABLE Trixx_Table_Test", {}, no_exception_logging: true  # drop possibly existing table
+    rescue
+    end
     Database.execute "CREATE  TABLE Trixx_Table_Test (ID NUMBER)"
     Database.execute "DROP TABLE Trixx_Table_Test"
   rescue Exception => e

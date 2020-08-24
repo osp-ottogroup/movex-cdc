@@ -51,7 +51,7 @@ class Database
     result.first[1]                                                             # Value of Key/Value-Tupels of first element
   end
 
-  def self.execute(sql, filter = {})
+  def self.execute(sql, filter = {}, options = {})
     raise "Hash expected as filter" if filter.class != Hash
 
     binds = []
@@ -61,7 +61,7 @@ class Database
 
     ActiveRecord::Base.connection.exec_update(sql, "Database.execute Thread=#{Thread.current.object_id}", binds)  # returns the number of affected rows
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "Database.execute: Erroneous SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, "Database.execute: Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
     raise
   end
 

@@ -136,7 +136,7 @@ class TransferThread
                   raise                                                       # Ensure transaction is rolled back an retried
                 rescue Exception => e
                   msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
-                  msg << "Number of records to deliver to kafka = #{event_logs_slice.count}"
+                  msg << event_logs_debug_info(event_logs_slice)
                   log_exception(e, msg)
                   raise
                 end
@@ -573,6 +573,38 @@ class TransferThread
       end
     end
   end
+
+  # get summary text message for event_logs array
+  def event_logs_debug_info(event_logs)
+    topics = {}
+    event_logs.each do |event_log|
+      table = table_cache(event_log['table_id'])
+      schema = schema_cache(table.schema_id)
+      topic = table.topic_to_use
+      topics[topic]                     = { events_with_key: 0, events_without_key: 0, tables: {} } unless topics.has_key?(topic)
+      topics[topic][:tables][table.id]  = { schema_name: schema.name, table_name: table.name, events_with_key: 0, events_without_key: 0 } unless topics[topic][:tables].has_key?(table.id)
+      if event_log['msg_key'].nil?
+        topics[topic][:events_without_key] += 1
+        topics[topic][:tables][table.id][:events_without_key] += 1
+      else
+        topics[topic][:events_with_key] += 1
+        topics[topic][:tables][table.id][:events_with_key] += 1
+      end
+    end
+
+    topics = topics.sort.to_h
+
+    msg = "Number of records to deliver to kafka = #{event_logs.count}\n"
+    topics.each do |topic_name, topic_values|
+      msg << "#{topic_values[:events_with_key] + topic_values[:events_without_key]} records for topic '#{topic_name}' (#{topic_values[:events_with_key]} records with key, #{topic_values[:events_without_key]} records without key)\n"
+      topic_values[:tables] = topic_values[:tables].sort{|a,b| "#{a[:schema_name]}.#{a[:table_name]}" <=> "#{b[:schema_name]}.#{b[:table_name]}"}.to_h
+      topic_values[:tables].each do |table_id, table_values|
+        msg << "#{table_values[:events_with_key] + table_values[:events_without_key]} records in topic '#{topic_name}' for table #{table_values[:schema_name]}.#{table_values[:table_name]} (#{table_values[:events_with_key]} records with key, #{table_values[:events_without_key]} records without key)\n"
+      end
+    end
+    msg
+  end
+
 end
 
 
