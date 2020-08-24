@@ -16,6 +16,14 @@ require "action_cable/engine"
 require "rails/test_unit/railtie"
 
 require 'yaml'
+require 'java'
+
+# Will be calling Java classes from this JRuby script
+#include Java
+
+# Need to import System to avoid "uninitialized constant System (NameError)"
+import java.lang.System
+
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -172,7 +180,8 @@ module Trixx
 
     case config.trixx_db_type
     when 'ORACLE' then
-      Trixx::Application.log_attribute('TNS_ADMIN', ENV['TNS_ADMIN'])
+      Trixx::Application.set_and_log_attrib_from_env(:tns_admin, accept_empty: true)
+      System.setProperty("oracle.net.tns_admin", config.tns_admin) if config.tns_admin
     end
 
     # check if database supports partitioning (possible and licensed)
