@@ -109,9 +109,9 @@ module Trixx
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config
     end
-    config.log_level = (Rails.env.production? ? :info : :debug)                 # Default log level is already set to :debug at this point
     Trixx::Application.set_and_log_attrib_from_env(:log_level)
-    config.log_level = config.log_level.to_sym if config.log_level.class == String
+    config.log_level = config.log_level.to_sym if config.log_level && config.log_level.class == String
+    config.log_level = (Rails.env.production? ? :info : :debug) unless config.log_level                  # Default log level is already set to :debug at this point
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type)
 

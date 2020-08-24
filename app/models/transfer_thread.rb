@@ -17,6 +17,7 @@ class TransferThread
       worker.process
     end
     thread.name = "TransferThread :#{worker_id}"
+    thread.report_on_exception = false                                          # don't report the last exception in thread because it is already logged by thread itself
     worker
   rescue Exception => e
     ExceptionHelper.log_exception(e, "TransferThread.create_worker (#{worker_id})")
@@ -133,7 +134,7 @@ class TransferThread
                 rescue Kafka::MessageSizeTooLarge => e
                   Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
                   fix_message_size_too_large(kafka, event_logs_slice)
-                  raise                                                       # Ensure transaction is rolled back an retried
+                  raise                                                         # Ensure transaction is rolled back an retried
                 rescue Exception => e
                   msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
                   msg << event_logs_debug_info(event_logs_slice)
@@ -459,7 +460,7 @@ class TransferThread
     end
 
     topic_info.each do |key, value|
-      Rails.logger.debug "TransferThread.fix_message_size_too_large: Topic #{key} has max. message size #{value[:max_message_value_size]} for transfer"
+      Rails.logger.warn "TransferThread.fix_message_size_too_large: Messages for topic '#{key}' have max. size per message of #{value[:max_message_value_size]} bytes for transfer"
     end
 
     # get current max.message.byte per topic
