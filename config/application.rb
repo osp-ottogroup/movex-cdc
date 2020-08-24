@@ -18,12 +18,6 @@ require "rails/test_unit/railtie"
 require 'yaml'
 require 'java'
 
-# Will be calling Java classes from this JRuby script
-include Java
-
-# Need to import System to avoid "uninitialized constant System (NameError)"
-import java.lang.System
-
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -31,6 +25,13 @@ Bundler.require(*Rails.groups)
 
 module Trixx
   class Application < Rails::Application
+    # Will be calling Java classes from this JRuby script
+    include Java
+
+    # Need to import System to avoid "uninitialized constant System (NameError)"
+    import java.lang.System
+
+
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 6.0
 
@@ -181,7 +182,11 @@ module Trixx
     case config.trixx_db_type
     when 'ORACLE' then
       Trixx::Application.set_and_log_attrib_from_env(:tns_admin, accept_empty: true)
-      System.setProperty("oracle.net.tns_admin", config.tns_admin) if config.tns_admin
+      if config.tns_admin
+        System.setProperty("oracle.net.tns_admin", config.tns_admin)
+      else
+        raise "TNS_ADMIN must be set if TRIXX_DB_URL ('#{config.trixx_db_url}') is not a valid JDBC thin URL (host:port:sid or host:port/service_name) and is treated as TNS-alias" unless config.trixx_db_url[':']
+      end
     end
 
     # check if database supports partitioning (possible and licensed)
