@@ -11,13 +11,9 @@ class ActiveSupport::TestCase
   fixtures :all
 
   setup do
-    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at setup"
     JdbcInfo.log_version
   end
 
-  teardown do
-    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at teardown"
-  end
 
   # schema for tables with triggers for tests
   def victim_schema_id
@@ -194,12 +190,7 @@ class ActionDispatch::IntegrationTest
     @jwt_admin_token            = jwt_token users(:admin).id
     @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
 
-    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count}"
     JdbcInfo.log_version
-  end
-
-  teardown do
-    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at teardown"
   end
 
   def jwt_token(user_id)

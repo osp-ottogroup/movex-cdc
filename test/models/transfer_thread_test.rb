@@ -16,7 +16,8 @@ class TransferThreadTest < ActiveSupport::TestCase
     Rails.logger.debug "Event_Logs records before processing"
     log_event_logs_content(console_output: false)
 
-    worker = TransferThread.new(1, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
+    # worker ID=0 for exactly 1 running worker
+    worker = TransferThread.new(0, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
 
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
     Thread.new do
