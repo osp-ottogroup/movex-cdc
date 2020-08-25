@@ -9,9 +9,9 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
+  - test
   - build
   - deploy
-  - test
 
 .tests:
 #  services:
@@ -121,7 +121,7 @@ build_trixx:
     - echo "Docker image = $IMAGE_TAG"
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $IMAGE_TAG
 
-pages:
+generate_asciidoc:
   stage: build
   script:
     - gem install asciidoctor
@@ -133,3 +133,13 @@ pages:
       - doc/trixx.html
       - doc/images/
 
+# Deploy the static site to GitLab Pages
+pages:
+  stage: deploy
+  script:
+    - cp doc/trixx.html public/
+    - cp -r doc/images public/
+  artifacts:
+    paths:
+      - public/trixx.html
+      - public/images/
