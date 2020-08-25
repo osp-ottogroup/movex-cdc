@@ -11,7 +11,12 @@ class ActiveSupport::TestCase
   fixtures :all
 
   setup do
+    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at setup"
     JdbcInfo.log_version
+  end
+
+  teardown do
+    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at teardown"
   end
 
   # schema for tables with triggers for tests
@@ -144,7 +149,7 @@ class ActiveSupport::TestCase
   end
 
   def create_event_logs_for_test(number_of_records)
-    number_of_records.downto(0).each do
+    number_of_records.downto(1).each do
       event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: '"new": { "ID": 1 }', created_at: Time.now)
       unless event_log.save
         raise event_log.errors.full_messages
@@ -189,7 +194,12 @@ class ActionDispatch::IntegrationTest
     @jwt_admin_token            = jwt_token users(:admin).id
     @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
 
+    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count}"
     JdbcInfo.log_version
+  end
+
+  teardown do
+    Rails.logger.debug "####################### Thread count = #{ThreadHandling.get_instance.thread_count} at teardown"
   end
 
   def jwt_token(user_id)

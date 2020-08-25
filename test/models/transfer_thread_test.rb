@@ -24,6 +24,7 @@ class TransferThreadTest < ActiveSupport::TestCase
       while loop_count < 20 do                                                  # wait up to x seconds for processing
         loop_count += 1
         event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
+        Rails.logger.debug "#{event_logs} records remaining in Event_Logs"
         break if event_logs == 0                                                # All records processed, no need to wait anymore
         sleep 1
       end
