@@ -1,4 +1,4 @@
-class TriggerConfigController < ApplicationController
+class ImportExportController < ApplicationController
 
   def export
     out = export_schemas(Schema.all)
