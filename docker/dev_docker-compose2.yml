@@ -1,0 +1,31 @@
+version: '3'
+services:
+  trixx-frontend:
+    build:
+      context: ../frontend
+      dockerfile: ../docker/frontend/Dockerfile.dev
+    volumes:
+      - ../frontend:/app
+    ports:
+      - "8080:8080"
+    environment:
+      VUE_APP_BACKEND_URL: http://localhost:3000
+
+  trixx-backend:
+    build:
+      context: ..
+      dockerfile: ./docker/backend/Dockerfile.dev
+    volumes:
+      - ..:/app
+    ports:
+      - "3000:3000"
+    environment:
+      TRIXX_DB_USER: TRIXX
+      TRIXX_DB_PASSWORD: pass
+      TRIXX_DB_TYPE: ORACLE
+      TRIXX_DB_URL: oracle:1521/ORCLPDB1
+
+networks:
+  default:
+    external:
+      name: public
