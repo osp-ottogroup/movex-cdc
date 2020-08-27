@@ -108,11 +108,6 @@ build_trixx:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
 
-  only:
-    refs:
-      - master
-      - dev
-
   script:
     - mkdir -p /kaniko/.docker
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
