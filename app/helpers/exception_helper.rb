@@ -77,6 +77,7 @@ module ExceptionHelper
     case exception.class.name
     when 'Kafka::UnknownError' then
       case exception.message.strip
+      when 'Unknown error with code 53' then 'Error|TRANSACTIONAL_ID_AUTHORIZATION_FAILED: The transactional id used by TriXX is not authorized to produce messages. Explicite authorization of transactional id is required, optional as wildcard: "kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf --add --transactional-id * --allow-principal User:* --operation write"'
       when 'Unknown error with code 87' then 'Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by TriXX without key'
       end
     end

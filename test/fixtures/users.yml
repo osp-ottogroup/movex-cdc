@@ -20,7 +20,7 @@ one:
 two:
   id: 2
   email: Sandro.Preuss@ottogroup.com
-  db_user: sandro
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
@@ -28,7 +28,7 @@ two:
 
 double_db_user1:
   email: double_db_user1@ottogroup.com
-  db_user: double_db_user
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
@@ -36,7 +36,7 @@ double_db_user1:
 
 double_db_user2:
   email: double_db_user2@ottogroup.com
-  db_user: double_db_user
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
@@ -44,6 +44,7 @@ double_db_user2:
 
 user2delete:
   email: user2delete@ottogroup.com
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>
   first_name: Sandro
   last_name: Preuß
   yn_admin: N
@@ -51,6 +52,7 @@ user2delete:
 
 no_schema_right:
   email: no_schema_right@ottogroup.com
+  db_user: <%= Trixx::Application.config.trixx_db_victim_user %>
   first_name: Has no right for
   last_name: Schemas
   yn_admin: N

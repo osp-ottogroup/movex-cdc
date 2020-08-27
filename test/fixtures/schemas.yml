@@ -5,6 +5,7 @@ one:
   id:   1
   name: <%= Trixx::Application.config.trixx_db_user %>
   topic: <%= KafkaHelper.existing_topic_for_test %>
+  last_trigger_deployment: <%= Time.now %>
 
 <% if Trixx::Application.config.trixx_db_type != 'SQLITE' %>
 victim:

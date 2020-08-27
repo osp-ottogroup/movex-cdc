@@ -296,19 +296,23 @@ The http-response contains a JSON-object with detailled informations.
 
 ==== Common error traps ====
 ===== Kafka =====
+List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#protocol_error_codes
+
 .possible problems accessing or using Kafka
 [cols="~,~,~"]
 |===
 |Error|Description|Solution
-|Log-Output: +
-Disconnecting broker 0 +
-Closing socket to kafka-itdr-dev:9092 +
-Module: Kafka::UnknownError: Unknown error with code 53
-|Error 53 means: TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
+|Kafka::UnknownError: Unknown error with code 53
+|TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
 The transactional id used by TriXX is not authorized to produce messages
 |Explicite authorization of transactional id is required, optional as wildcard: +
 kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf
 --add --transactional-id * --allow-principal User:* --operation write
+|Kafka::UnknownError: Unknown error with code 87
+|INVALID_RECORD +
+This record has failed the validation on broker and hence will be rejected.
+|Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by TriXX without key. +
+Prevent from sending 'tombstone events' without key in this case.
 |===
 
 
