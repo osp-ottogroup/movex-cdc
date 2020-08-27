@@ -133,9 +133,12 @@ generate_asciidoc:
       - doc/trixx.html
       - doc/images/
 
-# Deploy the static site to GitLab Pages
+# Deploy the static site to GitLab Pages, but only for master branch
 pages:
   stage: deploy
+  only:
+    refs:
+      - master
   script:
     - cp doc/trixx.html public/
     - cp -r doc/images public/
