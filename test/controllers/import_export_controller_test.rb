@@ -48,7 +48,8 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     columns.each do |column|
       return_hash[column] = exp_obj.send(column)
     end
-    return_hash
+    # ensure the same structure of contents like real export, especially for timestamps
+    JSON.parse(JSON.pretty_generate(return_hash))
   end
 
 
