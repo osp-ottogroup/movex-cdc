@@ -114,7 +114,7 @@ class ImportExportController < ApplicationController
       schema_hash = generate_export_object(schema, schema_columns)
 
       schema_hash['tables'] = []
-      Table.includes(:columns, :conditions).where(schema_id: schema.id).each do |table|
+      schema.tables.each do |table|
         table_hash = generate_export_object(table, table_columns)
 
         table_hash['columns'] = []

@@ -56,14 +56,14 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
   # generate expected exported schema structure as Hash
   def generate_expected_schema(schema_name)
     schema_columns = extract_column_names(Schema)
-    schemas = Schema.includes(:schema_rights).where(name: schema_name)
+    schemas = Schema.where(name: schema_name)
     raise "No schema found for name '#{schema_name}'" if schemas.count == 0
     schema = schemas[0]
     schema_hash = generate_export_object(schema, schema_columns)
 
     schema_hash['tables'] = []
     table_columns = extract_column_names(Table)
-    Table.includes(:columns, :conditions).where(schema_id: schema.id).each do |table|
+    schema.tables.each do |table|
       table_hash = generate_export_object(table, table_columns)
 
       table_hash['columns'] = []
