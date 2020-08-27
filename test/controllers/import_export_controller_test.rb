@@ -28,58 +28,125 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  # generate expected exported user structure as Array of Hash
+  def generate_expected_users
+    result = []
+    columns = extract_column_names(User)
+    User.all.each do |u|
+      user_hash = {}
+      columns.each do |c|
+        user_hash[c] = u.send(c)
+      end
+      result << user_hash
+    end
+    result
+  end
+
+  # Create hash with columns of object
+  def generate_export_object(exp_obj, columns)
+    return_hash = {}
+    columns.each do |column|
+      return_hash[column] = exp_obj.send(column)
+    end
+    return_hash
+  end
+
+
+  # generate expected exported schema structure as Hash
+  def generate_expected_schema(schema_name)
+    schema_columns = extract_column_names(Schema)
+    schemas = Schema.includes(:schema_rights).where(name: schema_name)
+    raise "No schema found for name '#{schema_name}'" if schemas.count == 0
+    schema = schemas[0]
+    schema_hash = generate_export_object(schema, schema_columns)
+
+    schema_hash['tables'] = []
+    table_columns = extract_column_names(Table)
+    Table.includes(:columns, :conditions).where(schema_id: schema.id).each do |table|
+      table_hash = generate_export_object(table, table_columns)
+
+      table_hash['columns'] = []
+      column_columns = extract_column_names(Column)
+      table.columns.each do |column|
+        table_hash['columns'] << generate_export_object(column, column_columns)
+      end
+
+      table_hash['conditions'] = []
+      condition_columns = extract_column_names(Condition)
+      table.conditions.each do |condition|
+        table_hash['conditions'] << generate_export_object(condition, condition_columns)
+      end
+      schema_hash['tables'] << table_hash
+    end
+
+    schema_hash['schema_rights'] = []
+    schema_right_columns = extract_column_names(SchemaRight)
+    schema.schema_rights.each do |schema_right|
+      schema_rights_hash = generate_export_object(schema_right, schema_right_columns)
+      schema_rights_hash['email'] = schema_right.user.email
+      schema_hash['schema_rights'] << schema_rights_hash
+    end
+
+    schema_hash
+  end
+
+  def extract_column_names(ar_class)
+    # extract column names without id and *_id and timestamps
+    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
+  end
+
 
   # Test Goal: Ensure that the export of all schemas generates the correct json
   test "export" do
     get "/import_export", headers: jwt_header(@jwt_admin_token)
     assert_response :success
 
-    db_user = Trixx::Application.config.trixx_db_user
-    victim_user = Trixx::Application.config.trixx_db_victim_user
+    Rails.logger.debug @response.body
+    actual = JSON.parse(@response.body)
 
-    if Trixx::Application.config.trixx_db_type == 'SQLITE'
-      expected_users = JSON.parse('[{"email":"Peter.Ramm@ottogroup.com", "db_user":"' + victim_user + '", "first_name":"Peter", "last_name":"Ramm", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Sandro.Preuss@ottogroup.com", "db_user":"sandro", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user2@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"admin", "db_user":"' + db_user + '", "first_name":"Admin", "last_name":"from fixture", "yn_admin":"Y", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user1@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"no_schema_right@ottogroup.com", "db_user":null, "first_name":"Has no right for", "last_name":"Schemas", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"user2delete@ottogroup.com", "db_user":null, "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}]')
-      expected_schemas = JSON.parse('[{"name":"main", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"TABLES", "info":"Mein Text", "topic":"' + KafkaHelper.existing_topic_for_test + '", "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"SCHEMA_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[{"id":298486374, "table_id":1, "operation":"D", "filter":"ID IS NOT NULL", "lock_version":1}, {"id":980190962, "table_id":1, "operation":"I", "filter":"ID IS NOT NULL", "lock_version":1}]}, {"name":"COLUMNS", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"TABLE_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[]}, {"name":"TABLE3", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[], "conditions":[]}, {"name":"VICTIM1", "info":"Victim table in separate schema for use with triggers", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"RAW_VAL", "info":"RAW test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NAME", "info":"varchar2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TS_VAL", "info":"timestamp test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ID", "info":"Number test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NUM_VAL", "info":"NumVal test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"DATE_VAL", "info":"date test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ROWID_VAL", "info":"RowID test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"CHAR_NAME", "info":"char2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TSTZ_VAL", "info":"timestamp with time zone test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}], "conditions":[{"id":169672999, "table_id":4, "operation":"I", "filter":"new.Name != \'EXCLUDE FILTER\'", "lock_version":1}]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}]')
-    elsif Trixx::Application.config.trixx_db_type == 'ORACLE'
-      expected_users = JSON.parse('[{"email":"admin", "db_user":"' + db_user + '", "first_name":"Admin", "last_name":"from fixture", "yn_admin":"Y", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Peter.Ramm@ottogroup.com", "db_user":"' + victim_user + '", "first_name":"Peter", "last_name":"Ramm", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Sandro.Preuss@ottogroup.com", "db_user":"sandro", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user1@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user2@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"user2delete@ottogroup.com", "db_user":null, "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"no_schema_right@ottogroup.com", "db_user":null, "first_name":"Has no right for", "last_name":"Schemas", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}]')
-      expected_schemas = JSON.parse('[{"name":"' + db_user + '", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"TABLES", "info":"Mein Text", "topic":"' + KafkaHelper.existing_topic_for_test + '", "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"SCHEMA_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[{"id":980190962, "table_id":1, "operation":"I", "filter":"ID IS NOT NULL", "lock_version":1}, {"id":298486374, "table_id":1, "operation":"D", "filter":"ID IS NOT NULL", "lock_version":1}]}, {"name":"COLUMNS", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"TABLE_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[]}, {"name":"TABLE3", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[], "conditions":[]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}, {"name":"' + victim_user + '", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"VICTIM1", "info":"Victim table in separate schema for use with triggers", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"ID", "info":"Number test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NAME", "info":"varchar2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"CHAR_NAME", "info":"char2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"DATE_VAL", "info":"date test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TS_VAL", "info":"timestamp test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"RAW_VAL", "info":"RAW test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TSTZ_VAL", "info":"timestamp with time zone test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ROWID_VAL", "info":"RowID test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NUM_VAL", "info":"NumVal test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}], "conditions":[{"id":169672999, "table_id":4, "operation":"I", "filter":":new.Name != \'EXCLUDE FILTER\'", "lock_version":1}]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}, {"name":"WITHOUT_TOPIC", "topic":null, "last_trigger_deployment":null, "tables":[], "schema_rights":[]}]')
-    else
-      raise Minitest::Assertion, 'Unknown DB Type "' + Trixx::Application.config.trixx_db_type + '"'
+    expected_schemas = []
+    Schema.all.each do |schema|
+      expected_schemas << generate_expected_schema(schema.name)
     end
 
-    # TODO remove gsub operations after fixing the linebreak in the conditions created by the conditions fixture
-    actual = JSON.parse(@response.body.gsub('\n', '').gsub('\r', ''))
-    remove_dates(actual)
-
-    # TODO is it possible to execute all assertions before aborting the test in minitest? Most often called lazy, soft or post assertion. In this case, it is desirable to both split the assertions as well as execute all assertions. If not, splitting the test would be the best option imo. Combining the assertion is not ideal - diff is even more difficult and both assertions are basically unrelated.
-    assert objects_equal?(expected_users, actual['users'])
+    assert objects_equal?(generate_expected_users, actual['users'])
     assert objects_equal?(expected_schemas, actual['schemas'])
   end
 
   # Test Goal: Ensure that the export of a single schema generates the correct json
   test "export_schema" do
     db_user = Trixx::Application.config.trixx_db_user
-    victim_user = Trixx::Application.config.trixx_db_victim_user
 
-    get "/import_export", params: {schema: db_user}, headers: jwt_header(@jwt_admin_token)
+    get "/import_export/#{db_user}", headers: jwt_header(@jwt_admin_token)
     assert_response :success
 
-    if Trixx::Application.config.trixx_db_type == 'SQLITE'
-      expected_users = JSON.parse('[{"email":"Peter.Ramm@ottogroup.com", "db_user":"' + victim_user + '", "first_name":"Peter", "last_name":"Ramm", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Sandro.Preuss@ottogroup.com", "db_user":"sandro", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user2@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"admin", "db_user":"' + db_user + '", "first_name":"Admin", "last_name":"from fixture", "yn_admin":"Y", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user1@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"no_schema_right@ottogroup.com", "db_user":null, "first_name":"Has no right for", "last_name":"Schemas", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"user2delete@ottogroup.com", "db_user":null, "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}]')
-      expected_schemas = JSON.parse('[{"name":"main", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"TABLES", "info":"Mein Text", "topic":"' + KafkaHelper.existing_topic_for_test + '", "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"SCHEMA_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[{"id":298486374, "table_id":1, "operation":"D", "filter":"ID IS NOT NULL", "lock_version":1}, {"id":980190962, "table_id":1, "operation":"I", "filter":"ID IS NOT NULL", "lock_version":1}]}, {"name":"COLUMNS", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"TABLE_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[]}, {"name":"TABLE3", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[], "conditions":[]}, {"name":"VICTIM1", "info":"Victim table in separate schema for use with triggers", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"RAW_VAL", "info":"RAW test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NAME", "info":"varchar2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TS_VAL", "info":"timestamp test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ID", "info":"Number test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NUM_VAL", "info":"NumVal test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"DATE_VAL", "info":"date test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ROWID_VAL", "info":"RowID test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"CHAR_NAME", "info":"char2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TSTZ_VAL", "info":"timestamp with time zone test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}], "conditions":[{"id":169672999, "table_id":4, "operation":"I", "filter":"new.Name != \'EXCLUDE FILTER\'", "lock_version":1}]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}]')
-    elsif Trixx::Application.config.trixx_db_type == 'ORACLE'
-      expected_users = JSON.parse('[{"email":"admin", "db_user":"' + db_user + '", "first_name":"Admin", "last_name":"from fixture", "yn_admin":"Y", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Peter.Ramm@ottogroup.com", "db_user":"' + victim_user + '", "first_name":"Peter", "last_name":"Ramm", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"Sandro.Preuss@ottogroup.com", "db_user":"sandro", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user1@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"double_db_user2@ottogroup.com", "db_user":"double_db_user", "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"user2delete@ottogroup.com", "db_user":null, "first_name":"Sandro", "last_name":"Preuß", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}, {"email":"no_schema_right@ottogroup.com", "db_user":null, "first_name":"Has no right for", "last_name":"Schemas", "yn_admin":"N", "yn_account_locked":"N", "failed_logons":0, "yn_hidden":"N"}]')
-      expected_schemas = JSON.parse('[{"name":"' + db_user + '", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"TABLES", "info":"Mein Text", "topic":"' + KafkaHelper.existing_topic_for_test + '", "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"SCHEMA_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[{"id":980190962, "table_id":1, "operation":"I", "filter":"ID IS NOT NULL", "lock_version":1}, {"id":298486374, "table_id":1, "operation":"D", "filter":"ID IS NOT NULL", "lock_version":1}]}, {"name":"COLUMNS", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"TABLE_ID", "info":"Mein Text", "yn_pending":"N", "yn_log_insert":"N", "yn_log_update":"N", "yn_log_delete":"N"}], "conditions":[]}, {"name":"TABLE3", "info":"Mein Text", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[], "conditions":[]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}, {"name":"' + victim_user + '", "topic":"' + KafkaHelper.existing_topic_for_test + '", "last_trigger_deployment":null, "tables":[{"name":"VICTIM1", "info":"Victim table in separate schema for use with triggers", "topic":null, "kafka_key_handling":"N", "fixed_message_key":null, "yn_hidden":"N", "columns":[{"name":"ID", "info":"Number test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NAME", "info":"varchar2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"CHAR_NAME", "info":"char2 test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"DATE_VAL", "info":"date test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TS_VAL", "info":"timestamp test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"RAW_VAL", "info":"RAW test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"TSTZ_VAL", "info":"timestamp with time zone test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"ROWID_VAL", "info":"RowID test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}, {"name":"NUM_VAL", "info":"NumVal test", "yn_pending":"N", "yn_log_insert":"Y", "yn_log_update":"Y", "yn_log_delete":"Y"}], "conditions":[{"id":169672999, "table_id":4, "operation":"I", "filter":":new.Name != \'EXCLUDE FILTER\'", "lock_version":1}]}], "schema_rights":[{"name":"Peter.Ramm@ottogroup.com", "info":"Info1"}]}, {"name":"WITHOUT_TOPIC", "topic":null, "last_trigger_deployment":null, "tables":[], "schema_rights":[]}]')
-    else
-      raise Minitest::Assertion, 'Unknown DB Type "' + Trixx::Application.config.trixx_db_type + '"'
+    Rails.logger.debug @response.body
+    actual = JSON.parse(@response.body)
+
+    assert objects_equal?(generate_expected_users, actual['users'])
+    assert objects_equal?([generate_expected_schema(db_user)], actual['schemas'])
+  end
+
+  # ensure that after imporing the current state the export remains equal
+  test "import_all_schemas" do
+    expected_schemas = []
+    Schema.all.each do |schema|
+      expected_schemas << generate_expected_schema(schema.name)
     end
 
-    # TODO remove gsub operations after fixing the linebreak in the conditions created by the conditions fixture
-    actual = JSON.parse(@response.body.gsub('\n', '').gsub('\r', ''))
-    remove_dates(actual)
+    post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: generate_expected_users, schemas: expected_schemas}
+    assert_response :success
 
-    assert objects_equal?(expected_users, actual['users'])
-    assert objects_equal?(expected_schemas, actual['schemas'])
+    # export the just imported data
+    get "/import_export", headers: jwt_header(@jwt_admin_token)
+    assert_response :success
+
+    Rails.logger.debug @response.body
+    exported = JSON.parse(@response.body)
+
+    assert objects_equal?(generate_expected_users, exported['users'])
+    assert objects_equal?(expected_schemas, exported['schemas'])
+
   end
 
   # Test Goal: Ensure that a user, matched by his email, can be updated through import
@@ -88,9 +155,11 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Sandro", old_user['first_name']
     assert_equal "Preuß", old_user['last_name']
     assert_equal "N", old_user['yn_admin']
-    assert_equal "sandro", old_user['db_user']
+    assert_equal Trixx::Application.config.trixx_db_victim_user, old_user['db_user']
     assert_no_difference('User.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "Sandro.Preuss@ottogroup.com", db_user: Trixx::Application.config.trixx_db_victim_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}]}
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "Sandro.Preuss@ottogroup.com", db_user: Trixx::Application.config.trixx_db_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
+                                                                             schemas: [generate_expected_schema(Trixx::Application.config.trixx_db_user)] # use dummy schema to fulfill requirements
+      }
     end
     assert_response :success
 
@@ -98,13 +167,15 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Grzgorz", new_user['first_name']
     assert_equal "Pol", new_user['last_name']
     assert_equal "Y", new_user['yn_admin']
-    assert_equal Trixx::Application.config.trixx_db_victim_user, new_user['db_user']
+    assert_equal Trixx::Application.config.trixx_db_user, new_user['db_user']
   end
 
   # Test Goal: Ensure that a user can be created through import
   test "import_user_create" do
     assert_difference('User.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "new@user.hello", db_user: Trixx::Application.config.trixx_db_victim_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}]}
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "new@user.hello", db_user: Trixx::Application.config.trixx_db_victim_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
+                                                                             schemas: [generate_expected_schema(Trixx::Application.config.trixx_db_user)] # use dummy schema to fulfill requirements
+      }
     end
     assert_response :success
 
@@ -128,7 +199,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     # this is the minimal schema configuration
     schema = [{name: old_schema.name, topic: "TheWeather"}, tables: [], schema_rights: []]
     assert_no_difference('Schema.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {schemas: schema}
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: generate_expected_users, schemas: schema}
     end
     assert_response :success
 
@@ -137,20 +208,6 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "TheWeather", new_schema.topic
     assert_equal 0, new_schema.tables.count, 'imported schema should not have any table'
     assert_equal 0, new_schema.schema_rights.count, 'imported schema should not have any schema rights'
-  end
-
-  # Test Goal: Ensure that a schema configuration can be emptied through import
-  # Removal of parts are not necessary, since it is the same behaviour: as soon as a schema is in params,
-  # it will be emptied completely and refilled with what is passed.
-  test "import_schema_nothing" do
-    old_count =  Schema.all.count
-
-    assert_no_difference('Schema.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {}
-    end
-    assert_response :success
-
-    assert_equal old_count, Schema.all.count
   end
 
   # Test Goal: Ensure that a schema import does work and fills the schema with all given data
@@ -162,10 +219,10 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
                tables: [{"name": "NuTable", info: "InfoText", topic: "TopicText", kafka_key_handling: "F", yn_hidden: "N", fixed_message_key: "hugo",
                          columns: [{"name": "Col1", info: "Col1Text", yn_pending: "Y", yn_log_insert: "Y", yn_log_update: "N", yn_log_delete: "N"},{"name": "Col2", info: "Col2Text", yn_pending: "N", yn_log_insert: "N", yn_log_update: "Y", yn_log_delete: "Y"}],
                          conditions: [{operation: "D", filter: "ID IS NOT nil"}, {operation: "I", filter: "ID IS nil"}]}],
-               schema_rights: [{"name": "admin", info: "AdminInfo"}]}]
+               schema_rights: [{"email": "admin", info: "AdminInfo"}]}]
 
     assert_no_difference('Schema.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {schemas: schema}
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: generate_expected_users, schemas: schema}
     end
     assert_response :success
 
@@ -211,14 +268,14 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
 
   # Test Goal: Ensure that a schema import does work and fills the schema with all given data
   test "import_schema_new" do
-    schema = [{name: "another", topic: "TheWeather",
+    schema = [{name: "another", topic: "TheWeather", not_existing_column: 'Does not exist in model no more',
                tables: [{"name": "NuTable", info: "InfoText", topic: "TopicText", kafka_key_handling: "N", yn_hidden: "N",
                          columns: [{"name": "Col1", info: "Col1Text", yn_pending: "Y", yn_log_insert: "Y", yn_log_update: "N", yn_log_delete: "N"},{"name": "Col2", info: "Col2Text", yn_pending: "N", yn_log_insert: "N", yn_log_update: "Y", yn_log_delete: "Y"}],
                          conditions: [{operation: "D", filter: "ID IS NOT nil"}, {operation: "I", filter: "ID IS nil"}]}],
-               schema_rights: [{"name": "admin", info: "AdminInfo"}]}]
+               schema_rights: [{"email": "admin", info: "AdminInfo"}]}]
 
     assert_difference('Schema.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {schemas: schema}
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: generate_expected_users, schemas: schema}
     end
     assert_response :success
 
@@ -268,14 +325,3 @@ end
 # 3. Tests for accessing the end point with correct authentication? Right now, nothing is implemented done in that regard.
 # 4. More Parameter Variations. For example, i cannot judge if it makes sense to test with other values for kafka_key_handling for the import - my guess is "no"
 
-def remove_dates(trixx_export)
-  trixx_export['schemas'].each do |entry|
-    entry['last_trigger_deployment'] = nil
-    entry['tables'].each do |table|
-      table['conditions'].each do |condition|
-        condition.delete("created_at")
-        condition.delete("updated_at")
-      end
-    end
-  end
-end
