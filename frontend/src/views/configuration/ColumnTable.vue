@@ -82,8 +82,8 @@ export default {
     display: block;
     width: 100%;
     .icon-wrapper {
-      margin: auto;
-      width: 70%;
+      display: flex;
+      justify-content: center;
       button {
         &:first-of-type{
           margin-right: 0.3rem;
