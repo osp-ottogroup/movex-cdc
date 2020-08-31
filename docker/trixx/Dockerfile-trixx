@@ -23,7 +23,11 @@ RUN npm install
 
 COPY $FRONTEND_SRC_PATH .
 
+# Build VueJS frontend function
 RUN npm run build
+
+# Ensure no known vulnerabilities are in dependencies of frontend packages
+RUN npm audit --production
 
 # STAGE 2: build trixx backend
 FROM jruby:9.2.11.1
