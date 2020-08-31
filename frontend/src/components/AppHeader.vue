@@ -2,14 +2,14 @@
   <div id="app-header">
     <b-navbar type="is-light">
 
-      <template slot="brand">
+      <template v-slot:brand>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
           <span>OSP|</span>
           <strong>Trixx</strong>
         </b-navbar-item>
       </template>
 
-      <template slot="start">
+      <template v-slot:start>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
             Home
         </b-navbar-item>
@@ -24,7 +24,7 @@
         </b-navbar-item>
       </template>
 
-      <template slot="end">
+      <template v-slot:end>
         <b-navbar-item tag="div">
           <div class="is-size-7">
             logged in as:

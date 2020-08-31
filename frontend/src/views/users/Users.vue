@@ -25,33 +25,31 @@
         striped
         hoverable
         @click="onRowClicked">
-          <template slot-scope="props">
-            <b-table-column field="id" label="ID" numeric sortable :searchable="showSearchFields">
-              {{ props.row.id }}
-            </b-table-column>
-            <b-table-column field="first_name" label="First Name" sortable :searchable="showSearchFields">
-              {{ props.row.first_name }}
-            </b-table-column>
-            <b-table-column field="last_name" label="Last Name" sortable :searchable="showSearchFields">
-              {{ props.row.last_name }}
-            </b-table-column>
-            <b-table-column field="email" label="e-Mail" sortable :searchable="showSearchFields">
-              {{ props.row.email }}
-            </b-table-column>
-            <b-table-column field="db_user" label="DB-User" sortable :searchable="showSearchFields">
-              {{ props.row.db_user }}
-            </b-table-column>
-            <b-table-column label="Info" width="4rem">
-              <span>
-                <b-tooltip label="Admin User" type="is-light">
-                  <b-icon v-if="props.row.yn_admin === 'Y'" icon="account-circle" size="is-small"/>
-                </b-tooltip>
-                <b-tooltip label="Account is locked" type="is-light">
-                  <b-icon v-if="props.row.yn_account_locked === 'Y'" icon="lock" size="is-small"/>
-                </b-tooltip>
-              </span>
-            </b-table-column>
-        </template>
+          <b-table-column field="id" label="ID" numeric sortable :searchable="showSearchFields" v-slot="props">
+            {{ props.row.id }}
+          </b-table-column>
+          <b-table-column field="first_name" label="First Name" sortable :searchable="showSearchFields" v-slot="props">
+            {{ props.row.first_name }}
+          </b-table-column>
+          <b-table-column field="last_name" label="Last Name" sortable :searchable="showSearchFields" v-slot="props">
+            {{ props.row.last_name }}
+          </b-table-column>
+          <b-table-column field="email" label="e-Mail" sortable :searchable="showSearchFields" v-slot="props">
+            {{ props.row.email }}
+          </b-table-column>
+          <b-table-column field="db_user" label="DB-User" sortable :searchable="showSearchFields" v-slot="props">
+            {{ props.row.db_user }}
+          </b-table-column>
+          <b-table-column label="Info" width="4rem" v-slot="props">
+            <span>
+              <b-tooltip label="Admin User" type="is-light">
+                <b-icon v-if="props.row.yn_admin === 'Y'" icon="account-circle" size="is-small"/>
+              </b-tooltip>
+              <b-tooltip label="Account is locked" type="is-light">
+                <b-icon v-if="props.row.yn_account_locked === 'Y'" icon="lock" size="is-small"/>
+              </b-tooltip>
+            </span>
+          </b-table-column>
       </b-table>
     </div>
 

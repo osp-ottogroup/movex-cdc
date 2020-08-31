@@ -3,27 +3,23 @@
     <b-table :data="schemas"
              :selected.sync="selectedSchema"
              @click="onSchemaSelected">
-      <template slot-scope="props">
-        <b-table-column field="name" label="Schemas" searchable>
-          <template slot="searchable" slot-scope="props">
-            <b-input v-model="props.filters[props.column.field]"
-                     icon="magnify"
-                     size="is-small"/>
-          </template>
+      <b-table-column field="name" label="Schemas" searchable>
+        <template v-slot:searchable="props">
+          <b-input v-model="props.filters[props.column.field]"
+                   icon="magnify"
+                   size="is-small"/>
+        </template>
 
+        <template v-slot="props">
           {{ props.row.name }}
           <b-button v-show="selectedSchema && selectedSchema.id === props.row.id"
                     icon-right="pencil"
                     class="is-pulled-right is-small"
                     @click="onEditClicked()" />
-        </b-table-column>
-        <!-- Workaround to avoid disapearing header when filtering.
-             There is an issue in Buefy with tables, which have only one sortable column.
-        -->
-        <b-table-column header-class="workaround-column" cell-class="workaround-column"/>
-      </template>
+        </template>
+      </b-table-column>
 
-      <template slot="empty">
+      <template v-slot:empty>
         <div class="content has-text-grey has-text-centered is-size-7">
           <b-icon icon="information" />
           <p v-if="schemas.length === 0">Your user has no authorized schemas.</p>
@@ -64,16 +60,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-  ::v-deep table {
-    table-layout: fixed;
-    th, td {
-      &.workaround-column, &.workaround-column .th-wrap {
-        padding: 0px !important;
-        width: 0px !important;
-        max-width: 0px !important;
-      }
-    }
-  }
-</style>
