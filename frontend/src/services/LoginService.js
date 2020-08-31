@@ -8,7 +8,7 @@ import Config from '../config/config';
 const TOKEN_KEY = 'login_token';
 
 const loadToken = () => localStorage.getItem(TOKEN_KEY);
-const storeToken = token => localStorage.setItem(TOKEN_KEY, token);
+const storeToken = (token) => localStorage.setItem(TOKEN_KEY, token);
 const removeToken = () => localStorage.removeItem(TOKEN_KEY);
 
 const loginWithExistingToken = () => {

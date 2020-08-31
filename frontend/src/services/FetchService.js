@@ -39,36 +39,28 @@ const getResponseData = async (response) => {
  *
  * In case of network errors the error itself will be rejected from the Promise.
  */
-const doFetch = (url, requestOptions) => {
-  const promise = new Promise(async (resolve, reject) => {
-    try {
-      const response = await fetch(url, requestOptions);
-      const data = await getResponseData(response);
-      const httpStatus = response.status;
-      if (response.ok) { // HTTP-Status-Code 200-299
-        resolve({
-          data,
-          status: httpStatus,
-        });
-      } else {
-        const errorMessage = `The request to ${url.toString()} responded with http-status-code ${response.status}: ${response.statusText}`;
-        let errors = [];
-        if (httpStatus === 500 && data.error && data.exception) { // obviously default rails error
-          errors.push(data.error);
-          errors.push(data.exception);
-          data.traces['Application Trace'].forEach(t => errors.push(t.trace));
-        } else if (data.errors && data.errors instanceof Array) { // obviously custom rails error
-          // eslint-disable-next-line prefer-destructuring
-          errors = data.errors;
-        }
-        reject(new ServerError(errorMessage, errors, httpStatus));
-      }
-    } catch (exception) {
-      reject(exception);
+const doFetch = async (url, requestOptions) => {
+  const response = await fetch(url, requestOptions);
+  const data = await getResponseData(response);
+  const httpStatus = response.status;
+  if (!response.ok) { // HTTP-Status-Code != 200-299
+    const errorMessage = `The request to ${url.toString()} responded with http-status-code ${response.status}: ${response.statusText}`;
+    let errors = [];
+    if (httpStatus === 500 && data.error && data.exception) { // obviously default rails error
+      errors.push(data.error);
+      errors.push(data.exception);
+      data.traces['Application Trace'].forEach((t) => errors.push(t.trace));
+    } else if (data.errors && data.errors instanceof Array) { // obviously custom rails error
+      // eslint-disable-next-line prefer-destructuring
+      errors = data.errors;
     }
-  });
+    throw new ServerError(errorMessage, errors, httpStatus);
+  }
 
-  return promise;
+  return {
+    data,
+    status: httpStatus,
+  };
 };
 
 export default {

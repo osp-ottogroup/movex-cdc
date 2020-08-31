@@ -39,12 +39,12 @@ const doFetch = async (url, requestOptions) => {
  * @param {Object} headerOptions custom header options
  * @returns {Object} merged header options
  */
-const mergeHeaderOptions = headerOptions => Object.assign(
-  {},
-  DEFAULT_HEADER,
-  { Authorization: `Bearer ${TokenService.getAccessToken()}` },
-  headerOptions,
-);
+const mergeHeaderOptions = (headerOptions) => ({
+
+  ...DEFAULT_HEADER,
+  Authorization: `Bearer ${TokenService.getAccessToken()}`,
+  ...headerOptions,
+});
 
 /**
  * Creates request options

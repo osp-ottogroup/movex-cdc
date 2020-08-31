@@ -8,9 +8,9 @@
 </template>
 
 <script>
-import ColumnTable from './ColumnTable.vue';
 import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
+import ColumnTable from './ColumnTable.vue';
 
 export default {
   name: 'ColumnManager',

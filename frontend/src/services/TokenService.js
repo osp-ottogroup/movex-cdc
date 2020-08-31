@@ -7,7 +7,7 @@ let accessToken = null;
  * @param {string} base64String - string to decode
  * @returns {string} decoded string
  */
-const decode = base64String => atob(base64String);
+const decode = (base64String) => atob(base64String);
 
 /**
  * splits the JWT in its three parts header, payload, and signature

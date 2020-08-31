@@ -17,7 +17,6 @@
         </div>
       </div>
 
-
       <b-table
         id="users-table"
         :data="users"
@@ -69,9 +68,9 @@
 </template>
 
 <script>
+import { getErrorMessageAsHtml } from '@/helpers';
 import CRUDService from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
-import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'Users',
@@ -122,12 +121,12 @@ export default {
       this.showSearchFields = !this.showSearchFields;
     },
     onSaved(savedUser) {
-      const index = this.users.findIndex(user => user.id === savedUser.id);
+      const index = this.users.findIndex((user) => user.id === savedUser.id);
       this.$set(this.users, index, savedUser);
       this.closeModal();
     },
     onDeleted(deletedUser) {
-      const index = this.users.findIndex(user => user.id === deletedUser.id);
+      const index = this.users.findIndex((user) => user.id === deletedUser.id);
       this.users.splice(index, 1);
       this.closeModal();
     },

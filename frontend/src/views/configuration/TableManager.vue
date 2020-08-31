@@ -26,10 +26,10 @@
 </template>
 
 <script>
-import TableTable from './TableTable.vue';
-import TableModal from './TableModal.vue';
 import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
+import TableTable from './TableTable.vue';
+import TableModal from './TableModal.vue';
 
 export default {
   name: 'TableManager',
@@ -58,7 +58,7 @@ export default {
   computed: {
     selectableTables() {
       // filter all tables out of db tables, that are not included in trixx tables
-      return this.dbTables.filter(dbTable => !this.tables.some(table => dbTable.name === table.name));
+      return this.dbTables.filter((dbTable) => !this.tables.some((table) => dbTable.name === table.name));
     },
     showTableModal() {
       return this.modal.table !== null;
@@ -100,7 +100,7 @@ export default {
     async onRemove(table) {
       try {
         await CRUDService.tables.delete(table.id, table);
-        const index = this.tables.findIndex(t => t.id === table.id);
+        const index = this.tables.findIndex((t) => t.id === table.id);
         this.tables.splice(index, 1);
         this.modal.table = null;
         this.modal.mode = null;

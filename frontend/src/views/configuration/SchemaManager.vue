@@ -12,10 +12,10 @@
 </template>
 
 <script>
+import { getErrorMessageAsHtml } from '@/helpers';
 import SchemaTable from './SchemaTable.vue';
 import SchemaModal from './SchemaModal.vue';
 import CRUDService from '../../services/CRUDService';
-import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'SchemaManager',

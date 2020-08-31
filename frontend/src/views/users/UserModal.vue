@@ -128,8 +128,8 @@
 </template>
 
 <script>
-import CRUDService from '../../services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
+import CRUDService from '../../services/CRUDService';
 
 export default {
   name: 'UserModal',
@@ -216,7 +216,7 @@ export default {
     async onSaveButtonClicked() {
       const invalidElements = this.$el.querySelectorAll(':invalid');
       if (invalidElements.length > 0) {
-        invalidElements.forEach(e => e.reportValidity());
+        invalidElements.forEach((e) => e.reportValidity());
         return;
       }
 

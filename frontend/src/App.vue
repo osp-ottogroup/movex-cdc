@@ -24,14 +24,14 @@
 </template>
 
 <script>
+import HttpService from '@/services/HttpService';
+import Config from '@/config/config';
+import { getErrorMessageAsHtml } from '@/helpers';
 import AppHeader from './components/AppHeader.vue';
 import AppFooter from './components/AppFooter.vue';
 import LoginForm from './components/LoginForm.vue';
 import LoginService from './services/LoginService';
 import TokenService from './services/TokenService';
-import HttpService from '@/services/HttpService';
-import Config from '@/config/config';
-import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'App',

@@ -41,8 +41,8 @@
 </template>
 
 <script>
-import LoginService from '../services/LoginService';
 import { getErrorMessageAsHtml } from '@/helpers';
+import LoginService from '../services/LoginService';
 
 export default {
   data() {

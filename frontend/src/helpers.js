@@ -16,7 +16,7 @@ const escape = (string) => {
 
   // Regex containing the keys listed immediately above.
   const htmlEscaper = /[&<>"'/]/g;
-  return (`${string}`).replace(htmlEscaper, match => htmlEscapes[match]);
+  return (`${string}`).replace(htmlEscaper, (match) => htmlEscapes[match]);
 };
 
 // eslint-disable-next-line import/prefer-default-export
@@ -24,7 +24,7 @@ export const getErrorMessageAsHtml = (error, prependMessage = '') => {
   let errorMessage;
 
   if (error instanceof ServerError && error.errors.length > 0) {
-    errorMessage = `<div>${error.errors.map(e => escape(e)).join('</div><div>')}</div>`;
+    errorMessage = `<div>${error.errors.map((e) => escape(e)).join('</div><div>')}</div>`;
   } else if (error.message) {
     errorMessage = `<div>${escape(error.message)}</div>`;
   } else {
