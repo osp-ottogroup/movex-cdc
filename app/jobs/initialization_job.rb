@@ -55,8 +55,6 @@ class InitializationJob < ApplicationJob
 
   # ensure required rights and grants
   def ensure_required_rights
-    check_create_table
-    check_create_view
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       check_readable 'DBA_Constraints'
@@ -69,20 +67,37 @@ class InitializationJob < ApplicationJob
       check_readable 'GV$Lock'
       check_readable 'V$Session'
     end
+    check_create_table
+    check_create_view
   end
 
   # check if read/select is possible on object
   def check_readable(object_name)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
+      begin
+        Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
+      rescue Exception => e
+        raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
+      end
+
+      begin
+        csql = "CREATE OR REPLACE View Trixx_View_Select_Test AS SELECT * FROM #{object_name}"
+        Database.execute csql
+        Database.execute "DROP View Trixx_View_Select_Test"
+      rescue Exception => e
+        raise "Missing database right!!!\n#{csql}; is not possible!\n#{e.class}: #{e.message}
+You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to select from table in view"
+      end
     end
-  rescue Exception => e
-    raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
   end
 
   # check if create table is possible
   def check_create_table
+    begin
+      Database.execute "DROP TABLE Trixx_Table_Test", {}, no_exception_logging: true  # drop possibly existing table
+    rescue
+    end
     Database.execute "CREATE  TABLE Trixx_Table_Test (ID NUMBER)"
     Database.execute "DROP TABLE Trixx_Table_Test"
   rescue Exception => e

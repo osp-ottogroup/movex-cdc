@@ -14,6 +14,7 @@ class ActiveSupport::TestCase
     JdbcInfo.log_version
   end
 
+
   # schema for tables with triggers for tests
   def victim_schema_id
     case Trixx::Application.config.trixx_db_type
@@ -144,7 +145,7 @@ class ActiveSupport::TestCase
   end
 
   def create_event_logs_for_test(number_of_records)
-    number_of_records.downto(0).each do
+    number_of_records.downto(1).each do
       event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: '"new": { "ID": 1 }', created_at: Time.now)
       unless event_log.save
         raise event_log.errors.full_messages
@@ -152,22 +153,30 @@ class ActiveSupport::TestCase
     end
   end
 
-  def log_event_logs_content
+  def log_event_logs_content(options = {})
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning
-        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
+        Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
-          puts "Partition #{p['partition_name']}: #{record_count} records"
+          msg = "Partition #{p['partition_name']}: high_value = '#{p['high_value']}', #{record_count} records"
+          puts msg if options[:console_output]
+          Rails.logger.debug msg
         end
       end
     end
 
-    puts "First 100 remaining events in table Event_Logs:"
+    msg = "First 100 remaining events in table Event_Logs:"
+    puts msg if options[:console_output]
+    Rails.logger.debug msg
+
     counter = 0
     Database.select_all("SELECT * FROM Event_Logs").each do |e|
       counter += 1
-      puts e if counter <= 100
+      if counter <= 100
+        puts e if options[:console_output]
+        Rails.logger.debug e
+      end
     end
 
   end

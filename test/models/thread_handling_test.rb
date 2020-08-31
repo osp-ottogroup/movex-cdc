@@ -42,6 +42,8 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     end
 
     messages_to_process = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+    Rails.logger.debug "#{messages_to_process} Event_Logs records before processing"
+    log_event_logs_content(console_output: false)
 
     ThreadHandling.get_instance.ensure_processing
     assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
@@ -67,7 +69,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       message_processing_errors      += hd[:message_processing_errors]
     end
 
-    log_event_logs_content if messages_to_process > successful_messages_processed # List remaining events from table
+    log_event_logs_content(console_output: true) if messages_to_process > successful_messages_processed # List remaining events from table
 
     assert_equal(messages_to_process, successful_messages_processed, 'Exactly the number of records in Event_Logs should be processed')
     assert_equal(0, message_processing_errors, 'There should not be processing errors')

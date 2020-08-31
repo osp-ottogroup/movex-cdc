@@ -10,19 +10,17 @@ module ExceptionHelper
     Rails.logger.error "Stack-Trace for exception: #{exception.class} #{exception.message}\n#{output}"
   end
 
-  $trixx_debug_hint_posted=false
   def self.log_exception(exception, context)
     Rails.logger.error "#{self.class}: #{exception.class}: #{exception.message}"
+    explanation = explain_exception(exception)
+    Rails.logger.error explanation if explanation
     Rails.logger.error "Context: #{context}"
     if Rails.logger.level == 0 # DEBUG
       mem_info = memory_info_string
       Rails.logger.error mem_info if mem_info && mem_info != ''
       log_exception_backtrace(exception)
     else
-      unless $trixx_debug_hint_posted
-        Rails.logger.error "Switch log level to DEBUG to get additional stack trace and memory info for exception!"
-        $trixx_debug_hint_posted = true
-      end
+      Rails.logger.error "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
     end
   end
 
@@ -74,6 +72,16 @@ module ExceptionHelper
     retval
   end
 
+  # try to interpret what happened at Kafka
+  def self.explain_exception(exception)
+    case exception.class.name
+    when 'Kafka::UnknownError' then
+      case exception.message.strip
+      when 'Unknown error with code 53' then 'Error|TRANSACTIONAL_ID_AUTHORIZATION_FAILED: The transactional id used by TriXX is not authorized to produce messages. Explicite authorization of transactional id is required, optional as wildcard: "kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf --add --transactional-id * --allow-principal User:* --operation write"'
+      when 'Unknown error with code 87' then 'Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by TriXX without key'
+      end
+    end
+  end
 
 end
 

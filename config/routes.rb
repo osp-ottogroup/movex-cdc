@@ -18,6 +18,9 @@ Rails.application.routes.draw do
   post '/db_triggers/generate_all',                   to: 'db_triggers#generate_all'
   get  '/health_check',                               to: 'health_check#index'  # only one method for resource established
   get  '/health_check/log_file',                      to: 'health_check#log_file'
+  get  '/import_export/:schema',                      to: 'import_export#export_schema'
+  get  '/import_export',                              to: 'import_export#export'
+  post '/import_export',                              to: 'import_export#import'
   get  '/kafka/describe_group',                       to: 'kafka#describe_group'
   get  '/kafka/describe_topic',                       to: 'kafka#describe_topic'
   get  '/kafka/groups',                               to: 'kafka#groups'

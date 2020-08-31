@@ -16,6 +16,8 @@ require "action_cable/engine"
 require "rails/test_unit/railtie"
 
 require 'yaml'
+require 'java'
+
 
 # Require the gems listed in Gemfile, including any gems
 # you've limited to :test, :development, or :production.
@@ -23,6 +25,13 @@ Bundler.require(*Rails.groups)
 
 module Trixx
   class Application < Rails::Application
+    # Will be calling Java classes from this JRuby script
+    include Java
+
+    # Need to import System to avoid "uninitialized constant System (NameError)"
+    import java.lang.System
+
+
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 6.0
 
@@ -109,9 +118,9 @@ module Trixx
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config
     end
-    config.log_level = (Rails.env.production? ? :info : :debug)                 # Default log level is already set to :debug at this point
     Trixx::Application.set_and_log_attrib_from_env(:log_level)
-    config.log_level = config.log_level.to_sym if config.log_level.class == String
+    config.log_level = config.log_level.to_sym if config.log_level && config.log_level.class == String
+    config.log_level = (Rails.env.production? ? :info : :debug) unless config.log_level                  # Default log level is already set to :debug at this point
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type)
 
@@ -172,7 +181,12 @@ module Trixx
 
     case config.trixx_db_type
     when 'ORACLE' then
-      Trixx::Application.log_attribute('TNS_ADMIN', ENV['TNS_ADMIN'])
+      Trixx::Application.set_and_log_attrib_from_env(:tns_admin, accept_empty: true)
+      if config.tns_admin
+        System.setProperty("oracle.net.tns_admin", config.tns_admin)
+      else
+        raise "TNS_ADMIN must be set if TRIXX_DB_URL ('#{config.trixx_db_url}') is not a valid JDBC thin URL (host:port:sid or host:port/service_name) and is treated as TNS-alias" unless config.trixx_db_url[':']
+      end
     end
 
     # check if database supports partitioning (possible and licensed)
