@@ -435,7 +435,7 @@ Depending on table configuration Kafka messages may contain an additional key va
 
 
 === Module overview ===
-image:trixx_module_overview.svg.drawio[format=svg,opts=inline]
+image:trixx_module_overview.svg[format=svg,opts=inline]
 
 ==== Activities at application startup ====
 
