@@ -7,6 +7,7 @@ class DbTable < ApplicationRecord
       FROM   Allowed_DB_Tables
       WHERE  Owner   = :owner
       AND    Grantee = :grantee
+      AND    Name NOT LIKE 'BIN$%'  /* exclude recycle bin */
       ORDER BY Table_Name
       ", {owner: schema_name, grantee: db_user}
   end

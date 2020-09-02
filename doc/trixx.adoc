@@ -103,6 +103,7 @@ The existence of this grants is checked at application start.
 |===
 |Grant|Description
 
+|CONNECT|Allows establishing session
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
 |CREATE VIEW|Allows creation of views in TriXX schema
 |RESOURCE|Allows creation of tables in own schema
