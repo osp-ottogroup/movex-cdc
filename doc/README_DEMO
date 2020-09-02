@@ -1,8 +1,10 @@
 Howto run Trixx Demo
-====================
+2020-09-02 Peter Ramm
+=====================
 
 Preconditions:
 - local Oracle database
+- Reale Client IP-Adresse verwenden für Kafka, nicht localhost
 
 Run Kafka:
 ----------
@@ -11,11 +13,6 @@ docker run --rm -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER
 Create topic:
 -------------
 $KAFKA_HOME/bin/kafka-topics --create --topic hugo --partitions 4 --zookeeper localhost:2181 --replication-factor 1
-$KAFKA_HOME/bin/kafka-topics --create --topic warmrunner --partitions 4 --zookeeper localhost:2181 --replication-factor
-
-Producer testen:
-----------------
-$KAFKA_HOME/bin/kafka-console-producer --broker-list=192.168.178.34:9092 --topic=warmrunner
 
 DB-User für Trixx anlegen:
 --------------------------
@@ -88,12 +85,16 @@ GRANT SELECT ON Hugo TO Public;
 >> Changes generieren:
 sqlplus panorama_test/panorama_test@192.168.178.34:1521/ORCLPDB1
 BEGIN
-  WHILE 1=1 LOOP
-    INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.CurVal, SYSDATE);
+  LOOP
+    INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.Currval, SYSDATE);
     COMMIT;
     DBMS_LOCK.SLEEP(1);
   END LOOP;
 END;
+/
+
+Consumer ansetzen:
+$KAFKA_HOME/bin/kafka-console-consumer --topic=hugo --bootstrap-server=192.168.178.34:9092 --isolation-level=read_committed
 
 ksqlDB hochfahren:
 ------------------
@@ -131,4 +132,7 @@ docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 
 Create stream from topic:
 -------------------------
-CREATE STREAM warmrunner_s (*) WITH (kafka_topic='warmrunner', value_format='JSON');
+CREATE STREAM hugo_stream (msg_key VARCHAR KEY, id INTEGER, schema VARCHAR, tablename VARCHAR, operation VARCHAR, timestamp VARCHAR, new STRUCT<NAME VARCHAR, ID INTEGER, START_DATE VARCHAR>)
+WITH (kafka_topic='hugo', value_format='JSON');
+
+SELECT id, schema, tablename, operation, timestamp, new->NAME, new->ID, new->Start_Date FROM hugo_stream EMIT CHANGES;
