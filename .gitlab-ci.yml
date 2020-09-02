@@ -121,12 +121,15 @@ generate_asciidoc:
   script:
     - gem install asciidoctor
     - asciidoctor -o doc/trixx.html doc/trixx.adoc
+    - gem install asciidoctor-pdf
+    - asciidoctor-pdf -o doc/trixx.pdf doc/trixx.adoc
   artifacts:
     # artifacts are downloadable at https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/download?job=generate_asciidoc
     # direct access a'la https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/file/doc/trixx.html?job=generate_asciidoc
     paths:
       - doc/trixx.html
       - doc/images/
+      - doc/trixx.pdf
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:
@@ -137,7 +140,9 @@ pages:
   script:
     - cp doc/trixx.html public/
     - cp -r doc/images public/
+    - cp doc/trixx.pdf public/
   artifacts:
     paths:
+      - public/trixx.pdf
       - public/trixx.html
       - public/images/
