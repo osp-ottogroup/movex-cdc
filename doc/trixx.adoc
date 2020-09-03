@@ -32,6 +32,8 @@ As an alternative to the GUI, the functions of TriXX can also be accessed via AP
 Synchronous processing and storage of the trigger events is initially performed locally in the database, without further dependencies on external systems.
 The further transmission of the events to Kafka is asynchronous to the trigger processing.
 
+image:trixx_event_flow.svg[format=svg,opts=inline]
+
 The focus is on resource-conserving yet stable and high-performance processing,
 low complexity in the operation of the solution and minimal intervention in the operation of the database.
 In particular, compared with alternative solutions such as Oracle Golden Gate, Quest Shareplex or Red Hat Debezium,
@@ -256,6 +258,9 @@ Depending on the database type you may run multiple TriXX instances at one datab
 |Possible: Trigger names contain numeric hash value of TriXX' owner schema. +
 Therefore multiple triggers from several independent TriXX configurations at one table are possible.
 |===
+
+WARNING: But be aware if running multiple TriXX-instances on the same database schema (same configuration) simultaneously: +
+TriXX cannot guarantee the exact order of messages with key for transfer to Kafka in this case!
 
 
 === Configuration of capturing with TriXX-GUI ===
