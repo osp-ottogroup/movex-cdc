@@ -1,0 +1,138 @@
+Howto run Trixx Demo
+2020-09-02 Peter Ramm
+=====================
+
+Preconditions:
+- local Oracle database
+- Reale Client IP-Adresse verwenden für Kafka, nicht localhost
+
+Run Kafka:
+----------
+docker run --rm -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://192.168.178.34:9092,LISTENER_INT://localhost:9093 git.osp-dd.de:5005/main/trixx/kafka-compact
+
+Create topic:
+-------------
+$KAFKA_HOME/bin/kafka-topics --create --topic hugo --partitions 4 --zookeeper localhost:2181 --replication-factor 1
+
+DB-User für Trixx anlegen:
+--------------------------
+sqlplus / as sysdba
+alter session set container = ORCLPDB1;
+CREATE USER trixx_demo identified by "trixx_demo" default tablespace USERS temporary tablespace TEMP;
+ALTER USER trixx_demo QUOTA UNLIMITED ON USERS;
+
+GRANT CONNECT                           TO trixx_demo;
+GRANT CREATE ANY TRIGGER                TO trixx_demo;
+GRANT CREATE VIEW                       TO trixx_demo;
+GRANT RESOURCE                          TO trixx_demo;
+GRANT SELECT ON sys.DBA_Constraints     TO trixx_demo;
+GRANT SELECT ON sys.DBA_Cons_Columns    TO trixx_demo;
+GRANT SELECT ON sys.DBA_Role_Privs      TO trixx_demo;
+GRANT SELECT ON sys.DBA_Sys_Privs       TO trixx_demo;
+GRANT SELECT ON sys.DBA_Tables          TO trixx_demo;
+GRANT SELECT ON sys.DBA_Tab_Columns     TO trixx_demo;
+GRANT SELECT ON sys.DBA_Tab_Privs       TO trixx_demo;
+GRANT SELECT ON sys.gv_$Lock            TO trixx_demo;
+GRANT SELECT ON sys.v_$Session          TO trixx_demo;
+
+Trixx starten:
+--------------
+TriXX config erstellen: trixx_run.yml
+
+################################
+# Log level for application (debug, info, warn, error)
+LOG_LEVEL: debug
+
+# Type of used database (SQLITE, ORACLE)
+TRIXX_DB_TYPE: ORACLE
+
+# Username of TriXX schema in database
+TRIXX_DB_USER: trixx_demo
+
+# Password of TRIXX_DB_USER, also used as password of user 'admin' for GUI logon.
+TRIXX_DB_PASSWORD: trixx_demo
+
+# Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" oder "machine:port/service"
+TRIXX_DB_URL: 192.168.178.34:1521/ORCLPDB1
+
+# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
+TRIXX_KAFKA_SEED_BROKER: 192.168.178.34:9092
+
+# Initial number of worker threads
+TRIXX_INITIAL_WORKER_THREADS: 3
+
+# Sum of Kafka message buffer size over all threads
+TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: 10
+
+# Number of messages to process within one transaction
+TRIXX_MAX_TRANSACTION_SIZE: 10000
+
+# Number of messages to process within one bulk operation to kafka
+TRIXX_KAFKA_MAX_BULK_COUNT: 1000
+
+################################
+
+docker run --rm -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml -v $PWD/trixx_run.yml:/etc/trixx_run.yml -p8080:8080 git.osp-dd.de:5005/main/trixx:master
+
+>> Trixx konfigurieren: Tabelle panorama_test.Hugo
+CREATE TABLE Panorama_Test.Hugo (
+    ID          NUMBER PRIMARY KEY,
+    Name        VARCHAR2(30),
+    Start_Date  DATE);
+CREATE SEQUENCE Hugo_Seq;
+GRANT SELECT ON Hugo TO Public;
+
+>> Changes generieren:
+sqlplus panorama_test/panorama_test@192.168.178.34:1521/ORCLPDB1
+BEGIN
+  LOOP
+    INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.Currval, SYSDATE);
+    COMMIT;
+    DBMS_LOCK.SLEEP(1);
+  END LOOP;
+END;
+/
+
+Consumer ansetzen:
+$KAFKA_HOME/bin/kafka-console-consumer --topic=hugo --bootstrap-server=192.168.178.34:9092 --isolation-level=read_committed
+
+ksqlDB hochfahren:
+------------------
+docker-compose.yml erzeugen:
+################################
+---
+version: '2'
+
+services:
+  ksqldb-server:
+    image: confluentinc/ksqldb-server:0.11.0
+    hostname: ksqldb-server
+    container_name: ksqldb-server
+    ports:
+      - "8088:8088"
+    environment:
+      KSQL_LISTENERS: http://0.0.0.0:8088
+      KSQL_BOOTSTRAP_SERVERS: 192.168.178.34:9092
+      KSQL_KSQL_LOGGING_PROCESSING_STREAM_AUTO_CREATE: "true"
+      KSQL_KSQL_LOGGING_PROCESSING_TOPIC_AUTO_CREATE: "true"
+
+  ksqldb-cli:
+    image: confluentinc/ksqldb-cli:0.11.0
+    container_name: ksqldb-cli
+    depends_on:
+      - ksqldb-server
+    entrypoint: /bin/sh
+    tty: true
+################################
+docker-compose up
+
+ksqkDB CLI starten:
+-------------------
+docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
+
+Create stream from topic:
+-------------------------
+CREATE STREAM hugo_stream (msg_key VARCHAR KEY, id INTEGER, schema VARCHAR, tablename VARCHAR, operation VARCHAR, timestamp VARCHAR, new STRUCT<NAME VARCHAR, ID INTEGER, START_DATE VARCHAR>)
+WITH (kafka_topic='hugo', value_format='JSON');
+
+SELECT id, schema, tablename, operation, timestamp, new->NAME, new->ID, new->Start_Date FROM hugo_stream EMIT CHANGES;
