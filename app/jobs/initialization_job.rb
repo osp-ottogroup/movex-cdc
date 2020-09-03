@@ -17,6 +17,8 @@ class InitializationJob < ApplicationJob
     end
     Rails.logger.info "Finished db:migrate"
 
+    warmup_ar_classes
+
     ensure_admin_existence
 
     # LOG JDBC driver version
@@ -115,4 +117,12 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
     raise "Missing database right!!! CREATE VIEW is not possible!\n#{e.class}: #{e.message}"
   end
 
+  # Ensure dictionary info for database objects is loaded at startup
+  def warmup_ar_classes
+    Rails.logger.debug "Warmup dictionary info for DB objects started"
+    [ActivityLog, Column, Condition, EventLog, Schema, SchemaRight, Statistic, Table, User].each do |ar_class|
+      ar_class.first                                                            # Load one record to provoke loading of dictionary info
+    end
+    Rails.logger.debug "Warmup dictionary info for DB objects finished"
+  end
 end
