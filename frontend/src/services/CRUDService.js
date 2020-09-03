@@ -19,4 +19,5 @@ export default {
     authorizableSchemas: BaseCRUDService('db_schemas/authorizable_schemas').getAll,
   },
   dbTables: { getAll: BaseCRUDService('db_tables').getAll },
+  logFile: { getAll: BaseCRUDService('/health_check/log_file').getAll },
 };
