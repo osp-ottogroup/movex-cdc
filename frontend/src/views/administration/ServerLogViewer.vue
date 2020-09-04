@@ -20,6 +20,7 @@
 
 <script>
 import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'ServerLogViewer',
@@ -32,10 +33,20 @@ export default {
     };
   },
   async created() {
-    const response = await CRUDService.logFile.getAll();
-    this.completeData = response.text;
-    this.data = this.completeData;
-    this.isLoading = false;
+    try {
+      const response = await CRUDService.healthCheck.getLogFile();
+      this.completeData = response.text;
+      this.data = this.completeData;
+    } catch (e) {
+      this.$buefy.notification.open({
+        message: getErrorMessageAsHtml(e),
+        type: 'is-danger',
+        indefinite: true,
+        position: 'is-top',
+      });
+    } finally {
+      this.isLoading = false;
+    }
   },
   methods: {
     search() {

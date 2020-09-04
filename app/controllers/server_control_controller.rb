@@ -1,7 +1,7 @@
 require 'json'
 class ServerControlController < ApplicationController
 
-  # POST /server_control/set_log_levl
+  # POST /server_control/set_log_level
   def set_log_level
     if @current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
