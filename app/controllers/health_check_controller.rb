@@ -1,5 +1,6 @@
 require 'json'
 class HealthCheckController < ApplicationController
+
   @@last_call_time = Time.now-100.seconds                                       # ensure enough distance at startup
 
   # GET /health_check
@@ -69,19 +70,4 @@ class HealthCheckController < ApplicationController
   def log_file
     send_file("#{Rails.root.join("log", Rails.env + ".log" )}", :filename => "#{Rails.env}.log")
   end
-
-  private
-  def log_level_as_string
-    result = case Rails.logger.level
-             when 0 then 'DEBUG'
-             when 1 then 'INFO'
-             when 2 then 'WARN'
-             when 3 then 'ERROR'
-             when 4 then 'FATAL'
-             when 5 then 'UNKNOWN'
-             else '[Unsupported]'
-             end
-    "#{result} (#{Rails.logger.level})"
-  end
-
 end

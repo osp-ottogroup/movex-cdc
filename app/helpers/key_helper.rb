@@ -8,4 +8,18 @@ module KeyHelper
     end
   end
 
+  def self.log_level_as_string
+    result = case Rails.logger.level
+             when 0 then 'DEBUG'
+             when 1 then 'INFO'
+             when 2 then 'WARN'
+             when 3 then 'ERROR'
+             when 4 then 'FATAL'
+             when 5 then 'UNKNOWN'
+             else '[Unsupported]'
+             end
+    "#{result} (#{Rails.logger.level})"
+  end
+
+
 end

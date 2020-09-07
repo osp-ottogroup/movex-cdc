@@ -1,6 +1,11 @@
 require 'json'
 class ServerControlController < ApplicationController
 
+  # GET /server_control/get_log_level
+  def get_log_level
+    render json: { log_level:  KeyHelper.log_level_as_string}
+  end
+
   # POST /server_control/set_log_level
   def set_log_level
     if @current_user.yn_admin != 'Y'

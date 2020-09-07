@@ -1,6 +1,12 @@
 require 'test_helper'
 
 class ServerControlControllerTest < ActionDispatch::IntegrationTest
+  test "should get get_log_level" do
+    get "/server_control/get_log_level", headers: jwt_header, as: :json
+    assert_response :success
+  end
+
+
   test "should post set_log_level" do
     post "/server_control/set_log_level", headers: jwt_header, params: { log_level: 'ERROR'}, as: :json
     assert_response :unauthorized
