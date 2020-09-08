@@ -27,7 +27,7 @@
 # Initial number of worker threads
 TRIXX_INITIAL_WORKER_THREADS: 3
 
-# Sum of Kafka message buffer size over all threads
+# Max. size of Kafka message buffer per thread
 TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: 10
 
 # Number of messages to process within one transaction

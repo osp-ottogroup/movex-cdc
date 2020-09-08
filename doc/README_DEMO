@@ -14,8 +14,13 @@ Create topic:
 -------------
 $KAFKA_HOME/bin/kafka-topics --create --topic hugo --partitions 4 --zookeeper localhost:2181 --replication-factor 1
 
-DB-User für Trixx anlegen:
+Create Consumer for topic:
 --------------------------
+$KAFKA_HOME/bin/kafka-console-consumer --topic=hugo --bootstrap-server=192.168.178.34:9092 --isolation-level=read_committed
+
+
+Create DB-User for Trixx:
+-------------------------
 sqlplus / as sysdba
 alter session set container = ORCLPDB1;
 CREATE USER trixx_demo identified by "trixx_demo" default tablespace USERS temporary tablespace TEMP;
@@ -35,9 +40,8 @@ GRANT SELECT ON sys.DBA_Tab_Privs       TO trixx_demo;
 GRANT SELECT ON sys.gv_$Lock            TO trixx_demo;
 GRANT SELECT ON sys.v_$Session          TO trixx_demo;
 
-Trixx starten:
---------------
-TriXX config erstellen: trixx_run.yml
+Create TriTrixx config as trixx_run.yml:
+----------------------------------------
 
 ################################
 # Log level for application (debug, info, warn, error)
@@ -61,7 +65,7 @@ TRIXX_KAFKA_SEED_BROKER: 192.168.178.34:9092
 # Initial number of worker threads
 TRIXX_INITIAL_WORKER_THREADS: 3
 
-# Sum of Kafka message buffer size over all threads
+# Max. size of Kafka message buffer per thread
 TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: 10
 
 # Number of messages to process within one transaction
@@ -72,9 +76,14 @@ TRIXX_KAFKA_MAX_BULK_COUNT: 1000
 
 ################################
 
+Run TriXX Docker container:
+---------------------------
 docker run --rm -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml -v $PWD/trixx_run.yml:/etc/trixx_run.yml -p8080:8080 git.osp-dd.de:5005/main/trixx:master
 
->> Trixx konfigurieren: Tabelle panorama_test.Hugo
+Create a table to observe:
+--------------------------
+sqlplus panorama_test/panorama_test@192.168.178.34:1521/ORCLPDB1
+
 CREATE TABLE Panorama_Test.Hugo (
     ID          NUMBER PRIMARY KEY,
     Name        VARCHAR2(30),
@@ -82,8 +91,18 @@ CREATE TABLE Panorama_Test.Hugo (
 CREATE SEQUENCE Hugo_Seq;
 GRANT SELECT ON Hugo TO Public;
 
->> Changes generieren:
+Configure Trixx to catch changes on table panorama_test.Hugo
+------------------------------------------------------------
+> create TriXX-user
+> authenticate user for schema
+> Connect with this user
+> Configure events for table panorama_test.Hugo
+> generate triggers
+
+Generate permanent changes on panorama_test.Hugo:
+-------------------------------------------------
 sqlplus panorama_test/panorama_test@192.168.178.34:1521/ORCLPDB1
+
 BEGIN
   LOOP
     INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.Currval, SYSDATE);
@@ -93,10 +112,7 @@ BEGIN
 END;
 /
 
-Consumer ansetzen:
-$KAFKA_HOME/bin/kafka-console-consumer --topic=hugo --bootstrap-server=192.168.178.34:9092 --isolation-level=read_committed
-
-ksqlDB hochfahren:
+Start ksqlDB Docker containers:
 ------------------
 docker-compose.yml erzeugen:
 ################################
@@ -126,7 +142,7 @@ services:
 ################################
 docker-compose up
 
-ksqkDB CLI starten:
+Connect to ksqkDB CLI:
 -------------------
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 
