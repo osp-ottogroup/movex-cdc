@@ -17,8 +17,8 @@ class Column < ApplicationRecord
       # Ensure all real table columns exist in table COLUMNS
       table = Table.find(table_id)
       db_columns = DbColumn.all_by_table(table.schema.name, table.name)
-      column_names = Column.where(table_id: table_id).map{|c| c.name}
-      db_columns.select{|c| !column_names.include?(c['name'])}.each do |dbc|    # create missing records in COLUMNS
+      column_names = Column.where(table_id: table_id).map{|c| c.name.downcase}
+      db_columns.select{|c| !column_names.include?(c['name'].downcase)}.each do |dbc|    # create missing records in COLUMNS
         Column.new(table_id: table.id, name: dbc['name'], yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
       end
 
