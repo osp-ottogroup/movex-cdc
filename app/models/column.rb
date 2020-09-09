@@ -10,6 +10,22 @@ class Column < ApplicationRecord
     retval
   end
 
+  # Mark columns for operation or not
+  # operation (I/U/D), tag (Y/N)
+  def self.tag_operation_for_all_columns(table_id, operation, tag)
+    ActiveRecord::Base.transaction do
+      # Ensure all real table columns exist in table COLUMNS
+      table = Table.find(table_id)
+      db_columns = DbColumn.all_by_table(table.schema.name, table.name)
+      column_names = Column.where(table_id: table_id).map{|c| c.name}
+      db_columns.select{|c| !column_names.include?(c['name'])}.each do |dbc|    # create missing records in COLUMNS
+        Column.new(table_id: table.id, name: dbc['name'], yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
+      end
+
+      Database.execute("UPDATE Columns SET #{affected_colname_by_operation(operation)} = :tag WHERE Table_ID = :table_id", tag: tag, table_id: table_id)
+    end
+  end
+
   def as_json(*args)
     calc_yn_pending                                                             # Calculate pending state before returning values to GUI
     super.as_json(*args)
@@ -21,4 +37,13 @@ class Column < ApplicationRecord
     last_trigger_deployment = table.schema.last_trigger_deployment
     self.yn_pending = last_trigger_deployment.nil? || last_trigger_deployment < updated_at ? 'Y' : 'N'
   end
+
+  def self.affected_colname_by_operation(operation)
+    case operation
+    when 'I' then 'yn_log_insert'
+    when 'U' then 'yn_log_update'
+    when 'D' then 'yn_log_delete'
+    end
+  end
+
 end
