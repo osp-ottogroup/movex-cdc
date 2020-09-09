@@ -70,7 +70,9 @@ export default {
   },
   computed: {
     showSelectButtons() {
-      return this.columns.length > 0;
+      // return this.columns.length > 0;
+      // TODO: currently disabled: every change is executed in a single request -> bad for long lists of columns
+      return false;
     },
   },
   methods: {
