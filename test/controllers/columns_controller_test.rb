@@ -62,4 +62,14 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "should tag operation for all columns" do
+    ['I', 'U', 'D'].each do |operation|
+      post "/columns/tag_operation_for_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
+      assert_response :success
+
+      post "/columns/untag_operation_for_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
+      assert_response :success
+    end
+  end
+
 end

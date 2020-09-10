@@ -65,6 +65,18 @@ class ColumnsController < ApplicationController
     )
   end
 
+  # POST /columns/select_all_columns table_id, operation (I/U/D)
+  def tag_operation_for_all_columns
+    Column.tag_operation_for_all_columns(params.require(:table_id), params.require(:operation), 'Y')
+    index                                                                       # return complete list of existing columns in table COLUMNS
+  end
+
+  # POST /columns/deselect_all_columns table_id, operation (I/U/D)
+  def untag_operation_for_all_columns
+    Column.tag_operation_for_all_columns(params.require(:table_id), params.require(:operation), 'N')
+    index                                                                       # return complete list of existing columns in table COLUMNS
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_column
