@@ -14,12 +14,16 @@ class Column < ApplicationRecord
   # operation (I/U/D), tag (Y/N)
   def self.tag_operation_for_all_columns(table_id, operation, tag)
     ActiveRecord::Base.transaction do
-      # Ensure all real table columns exist in table COLUMNS
-      table = Table.find(table_id)
-      db_columns = DbColumn.all_by_table(table.schema.name, table.name)
-      column_names = Column.where(table_id: table_id).map{|c| c.name.downcase}
-      db_columns.select{|c| !column_names.include?(c['name'].downcase)}.each do |dbc|    # create missing records in COLUMNS
+      # for tag == 'N' it is not necessary to have existing records in COLUMN because default is 'N'
+      # Important because dropping a not marked column in real table leaves no remaining artifacts in TriXX this way
+      if tag == 'Y'
+        # Ensure all real table columns exist in table COLUMNS
+        table = Table.find(table_id)
+        db_columns = DbColumn.all_by_table(table.schema.name, table.name)
+        column_names = Column.where(table_id: table_id).map{|c| c.name.downcase}
+        db_columns.select{|c| !column_names.include?(c['name'].downcase)}.each do |dbc|    # create missing records in COLUMNS
         Column.new(table_id: table.id, name: dbc['name'], yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
+        end
       end
 
       Database.execute("UPDATE Columns SET #{affected_colname_by_operation(operation)} = :tag WHERE Table_ID = :table_id", tag: tag, table_id: table_id)
