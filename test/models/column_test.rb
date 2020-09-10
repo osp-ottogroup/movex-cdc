@@ -37,11 +37,13 @@ class ColumnTest < ActiveSupport::TestCase
         column_name = Column.affected_colname_by_operation(operation).to_sym    # Column name that should be updated
 
         Column.tag_operation_for_all_columns(table.id, operation, tag)
-        assert_equal(org_column_count, Column.where(table_id: table.id, column_name => tag).count, "All columns should be set with #{tag} for operation=#{operation}")
+        assert_equal(org_column_count, Column.where(table_id: table.id, column_name => 'Y').count, "All columns should be set with 'Y' for operation=#{operation}") if tag == 'Y'
+        assert_equal(0, Column.where(table_id: table.id, column_name => 'Y').count, "No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
 
         Database.execute("DELETE FROM Columns WHERE Table_ID = :table_id and name != 'NAME'", table_id: table.id)   # remove all columns except one (NAME)
         Column.tag_operation_for_all_columns(table.id, operation, tag)
-        assert_equal(org_column_count, Column.where(table_id: table.id, column_name => tag).count, "All columns should be created and set with  #{tag} for operation=#{operation}")
+        assert_equal(org_column_count, Column.where(table_id: table.id, column_name => 'Y').count, "All columns should be created and set with 'Y' for operation=#{operation}") if tag == 'Y'
+        assert_equal(0, Column.where(table_id: table.id, column_name => 'Y').count, "No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
       end
     end
 
