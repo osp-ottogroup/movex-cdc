@@ -2,7 +2,7 @@
 # Requires:
 #  - prebuilt database image with test users
 
-image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.11.1
+image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
 variables:
   TEST_HOST: "oracle-db"

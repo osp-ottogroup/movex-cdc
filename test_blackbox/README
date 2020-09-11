@@ -1,0 +1,6 @@
+Blackbox-Tests with TriXX Docker image and Kafka
+================================================
+Separate blackbox tests with resulting Docker image are necessary for TriXX because:
+- Rails uses the same database connection for all threads created by TriXX (probably to ensure rollback to savepoint)
+- TriXX uses multiple threads
+- The cooperation of multiple threads (each event should only be processed by one thread) has therefore to be tested outside the Rails test suite

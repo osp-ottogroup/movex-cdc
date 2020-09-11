@@ -3,11 +3,11 @@
 # Peter Ramm, 2020-03-17
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.11.1 .
-# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.11.1
+# Build image:      > docker build -f Dockerfile-kafka-jruby --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14 .
+# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 # Use
 
-FROM jruby:9.2.11.1
+FROM jruby:9.2.13.0-jdk14
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
@@ -15,14 +15,25 @@ ARG KAFKA_VERSION=2.6.0
 ARG SCALA_VERSION=2.13
 ENV KAFKA_VERSION=$KAFKA_VERSION
 ENV SCALA_VERSION=$SCALA_VERSION
+ENV KAFKA_HOME=/opt/kafka
 
 #EXPOSE 2181/tcp 9092/tcp
 
+# RUN-Steps:
+# - update Debian system
+# - install ps
+# - install podman
+# - install Kafka
 RUN  apt-get update && \
+     apt-get upgrade && \
      apt-get install -y procps && \
-     wget "http://us.mirrors.quenda.co/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+     echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list && \
+     curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/Release.key | apt-key add - && \
+     apt-get update -qq && \
+     apt-get -qq -y install podman && \
+     wget "https://mirror.softaculous.com/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
-     ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
+     ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} && \
      sed -i 's|^log.dirs=.*$|log.dirs=/var/lib/kafka|' /opt/kafka/config/server.properties
 
 # Without own volume for ontime usage in CI pipeline
