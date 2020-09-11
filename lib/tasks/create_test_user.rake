@@ -52,7 +52,22 @@ namespace :ci_preparation do
 
     puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
     if Trixx::Application.config.trixx_db_type == 'ORACLE'
-      conn = java.sql.DriverManager.getConnection("jdbc:oracle:thin:@#{Trixx::Application.config.trixx_db_url}", 'sys as sysdba', Trixx::Application.config.trixx_db_sys_password)
+      properties = java.util.Properties.new
+      properties.put("user", 'sys')
+      properties.put("password", Trixx::Application.config.trixx_db_sys_password)
+      properties.put("internal_logon", "SYSDBA")
+      url = "jdbc:oracle:thin:@#{Trixx::Application.config.trixx_db_url}"
+      begin
+        conn = java.sql.DriverManager.getConnection(url, properties)
+      rescue
+        # bypass DriverManager to work in cases where ojdbc*.jar
+        # is added to the load path at runtime and not on the
+        # system classpath
+        # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
+        # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
+        # java.sql.DriverManager.registerDriver ORACLE_DRIVER
+        conn = ORACLE_DRIVER.connect(url, properties)
+      end
 
       ensure_user_existence(conn, Trixx::Application.config.trixx_db_user,        Trixx::Application.config.trixx_db_password)          # Schema for TriXX data structure
       ensure_user_existence(conn, Trixx::Application.config.trixx_db_victim_user, Trixx::Application.config.trixx_db_victim_password)   # Schema for tables observed by trixx
