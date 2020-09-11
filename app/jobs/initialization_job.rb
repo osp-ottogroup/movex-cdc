@@ -24,33 +24,7 @@ class InitializationJob < ApplicationJob
 
     # LOG JDBC driver version
     case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then
-      Rails.logger.info "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
-
-      classloader = java.lang.ClassLoader.getSystemClassLoader
-
-      #      import java.lang.reflect.Field;
-      #import java.util.Vector;
-
-      f = ClassLoader.class.getDeclaredField("classes");
-      f.setAccessible(true);
-      classLoader = Thread.currentThread().getContextClassLoader();
-      puts classLoader
-=begin
-          Vector<Class> classes =  (Vector<Class>) f.get(classLoader);
-
-          for(Class cls : classes){
-              java.net.URL location = cls.getResource('/' + cls.getName().replace('.',
-                                                                                  '/') + ".class");
-          System.out.println("<p>"+location +"<p/>");
-          }
-          } catch (Exception e) {
-
-            e.printStackTrace();
-          }
-          }
-          }
-=end
+    when 'ORACLE' then Rails.logger.info "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
     else "JDBC driver version not checked"
     end
 
