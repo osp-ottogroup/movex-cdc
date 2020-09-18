@@ -14,7 +14,7 @@ class HealthCheckController < ApplicationController
         start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         health_check_timestamp:       Time.now,
         warnings:                     '',
-        log_level:                    KeyHelper.log_level_as_string,
+        log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
         memory:                       ExceptionHelper.memory_info_hash,
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
