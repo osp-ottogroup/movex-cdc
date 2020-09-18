@@ -1,13 +1,13 @@
 <template>
   <div class="mx-6">
-    <b-field label="Set Server Log Level">
-      <b-select placeholder="Select a Log Level" @input="setLogLevel" :loading="isLoading">
-        <option v-for="logLevel in logLevels"
-                :value="logLevel"
-                :key="logLevel">
+    <b-field label="Set Server Log Level" grouped group-multiline>
+      <p class="control"
+         v-for="logLevel in logLevels"
+         :key="logLevel">
+        <b-button :type="buttonType(logLevel)" @click="setLogLevel(logLevel)" :loading="isLoading">
           {{ logLevel }}
-        </option>
-      </b-select>
+        </b-button>
+      </p>
     </b-field>
   </div>
 </template>
@@ -20,18 +20,35 @@ export default {
   name: 'ServerLogViewer',
   data() {
     return {
+      currentLogLevel: null,
       logLevels: ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'],
-      isLoading: false,
+      isLoading: true,
     };
   },
   async created() {
-    // TODO get current log level
+    try {
+      this.isLoading = true;
+      this.currentLogLevel = (await CRUDService.serverControl.getLogLevel()).log_level;
+    } catch (e) {
+      this.$buefy.notification.open({
+        message: getErrorMessageAsHtml(e),
+        type: 'is-danger',
+        indefinite: true,
+        position: 'is-top',
+      });
+    } finally {
+      this.isLoading = false;
+    }
   },
   methods: {
     async setLogLevel(logLevel) {
+      if (logLevel === this.currentLogLevel) {
+        return;
+      }
       try {
         this.isLoading = true;
         await CRUDService.serverControl.setLogLevel({ log_level: logLevel });
+        this.currentLogLevel = logLevel;
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
@@ -46,6 +63,9 @@ export default {
           type: 'is-success',
         });
       }
+    },
+    buttonType(logLevel) {
+      return this.currentLogLevel === logLevel ? 'is-info' : 'is-info is-light';
     },
   },
 };

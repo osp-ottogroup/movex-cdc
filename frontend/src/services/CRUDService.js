@@ -27,5 +27,8 @@ export default {
     check: BaseCRUDService('/health_check').getAll,
     getLogFile: BaseCRUDService('/health_check/log_file').getAll,
   },
-  serverControl: { setLogLevel: async (object) => (await HttpService.post(`${backendUrl}/server_control/set_log_level`, object)).data },
+  serverControl: {
+    getLogLevel: async (object) => (await HttpService.get(`${backendUrl}/server_control/get_log_level`, object)).data,
+    setLogLevel: async (object) => (await HttpService.post(`${backendUrl}/server_control/set_log_level`, object)).data,
+  },
 };
