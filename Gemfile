@@ -1,14 +1,15 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-# According to JRuby-Version
+# According to JRuby-Version (trixx/.ruby-version)
 # jruby-9.2.8.0: 2.5.3
 # jruby-9.2.9.0: 2.5.7
 # jruby-9.2.11.1: 2.5.7
+# jruby-9.2.13.0
 ruby '2.5.7'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '6.0.3.2'
+gem 'rails', '6.0.3.3'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'

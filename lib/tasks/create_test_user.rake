@@ -51,6 +51,7 @@ namespace :ci_preparation do
     end
 
     puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
+    raise "RAILS_ENV should be set to test, not #{Rails.env} !!!" unless Rails.env.test?
     if Trixx::Application.config.trixx_db_type == 'ORACLE'
       properties = java.util.Properties.new
       properties.put("user", 'sys')

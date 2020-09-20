@@ -198,10 +198,11 @@ class DbTriggerSqlite < Database
 
     payload = ''
     accessors.each do |accessor|
-      payload << "#{accessor}: {"
+      payload << "\"#{accessor}\": {"
       # TODO: put quotes on string and date
-      payload << target_trigger_data[:columns].map{|c| "#{c[:column_name]}: '||ifnull(#{accessor}.#{c[:column_name]}, '')||'"}.join(",\n")
+      payload << target_trigger_data[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
       payload << "}"
+      payload << "," if accessors.length == 2 && accessor == 'old'
     end
 
     "\
@@ -227,6 +228,17 @@ END;"
         exception_message:  e.message,
         sql:                sql
     }
+  end
+
+  def convert_col(column_hash, accessor)
+    col_expr = "#{accessor}.#{column_hash[:column_name]}"
+    result = ''
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type]['DateTime']
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] == 'NUMBER'
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"        if column_hash[:type]['CHAR'] || column_hash[:type]['TEXT']
+    raise "Usupported data type '#{column_hash[:type]}'" if result.length == 0
+    result
   end
 
 end
