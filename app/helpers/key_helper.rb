@@ -18,7 +18,7 @@ module KeyHelper
              when 5 then 'UNKNOWN'
              else '[Unsupported]'
              end
-    "#{result} (#{Rails.logger.level})"
+    result
   end
 
 
