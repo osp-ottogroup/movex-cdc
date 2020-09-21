@@ -87,8 +87,6 @@ test_oracle_12.1:
       alias: oracle-db
   variables:
     TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
-  script:
-    - echo "oracle_12.1 script"
   before_script:
     - echo "oracle_12.1 before_script"
 
