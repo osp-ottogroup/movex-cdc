@@ -31,4 +31,14 @@ export default {
     getLogLevel: async (object) => (await HttpService.get(`${backendUrl}/server_control/get_log_level`, object)).data,
     setLogLevel: async (object) => (await HttpService.post(`${backendUrl}/server_control/set_log_level`, object)).data,
   },
+  kafka: {
+    topics: {
+      getAll: BaseCRUDService('kafka/topics').getAll,
+      get: async (object) => (await HttpService.get(`${backendUrl}/kafka/describe_topic`, object)).data,
+    },
+    groups: {
+      getAll: BaseCRUDService('kafka/groups').getAll,
+      get: async (object) => (await HttpService.get(`${backendUrl}/kafka/describe_group`, object)).data,
+    },
+  },
 };

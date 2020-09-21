@@ -29,6 +29,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/deployment/Deployment.vue'),
   },
   {
+    path: '/kafka-info',
+    name: 'kafka-info',
+    component: () => import(/* webpackChunkName: "about" */ '../views/kafka/KafkaInfo.vue'),
+  },
+  {
     path: '/administration/server-log',
     name: 'server-log',
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogViewer.vue'),

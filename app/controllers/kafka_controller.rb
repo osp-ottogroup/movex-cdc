@@ -37,7 +37,7 @@ class KafkaController < ApplicationController
   # GET kafka/groups
   def groups
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
-    render json: { topics: kafka.groups.sort}
+    render json: { groups: kafka.groups.sort}
   end
 
   # get info about a group by group_id

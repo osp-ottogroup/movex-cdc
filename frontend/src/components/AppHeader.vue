@@ -22,6 +22,9 @@
         <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
+        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/kafka-info' }">
+          Kafka-Info
+        </b-navbar-item>
         <b-navbar-dropdown v-if="isAdminUser" label="Administration">
           <b-navbar-item tag="router-link" :to="{ path: '/administration/server-log-level' }">
             Set Server Log Level
