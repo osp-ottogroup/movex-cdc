@@ -1,6 +1,17 @@
 require 'test_helper'
 
 class TransferThreadTest < ActiveSupport::TestCase
+  setup do
+    # Create victim tables and triggers
+    @victim_connection = create_victim_connection
+    create_victim_structures(@victim_connection)
+  end
+
+  teardown do
+    # Remove victim structures
+    drop_victim_structures(@victim_connection)
+    logoff_victim_connection(@victim_connection)
+  end
 
   test "create worker" do
     worker = TransferThread.create_worker(2, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000) # Async. thread

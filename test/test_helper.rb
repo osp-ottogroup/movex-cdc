@@ -144,13 +144,62 @@ class ActiveSupport::TestCase
     exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
   end
 
+  # create records in Event_Log by trigger on tables(:victim1)
   def create_event_logs_for_test(number_of_records)
-    number_of_records.downto(1).each do
-      event_log = EventLog.new(table_id: 1, operation: 'I', dbuser: 'Hugo', payload: '"new": { "ID": 1 }', created_at: Time.now)
-      unless event_log.save
-        raise event_log.errors.full_messages
-      end
+    raise "Should create at least 8 records" if number_of_records < 8
+
+    result = DbTrigger.generate_triggers(victim_schema_id)
+
+    assert_instance_of(Hash, result, 'Should return result of type Hash')
+    result.assert_valid_keys(:successes, :errors)
+    assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      date_val  = "SYSDATE"
+      ts_val    = "LOCALTIMESTAMP"
+      raw_val   = "HexToRaw('FFFF')"
+      tstz_val  = "SYSTIMESTAMP"
+      rownum    = "RowNum"
+    when 'SQLITE' then
+      date_val  = "'2020-02-01T12:20:22'"
+      ts_val    = "'2020-02-01T12:20:22.999999+01:00'"
+      raw_val   = "'FFFF'"
+      tstz_val  = "'2020-02-01T12:20:22.999999+01:00'"
+      rownum    = 'row_number() over ()'
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
+
+    # create exactly 8 records in Event_Logs
+    event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+
+    victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}#{tables(:victim1).name}"
+    victim_max_id = 0 if victim_max_id.nil?
+
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+      VALUES (#{victim_max_id+1}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
+      )")
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+2}, 0.456, 'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) SELECT #{victim_max_id}+#{rownum}, 48.375, '\"Recordx', Date_Val, TS_Val, RAW_VAL FROM #{victim_schema_prefix}#{tables(:victim1).name}")
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record3', RowID_Val = RowID WHERE ID = 3")
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = 4")
+    exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = Name")  # Should not generate records in Event_Logs
+
+    # Next record should not generate record in Event_Logs due to excluding condition
+    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (5, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
+
+    # create the reamining records in Event_Log
+    (number_of_records-8).downto(1).each do |i|
+      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+      VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
+      )")
+    end
+
+    event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+    assert_equal(event_logs_before+number_of_records, event_logs_after, "Number of event_logs should be increased by #{number_of_records}")
+
   end
 
   def log_event_logs_content(options = {})

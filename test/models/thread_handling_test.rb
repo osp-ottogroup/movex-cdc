@@ -1,6 +1,17 @@
 require 'test_helper'
 
 class ThreadHandlingTest < ActiveSupport::TestCase
+  setup do
+    # Create victim tables and triggers
+    @victim_connection = create_victim_connection
+    create_victim_structures(@victim_connection)
+  end
+
+  teardown do
+    # Remove victim structures
+    drop_victim_structures(@victim_connection)
+    logoff_victim_connection(@victim_connection)
+  end
 
   test "process" do
     original_max_transaction_size   = Trixx::Application.config.trixx_max_transaction_size # Remember previous setting

@@ -32,5 +32,6 @@ victim1:
     end %>
   name: VICTIM1                                                                 # really existing table in test schema, created in test_helper.rb
   info: Victim table in separate schema for use with triggers
+  topic: <%= KafkaHelper.existing_topic_for_test %>
   lock_version: 1
 

@@ -366,16 +366,23 @@ END #{target_trigger_data[:trigger_name]};
   end
 
   def payload_command_internal(target_trigger_data, old_new)
-    result = "'\"#{old_new}\": {\n'"
+    result = "'\"#{old_new}\": ' ||\nJSON_OBJECT(\n"
     target_trigger_data[:columns].each_index do |i|
       col = target_trigger_data[:columns][i]
-      result << "||'  \"#{col[:column_name]}\": '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
+      result << "'#{col[:column_name]}' VALUE :#{old_new}.#{col[:column_name]}#{',' if i < target_trigger_data[:columns].count-1}\n"
     end
-    result << "||'}'"
+    result << ")"
+
+    # result = "'\"#{old_new}\": {\n'"
+    # target_trigger_data[:columns].each_index do |i|
+    #   col = target_trigger_data[:columns][i]
+    #   result << "||'  \"#{col[:column_name]}\": '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
+    # end
+    # result << "||'}'"
     result
   end
 
-  # convert values to string in PL/SQL
+  # convert values to string in PL/SQL, replaced by JSON_OBJECT for old/new but still used for primary key conversion
   def convert_col(column_hash, old_new)
     accessor = ":#{old_new}"
     result = ''
