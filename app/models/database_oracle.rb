@@ -122,4 +122,15 @@ class DatabaseOracle
     Database.execute "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)", {module: "TriXX", action: action_info}
   end
 
+  @@cached_db_version = nil
+  def self.db_version
+    @@cached_db_version = Database.select_one "SELECT Version FROM v$Instance" if @@cached_db_version.nil?
+    @@cached_db_version
+  end
+
+  def self.jdbc_driver_version
+    ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
+  end
+
+
 end

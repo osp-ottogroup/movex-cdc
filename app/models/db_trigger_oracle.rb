@@ -109,8 +109,8 @@ class DbTriggerOracle < Database
 
         trigger_data[:columns].each do |c|
           raise "Column '#{c[:column_name]}' does not exists in DB for table '#{@schema.name}.#{tab[:table_name]}'" if !ora_columns.has_key?(c[:column_name])
-          c[:data_type] = ora_columns[c[:column_name]]&.fetch(:data_type)
-          c[:nullable]  = ora_columns[c[:column_name]]&.fetch(:nullable)
+          c[:data_type]   = ora_columns[c[:column_name]]&.fetch(:data_type)
+          c[:nullable]    = ora_columns[c[:column_name]]&.fetch(:nullable)
         end
 
         target_triggers[trigger_name] = trigger_data                            # add single trigger data to hash of all triggers
@@ -248,6 +248,8 @@ class DbTriggerOracle < Database
     condition_indent = target_trigger_data[:condition] ? '  ' : ''              # Number of chars for row indent
     update_indent    = target_trigger_data[:operation] == 'UPDATE' ? '  ' : ''
 
+    use_json_object = Database.db_version >= '19.1'                             # Before 19.1 JSON_OBJECT is buggy
+
     "\
 COMPOUND TRIGGER
 TYPE Payload_Rec_Type IS RECORD (
@@ -283,7 +285,8 @@ BEGIN
 
   #{"IF #{target_trigger_data[:condition]} THEN" if target_trigger_data[:condition]}
   #{"#{condition_indent}IF #{old_new_compare(target_trigger_data[:columns])} THEN" if target_trigger_data[:operation] == 'UPDATE'}
-  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(target_trigger_data)};
+  #{"/* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */" unless use_json_object}
+  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(target_trigger_data, use_json_object)};
   #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(target_trigger_data)};
   #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;
   #{"#{condition_indent}END IF;" if target_trigger_data[:operation] == 'UPDATE'}
@@ -355,52 +358,58 @@ END #{target_trigger_data[:trigger_name]};
   end
 
   # generate concatenated PL/SQL-commands for payload
-  def payload_command(target_trigger_data)
+  def payload_command(target_trigger_data, use_json_object)
     case target_trigger_data[:operation]
-    when 'INSERT' then payload_command_internal(target_trigger_data, 'new')
-    when 'UPDATE' then "#{payload_command_internal(target_trigger_data, 'old')}||',\n'||#{payload_command_internal(target_trigger_data, 'new')}"
-    when 'DELETE' then payload_command_internal(target_trigger_data, 'old')
+    when 'INSERT' then payload_command_internal(target_trigger_data, 'new', use_json_object)
+    when 'UPDATE' then "#{payload_command_internal(target_trigger_data, 'old', use_json_object)}||',\n'||#{payload_command_internal(target_trigger_data, 'new', use_json_object)}"
+    when 'DELETE' then payload_command_internal(target_trigger_data, 'old', use_json_object)
     else
       raise "Unknown operation #{target_trigger_data[:operation]}"
     end
   end
 
-  def payload_command_internal(target_trigger_data, old_new)
-    result = "'\"#{old_new}\": ' ||\nJSON_OBJECT(\n"
-    target_trigger_data[:columns].each_index do |i|
-      col = target_trigger_data[:columns][i]
-      result << "'#{col[:column_name]}' VALUE :#{old_new}.#{col[:column_name]}#{',' if i < target_trigger_data[:columns].count-1}\n"
+  def payload_command_internal(target_trigger_data, old_new, use_json_object)
+    if use_json_object
+      result = "'\"#{old_new}\": ' ||\nJSON_OBJECT(\n"
+      target_trigger_data[:columns].each_index do |i|
+        col = target_trigger_data[:columns][i]
+        result << "'#{col[:column_name]}' VALUE :#{old_new}.#{col[:column_name]}#{',' if i < target_trigger_data[:columns].count-1}\n"
+      end
+      result << ")"
+    else
+      result = "'\"#{old_new}\": {\n'"
+      target_trigger_data[:columns].each_index do |i|
+        col = target_trigger_data[:columns][i]
+        result << "||'  \"#{col[:column_name]}\": '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
+      end
+      result << "||'}'"
     end
-    result << ")"
-
-    # result = "'\"#{old_new}\": {\n'"
-    # target_trigger_data[:columns].each_index do |i|
-    #   col = target_trigger_data[:columns][i]
-    #   result << "||'  \"#{col[:column_name]}\": '||#{convert_col(col, old_new)}||'#{',' if i < target_trigger_data[:columns].count-1}\n'"
-    # end
-    # result << "||'}'"
     result
   end
 
   # convert values to string in PL/SQL, replaced by JSON_OBJECT for old/new but still used for primary key conversion
   def convert_col(column_hash, old_new)
-    accessor = ":#{old_new}"
+    column_name = ":#{old_new}.#{column_hash[:column_name]}"
     result = ''
-    result << "CASE WHEN #{accessor}.#{column_hash[:column_name]} IS NULL THEN 'null' ELSE " if column_hash[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
+    result << "CASE WHEN #{column_name} IS NULL THEN 'null' ELSE " if column_hash[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
     result << case column_hash[:data_type]
-    when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'   # character data types
-    then "'\"'||REPLACE(#{accessor}.#{column_hash[:column_name]}, '\"', '\\\"')||'\"'"           # place between double quotes "xxx" and escape double quote to \"
-    when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                      # Numeric data types
-    then "TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')"
-    when 'DATE'                         then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
-    when 'RAW'                          then "'\"'||RAWTOHEX(#{accessor}.#{column_hash[:column_name]})||'\"'"
-    when /^TIMESTAMP\([0-9]\)$/
-    then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
-    when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
-    then "'\"'||TO_CHAR(#{accessor}.#{column_hash[:column_name]}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||'\"'"
-    else
-      raise "Unsupported column type '#{column_hash[:data_type]}' for column '#{column_hash[:column_name]}'"
-    end
+              when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'                 # character data types
+              then "'\"'||REPLACE(#{column_name}, '\"', '\\\"')||'\"'"                        # place between double quotes "xxx" and escape double quote to \"
+              when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                   # Numeric data types
+              then "CASE
+                    WHEN #{column_name} < 1 AND #{column_name} > 0 THEN '0'||TO_CHAR(#{column_name}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')
+                    WHEN #{column_name} >-1 AND #{column_name} < 0 THEN '-0'||SUBSTR(TO_CHAR(#{column_name}, 'TM','NLS_NUMERIC_CHARACTERS=''.,'''), 2)
+                    ELSE TO_CHAR(#{column_name}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')
+                    END"
+              when 'DATE'                         then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
+              when 'RAW'                          then "'\"'||RAWTOHEX(#{column_name})||'\"'"
+              when /^TIMESTAMP\([0-9]\)$/
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
+              when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||'\"'"
+              else
+                raise "Unsupported column type '#{column_hash[:data_type]}' for column '#{column_hash[:column_name]}'"
+              end
     result << " END" if column_hash[:nullable] == 'Y'
     result
   end

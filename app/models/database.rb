@@ -4,6 +4,8 @@ class Database
   # delegate method calls to DB-specific implementation classes
   @@METHODS_TO_DELEGATE = [
       :set_application_info,
+      :db_version,
+      :jdbc_driver_version
   ]
 
   def self.method_missing(method, *args, &block)

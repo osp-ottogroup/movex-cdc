@@ -117,6 +117,8 @@ The existence of this grants is checked at application start.
 |SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT grant (not included in All_Tab_Columns).
 |SELECT ON sys.DBA_Tab_Privs|Allows check if GUI-user has SELECT grant for a table.
 |SELECT ON sys.gv_$Lock|Allows check for housekeeping if there are pending transactions. Accessed via synonym public.gv$Lock.
+|SELECT ON sys.v_$Database|Get DB Info.
+|SELECT ON sys.v_$Instance|Get DB version.
 |SELECT ON sys.v_$Session|Allows DB session info in health check.
 
 |===

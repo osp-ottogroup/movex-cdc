@@ -5,6 +5,13 @@ class DatabaseSqlite
     # no implementation for SQLite
   end
 
+  def self.db_version
+    'SQLite'
+  end
+
+  def self.jdbc_driver_version
+    'SQLite driver'
+  end
 end
 
 

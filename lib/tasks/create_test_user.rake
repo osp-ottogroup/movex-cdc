@@ -47,6 +47,8 @@ namespace :ci_preparation do
       exec(conn, "GRANT SELECT ON DBA_Tab_Columns TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tab_Privs TO #{username}")
       exec(conn, "GRANT SELECT ON gv_$Lock TO #{username}")
+      exec(conn, "GRANT SELECT ON v_$Database TO #{username}")
+      exec(conn, "GRANT SELECT ON v_$Instance TO #{username}")
       exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
     end
 

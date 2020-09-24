@@ -22,11 +22,11 @@ class InitializationJob < ApplicationJob
 
     ensure_admin_existence
 
-    # LOG JDBC driver version
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then Rails.logger.info "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
-    else "JDBC driver version not checked"
-    end
+    # LOG Datase and JDBC driver version
+    Rails.logger.info "JDBC driver version = #{Database.jdbc_driver_version}"
+    Trixx::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
+    Rails.logger.info "Database version = #{Database.db_version}"
+    Trixx::Application.log_attribute('Database version', Database.db_version)
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
@@ -68,6 +68,8 @@ class InitializationJob < ApplicationJob
       check_readable 'DBA_Tab_Columns'
       check_readable 'DBA_Tab_Privs'
       check_readable 'GV$Lock'
+      check_readable 'V$Database'
+      check_readable 'V$Instance'
       check_readable 'V$Session'
     end
     check_create_table
