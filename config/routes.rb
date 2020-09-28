@@ -30,6 +30,7 @@ Rails.application.routes.draw do
   get  '/kafka/topics',                               to: 'kafka#topics'
   post 'login/do_logon'
   get  'login/check_jwt'
+  get  'login/home_screen_info'
   get  'login/release_info'
   resources :schemas
   resources :schema_rights

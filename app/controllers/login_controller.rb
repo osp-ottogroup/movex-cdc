@@ -55,7 +55,7 @@ class LoginController < ApplicationController
           token_lifetime_hours.hours.from_now
         )
         time = Time.now + token_lifetime_hours.hours.to_i
-        render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M"), home_screen_info: build_screen_info}, status: :ok
+        render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
         Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
         user.increment_failed_logons
@@ -86,6 +86,11 @@ class LoginController < ApplicationController
       release_info = "No docker release info to read: #{e.class} #{e.message}"
     end
     render json: { release_info: release_info}, status: :ok
+  end
+
+  # GET /login/home_screen_info
+  def home_screen_info
+    render json: { home_screen_info: build_screen_info}, status: :ok
   end
 
   private

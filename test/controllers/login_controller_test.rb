@@ -109,4 +109,8 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, 'Access should be possible without valid JWT'
   end
 
+  test "should get home_screen_info" do
+    get login_home_screen_info_url, as: :json
+  end
+
 end
