@@ -26,7 +26,9 @@ class DbTriggersController < ApplicationController
     schema_name = params.require :schema_name
     schema = Schema.find_by_name schema_name
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
-    check_user_for_valid_schema_right(schema.id)
+    schema_right = check_user_for_valid_schema_right(schema.id)
+    # TODO: uncomment after establishing yn_deployment_granted in GUI
+    # raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 
     result = DbTrigger.generate_triggers(schema.id)
     render json: result, status: result[:errors].count == 0 ? :ok : :internal_server_error
@@ -35,7 +37,7 @@ class DbTriggersController < ApplicationController
   # POST /db_triggers/generate_all
   # Generate triggers for all schema the user has rights for
   def generate_all
-    schema_rights = SchemaRight.where(user_id: @current_user.id)
+    schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
     if schema_rights.empty?
       render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
     else

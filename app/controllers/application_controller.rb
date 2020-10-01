@@ -60,6 +60,7 @@ class ApplicationController < ActionController::API
       schema = Schema.find_by_id schema_id
       raise "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
     end
+    schema_right
   end
 
   def client_ip_info
