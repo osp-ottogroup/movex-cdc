@@ -37,7 +37,9 @@ class DbTriggersController < ApplicationController
   # POST /db_triggers/generate_all
   # Generate triggers for all schema the user has rights for
   def generate_all
-    schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
+    # TODO: uncomment after establishing yn_deployment_granted in GUI
+    #schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
+    schema_rights = SchemaRight.where(user_id: @current_user.id)
     if schema_rights.empty?
       render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
     else
