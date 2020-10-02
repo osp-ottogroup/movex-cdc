@@ -1,6 +1,7 @@
 <template>
-  <div>
-    <column-table :columns="mergedColumns"
+  <div class="is-relative">
+    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+    <column-table v-if="mergedColumns.length > 0" :columns="mergedColumns"
                   @column-changed="onColumnChanged"
                   @select-all="onSelectAll"
                   @deselect-all="onDeselectAll"/>
@@ -26,7 +27,7 @@ export default {
       columns: [],
       dbColumns: [],
       mergedColumns: [],
-      isLoading: true,
+      isLoading: false,
     };
   },
   methods: {
@@ -66,6 +67,7 @@ export default {
     },
     async onColumnChanged(column) {
       try {
+        this.isLoading = true;
         if (column.id) { // update
           await CRUDService.columns.update(column.id, { column });
         } else { // create
@@ -83,10 +85,13 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
     async reload(table) {
       try {
+        this.isLoading = true;
         this.dbColumns = await CRUDService.dbColumns.getAll({
           table_name: table.name,
           schema_name: this.schema.name,
@@ -100,21 +105,14 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
-    async onSelectAll(columnProperty) {
-      const promises = [];
-      // eslint-disable-next-line no-restricted-syntax
-      for (const column of this.mergedColumns) {
-        column[columnProperty] = 'Y';
-        if (column.id) { // update
-          promises.push(CRUDService.columns.update(column.id, { column }));
-        } else { // create
-          promises.push(CRUDService.columns.create({ column }));
-        }
-      }
+    async onSelectAll(type) {
       try {
-        await Promise.all(promises);
+        this.isLoading = true;
+        await CRUDService.columns.selectAll({ table_id: this.table.id, operation: type });
         await this.reload(this.table);
       } catch (e) {
         this.$buefy.notification.open({
@@ -123,21 +121,14 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
-    async onDeselectAll(columnProperty) {
-      const promises = [];
-      // eslint-disable-next-line no-restricted-syntax
-      for (const column of this.mergedColumns) {
-        column[columnProperty] = 'N';
-        if (column.id) { // update
-          promises.push(CRUDService.columns.update(column.id, { column }));
-        } else { // create
-          promises.push(CRUDService.columns.create({ column }));
-        }
-      }
+    async onDeselectAll(type) {
       try {
-        await Promise.all(promises);
+        this.isLoading = true;
+        await CRUDService.columns.deselectAll({ table_id: this.table.id, operation: type });
         await this.reload(this.table);
       } catch (e) {
         this.$buefy.notification.open({
@@ -146,6 +137,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
   },

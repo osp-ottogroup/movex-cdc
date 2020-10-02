@@ -16,8 +16,8 @@
       <b-table-column centered field="name" label="Insert-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('yn_log_insert')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('yn_log_insert')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('I')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('I')"></b-button>
           </div>
         </template>
         <template v-slot="props">
@@ -31,8 +31,8 @@
       <b-table-column centered field="name" label="Update-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('yn_log_update')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('yn_log_update')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('U')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('U')"></b-button>
           </div>
         </template>
         <template v-slot="props">
@@ -46,8 +46,8 @@
       <b-table-column centered field="name" label="Delete-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('yn_log_delete')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('yn_log_delete')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('D')"></b-button>
+            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('D')"></b-button>
           </div>
         </template>
         <template v-slot="props">
@@ -70,20 +70,18 @@ export default {
   },
   computed: {
     showSelectButtons() {
-      // return this.columns.length > 0;
-      // TODO: currently disabled: every change is executed in a single request -> bad for long lists of columns
-      return false;
+      return this.columns.length > 0;
     },
   },
   methods: {
     onColumnChanged(column) {
       this.$emit('column-changed', column);
     },
-    onSelectAll(columnProperty) {
-      this.$emit('select-all', columnProperty);
+    onSelectAll(type) {
+      this.$emit('select-all', type);
     },
-    onDeselectAll(columnProperty) {
-      this.$emit('deselect-all', columnProperty);
+    onDeselectAll(type) {
+      this.$emit('deselect-all', type);
     },
   },
 };

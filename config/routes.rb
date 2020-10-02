@@ -5,8 +5,8 @@ Rails.application.routes.draw do
   get  '/activity_logs',                              to: 'activity_logs#index' # only less methods for resource established
   post '/activity_logs',                              to: 'activity_logs#create'# only less methods for resource established
   resources :columns
-  post '/columns/tag_operation_for_all_columns',      to: 'columns#tag_operation_for_all_columns'
-  post '/columns/untag_operation_for_all_columns',    to: 'columns#untag_operation_for_all_columns'
+  post '/columns/select_all_columns',                 to: 'columns#tag_operation_for_all_columns'
+  post '/columns/deselect_all_columns',               to: 'columns#untag_operation_for_all_columns'
   resources :conditions
   get  '/db_columns',                                 to: 'db_columns#index'    # only one method for resource established
   get  '/db_schemas',                                 to: 'db_schemas#index'    # only one method for resource established
