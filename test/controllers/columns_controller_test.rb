@@ -64,10 +64,10 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
 
   test "should tag operation for all columns" do
     ['I', 'U', 'D'].each do |operation|
-      post "/columns/tag_operation_for_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
+      post "/columns/select_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
       assert_response :success
 
-      post "/columns/untag_operation_for_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
+      post "/columns/deselect_all_columns", headers: jwt_header, params: { table_id: @column.table_id, operation: operation}, as: :json
       assert_response :success
     end
   end
