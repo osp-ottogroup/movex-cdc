@@ -26,6 +26,7 @@
 
 # Ignore master key for decrypting credentials and more.
 /config/master.key
+/config/secrets.yml
 
 /coverage/.last_run.json
 /coverage/.resultset.json.lock
