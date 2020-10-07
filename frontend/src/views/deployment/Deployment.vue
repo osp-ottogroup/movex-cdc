@@ -25,7 +25,7 @@
     </div>
     <div v-if="showResultList" class="columns">
       <div class="column is-10 is-offset-1">
-        <h4 class="title is-4">Results</h4>
+        <h4 class="title is-4">Triggers that are newly generated or modified by this request:</h4>
         <div v-for="(result, index) in resultList" :key="index">
           <h5 class="subtitle is-5">Schema: {{result.schema_name}}</h5>
           <div v-for="(entry, index) in result.successes" :key="index" class="columns result-entry">
