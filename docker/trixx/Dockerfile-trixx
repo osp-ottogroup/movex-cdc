@@ -35,6 +35,8 @@ FROM jruby:9.2.11.1
 MAINTAINER Peter.Ramm@ottogroup.com
 
 ENV BACKEND_SRC_PATH=.
+# Default for RAILS_MAX_THREADS to work for every CMD in docker container
+ENV RAILS_MAX_THREADS=300
 
 RUN  apt-get update && \
      apt-get -y upgrade && \
