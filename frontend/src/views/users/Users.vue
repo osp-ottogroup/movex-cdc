@@ -42,10 +42,10 @@
           </b-table-column>
           <b-table-column label="Info" width="4rem" v-slot="props">
             <span>
-              <b-tooltip label="Admin User" type="is-light">
+              <b-tooltip label="Admin User">
                 <b-icon v-if="props.row.yn_admin === 'Y'" icon="account-circle" size="is-small"/>
               </b-tooltip>
-              <b-tooltip label="Account is locked" type="is-light">
+              <b-tooltip label="Account is locked">
                 <b-icon v-if="props.row.yn_account_locked === 'Y'" icon="lock" size="is-small"/>
               </b-tooltip>
             </span>

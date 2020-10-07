@@ -16,8 +16,12 @@
       <b-table-column centered field="name" label="Insert-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('I')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('I')"></b-button>
+            <b-tooltip label="Select all columns of table for insert">
+              <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('I')"></b-button>
+            </b-tooltip>
+            <b-tooltip label="Deselect all columns of table for insert">
+              <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('I')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -31,8 +35,12 @@
       <b-table-column centered field="name" label="Update-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('U')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('U')"></b-button>
+            <b-tooltip label="Select all columns of table for update">
+              <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('U')"></b-button>
+            </b-tooltip>
+            <b-tooltip label="Select all columns of table for update">
+              <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('U')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -46,8 +54,12 @@
       <b-table-column centered field="name" label="Delete-Trigger" searchable>
         <template v-slot:searchable>
           <div class="icon-wrapper" v-if="showSelectButtons">
-            <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('D')"></b-button>
-            <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('D')"></b-button>
+            <b-tooltip label="Select all columns of table for delete">
+              <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('D')"></b-button>
+            </b-tooltip>
+            <b-tooltip label="Select all columns of table for delete">
+              <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('D')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">

@@ -3,7 +3,10 @@ import Buefy from 'buefy';
 import App from './App.vue';
 import router from './router';
 
-Vue.use(Buefy);
+Vue.use(Buefy, {
+  defaultTooltipType: 'is-light',
+  defaultTooltipDelay: 1000,
+});
 
 Vue.config.productionTip = false;
 
