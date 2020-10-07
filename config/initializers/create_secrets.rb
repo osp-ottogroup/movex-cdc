@@ -34,7 +34,7 @@ begin
   if secret_key_base.nil? || secret_key_base == ''
     Rails.logger.warn "Neither SECRET_KEY_BASE nor SECRET_KEY_BASE_FILE provided!"
     Rails.logger.warn "Temporary encryption key for SECRET_KEY_BASE is generated and stored in local filesystem!"
-    Rails.logger.warn "This key is valid only for the lifetime of this running Panorama instance and is not persistent!!!"
+    Rails.logger.warn "This key is valid only for the lifetime of this running instance and is not persistent!!!"
     secret_key_base = Random.rand 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
     File.write(DEFAULT_SECRET_KEY_BASE_FILE, secret_key_base)
   end

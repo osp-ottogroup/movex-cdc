@@ -1,7 +1,7 @@
 namespace :ci_preparation do
   desc "Prepare preconditions for running tests in CI pipeline"
 
-  task :create_test_user do
+  task :create_user do
 
     def exec(conn, sql)
       puts "Execute: #{sql}"
@@ -52,9 +52,9 @@ namespace :ci_preparation do
       exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
     end
 
-    puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
-    raise "RAILS_ENV should be set to test, not #{Rails.env} !!!" unless Rails.env.test?
+    puts "Running ci_preparation:create_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
     if Trixx::Application.config.trixx_db_type == 'ORACLE'
+      raise "Value for TRIXX_DB_SYS_PASSWORD required to create users" if !Trixx::Application.config.respond_to?(:trixx_db_sys_password)
       properties = java.util.Properties.new
       properties.put("user", 'sys')
       properties.put("password", Trixx::Application.config.trixx_db_sys_password)
@@ -73,7 +73,9 @@ namespace :ci_preparation do
       end
 
       ensure_user_existence(conn, Trixx::Application.config.trixx_db_user,        Trixx::Application.config.trixx_db_password)          # Schema for TriXX data structure
-      ensure_user_existence(conn, Trixx::Application.config.trixx_db_victim_user, Trixx::Application.config.trixx_db_victim_password)   # Schema for tables observed by trixx
+      if Rails.env.test?
+        ensure_user_existence(conn, Trixx::Application.config.trixx_db_victim_user, Trixx::Application.config.trixx_db_victim_password)   # Schema for tables observed by trixx
+      end
 
       conn.close
     end

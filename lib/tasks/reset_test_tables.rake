@@ -42,7 +42,7 @@ namespace :ci_preparation do
       exec(connection, sql)
     end
 
-    puts "Running ci_preparation:create_test_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
+    puts "Running ci_preparation:create_user for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
 
     # create JDBC-connection related to DB-Type
     conn = case Trixx::Application.config.trixx_db_type

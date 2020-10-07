@@ -36,7 +36,7 @@ stages:
     - gem install bundler
     - bundle config set deployment 'true'
     - bundle install --jobs 4
-    - bundle exec rake ci_preparation:create_test_user
+    - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - >
       if [ "$TRIXX_DB_TYPE" == "ORACLE" ]; then
