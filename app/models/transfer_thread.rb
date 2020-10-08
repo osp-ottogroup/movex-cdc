@@ -4,7 +4,6 @@ require 'socket'
 
 # preload classes to prevent from 'RuntimeError: Circular dependency detected while autoloading constant' if multiple threads start working simultaneously
 require 'database'
-require 'schema'
 require 'table'
 require 'exception_helper'
 
@@ -49,7 +48,6 @@ class TransferThread
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
   end
 
-  MAX_EXCEPTION_RETRY=2                                                         # max. number of retries after exception
   MAX_INIT_TRANSACTION_RETRY=3                                                  # max. number of retries after Kafka::ConcurrentTransactionError
   def process
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
@@ -92,7 +90,6 @@ class TransferThread
     # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
     event_logs = []                                                             # ensure variable is also known in exception handling
-    retry_count_on_exception = 0                                                # limit retries
     while !@thread_mutex.synchronize { @stop_requested }
       begin
         ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
@@ -111,20 +108,13 @@ class TransferThread
                   event_logs_slice.each do |event_log|
                     @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
                     table = table_cache(event_log['table_id'])
-                    schema = schema_cache(table.schema_id)
-                    kafka_message = prepare_message_from_event_log(event_log, schema, table)
+                    kafka_message = prepare_message_from_event_log(event_log, table)
                     topic = table.topic_to_use
                     begin
                       @statistic_counter.increment(table.id, event_log['operation'])
-                      kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection
+                      kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
                     rescue Kafka::BufferOverflow => e
-                      Rails.logger.warn "#{e.class} #{e.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{schema.name}, table = #{table.name}"
-                      reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
-                      if @max_message_bulk_count > reduce_step + 1
-                        @max_message_bulk_count -= reduce_step
-                        Trixx::Application.config.trixx_kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
-                        Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
-                      end
+                      handle_kafka_buffer_overflow(e, kafka_message, topic, table)
                       raise                                                       # Ensure transaction is rolled back an retried
                     end
                   end
@@ -148,20 +138,11 @@ class TransferThread
           end
         end                                                                     # ActiveRecord::Base.transaction do
         sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                 # sleep some time outside transaction if no records are to be processed
-        retry_count_on_exception = 0                                            # reset retry counter if successful processed
         @statistic_counter.flush_success                                        # Mark cumulated statistics as success and write to disk
       rescue Exception => e
-        kafka_producer.clear_buffer                                             # remove all pending (not processed by kafka) messages from producer buffer
         @messages_processed_with_error +=  event_logs.count
         @statistic_counter.flush_failure                                        # Mark cumulated statistics as failure and write to disk
-        if retry_count_on_exception < MAX_EXCEPTION_RETRY
-          retry_count_on_exception += 1
-          sleep_and_watch 10                                                    # spend some time if problem is only temporary
-          log_exception(e, "TransferThread.process #{@worker_id}: Retrying after exception (#{retry_count_on_exception}. try)")
-        else
-          log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread now due to exception after #{MAX_EXCEPTION_RETRY} retries")
-          raise
-        end
+        raise
       end
     end                                                                         # while
   rescue Exception => e
@@ -399,10 +380,10 @@ class TransferThread
     end
   end
 
-  def prepare_message_from_event_log(event_log, schema, table)
+  def prepare_message_from_event_log(event_log, table)
     msg = "{
 \"id\": #{event_log['id']},
-\"schema\": \"#{schema.name}\",
+\"schema\": \"#{table.schema.name}\",
 \"tablename\": \"#{table.name}\",
 \"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
 \"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
@@ -458,8 +439,7 @@ class TransferThread
     topic_info = {}
     event_logs.each do |event_log|
       table = table_cache(event_log['table_id'])
-      schema = schema_cache(table.schema_id)
-      kafka_message = prepare_message_from_event_log(event_log, schema, table)
+      kafka_message = prepare_message_from_event_log(event_log, table)
       topic = table.topic_to_use
 
       topic_info[topic] = { max_message_value_size: 0} unless topic_info.has_key?(topic)
@@ -503,20 +483,11 @@ class TransferThread
     ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state}")
   end
 
-  def schema_cache(schema_id)
+  def table_cache(table_id)
     check_record_cache_for_aging
-    key = "Schema #{schema_id}"
+    key = "Table #{table_id}"
     unless @record_cache.has_key? key
-      @record_cache[key] = Schema.find schema_id
-    end
-    @record_cache[key]
-  end
-
-  def table_cache(schema_id)
-    check_record_cache_for_aging
-    key = "Table #{schema_id}"
-    unless @record_cache.has_key? key
-      @record_cache[key] = Table.find schema_id
+      @record_cache[key] = Table.joins(:schema).find(table_id)
     end
     @record_cache[key]
   end
@@ -587,10 +558,9 @@ class TransferThread
     topics = {}
     event_logs.each do |event_log|
       table = table_cache(event_log['table_id'])
-      schema = schema_cache(table.schema_id)
       topic = table.topic_to_use
       topics[topic]                     = { events_with_key: 0, events_without_key: 0, tables: {} } unless topics.has_key?(topic)
-      topics[topic][:tables][table.id]  = { schema_name: schema.name, table_name: table.name, events_with_key: 0, events_without_key: 0 } unless topics[topic][:tables].has_key?(table.id)
+      topics[topic][:tables][table.id]  = { schema_name: table.schema.name, table_name: table.name, events_with_key: 0, events_without_key: 0 } unless topics[topic][:tables].has_key?(table.id)
       if event_log['msg_key'].nil?
         topics[topic][:events_without_key] += 1
         topics[topic][:tables][table.id][:events_without_key] += 1
@@ -611,6 +581,17 @@ class TransferThread
       end
     end
     msg
+  end
+
+  # Reduce the number of messages in bulk if exception occurs
+  def handle_kafka_buffer_overflow(exception, kafka_message, topic, table)
+    Rails.logger.warn "#{exception.class} #{exception.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{table.schema.name}, table = #{table.name}"
+    reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
+    if @max_message_bulk_count > reduce_step + 1
+      @max_message_bulk_count -= reduce_step
+      Trixx::Application.config.trixx_kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
+      Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
+    end
   end
 
 end
