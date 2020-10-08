@@ -344,12 +344,16 @@ class TransferThread
         DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
                                                                 WHERE  #{filter}
-                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.trixx_error_retry_start_delay} * POWER(3, Retry_Count))/86400 < SYSTIMESTAMP)
+                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.trixx_error_retry_start_delay} * POWER(3, Retry_Count-1))/86400 < SYSTIMESTAMP)
                                                                 FOR UPDATE SKIP LOCKED",
                                         params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.trixx_db_query_timeout
         )
       when 'SQLITE' then
-        Database.select_all("SELECT * FROM Event_Logs WHERE #{filter} LIMIT #{fetch_limit}", params)
+        Database.select_all("SELECT *
+                             FROM   Event_Logs
+                             WHERE #{filter}
+                             AND   (Retry_Count = 0 OR  DATETIME(Last_Error_Time, '+'||CAST(#{Trixx::Application.config.trixx_error_retry_start_delay}*Retry_Count*Retry_Count AS VARCHAR)||' seconds') < DATETIME('now'))
+                             LIMIT  #{fetch_limit}", params)
       end
     else
       []
