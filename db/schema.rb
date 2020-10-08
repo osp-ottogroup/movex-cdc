@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_10_01_000000) do
+ActiveRecord::Schema.define(version: 2020_10_08_010000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -57,6 +57,8 @@ ActiveRecord::Schema.define(version: 2020_10_01_000000) do
     t.text "payload", null: false
     t.string "msg_key", limit: 4000
     t.datetime "created_at", precision: 6, null: false
+    t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
+    t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
   end
 
   create_table "schema_rights", force: :cascade do |t|

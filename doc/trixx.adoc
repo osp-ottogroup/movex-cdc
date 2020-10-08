@@ -178,6 +178,8 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |TNS_ADMIN|Directory of config file tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
 |TRIXX_DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |TRIXX_DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by TriXX (ci_preparation:create_user)|
+|TRIXX_ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
+|TRIXX_ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
 |TRIXX_INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
 |TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
 |TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000

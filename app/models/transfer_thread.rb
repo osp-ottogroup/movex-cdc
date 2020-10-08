@@ -340,9 +340,11 @@ class TransferThread
     if fetch_limit > 0
       case Trixx::Application.config.trixx_db_type
       when 'ORACLE' then
+        # each error retry enlarges the delay before next retry by factor 3
         DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
                                                                 WHERE  #{filter}
+                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.trixx_error_retry_start_delay} * POWER(3, Retry_Count))/86400 < SYSTIMESTAMP)
                                                                 FOR UPDATE SKIP LOCKED",
                                         params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.trixx_db_query_timeout
         )

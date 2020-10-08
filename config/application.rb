@@ -81,19 +81,18 @@ module Trixx
       value = options[:default]
       value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
       value = ENV[up_key] if ENV[up_key]                                        # Environment over previous config value
+      value = value.to_s.upcase   if options[:upcase]
+      value = value.to_s.downcase if options[:downcase]
+      value = value.to_i          if options[:integer]
       log_value = value
       if !value.nil?
-        if options[:minimum] || options[:maximum]
-          value = value.to_i
+        if !options[:maximum].nil? && value > options[:maximum]
+          log_value = "#{options[:maximum]}, configured value #{value} reduced to allowed maximum"
+          value = options[:maximum]
+        end
 
-          if !options[:maximum].nil? && value > options[:maximum]
-            log_value = "#{options[:maximum]}, configured value #{value} reduced to allowed maximum"
-            value = options[:maximum]
-          end
-
-          if !options[:minimum].nil? && value < options[:minimum]
-            raise "Configuration attribute #{up_key} (#{log_value}) should be at least #{options[:minimum]}"
-          end
+        if !options[:minimum].nil? && value < options[:minimum]
+          raise "Configuration attribute #{up_key} (#{log_value}) should be at least #{options[:minimum]}"
         end
       end
       Trixx::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
@@ -118,11 +117,11 @@ module Trixx
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config
     end
-    Trixx::Application.set_and_log_attrib_from_env(:log_level)
+    Trixx::Application.set_and_log_attrib_from_env(:log_level, downcase: true)
     config.log_level = config.log_level.to_sym if config.log_level && config.log_level.class == String
     config.log_level = (Rails.env.production? ? :info : :debug) unless config.log_level                  # Default log level is already set to :debug at this point
 
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type, upcase: true)
 
     supported_db_types = ['ORACLE', 'SQLITE']
     raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
@@ -152,24 +151,26 @@ module Trixx
 
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_query_timeout,                   default: 600)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_query_timeout,                   default: 600, integer: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
 
     Trixx::Application.set_attrib_from_env(:trixx_db_user)
     config.trixx_db_user = config.trixx_db_user.upcase if config.trixx_db_type == 'ORACLE'
     Trixx::Application.log_attribute(:trixx_db_user.to_s.upcase, config.trixx_db_user)
 
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_error_max_retries,                  default: 5, integer: true, minimum: 1, maximum: 9999)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_error_retry_start_delay,            default: 20, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_info_contact_person,                accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads, minimum: 0)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert,              accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key,          accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100,   minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100,   integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20, integer: true)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
     config.puma_internal_thread_limit = 10                                      # Number of threads to calculate for puma
