@@ -7,6 +7,7 @@ class KafkaMock
     end
 
     def produce(message, options)
+      raise "KafkaMock::MessageSizeTooLargeException" if message.bytesize > 1024*1024 # identical behavior like Kafka default for message.max.size
       msg_hash = JSON.parse message                                             # ensure correct JSON notation
       if options[:key]                                                          # for keyed messages ID should be ascending
         next_id = msg_hash['id'].to_i

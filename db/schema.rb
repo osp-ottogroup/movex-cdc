@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_10_08_010000) do
+ActiveRecord::Schema.define(version: 2020_10_13_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -48,6 +48,18 @@ ActiveRecord::Schema.define(version: 2020_10_08_010000) do
     t.integer "lock_version", default: 0, null: false
     t.index ["table_id", "operation"], name: "IX_CONDITIONS_TABLE_ID_OPER", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
+  end
+
+  create_table "event_log_final_errors", force: :cascade do |t|
+    t.integer "table_id", null: false
+    t.string "operation", limit: 1, null: false
+    t.string "dbuser", limit: 128, null: false
+    t.text "payload", null: false
+    t.string "msg_key", limit: 4000
+    t.datetime "created_at", null: false
+    t.datetime "error_time", null: false
+    t.text "error_msg", null: false
+    t.index ["table_id"], name: "index_event_log_final_errors_on_table_id"
   end
 
   create_table "event_logs", force: :cascade do |t|

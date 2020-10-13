@@ -53,6 +53,8 @@ class Database
     result.first[1]                                                             # Value of Key/Value-Tupels of first element
   end
 
+  # execute SQL with bid variables
+  # Example: Database.execute("UPDATE Table SET Value=:value", {value: 5})
   def self.execute(sql, filter = {}, options = {})
     raise "Hash expected as filter" if filter.class != Hash
 
@@ -67,5 +69,12 @@ class Database
     raise
   end
 
+  # get SQL expression for current system timestamp from DB
+  def self.systimestamp
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then "SYSTIMESTAMP"
+    when 'SQLITE' then "DATETIME('now')"
+    end
+  end
 
 end

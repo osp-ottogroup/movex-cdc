@@ -70,8 +70,7 @@ class TransferThread
             @total_messages_processed += event_logs.count
             @last_active_time = Time.now
             idle_sleep_time = 0                                                 # Reset sleep time for next idle time
-            process_kafka_transaction(kafka_producer, event_logs)
-            delete_event_logs_batch(event_logs)                                 # delete the events thar are successfully processed in kafka transaction
+            process_event_logs_divide_and_conquer(kafka_producer, event_logs)
           else
             idle_sleep_time += 1 if idle_sleep_time < 60
           end
@@ -79,6 +78,7 @@ class TransferThread
         sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                 # sleep some time outside transaction if no records are to be processed
         @statistic_counter.flush_success                                        # Mark cumulated statistics as success and write to disk
       rescue Exception => e
+        # TODO: Move @messages_processed_with_error to handling single errors
         @messages_processed_with_error +=  event_logs.count
         @statistic_counter.flush_failure                                        # Mark cumulated statistics as failure and write to disk
         raise
@@ -89,13 +89,12 @@ class TransferThread
     raise
   ensure
     begin
-      kafka_producer&.clear_buffer                                              # remove all pending (not processed by kafka) messages from producer buffer
       kafka_producer&.shutdown                                                  # free kafka connections
     rescue Exception => e
       log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
-    Rails.logger.info thread_state
+    Rails.logger.info thread_state(without_stacktrace: true)
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
 
     # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
@@ -110,8 +109,8 @@ class TransferThread
   end
 
   # get Hash with current state info for thread, used e.g. for health check
-  def thread_state
-    {
+  def thread_state(options = {})
+    retval = {
         worker_id:                      @worker_id,
         thread_id:                      @thread&.object_id,
         transactional_id:               @transactional_id,
@@ -125,8 +124,9 @@ class TransferThread
         cached_max_event_logs_seq_id:   @cached_max_event_logs_seq_id,
         successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
         message_processing_errors:      @messages_processed_with_error,
-        stacktrace:                     @thread&.backtrace
     }
+    retval[:stacktrace] = @thread&.backtrace unless options[:without_stacktrace]
+    retval
   end
 
   private
@@ -165,6 +165,40 @@ class TransferThread
     end
     kafka_producer
   end
+
+  # Process the event_logs array within the AR transaction
+  # Method is called recursive on error until event_logs.size = 1
+  def process_event_logs_divide_and_conquer(kafka_producer, event_logs, recursive_depth = 0)
+    return if event_logs.count == 0                                             # No useful processing of empty arrays, should not occur
+    kafka_transaction_successful = false                                        # Flag that ensures delete_event_logs_batch is called only if process_kafka_transaction was successful
+
+    begin
+      process_kafka_transaction(kafka_producer, event_logs)
+      kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
+    rescue Exception => e
+      if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
+        Rails.logger.debug('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
+        max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
+        max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
+        event_logs.each_slice(max_slice_size).to_a.each do |slice|
+          process_event_logs_divide_and_conquer(kafka_producer, slice, recursive_depth + 1)  # Process recursively single parts of previous array
+        end
+      else                                                                      # single erroneous event isolated now
+        process_single_erroneous_event_log(event_logs[0], e)
+      end
+    end
+
+    begin
+      delete_event_logs_batch(event_logs) if kafka_transaction_successful       # delete the events that are successfully processed in previous kafka transaction
+    rescue Exception => e
+      log_exception(e, "delete_event_logs_batch failed. This should never happen and leads to multiple processing of events to Kafka.")
+      event_logs_debug_info(event_logs)
+      raise
+    end
+
+  end
+
+
 
   def read_event_logs_batch
     # Ensure that older IDs are processed first
@@ -331,20 +365,18 @@ class TransferThread
             table = table_cache(event_log['table_id'])
             kafka_message = prepare_message_from_event_log(event_log, table)
             topic = table.topic_to_use
-            begin
-              @statistic_counter.increment(table.id, event_log['operation'])
-              kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
-            rescue Kafka::BufferOverflow => e
-              handle_kafka_buffer_overflow(e, kafka_message, topic, table)
-              raise                                                       # Ensure transaction is rolled back an retried
-            end
+            @statistic_counter.increment(table.id, event_log['operation'])
+            kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
           end
 
-          kafka_producer.deliver_messages                                 # bulk transfer of messages from collection to kafka
+          kafka_producer.deliver_messages                                       # bulk transfer of messages from collection to kafka
+        rescue Kafka::BufferOverflow => e
+          handle_kafka_buffer_overflow(e, kafka_message, topic, table)
+          raise                                                                 # Ensure transaction is rolled back an retried
         rescue Kafka::MessageSizeTooLarge => e
           Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
           fix_message_size_too_large(kafka, event_logs_slice)
-          raise                                                         # Ensure transaction is rolled back an retried
+          raise                                                                 # Ensure transaction is rolled back an retried
         rescue Exception => e
           msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
           msg << event_logs_debug_info(event_logs_slice)
@@ -352,7 +384,10 @@ class TransferThread
           raise
         end
       end
-    end                                                                 # kafka_producer.transaction do
+    end                                                                         # kafka_producer.transaction do
+  rescue Exception
+    kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
+    raise
   end
 
   # get min id for event_logs with msg_key where this worker instance is responsible for
@@ -391,6 +426,28 @@ class TransferThread
         rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", id: e['id']  # No known way for SQLite to execute in array binding
         raise "Error in TransferThread.delete_event_logs_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
       end
+    end
+  end
+
+  # Process isolated single erroneous event
+  def process_single_erroneous_event_log(event_log, exception)
+    case Trixx::Application.config.trixx_db_type                                # How to access Event_Logs record for several databases
+    when 'ORACLE' then filter_sql = "RowID = :row_id"; filter_value = { row_id: event_log['row_id'] }
+    when 'SQLITE' then filter_sql = "ID = :id";        filter_value = { id:    event_log['id'] }
+    end
+
+    if event_log['retry_count'] < Trixx::Application.config.trixx_error_max_retries
+      # increase number of retries and last error time
+      Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Increase Retry_Count for Event_Logs.ID = #{event_log['id']}"}
+      Database.execute "UPDATE Event_Logs SET Retry_Count = Retry_Count + 1, Last_Error_Time = #{Database.systimestamp} WHERE #{filter_sql}", filter_value
+    else
+      # move event_log to list of erroneous and delete from queue
+      Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Move to final error for Event_Logs.ID = #{event_log['id']}"}
+      Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg)
+                       SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg
+                       FROM   Event_Logs
+                       WHERE #{filter_sql}", { error_msg: "#{exception.class}:#{exception.message}. #{ExceptionHelper.explain_exception(exception)}"}.merge(filter_value)
+      Database.execute "DELETE FROM Event_Logs WHERE #{filter_sql}", filter_value
     end
   end
 
@@ -494,7 +551,7 @@ class TransferThread
   end
 
   def log_exception(exception, message)
-    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state}")
+    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state(without_stacktrace: true)}")
   end
 
   def table_cache(table_id)
