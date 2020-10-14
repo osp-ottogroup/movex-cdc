@@ -36,6 +36,6 @@ class CreateEventLogFinalErrors < ActiveRecord::Migration[6.0]
   end
 
   def down
-    drop_table(:event_logs)
+    drop_table(:event_log_final_errors)
   end
 end
