@@ -46,6 +46,7 @@ class TransferThread
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
+    @kafka_producer                 = nil                                       # initialized later
   end
 
   # Do processing in a separate Thread
@@ -57,7 +58,7 @@ class TransferThread
     set_query_timeouts                                                          # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
-    kafka_producer = create_kafka_producer
+    @kafka_producer = create_kafka_producer                                     # Initial creation
 
     # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
@@ -70,7 +71,7 @@ class TransferThread
             @total_messages_processed += event_logs.count
             @last_active_time = Time.now
             idle_sleep_time = 0                                                 # Reset sleep time for next idle time
-            process_event_logs_divide_and_conquer(kafka_producer, event_logs)
+            process_event_logs_divide_and_conquer(event_logs)
           else
             idle_sleep_time += 1 if idle_sleep_time < 60
           end
@@ -89,7 +90,7 @@ class TransferThread
     raise
   ensure
     begin
-      kafka_producer&.shutdown                                                  # free kafka connections
+      @kafka_producer&.shutdown                                                  # free kafka connections before terminating Thread
     rescue Exception => e
       log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
@@ -166,22 +167,29 @@ class TransferThread
     kafka_producer
   end
 
+  # Cancel previous producer and recreate again
+  def reset_kafka_producer
+    @kafka_producer&.shutdown                                                   # free kafka connections of current producer if != nil
+    @kafka_producer = create_kafka_producer                                     # get fresh producer
+  end
+
   # Process the event_logs array within the AR transaction
   # Method is called recursive on error until event_logs.size = 1
-  def process_event_logs_divide_and_conquer(kafka_producer, event_logs, recursive_depth = 0)
+  def process_event_logs_divide_and_conquer(event_logs, recursive_depth = 0)
     return if event_logs.count == 0                                             # No useful processing of empty arrays, should not occur
     kafka_transaction_successful = false                                        # Flag that ensures delete_event_logs_batch is called only if process_kafka_transaction was successful
 
     begin
-      process_kafka_transaction(kafka_producer, event_logs)
+      process_kafka_transaction(event_logs)
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
+      reset_kafka_producer                                                      # After transaction error in Kafka the current producer ends up in Kafka::InvalidTxnStateError if trying to continue with begin_transaction
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         Rails.logger.debug('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
         max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
         event_logs.each_slice(max_slice_size).to_a.each do |slice|
-          process_event_logs_divide_and_conquer(kafka_producer, slice, recursive_depth + 1)  # Process recursively single parts of previous array
+          process_event_logs_divide_and_conquer(slice, recursive_depth + 1)     # Process recursively single parts of previous array
         end
       else                                                                      # single erroneous event isolated now
         process_single_erroneous_event_log(event_logs[0], e)
@@ -352,41 +360,44 @@ class TransferThread
 
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
-  def process_kafka_transaction(kafka_producer, event_logs)
+  def process_kafka_transaction(event_logs)
     # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
-    kafka_producer.transaction do                                       # make messages visible at kafka only if all messages of the batch are processed
-      event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
-      Rails.logger.debug "Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"
-      event_logs_slices.each do |event_logs_slice|
-        Rails.logger.debug "Process event_logs_slice with #{event_logs_slice.count} records"
-        begin
-          event_logs_slice.each do |event_log|
-            @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-            table = table_cache(event_log['table_id'])
-            kafka_message = prepare_message_from_event_log(event_log, table)
-            topic = table.topic_to_use
-            @statistic_counter.increment(table.id, event_log['operation'])
-            kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
+    @kafka_producer.begin_transaction
+    event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
+    Rails.logger.debug "Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"
+    event_logs_slices.each do |event_logs_slice|
+      Rails.logger.debug "Process event_logs_slice with #{event_logs_slice.count} records"
+      begin
+        event_logs_slice.each do |event_log|
+          @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+          table = table_cache(event_log['table_id'])
+          kafka_message = prepare_message_from_event_log(event_log, table)
+          topic = table.topic_to_use
+          @statistic_counter.increment(table.id, event_log['operation'])
+          begin
+            @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
+          rescue Kafka::BufferOverflow => e
+            handle_kafka_buffer_overflow(e, kafka_message, topic, table)
+            raise                                                                 # Ensure transaction is rolled back an retried
           end
-
-          kafka_producer.deliver_messages                                       # bulk transfer of messages from collection to kafka
-        rescue Kafka::BufferOverflow => e
-          handle_kafka_buffer_overflow(e, kafka_message, topic, table)
-          raise                                                                 # Ensure transaction is rolled back an retried
-        rescue Kafka::MessageSizeTooLarge => e
-          Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
-          fix_message_size_too_large(kafka, event_logs_slice)
-          raise                                                                 # Ensure transaction is rolled back an retried
-        rescue Exception => e
-          msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
-          msg << event_logs_debug_info(event_logs_slice)
-          log_exception(e, msg)
-          raise
         end
+        @kafka_producer.deliver_messages                                       # bulk transfer of messages from collection to kafka
+      rescue Kafka::MessageSizeTooLarge => e
+        Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
+        fix_message_size_too_large(kafka, event_logs_slice)
+        raise                                                                 # Ensure transaction is rolled back an retried
+      rescue Exception => e
+        msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
+        msg << event_logs_debug_info(event_logs_slice)
+        log_exception(e, msg)
+        raise
       end
-    end                                                                         # kafka_producer.transaction do
-  rescue Exception
-    kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
+    end
+    @kafka_producer.commit_transaction
+  rescue Exception => e
+    Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
+    @kafka_producer.abort_transaction
+    @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
     raise
   end
 
@@ -657,11 +668,15 @@ class TransferThread
   # Reduce the number of messages in bulk if exception occurs
   def handle_kafka_buffer_overflow(exception, kafka_message, topic, table)
     Rails.logger.warn "#{exception.class} #{exception.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{table.schema.name}, table = #{table.name}"
-    reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
-    if @max_message_bulk_count > reduce_step + 1
-      @max_message_bulk_count -= reduce_step
-      Trixx::Application.config.trixx_kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
-      Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
+    if kafka_message.bytesize > @max_buffer_bytesize / 3
+      Rails.logger.error('TransferThread.handle_kafka_buffer_overflow'){"Single message size exceeds 1/3 of the Kafka buffer size! No automatic action called! Possibly increase TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB to fix this issue."}
+    else
+      reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
+      if @max_message_bulk_count > reduce_step + 1
+        @max_message_bulk_count -= reduce_step
+        Trixx::Application.config.trixx_kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
+        Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
+      end
     end
   end
 
