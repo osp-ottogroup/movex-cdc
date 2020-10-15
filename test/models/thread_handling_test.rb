@@ -20,6 +20,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
     Database.execute "DELETE FROM Event_Logs"                                   # Ensure table is empty before testing with super-large sequences
 
+    Rails.logger.debug "ThreadHandlingTest.process: Create Event_Log_Records"
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       Trixx::Application.config.trixx_max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
@@ -53,12 +54,12 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     end
 
     messages_to_process = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-    Rails.logger.debug "#{messages_to_process} Event_Logs records before processing"
+    Rails.logger.debug "ThreadHandlingTest.process: #{messages_to_process} Event_Logs records before processing"
     log_event_logs_content(console_output: false)
-
     ThreadHandling.get_instance.ensure_processing
     assert_equal(Trixx::Application.config.trixx_initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
+    Rails.logger.debug "ThreadHandlingTest.process: wait for processing finished"
     loop_count = 0
     while loop_count < 20 do                                                    # wait up to x * 10 seconds for processing of event_logs records
       loop_count += 1
@@ -85,6 +86,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal(messages_to_process, successful_messages_processed, 'Exactly the number of records in Event_Logs should be processed')
     assert_equal(0, message_processing_errors, 'There should not be processing errors')
 
+    Rails.logger.debug "ThreadHandlingTest.process: shutdown processing of threads"
     ThreadHandling.get_instance.shutdown_processing
     assert_equal(0, ThreadHandling.get_instance.thread_count, 'No threads should run after shutdown')
     assert_equal(0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All event_logs should be processed after shutdown')

@@ -578,11 +578,11 @@ class TransferThread
 
   def table_cache(table_id)
     check_record_cache_for_aging
-    key = "Table #{table_id}"
-    unless @record_cache.has_key? key
-      @record_cache[key] = Table.joins(:schema).find(table_id)
+    cache_key = "Table #{table_id}"
+    unless @record_cache.has_key? cache_key
+      @record_cache[cache_key] = Table.joins(:schema).find(table_id)
     end
-    @record_cache[key]
+    @record_cache[cache_key]
   end
 
   RECORD_CACHE_REFRESH_CYCLE = 60                                               # Number of seconds between cache refeshes

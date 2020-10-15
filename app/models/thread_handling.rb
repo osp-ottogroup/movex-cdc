@@ -11,6 +11,7 @@ class ThreadHandling
 
   # Ensure that matching number of worker threads is active
   def ensure_processing
+    ExceptionHelper.warn_with_backtrace "ThreadHandling.ensure_processing: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     current_thread_pool_size = @thread_pool_mutex.synchronize { @thread_pool.count }
 
     # calculate required number of worker threads
@@ -18,6 +19,7 @@ class ThreadHandling
     Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
     unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
+      ExceptionHelper.warn_with_backtrace "ThreadHandling.ensure_processing: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
       @thread_pool_mutex.synchronize do
         Rails.logger.debug "ThreadHandling.ensure_processing: within @thread_pool_mutex.synchronize"
         current_thread_pool_size.downto(required_number_of_threads+1) do |i|    # reduce the number of threads if necessary
@@ -38,12 +40,12 @@ class ThreadHandling
       end
     end
     StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB
-
   end
 
   SHUTDOWN_TIMEOUT_SECS = 100
   # graceful shutdown processing of transfer threads at rails exit
   def shutdown_processing
+    ExceptionHelper.warn_with_backtrace "ThreadHandling.shutdown_processing stop_thread: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @shutdown_requested = true                                                # prevent ensure_processing from recreating shut down threads
       @thread_pool.each do |worker|
@@ -68,18 +70,21 @@ class ThreadHandling
 
   # remove worker from pool: called from other threads after finishing TransferThread.process
   def remove_from_pool(worker)
+    ExceptionHelper.warn_with_backtrace "ThreadHandling.remove_from_pool: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @thread_pool.delete(worker)
     end
   end
 
   def thread_count
+    ExceptionHelper.warn_with_backtrace "ThreadHandling.thread_count: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize { @thread_pool.count }
   end
 
   # get health check status from all worker threads
   def health_check_data
     result = []
+    ExceptionHelper.warn_with_backtrace "ThreadHandling.health_check_data: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @thread_pool.each do |t|
         result << t.thread_state

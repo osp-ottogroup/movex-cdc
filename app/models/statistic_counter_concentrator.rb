@@ -9,6 +9,7 @@ class StatisticCounterConcentrator
   # called from different threads
   # counter_type = :events_success | :events_failure
   def cumulate(values_hash)
+    ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.cumulate: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?
     @values_mutex.synchronize do
       values_hash.each do |table_id, operations|
         operations.each do |operation, counter_types|
@@ -24,37 +25,37 @@ class StatisticCounterConcentrator
   end
 
   def flush_to_db
-    Rails.logger.debug "StatisticCounterConcentrator.flush_to_db: Writing statistics record into table"
+    cloned_values = nil
+    ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.flush_to_db: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?
     @values_mutex.synchronize do
-      ActiveRecord::Base.transaction do
-        @values.each do |table_id, operations|
-          operations.each do |operation, counter_types|
-            counter_types.each do |counter_type, counter|
+      # synchronize shortly, clone (not really) the value and than let concurring threads cumumlate to new one
+      # this allows to process the cloned values outside Mutex
+      # Test only: because test uses only one DB connection for all threads and synchronizes AR activities it is essential to do all ActiveRecord activities outside additional Mutex synchronize
+      cloned_values = @values
+      @values = {}                                                              # reset cached statistics
+    end
 
-              events_success          = counter_type == :events_success           ? counter : 0
-              events_delayed_errors   = counter_type == :events_delayed_errors    ? counter : 0
-              events_final_errors     = counter_type == :events_final_errors      ? counter : 0
-              events_d_and_c_retries  = counter_type == :events_d_and_c_retries   ? counter : 0
-              events_delayed_retries  = counter_type == :events_delayed_retries   ? counter : 0
-              Statistic.write_record(table_id:                  table_id,
-                                     operation:                 operation,
-                                     events_success:            events_success,
-                                     events_delayed_errors:     events_delayed_errors,
-                                     events_final_errors:       events_final_errors,
-                                     events_d_and_c_retries:    events_d_and_c_retries,
-                                     events_delayed_retries:    events_delayed_retries
-              )
-              table   = table_cache(table_id)
-              schema  = schema_cache(table.schema_id)
-              # allow transferring log output to time series database
-              Rails.logger.info "Statistics: Schema=#{schema.name}, Table=#{table.name}, Operation=#{KeyHelper.operation_from_short_op(operation)}, " +
-                                    "Events_Success=#{events_success}, Events_Delayed_Errors=#{events_delayed_errors}, Events_Final_Errors=#{events_final_errors}, " +
-                                    "Events_D_and_C_Retries=#{events_d_and_c_retries}, Events_Delayed_Retries=#{events_delayed_retries}"
-            end
-          end
+    ActiveRecord::Base.transaction do
+      cloned_values.each do |table_id, operations|
+        operations.each do |operation, counter_types|
+          Statistic.write_record(table_id:                  table_id,
+                                 operation:                 operation,
+                                 events_success:            counter_types[:events_success],
+                                 events_delayed_errors:     counter_types[:events_delayed_errors],
+                                 events_final_errors:       counter_types[:events_final_errors],
+                                 events_d_and_c_retries:    counter_types[:events_d_and_c_retries],
+                                 events_delayed_retries:    counter_types[:events_delayed_retries]
+          )
+          Rails.logger.debug "Counter_Types: #{counter_types}"
+
+          table = table_cache(table_id)
+
+          # allow transferring log output to time series database
+          Rails.logger.info "Statistics: Schema=#{table.schema.name}, Table=#{table.name}, Operation=#{KeyHelper.operation_from_short_op(operation)}, "
+                                "Events_Success=#{counter_types[:events_success]}, Events_Delayed_Errors=#{counter_types[:events_delayed_errors]}, Events_Final_Errors=#{counter_types[:events_final_errors]}, " +
+                                "Events_D_and_C_Retries=#{counter_types[:events_d_and_c_retries]}, Events_Delayed_Retries=#{counter_types[:events_delayed_retries]}"
         end
       end
-      @values = {}                                                              # reset cached statistics
     end
   end
 
@@ -62,23 +63,15 @@ class StatisticCounterConcentrator
   def initialize
     @values = {}
     @values_mutex = Mutex.new                                                   # Ensure synchronized operations on @values
-    @record_cache = {}                                                          # cache Tables and Schemas for ever
+    @record_cache = {}                                                          # cache Tables for ever
   end
 
-  def schema_cache(schema_id)
-    key = "Schema #{schema_id}"
-    unless @record_cache.has_key? key
-      @record_cache[key] = Schema.find schema_id
+  def table_cache(table_id)
+    cache_key = "Table #{table_id}"
+    unless @record_cache.has_key? cache_key
+      @record_cache[cache_key] = Table.find table_id
     end
-    @record_cache[key]
-  end
-
-  def table_cache(schema_id)
-    key = "Table #{schema_id}"
-    unless @record_cache.has_key? key
-      @record_cache[key] = Table.find schema_id
-    end
-    @record_cache[key]
+    @record_cache[cache_key]
   end
 
 

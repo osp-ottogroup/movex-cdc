@@ -24,6 +24,16 @@ module ExceptionHelper
     end
   end
 
+  def self.warn_with_backtrace(message)
+    Rails.logger.warn(message)
+    if Rails.logger.level == 0 # DEBUG
+      backtrace_msg = "Stacktrace for previous warning follows:\n"
+      Thread.current.backtrace.each do |bt|
+        backtrace_msg << "#{bt}\n"
+      end
+      Rails.logger.debug(backtrace_msg)
+    end
+  end
 
   def self.memory_info_string
     output = ''

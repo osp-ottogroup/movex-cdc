@@ -41,7 +41,7 @@ class StatisticCounter
 
   # Write cumulated values to database
   def flush
-    if @values != {}
+    unless @values.empty?
       StatisticCounterConcentrator.get_instance.cumulate(@values)
       @values = {}                                                                # reset cached statistics
     end
