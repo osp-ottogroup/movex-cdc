@@ -39,6 +39,8 @@ class TransferThreadTest < ActiveSupport::TestCase
   test "process with error" do
     # Test error handling with too huge message
     Database.execute "DELETE FROM Event_Log_Final_Errors"
+    Database.execute "DELETE FROM Statistics"
+
     Trixx::Application.config.trixx_error_retry_start_delay = 1000              # ensure no retry processing takes place
     create_event_logs_for_test(10)
     huge_payload = "\"payload\": \""
@@ -55,6 +57,29 @@ class TransferThreadTest < ActiveSupport::TestCase
     assert_equal 0, remaining_event_log_count, 'The remaining erroneous record should be moved to final error now'
     assert_equal 1, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors"), 'The remaining erroneous record should exist in final errors now'
 
+    StatisticCounterConcentrator.get_instance.flush_to_db       # ensure Statistics records are in DB
+    # Database.select_all("SELECT * FROM Statistics").each do |s|
+    #   puts s
+    # end
+
+    # possibly too volatile tests
+    assert_statistics(11, 4, 'I', :events_success)
+    assert_statistics(3,  4, 'I', :events_delayed_errors)
+    assert_statistics(1,  4, 'I', :events_final_errors)
+    assert_statistics(14, 4, 'I', :events_d_and_c_retries)
+    assert_statistics(3,  4, 'I', :events_delayed_retries)
+
+    assert_statistics(4,  4, 'U', :events_success)
+    assert_statistics(0,  4, 'U', :events_delayed_errors)
+    assert_statistics(0,  4, 'U', :events_final_errors)
+    assert_statistics(4,  4, 'U', :events_d_and_c_retries)
+    assert_statistics(0,  4, 'U', :events_delayed_retries)
+
+    assert_statistics(4,  4, 'D', :events_success)
+    assert_statistics(0,  4, 'D', :events_delayed_errors)
+    assert_statistics(0,  4, 'D', :events_final_errors)
+    assert_statistics(4,  4, 'D', :events_d_and_c_retries)
+    assert_statistics(0,  4, 'D', :events_delayed_retries)
  end
 
 end

@@ -8,14 +8,16 @@ class StatisticCounterConcentrator
 
   # called from different threads
   # counter_type = :events_success | :events_failure
-  def cumulate(values_hash, counter_type)
+  def cumulate(values_hash)
     @values_mutex.synchronize do
       values_hash.each do |table_id, operations|
-        operations.each do |operation, counter|
-          @values[table_id]                           = {} unless @values.has_key? table_id
-          @values[table_id][operation]                = {} unless @values[table_id].has_key? operation
-          @values[table_id][operation][counter_type]  = 0  unless @values[table_id][operation].has_key? counter_type
-          @values[table_id][operation][counter_type] += counter
+        operations.each do |operation, counter_types|
+          counter_types.each do |counter_type, counter|
+            @values[table_id]                           = {} unless @values.has_key? table_id
+            @values[table_id][operation]                = {} unless @values[table_id].has_key? operation
+            @values[table_id][operation][counter_type]  = 0  unless @values[table_id][operation].has_key? counter_type
+            @values[table_id][operation][counter_type] += counter
+          end
         end
       end
     end
@@ -29,18 +31,25 @@ class StatisticCounterConcentrator
           operations.each do |operation, counter_types|
             counter_types.each do |counter_type, counter|
 
-              events_success = counter_type == :events_success ? counter : 0
-              events_failure = counter_type == :events_failure ? counter : 0
-              Statistic.write_record(table_id:        table_id,
-                                     operation:       operation,
-                                     events_success:  events_success,
-                                     events_failure:  events_failure
+              events_success          = counter_type == :events_success           ? counter : 0
+              events_delayed_errors   = counter_type == :events_delayed_errors    ? counter : 0
+              events_final_errors     = counter_type == :events_final_errors      ? counter : 0
+              events_d_and_c_retries  = counter_type == :events_d_and_c_retries   ? counter : 0
+              events_delayed_retries  = counter_type == :events_delayed_retries   ? counter : 0
+              Statistic.write_record(table_id:                  table_id,
+                                     operation:                 operation,
+                                     events_success:            events_success,
+                                     events_delayed_errors:     events_delayed_errors,
+                                     events_final_errors:       events_final_errors,
+                                     events_d_and_c_retries:    events_d_and_c_retries,
+                                     events_delayed_retries:    events_delayed_retries
               )
-
               table   = table_cache(table_id)
               schema  = schema_cache(table.schema_id)
               # allow transferring log output to time series database
-              Rails.logger.info "Statistics: Schema=#{schema.name} Table=#{table.name} Operation=#{KeyHelper.operation_from_short_op(operation)} Events_Success=#{events_success} Events_Failure=#{events_failure}"
+              Rails.logger.info "Statistics: Schema=#{schema.name}, Table=#{table.name}, Operation=#{KeyHelper.operation_from_short_op(operation)}, " +
+                                    "Events_Success=#{events_success}, Events_Delayed_Errors=#{events_delayed_errors}, Events_Final_Errors=#{events_final_errors}, " +
+                                    "Events_D_and_C_Retries=#{events_d_and_c_retries}, Events_Delayed_Retries=#{events_delayed_retries}"
             end
           end
         end

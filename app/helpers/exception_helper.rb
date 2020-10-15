@@ -11,13 +11,13 @@ module ExceptionHelper
   end
 
   def self.log_exception(exception, context)
-    Rails.logger.error "#{self.class}: #{exception.class}: #{exception.message}"
+    Rails.logger.error "Exception: #{exception.class}: #{exception.message}"
     explanation = explain_exception(exception)
     Rails.logger.error explanation if explanation
     Rails.logger.error "Context: #{context}"
     if Rails.logger.level == 0 # DEBUG
       mem_info = memory_info_string
-      Rails.logger.error mem_info if mem_info && mem_info != ''
+      Rails.logger.error "#{mem_info}\n" if mem_info && mem_info != ''
       log_exception_backtrace(exception)
     else
       Rails.logger.error "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"

@@ -33,7 +33,7 @@ class TransferThread
     @max_sorted_id_distances        = {}                                        # This values are maintained by increase/decrease_max_sorted_id_distance and get_max_sorted_id_distance
     @start_time                     = Time.now
     @last_active_time               = nil                                       # timestamp of last transfer to kafka
-    @total_messages_processed       = 0                                         # Total number of message processings, no matter whether successful or not
+    @messages_processed_successful  = 0                                         # Number of successful message processings
     @messages_processed_with_error  = 0                                         # Number of messages processing trials ending with error
     @max_message_size               = 0                                         # Max. size of single message in bytes
     @db_session_info                = 'set later in new thread'                 # Session ID etc.
@@ -64,36 +64,29 @@ class TransferThread
     idle_sleep_time = 0
     event_logs = []                                                             # ensure variable is also known in exception handling
     while !@thread_mutex.synchronize { @stop_requested }
-      begin
-        ActiveRecord::Base.transaction do                                       # commit delete on database only if all messages are processed by kafka
-          event_logs = read_event_logs_batch                                    # read bulk collection of messages from Event_Logs
-          if event_logs.count > 0
-            @total_messages_processed += event_logs.count
-            @last_active_time = Time.now
-            idle_sleep_time = 0                                                 # Reset sleep time for next idle time
-            process_event_logs_divide_and_conquer(event_logs)
-          else
-            idle_sleep_time += 1 if idle_sleep_time < 60
-          end
-        end                                                                     # ActiveRecord::Base.transaction do
-        sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                 # sleep some time outside transaction if no records are to be processed
-        @statistic_counter.flush_success                                        # Mark cumulated statistics as success and write to disk
-      rescue Exception => e
-        # TODO: Move @messages_processed_with_error to handling single errors
-        @messages_processed_with_error +=  event_logs.count
-        @statistic_counter.flush_failure                                        # Mark cumulated statistics as failure and write to disk
-        raise
-      end
-    end                                                                         # while
+      ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka
+        event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
+        if event_logs.count > 0
+          @last_active_time = Time.now
+          idle_sleep_time = 0                                                   # Reset sleep time for next idle time
+          process_event_logs_divide_and_conquer(event_logs)
+          @statistic_counter.flush                                              # Write cumulated statistics to singleton memory only if processing happened
+        else
+          idle_sleep_time += 1 if idle_sleep_time < 60
+        end
+      end                                                                       # ActiveRecord::Base.transaction do
+      sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
+    end
   rescue Exception => e
     log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
     raise
   ensure
     begin
-      @kafka_producer&.shutdown                                                  # free kafka connections before terminating Thread
+      @kafka_producer&.shutdown                                                 # free kafka connections before terminating Thread
     rescue Exception => e
       log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
+    @statistic_counter.flush                                                    # Write remaining cumulated statistics to disk
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
     Rails.logger.info thread_state(without_stacktrace: true)
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
@@ -123,7 +116,7 @@ class TransferThread
         max_event_logs_id:              @max_event_logs_id,
         max_key_event_logs_id:          @max_key_event_logs_id,
         cached_max_event_logs_seq_id:   @cached_max_event_logs_seq_id,
-        successful_messages_processed:  @total_messages_processed - @messages_processed_with_error,
+        successful_messages_processed:  @messages_processed_successful,
         message_processing_errors:      @messages_processed_with_error,
     }
     retval[:stacktrace] = @thread&.backtrace unless options[:without_stacktrace]
@@ -143,12 +136,16 @@ class TransferThread
     while !init_transactions_successfull
 
       begin
-        kafka_producer = kafka.producer(
+        producer_options = {
             max_buffer_size:      @max_message_bulk_count,
             max_buffer_bytesize:  @max_buffer_bytesize,
             transactional:        true,
             transactional_id:     @transactional_id
-        )
+        }
+
+        producer_options[:compression_codec]             = Trixx::Application.config.trixx_kafka_compression_codec.to_sym        if Trixx::Application.config.trixx_kafka_compression_codec != 'none'
+
+        kafka_producer = kafka.producer(producer_options)
 
         kafka_producer.init_transactions                                        # Should be called once before starting transactions
         init_transactions_successfull = true                                    # no exception raise
@@ -177,6 +174,10 @@ class TransferThread
   # Method is called recursive on error until event_logs.size = 1
   def process_event_logs_divide_and_conquer(event_logs, recursive_depth = 0)
     return if event_logs.count == 0                                             # No useful processing of empty arrays, should not occur
+    event_logs.each do |e|
+      @statistic_counter.increment(e['table_id'], e['operation'], :events_d_and_c_retries) if recursive_depth > 0
+    end
+
     kafka_transaction_successful = false                                        # Flag that ensures delete_event_logs_batch is called only if process_kafka_transaction was successful
 
     begin
@@ -238,6 +239,9 @@ class TransferThread
       raise "Unsupported DB type '#{Trixx::Application.config.trixx_db_type}'"
     end
     event_logs.sort_by! {|e| e['id']}                                           # ensure original order of event creation
+    event_logs.each do |e|
+      @statistic_counter.increment(e['table_id'], e['operation'], :events_delayed_retries) if e['retry_count'] > 0
+    end
     event_logs
   end
 
@@ -373,7 +377,7 @@ class TransferThread
           table = table_cache(event_log['table_id'])
           kafka_message = prepare_message_from_event_log(event_log, table)
           topic = table.topic_to_use
-          @statistic_counter.increment(table.id, event_log['operation'])
+          @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
           begin
             @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
           rescue Kafka::BufferOverflow => e
@@ -394,8 +398,11 @@ class TransferThread
       end
     end
     @kafka_producer.commit_transaction
+    @statistic_counter.commit_uncommitted_success_increments
+    @messages_processed_successful += event_logs.count
   rescue Exception => e
     Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
+    @statistic_counter.rollback_uncommitted_success_increments
     @kafka_producer.abort_transaction
     @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
     raise
@@ -442,6 +449,8 @@ class TransferThread
 
   # Process isolated single erroneous event
   def process_single_erroneous_event_log(event_log, exception)
+    @messages_processed_with_error +=  1
+
     case Trixx::Application.config.trixx_db_type                                # How to access Event_Logs record for several databases
     when 'ORACLE' then filter_sql = "RowID = :row_id"; filter_value = { row_id: event_log['row_id'] }
     when 'SQLITE' then filter_sql = "ID = :id";        filter_value = { id:    event_log['id'] }
@@ -449,10 +458,12 @@ class TransferThread
 
     if event_log['retry_count'] < Trixx::Application.config.trixx_error_max_retries
       # increase number of retries and last error time
+      @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_delayed_errors)
       Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Increase Retry_Count for Event_Logs.ID = #{event_log['id']}"}
       Database.execute "UPDATE Event_Logs SET Retry_Count = Retry_Count + 1, Last_Error_Time = #{Database.systimestamp} WHERE #{filter_sql}", filter_value
     else
       # move event_log to list of erroneous and delete from queue
+      @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_final_errors)
       Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Move to final error for Event_Logs.ID = #{event_log['id']}"}
       Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg)
                        SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg

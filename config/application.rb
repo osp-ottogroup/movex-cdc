@@ -162,6 +162,9 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_error_retry_start_delay,            default: 20, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_info_contact_person,                accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_compression_codec,            default: 'gzip')
+    supported_compression_codecs = ['none', 'snappy', 'gzip']
+    raise "TRIXX_KAFKA_COMPRESSION_CODEC=#{config.trixx_kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.trixx_kafka_compression_codec
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)

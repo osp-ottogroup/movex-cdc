@@ -272,6 +272,14 @@ class ActiveSupport::TestCase
     remaining_event_log_count
   end
 
+  def assert_statistics(expected, table_id, operation, column_name)
+    result = Database.select_one "SELECT SUM(#{column_name}) Value
+                                  FROM   Statistics
+                                  WHERE  Table_ID  = :table_id
+                                  AND    Operation = :operation
+                                 ", { table_id: table_id, operation: operation}
+    assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+  end
 
 end
 

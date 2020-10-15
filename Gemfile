@@ -26,13 +26,19 @@ gem 'jwt'
 # Use Active Model has_secure_password
 # gem 'bcrypt', '~> 3.1.7'
 
-gem 'ruby-kafka', '1.2.0'
+gem 'ruby-kafka', '1.3.0'
 
 # Use Active Storage variant
 # gem 'image_processing', '~> 1.2'
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible
 gem 'rack-cors'
+
+# Compression tools valid for Kafka
+gem 'snappy'
+# 'extlz4' and 'zstd-ruby' causes install errors due to missing development tools / not supported by jRuby
+# gem 'extlz4'
+# gem 'zstd-ruby'
 
 group :development do
   gem 'listen', '>= 3.0.5', '< 3.2'

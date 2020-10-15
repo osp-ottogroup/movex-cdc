@@ -182,6 +182,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |TRIXX_ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
 |TRIXX_INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
 |TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
+|TRIXX_KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not supported by TriXX.|gzip
 |TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
 |TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
 |TRIXX_KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|
