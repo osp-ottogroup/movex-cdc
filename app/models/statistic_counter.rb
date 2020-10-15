@@ -6,14 +6,17 @@ class StatisticCounter
     @uncommitted_values = {}                                                    # temporary cumulated values, must be commited by commit_uncommited_increments
   end
 
-  SUPPORTED_COUNTER_TYPES = [:events_success, :events_delayed_errors, :events_final_errors, :events_d_and_c_retries, :events_delayed_retries]
+  def self.supported_counter_types
+    [:events_success, :events_delayed_errors, :events_final_errors, :events_d_and_c_retries, :events_delayed_retries]
+  end
+
   # incement events counter no matter if success or error
   def increment(table_id, operation, counter_type, inc_value=1)
-    raise "StatisticCounter.increment: Unsupported counter_type '#{counter_type}'" unless SUPPORTED_COUNTER_TYPES.include? counter_type
+    raise "StatisticCounter.increment: Unsupported counter_type '#{counter_type}'" unless StatisticCounter.supported_counter_types.include? counter_type
     @values[table_id]                           = {} unless @values.has_key? table_id
     @values[table_id][operation]                = {} unless @values[table_id].has_key? operation
     @values[table_id][operation][counter_type]  = 0  unless @values[table_id][operation].has_key? counter_type
-    @values[table_id][operation][counter_type] += inc_value
+    @values[table_id][operation][counter_type]  += inc_value
   end
 
   def increment_uncomitted_success(table_id, operation)

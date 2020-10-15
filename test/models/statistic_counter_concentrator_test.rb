@@ -5,63 +5,27 @@ class StatisticCounterConcentratorTest < ActiveSupport::TestCase
     StatisticCounterConcentrator.get_instance.flush_to_db                       # Flush all pending statistics from memory
     Database.execute "DELETE FROM Statistics"                                   # Ensure valid counters
 
-    sc = StatisticCounter.new
-
-    sc.increment(tables(:one).id, 'I')
-    sc.increment(tables(:one).id, 'I')
-    sc.increment(tables(:two).id, 'I')
-    sc.increment(tables(:one).id, 'D')
-    sc.increment(tables(:two).id, 'U')
-    sc.increment(tables(:two).id, 'U')
-    sc.increment(tables(:two).id, 'D')
-
-    sc.flush_success
-
-    sc.increment(tables(:one).id, 'I')
-    sc.increment(tables(:one).id, 'I')
-    sc.increment(tables(:two).id, 'I')
-    sc.increment(tables(:one).id, 'D')
-    sc.increment(tables(:two).id, 'U')
-    sc.increment(tables(:two).id, 'U')
-    sc.increment(tables(:two).id, 'D')
-
-    sc.flush_failure
-
-    sc2 = StatisticCounter.new
-
-    sc2.increment(tables(:one).id, 'I')
-    sc2.increment(tables(:one).id, 'I')
-    sc2.increment(tables(:two).id, 'I')
-    sc2.increment(tables(:one).id, 'D')
-    sc2.increment(tables(:two).id, 'U')
-    sc2.increment(tables(:two).id, 'U')
-    sc2.increment(tables(:two).id, 'D')
-
-    sc2.flush_success
-
+    [StatisticCounter.new, StatisticCounter.new].each do |sc|
+      [tables(:one).id, tables(:two).id].each do |table_id|
+        ['I', 'U', 'D'].each do |operation|
+          StatisticCounter.supported_counter_types.each do |counter_type|
+            sc.increment(table_id, operation, counter_type)
+            sc.increment(table_id, operation, counter_type, 3)
+          end
+        end
+        sc.flush
+      end
+    end
 
     StatisticCounterConcentrator.get_instance.flush_to_db
 
-    assert_equal 4, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts success'
-    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts success'
-
-    assert_nil Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates success'
-    assert_equal 4, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates success'
-
-    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates deletes'
-    assert_equal 2, Database.select_one("SELECT SUM(Events_Success) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates deletes'
-
-
-    assert_equal 2, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'I'"), 'Table 1 inserts failure'
-    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'I'"), 'Table 2 inserts failure'
-
-    assert_nil Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'U'"), 'Table 1 updates failure'
-    assert_equal 2, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'U'"), 'Table 2 updates failure'
-
-    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 1 AND Operation = 'D'"), 'Table 1 updates failure'
-    assert_equal 1, Database.select_one("SELECT SUM(Events_Failure) FROM Statistics WHERE Table_ID = 2 AND Operation = 'D'"), 'Table 2 updates failure'
-
-
+    [tables(:one).id, tables(:two).id].each do |table_id|
+      ['I', 'U', 'D'].each do |operation|
+        StatisticCounter.supported_counter_types.each do |counter_type|
+          assert_statistics(8, table_id, operation, counter_type)
+        end
+      end
+    end
   end
 
 end

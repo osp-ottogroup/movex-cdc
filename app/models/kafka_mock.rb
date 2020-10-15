@@ -26,11 +26,11 @@ class KafkaMock
     def clear_buffer
     end
 
-    def shutdown
-    end
-
-    def init_transactions
-    end
+    def shutdown;             end
+    def init_transactions;    end
+    def begin_transaction;    end
+    def commit_transaction;   end
+    def abort_transaction;    end
 
     def transaction(&block)
       block.call

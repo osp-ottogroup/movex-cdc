@@ -38,8 +38,10 @@ class TransferThreadTest < ActiveSupport::TestCase
 
   test "process with error" do
     # Test error handling with too huge message
+    Database.execute "DELETE FROM Event_Logs"                                   # precondition for valid counters
     Database.execute "DELETE FROM Event_Log_Final_Errors"
-    Database.execute "DELETE FROM Statistics"
+    StatisticCounterConcentrator.get_instance.flush_to_db                       # ensure pending Statistics records from memory are flushed to DB
+    Database.execute "DELETE FROM Statistics"                                   # Remove previous existing value to ensure valid assertions
 
     Trixx::Application.config.trixx_error_retry_start_delay = 1000              # ensure no retry processing takes place
     create_event_logs_for_test(10)
