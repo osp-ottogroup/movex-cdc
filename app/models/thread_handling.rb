@@ -39,7 +39,9 @@ class ThreadHandling
         end
       end
     end
-    StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB
+    if !Rails.env.test?  # Do not run concurrent DB access in multiple threads in test because test uses only one DB connection for all threads
+      StatisticCounterConcentrator.get_instance.flush_to_db                     # write cumulated statistics from memory to DB each time the job is called
+    end
   end
 
   SHUTDOWN_TIMEOUT_SECS = 100

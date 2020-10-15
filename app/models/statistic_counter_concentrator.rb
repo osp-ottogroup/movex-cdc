@@ -51,9 +51,9 @@ class StatisticCounterConcentrator
           table = table_cache(table_id)
 
           # allow transferring log output to time series database
-          Rails.logger.info "Statistics: Schema=#{table.schema.name}, Table=#{table.name}, Operation=#{KeyHelper.operation_from_short_op(operation)}, "
-                                "Events_Success=#{counter_types[:events_success]}, Events_Delayed_Errors=#{counter_types[:events_delayed_errors]}, Events_Final_Errors=#{counter_types[:events_final_errors]}, " +
-                                "Events_D_and_C_Retries=#{counter_types[:events_d_and_c_retries]}, Events_Delayed_Retries=#{counter_types[:events_delayed_retries]}"
+          Rails.logger.info "Statistics: Schema=#{table.schema.name}, Table=#{table.name}, Operation=#{KeyHelper.operation_from_short_op(operation)}, " +
+              "Events_Success=#{counter_types[:events_success]}, Events_Delayed_Errors=#{counter_types[:events_delayed_errors]}, Events_Final_Errors=#{counter_types[:events_final_errors]}, " +
+              "Events_D_and_C_Retries=#{counter_types[:events_d_and_c_retries]}, Events_Delayed_Retries=#{counter_types[:events_delayed_retries]}"
         end
       end
     end
