@@ -43,6 +43,11 @@ const routes = [
     name: 'server-log-level',
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogLevel.vue'),
   },
+  {
+    path: '/information',
+    name: 'information',
+    component: () => import(/* webpackChunkName: "about" */ '../views/information/InfoView.vue'),
+  },
 ];
 
 const router = new VueRouter({
