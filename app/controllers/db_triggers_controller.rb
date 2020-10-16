@@ -30,7 +30,7 @@ class DbTriggersController < ApplicationController
     # TODO: uncomment after establishing yn_deployment_granted in GUI
     # raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 
-    result = DbTrigger.generate_triggers(schema.id)
+    result = DbTrigger.generate_triggers(schema.id, { user_id: @current_user.id, client_ip_info: client_ip_info})
     render json: result, status: result[:errors].count == 0 ? :ok : :internal_server_error
   end
 
@@ -46,7 +46,7 @@ class DbTriggersController < ApplicationController
       result = []
       status = :ok
       schema_rights.each do |sr|
-        schema_result = DbTrigger.generate_triggers(sr.schema_id)
+        schema_result = DbTrigger.generate_triggers(sr.schema_id, { user_id: @current_user.id, client_ip_info: client_ip_info })
         status = :internal_server_error if schema_result[:errors].count > 0
         schema_result[:schema_name] = sr.schema.name
         result << schema_result

@@ -31,6 +31,8 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "generate_triggers" do
+    user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
+
     # Execute test for each key handling type
     [
         {kafka_key_handling: 'N', fixed_message_key: nil},
@@ -43,7 +45,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
       exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
 
-      result = DbTrigger.generate_triggers(victim_schema_id)
+      result = DbTrigger.generate_triggers(victim_schema_id, user_options)
 
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors)
@@ -56,6 +58,11 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 1, created_trigger_names.select{|x| x['_I']}.length, 'Should have created one insert trigger'
       assert_equal 1, created_trigger_names.select{|x| x['_U']}.length, 'Should have created one update trigger'
       assert_equal 1, created_trigger_names.select{|x| x['_D']}.length, 'Should have created one delete trigger'
+
+      assert_not_nil result[:successes][0][:table_name],         ':table_name in successes result should be set for trigger'
+      assert_not_nil result[:successes][0][:trigger_name],       ':trigger_name in successes result should be set for trigger'
+      assert_not_nil result[:successes][0][:sql],                ':sql in successes result should be set for trigger'
+
 
 =begin
     puts "Successes:" if result[:successes].count > 0
@@ -77,7 +84,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_not_nil Schema.find(victim_schema_id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
 
       # second run of trigger generation should not touch the already existing triggers
-      result = DbTrigger.generate_triggers(victim_schema_id)
+      result = DbTrigger.generate_triggers(victim_schema_id, user_options)
       assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
@@ -85,36 +92,6 @@ class DbTriggerTest < ActiveSupport::TestCase
       expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
 
       create_event_logs_for_test(8)
-=begin
-      case Trixx::Application.config.trixx_db_type
-      when 'ORACLE' then
-        date_val  = "SYSDATE"
-        ts_val    = "LOCALTIMESTAMP"
-        raw_val   = "HexToRaw('FFFF')"
-        tstz_val  = "SYSTIMESTAMP"
-        rownum    = "RowNum"
-      when 'SQLITE' then
-        date_val  = "'2020-02-01T12:20:22'"
-        ts_val    = "'2020-02-01T12:20:22.999999+01:00'"
-        raw_val   = "'FFFF'"
-        tstz_val  = "'2020-02-01T12:20:22.999999+01:00'"
-        rownum    = 'row_number() over ()'
-      else
-        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
-      end
-
-      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
-      VALUES (1, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
-      )")
-
-
-      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (2, 0.456, 'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
-      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) SELECT 2+#{rownum}, 48.375, '\"Recordx', Date_Val, TS_Val, RAW_VAL FROM #{victim_schema_prefix}#{tables(:victim1).name}")
-      exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record3', RowID_Val = RowID WHERE ID = 3")
-      exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = 4")
-      exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (1, 2)")
-      exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = Name")  # Should not generate records in Event_Logs
-=end
 
       real_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
@@ -127,6 +104,22 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
 
     end
+  end
+
+  test "generate erroneous trigger" do
+    user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
+    condition = Condition.find_by_table_id_and_operation(tables(:victim1).id, 'I')
+    original_filter = condition.filter
+    condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
+    result = DbTrigger.generate_triggers(victim_schema_id, user_options)
+    assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
+    assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
+    assert_not_nil result[:errors][0][:trigger_name],       ':trigger_name in error result should be set for trigger'
+    assert_not_nil result[:errors][0][:exception_class],    ':exception_class in error result should be set for trigger'
+    assert_not_nil result[:errors][0][:exception_message],  ':exception_message in error result should be set for trigger'
+    assert_not_nil result[:errors][0][:sql],                ':sql in error result should be set for trigger'
+
+    condition.update!(filter: original_filter)                                  # reset valid entry
   end
 
 end
