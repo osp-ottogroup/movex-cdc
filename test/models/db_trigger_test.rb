@@ -119,7 +119,9 @@ class DbTriggerTest < ActiveSupport::TestCase
     assert_not_nil result[:errors][0][:exception_message],  ':exception_message in error result should be set for trigger'
     assert_not_nil result[:errors][0][:sql],                ':sql in error result should be set for trigger'
 
+    Rails.logger.debug("Reset condition to '#{original_filter}'")
     condition.update!(filter: original_filter)                                  # reset valid entry
+    DbTrigger.generate_triggers(victim_schema_id, user_options)                 # Create trigger again to raise DDL that commits the update on condition
   end
 
 end
