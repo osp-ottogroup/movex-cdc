@@ -4,7 +4,7 @@ Howto run Trixx Demo
 
 Preconditions:
 - local Oracle database
-- Reale Client IP-Adresse verwenden für Kafka, nicht localhost
+- real physical client IP-address used for Kafka, not localhost
 
 Run Kafka:
 ----------
@@ -38,6 +38,8 @@ GRANT SELECT ON sys.DBA_Tables          TO trixx_demo;
 GRANT SELECT ON sys.DBA_Tab_Columns     TO trixx_demo;
 GRANT SELECT ON sys.DBA_Tab_Privs       TO trixx_demo;
 GRANT SELECT ON sys.gv_$Lock            TO trixx_demo;
+GRANT SELECT ON sys.v_$Database         TO trixx_demo;
+GRANT SELECT ON sys.v_$Instance         TO trixx_demo;
 GRANT SELECT ON sys.v_$Session          TO trixx_demo;
 
 Create TriTrixx config as trixx_run.yml:
@@ -91,7 +93,7 @@ CREATE TABLE Panorama_Test.Hugo (
 CREATE SEQUENCE Hugo_Seq;
 GRANT SELECT ON Hugo TO Public;
 
-Configure Trixx to catch changes on table panorama_test.Hugo
+Configure Trixx by GUI to catch changes on table panorama_test.Hugo
 ------------------------------------------------------------
 > create TriXX-user
 > authenticate user for schema
