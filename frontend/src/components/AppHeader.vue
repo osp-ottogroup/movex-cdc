@@ -22,8 +22,8 @@
         <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/kafka-info' }">
-          Kafka-Info
+        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/information' }">
+          Info
         </b-navbar-item>
         <b-navbar-dropdown v-if="isAdminUser" label="Administration">
           <b-navbar-item tag="router-link" :to="{ path: '/administration/server-log-level' }">
@@ -36,10 +36,6 @@
       </template>
 
       <template v-slot:end>
-        <b-navbar-item tag="router-link" :to="{ path: '/information' }">
-          <b-button icon-right="information-outline" class="circle-button"/>
-        </b-navbar-item>
-
         <b-navbar-item tag="div" @click="showAccountInfo=!showAccountInfo" class="is-relative">
           <b-button icon-right="account" class="circle-button"/>
           <!--  TODO refactor to own component -->
@@ -107,12 +103,12 @@ export default {
 .triangle {
   width: 0;
   height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
   border-bottom: 10px solid white;
   position: absolute;
-  top: -10px;
-  right: 12px;
+  top: -8px;
+  right: 7px;
 }
 
 .delete {

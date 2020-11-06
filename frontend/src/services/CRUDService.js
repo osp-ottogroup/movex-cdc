@@ -45,4 +45,7 @@ export default {
       get: async (object) => (await HttpService.get(`${backendUrl}/kafka/describe_group`, object)).data,
     },
   },
+  instance: {
+    info: async () => (await HttpService.get(`${Config.backendUrl}/login/home_screen_info`)).data,
+  },
 };
