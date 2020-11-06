@@ -149,7 +149,7 @@ class ActiveSupport::TestCase
   def create_event_logs_for_test(number_of_records)
     raise "Should create at least 8 records" if number_of_records < 8
 
-    result = DbTrigger.generate_triggers(victim_schema_id)
+    result = DbTrigger.generate_triggers(victim_schema_id, { user_id: users(:one).id, client_ip_info: '0.0.0.0'})
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors)

@@ -1,0 +1,282 @@
+{
+  "ignored_warnings": [
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "00db6fc5bb46e5fd70fe534ad654a51f5ffa9320e377995c325e4f15b730345c",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `SchemaRight#find`",
+      "file": "app/controllers/schema_rights_controller.rb",
+      "line": 65,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "SchemaRight.find(params[:id])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "SchemaRightsController",
+        "method": "set_schema_right"
+      },
+      "user_input": "params[:id]",
+      "confidence": "Weak",
+      "note": "admin state checked globally for controller with: before_action :check_for_current_user_admin"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "41fa62a477d553420f3705e2044092703e1c47c691e1952fb76793f526aa8c07",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/columns_controller.rb",
+      "line": 8,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(params.require(:table_id))",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ColumnsController",
+        "method": "index"
+      },
+      "user_input": "params.require(:table_id)",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "449695c5a4eb46b0bb6abf702da26fb88c5f9af667f077cc2bf4443323a0c7e9",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "app/helpers/exception_helper.rb",
+      "line": 62,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "` #{\"cat /proc/meminfo 2>/dev/null | grep #{key_linux}\"} `",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ExceptionHelper",
+        "method": "s(:self).gb_value_from_proc"
+      },
+      "user_input": "key_linux",
+      "confidence": "Medium",
+      "note": "Only used with fix literal"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "4b407da6e1608aa23b30a748e47cd98005bc97f339150903a938777883faaf75",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Column#find`",
+      "file": "app/controllers/columns_controller.rb",
+      "line": 83,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Column.find(params[:id])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ColumnsController",
+        "method": "set_column"
+      },
+      "user_input": "params[:id]",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "4b9abf6b549c4a9ce25858ac90321141af13bca63c283c6b32007c2017e31452",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Condition#find`",
+      "file": "app/controllers/conditions_controller.rb",
+      "line": 66,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Condition.find(params[:id])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ConditionsController",
+        "method": "set_condition"
+      },
+      "user_input": "params[:id]",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "62c62f00998702bb165f920ff8d284de08dd836ad4f4d59617160e6aa8ce6d67",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/columns_controller.rb",
+      "line": 84,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(Column.find(params[:id]).table_id)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ColumnsController",
+        "method": "set_column"
+      },
+      "user_input": "Column.find(params[:id]).table_id",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Missing Encryption",
+      "warning_code": 109,
+      "fingerprint": "6a26086cd2400fbbfb831b2f8d7291e320bcc2b36984d2abc359e41b3b63212b",
+      "check_name": "ForceSSL",
+      "message": "The application does not force use of HTTPS: `config.force_ssl` is not enabled",
+      "file": "config/environments/production.rb",
+      "line": 1,
+      "link": "https://brakemanscanner.org/docs/warning_types/missing_encryption/",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "High",
+      "note": "SSL should be provided by reverse proxy"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "740b905b75fa390a88004a6084c3d38ff1cdfb31b6bd0d4596e381c5c68545c5",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/columns_controller.rb",
+      "line": 24,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(Column.new(column_params).table_id)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ColumnsController",
+        "method": "create"
+      },
+      "user_input": "Column.new(column_params).table_id",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "8fff02c309ff5e41968d23defc955992ca576a85c6b68ea473231025abc72bc7",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/tables_controller.rb",
+      "line": 81,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(params[:id])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "TablesController",
+        "method": "set_table"
+      },
+      "user_input": "params[:id]",
+      "confidence": "Weak",
+      "note": "Allowance checked in next line: check_user_for_valid_schema_right(@table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "a58ca1b5ef54e985ada741b7bfdf8f0ec5c10411eef7e4fccb76744001051cdf",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/conditions_controller.rb",
+      "line": 7,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(params.require(:table_id))",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ConditionsController",
+        "method": "index"
+      },
+      "user_input": "params.require(:table_id)",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "a64c5ba0bba2d5ee47f692a853cbfa175654b7ba09a3768b140781c177383096",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/conditions_controller.rb",
+      "line": 67,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(Condition.find(params[:id]).table_id)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ConditionsController",
+        "method": "set_condition"
+      },
+      "user_input": "Condition.find(params[:id]).table_id",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Command Injection",
+      "warning_code": 14,
+      "fingerprint": "c3c829b05c992677158978ee25cb10469704dfc423023175fa70b538cfcf4d9e",
+      "check_name": "Execute",
+      "message": "Possible command injection",
+      "file": "app/helpers/exception_helper.rb",
+      "line": 66,
+      "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
+      "code": "` #{\"sysctl -a | grep '#{key_darwin}'\"} `",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ExceptionHelper",
+        "method": "s(:self).gb_value_from_proc"
+      },
+      "user_input": "key_darwin",
+      "confidence": "Medium",
+      "note": "Only used with fix literal"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "e9695fcd9ee0e53f2141e6f6dd0378c53e0ceed4cf37de0789ae5fdfc6255b12",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/conditions_controller.rb",
+      "line": 22,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(Condition.new(condition_params).table_id)",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ConditionsController",
+        "method": "create"
+      },
+      "user_input": "Condition.new(condition_params).table_id",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    },
+    {
+      "warning_type": "Unscoped Find",
+      "warning_code": 82,
+      "fingerprint": "f404f9d399b0ff91c4b8f4c9957564e6d4ea2594bdbdc338833d3c6fd10dfc35",
+      "check_name": "UnscopedFind",
+      "message": "Unscoped call to `Table#find`",
+      "file": "app/controllers/db_triggers_controller.rb",
+      "line": 17,
+      "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
+      "code": "Table.find(params[:table_id])",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "DbTriggersController",
+        "method": "show"
+      },
+      "user_input": "params[:table_id]",
+      "confidence": "Weak",
+      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+    }
+  ],
+  "updated": "2020-10-29 21:38:17 +0100",
+  "brakeman_version": "4.10.0"
+}

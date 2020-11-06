@@ -140,20 +140,20 @@ class DbTriggerOracle < Database
 
         if trigger['trigger_body']                != body ||
             trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data)
-          exec_trigger_sql "#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name  # replace existing trigger
+          exec_trigger_sql("#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name, trigger['table_name'])  # replace existing trigger
         else
           Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing hs changed"
         end
 
         target_triggers.delete trigger_name                                     # remove processed trigger from target triggers at success and also at error
       else                                                                      # existing trigger is no more part of target structure
-        exec_trigger_sql "DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger_name}", trigger_name
+        exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger_name}", trigger_name, trigger['table_name'])
       end
     end
 
     # create remaining not yet existing triggers
     target_triggers.values.each do |target_trigger|
-      exec_trigger_sql "#{build_trigger_header(target_trigger)}\n#{build_trigger_body(target_trigger)}", target_trigger[:trigger_name]
+      exec_trigger_sql("#{build_trigger_header(target_trigger)}\n#{build_trigger_body(target_trigger)}", target_trigger[:trigger_name], target_trigger[:table_name])
     end
 
     # return an hash with arrays
@@ -320,7 +320,7 @@ END #{target_trigger_data[:trigger_name]};
     }.join(' OR ')
   end
 
-  def exec_trigger_sql(sql, trigger_name)
+  def exec_trigger_sql(sql, trigger_name, table_name)
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql)
     errors = Database.select_all(
@@ -332,12 +332,14 @@ END #{target_trigger_data[:trigger_name]};
     )
     if errors.count == 0
       @trigger_successes << {
+          table_name:   table_name,
           trigger_name: trigger_name,
           sql:          sql
       }
     else
       errors.each do |error|
         @trigger_errors << {
+            table_name:         table_name,
             trigger_name:       trigger_name,
             exception_class:    "Compile error line #{error['line']} position #{error['position']}",
             exception_message:  error['text'],

@@ -101,18 +101,18 @@ class DbTriggerSqlite < Database
         if target_triggers.has_key? trigger_name                                # existing trigger should survive
           create_sql = "#{build_trigger_header(target_triggers[trigger_name])}\n#{build_trigger_body(target_triggers[trigger_name]) }"
           if create_sql != "#{trigger['sql']};"                                 # Trigger code has changed
-            exec_trigger_sql "DROP TRIGGER #{trigger_name}", trigger_name       # Remove existing trigger
-            exec_trigger_sql create_sql, trigger_name                           # create trigger again
+            exec_trigger_sql("DROP TRIGGER #{trigger_name}", trigger_name, trigger['Table_Name'])       # Remove existing trigger
+            exec_trigger_sql(create_sql, trigger_name, trigger['Table_Name'])   # create trigger again
           end
           target_triggers.delete trigger_name                                   # remove processed trigger from target triggers at success and also at error
         else                                                                    # existing trigger is no more part of target structure
-          exec_trigger_sql "DROP TRIGGER #{trigger_name}", trigger_name
+          exec_trigger_sql("DROP TRIGGER #{trigger_name}", trigger_name, trigger['Table_Name'])
         end
       end
     end
 
     target_triggers.values.each do |target_trigger|
-      exec_trigger_sql "#{build_trigger_header(target_trigger)}\n#{build_trigger_body(target_trigger)}", target_trigger[:trigger_name]
+      exec_trigger_sql("#{build_trigger_header(target_trigger)}\n#{build_trigger_body(target_trigger)}", target_trigger[:trigger_name], target_trigger[:table_name])
     end
 
     # return an hash with arrays
@@ -213,16 +213,18 @@ BEGIN
 END;"
   end
 
-  def exec_trigger_sql(sql, trigger_name)
+  def exec_trigger_sql(sql, trigger_name, table_name)
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql)
     @trigger_successes << {
+        table_name:   table_name,
         trigger_name: trigger_name,
         sql:          sql
     }
   rescue Exception => e
     ExceptionHelper.log_exception(e, "DbTriggerSqlite.exec_trigger_sql: Executing SQL\n#{sql}")
     @trigger_errors << {
+        table_name:         table_name,
         trigger_name:       trigger_name,
         exception_class:    e.class.name,
         exception_message:  e.message,

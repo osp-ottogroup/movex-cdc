@@ -27,8 +27,11 @@ class DbTrigger < ApplicationRecord
     @@METHODS_TO_DELEGATE.include?(method) || super
   end
 
-  # Generate triggers for schema
-  def self.generate_triggers(schema_id)
+  # Generate triggers
+  # Parameter: - schema_id: schema all pending triggers are generated for
+  #            - user_options:   User/request attributes for activity logging (:user_id, :client_ip_info)
+  def self.generate_triggers(schema_id, user_options)
+    schema = Schema.find(schema_id)
     target_trigger_data = []                                                    # Hash with target trigger states for schema
 
     # Build hash structure with data for trigger generation
@@ -69,7 +72,20 @@ class DbTrigger < ApplicationRecord
       Rails.logger.error "#{error[:sql]}"
     end
 
+    # Log activities
     Schema.find(schema_id).update!(last_trigger_deployment: Time.now) if result[:errors].count == 0  # Flag trigger generation successful
+    unless user_options.empty?
+      raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
+      raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
+      result[:successes].each do |success_trigger|
+        action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+      end
+      result[:errors].each do |error_trigger|
+        action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+      end
+    end
 
     result
   end
