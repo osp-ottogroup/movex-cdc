@@ -160,6 +160,7 @@ module Trixx
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_error_max_retries,                  default: 5, integer: true, minimum: 1, maximum: 9999)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_error_retry_start_delay,            default: 20, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_final_errors_keep_hours,            default: 240, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_info_contact_person,                accept_empty: true)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_compression_codec,            default: 'gzip')

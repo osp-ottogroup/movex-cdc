@@ -180,6 +180,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |TRIXX_DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by TriXX (ci_preparation:create_user)|
 |TRIXX_ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
 |TRIXX_ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
+|TRIXX_FINAL_ERRORS_KEEP_HOURS|Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping|240
 |TRIXX_INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
 |TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
 |TRIXX_KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not supported by TriXX.|gzip
@@ -488,7 +489,20 @@ This ID allows the reconstruction of the original order of messages in Kafka eve
 NOTE: For Oracle-DB: If using RAC this ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
 
 Message creation in Kafka is done by TriXX with multiple concurrent threads. +
-It is not guaranteed that messages are created in Kafka in the order of the ID.
+Each transfer thread has it's own connection to source database as well as to Kafka. +
+To guarantee the original creation order of events also during transfer to Kafka,
+exactly one of TriXX' transfer threads is responsible for transfer of all events with the same key. +
+That means, events without a key can be transferred by every thread, events with a key are transferred by one particular thread determined by a hash value of the key and a modulo operation.
+
+===== Error handling during transfer =====
+Transferring is done with bulk operations against database and Kafka.
+If the transfer operation fails the bulk size would be reduced (divide & conquer) until a single event is processed in it's own transaction. +
+If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by TRIXX_ERROR_RETRY_START_DELAY.
+After a number of not successful retries (defined by TRIXX_ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
+
+If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after TRIXX_FINAL_ERRORS_KEEP_HOURS.
+
+
 
 ==== Houskeeping ====
 
