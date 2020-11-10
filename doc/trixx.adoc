@@ -500,8 +500,15 @@ If the transfer operation fails the bulk size would be reduced (divide & conquer
 If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by TRIXX_ERROR_RETRY_START_DELAY.
 After a number of not successful retries (defined by TRIXX_ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
 
+Events moved to final error table can be rescheduled by API function: _TODO: mark API function_
+
 If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after TRIXX_FINAL_ERRORS_KEEP_HOURS.
 
+Reasons for transfer errors can be for example:
+
+* non-existing Kafka topic
+* exceeding the maximum event size for Kafka topic
+* event without key but log compaction set for Kafka topic
 
 
 ==== Houskeeping ====
