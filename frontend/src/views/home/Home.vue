@@ -2,7 +2,7 @@
   <section class="hero is-fullheight-with-navbar">
     <div class="hero-body">
       <div class="container has-text-centered">
-        <h1 class="has-text-light">Trixx</h1>
+        <h1 class="has-text-light">TriXX</h1>
         <div v-if="contactPerson" class="has-text-grey-light mb-1">
           If you have questions regarding this Instance of TriXX, so please contact <span class="has-text-grey">{{ contactPerson }}</span>.
         </div>

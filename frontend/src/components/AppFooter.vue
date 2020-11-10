@@ -5,7 +5,7 @@
       <div class="column has-text-centered">
         <p>
           <span>OSP|</span>
-          <strong>Trixx</strong>
+          <strong>TriXX</strong>
         </p>
       </div>
       <div class="column is-size-7 has-text-right">

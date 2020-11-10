@@ -5,7 +5,7 @@
       <template v-slot:brand>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
           <span>OSP|</span>
-          <strong>Trixx</strong>
+          <strong>TriXX</strong>
         </b-navbar-item>
       </template>
 
