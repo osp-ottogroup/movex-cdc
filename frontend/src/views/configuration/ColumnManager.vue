@@ -1,10 +1,19 @@
 <template>
   <div class="is-relative">
     <b-loading :active="isLoading" :is-full-page="false"></b-loading>
-    <column-table v-if="mergedColumns.length > 0" :columns="mergedColumns"
+    <column-table v-if="mergedColumns.length > 0"
+                  :columns="mergedColumns"
+                  :activeConditionTypes="activeConditionTypes"
                   @column-changed="onColumnChanged"
                   @select-all="onSelectAll"
-                  @deselect-all="onDeselectAll"/>
+                  @deselect-all="onDeselectAll"
+                  @edit-condition="onEditCondition"/>
+    <template v-if="conditionModal.show">
+      <condition-modal :condition="conditionModal.condition"
+                       @saved="onConditionSaved"
+                       @removed="onConditionRemoved"
+                       @close="onCloseConditionModal"/>
+    </template>
   </div>
 </template>
 
@@ -12,11 +21,13 @@
 import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 import ColumnTable from './ColumnTable.vue';
+import ConditionModal from './ConditionModal.vue';
 
 export default {
   name: 'ColumnManager',
   components: {
     ColumnTable,
+    ConditionModal,
   },
   props: {
     schema: { type: Object, default: () => {} },
@@ -27,7 +38,12 @@ export default {
       columns: [],
       dbColumns: [],
       mergedColumns: [],
+      activeConditionTypes: {},
       isLoading: false,
+      conditionModal: {
+        show: false,
+        condition: {},
+      },
     };
   },
   methods: {
@@ -92,12 +108,21 @@ export default {
     async reload(table) {
       try {
         this.isLoading = true;
+
+        // load db and trixx columns and merge them in one object
         this.dbColumns = await CRUDService.dbColumns.getAll({
           table_name: table.name,
           schema_name: this.schema.name,
         });
         this.columns = await CRUDService.columns.getAll({ table_id: table.id });
         this.mergeColumns();
+
+        // load conditions
+        const conditions = await CRUDService.conditions.getAll({ table_id: table.id });
+        this.activeConditionTypes = {};
+        conditions.forEach((condition) => {
+          this.$set(this.activeConditionTypes, condition.operation, condition);
+        });
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
@@ -140,6 +165,30 @@ export default {
       } finally {
         this.isLoading = false;
       }
+    },
+    onEditCondition(triggerType) {
+      const condition = this.activeConditionTypes[triggerType];
+      if (condition === undefined) {
+        this.conditionModal.condition = {
+          operation: triggerType,
+          filter: '',
+          table_id: this.table.id,
+        };
+      } else {
+        this.conditionModal.condition = condition;
+      }
+      this.conditionModal.show = true;
+    },
+    onConditionSaved(condition) {
+      this.$set(this.activeConditionTypes, condition.operation, condition);
+      this.conditionModal.show = false;
+    },
+    onConditionRemoved(condition) {
+      this.$delete(this.activeConditionTypes, condition.operation);
+      this.conditionModal.show = false;
+    },
+    onCloseConditionModal() {
+      this.conditionModal.show = false;
     },
   },
   watch: {

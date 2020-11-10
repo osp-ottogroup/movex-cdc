@@ -22,6 +22,9 @@
             <b-tooltip label="Deselect all columns of table for insert">
               <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('I')"></b-button>
             </b-tooltip>
+            <b-tooltip label="Add a condition which acts like a Filter for the trigger">
+              <b-button size="is-small" :icon-left="conditionIcon('I')" @click="onEditCondition('I')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -40,6 +43,9 @@
             </b-tooltip>
             <b-tooltip label="Select all columns of table for update">
               <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('U')"></b-button>
+            </b-tooltip>
+            <b-tooltip label="Add a condition which acts like a Filter for the trigger">
+              <b-button size="is-small" :icon-left="conditionIcon('U')" @click="onEditCondition('U')"></b-button>
             </b-tooltip>
           </div>
         </template>
@@ -60,6 +66,9 @@
             <b-tooltip label="Select all columns of table for delete">
               <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('D')"></b-button>
             </b-tooltip>
+            <b-tooltip label="Add a condition which acts like a Filter for the trigger">
+              <b-button size="is-small" :icon-left="conditionIcon('D')" @click="onEditCondition('D')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -79,6 +88,7 @@ export default {
   name: 'ColumnTable',
   props: {
     columns: { type: Array, default: () => [] },
+    activeConditionTypes: { type: Object, default: () => {} },
   },
   computed: {
     showSelectButtons() {
@@ -86,6 +96,12 @@ export default {
     },
   },
   methods: {
+    isConditionActive(type) {
+      return this.activeConditionTypes[type] !== undefined;
+    },
+    conditionIcon(type) {
+      return this.isConditionActive(type) ? 'filter-outline' : 'filter-off-outline';
+    },
     onColumnChanged(column) {
       this.$emit('column-changed', column);
     },
@@ -94,6 +110,9 @@ export default {
     },
     onDeselectAll(type) {
       this.$emit('deselect-all', type);
+    },
+    onEditCondition(type) {
+      this.$emit('edit-condition', type);
     },
   },
 };
