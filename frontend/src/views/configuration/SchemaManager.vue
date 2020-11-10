@@ -1,5 +1,7 @@
 <template>
-  <div>
+  <div class="is-relative">
+    <b-loading :active="isLoading" :is-full-page="false"/>
+
     <schema-table :schemas="schemas"
                   v-on="$listeners"
                   @edit-schema="onEditSchema"/>
@@ -26,12 +28,13 @@ export default {
   data() {
     return {
       schemas: [],
+      isLoading: true,
       modal: {
         schema: null,
       },
     };
   },
-  async mounted() {
+  async created() {
     await this.loadSchemas();
   },
   computed: {
@@ -42,6 +45,7 @@ export default {
   methods: {
     async loadSchemas() {
       try {
+        this.isLoading = true;
         const schemas = await CRUDService.schemas.getAll();
         this.schemas = schemas.sort((a, b) => {
           const aName = a.name.toUpperCase();
@@ -57,6 +61,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
     onEditSchema(schema) {

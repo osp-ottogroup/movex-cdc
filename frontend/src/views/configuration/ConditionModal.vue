@@ -7,7 +7,7 @@
            aria-modal
            @close="onClose">
     <div class="modal-card">
-      <b-loading :active="loading" :is-full-page="false"/>
+      <b-loading :active="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">{{title}}</p>
@@ -55,7 +55,7 @@ export default {
   },
   data() {
     return {
-      loading: false,
+      isLoading: false,
       conditionCode: this.condition.filter,
     };
   },
@@ -90,7 +90,7 @@ export default {
     },
     async onSave() {
       try {
-        this.loading = true;
+        this.isLoading = true;
         let condition = { ...this.condition, filter: this.conditionCode };
         if (condition.id === undefined) {
           condition = await CRUDService.conditions.create(condition);
@@ -106,12 +106,12 @@ export default {
           position: 'is-top',
         });
       } finally {
-        this.loading = false;
+        this.isLoading = false;
       }
     },
     async onRemove() {
       try {
-        this.loading = true;
+        this.isLoading = true;
         await CRUDService.conditions.delete(this.condition.id, this.condition);
         this.$emit('removed', this.condition);
       } catch (e) {
@@ -122,7 +122,7 @@ export default {
           position: 'is-top',
         });
       } finally {
-        this.loading = false;
+        this.isLoading = false;
       }
     },
   },
