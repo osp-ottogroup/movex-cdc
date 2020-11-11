@@ -127,7 +127,10 @@ class DatabaseOracle
 
   @@cached_db_version = nil
   def self.db_version
-    @@cached_db_version = Database.select_one "SELECT Version FROM v$Instance" if @@cached_db_version.nil?
+    if @@cached_db_version.nil?
+      @@cached_db_version = Database.select_one "SELECT Version FROM v$Instance"
+      @@cached_db_version = Database.select_one "SELECT Version_Full FROM v$Instance" if @@cached_db_version >= '19'
+    end
     @@cached_db_version
   end
 
