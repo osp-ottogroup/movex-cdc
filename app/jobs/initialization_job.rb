@@ -30,6 +30,7 @@ class InitializationJob < ApplicationJob
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
+    HourlyJob.set(wait: 600.seconds).perform_later unless Rails.env.test?       # Job is tested separately, run first time after SystemValidationJob should have finished
   rescue Exception => e
     begin
       ExceptionHelper.log_exception e, 'Initialization failed, abort application now!'

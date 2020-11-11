@@ -1,0 +1,27 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+# This model initially had no columns defined. If you add columns to the
+# model remove the '{}' from the fixture names and add the columns immediately
+# below each fixture, per the syntax in the comments below
+#
+to_delete:
+  id: 1
+  table_id: 1
+  operation: I
+  dbuser: HUGO
+  payload: {}
+  created_at: <%= 100.day.ago.to_s(:db) %>
+  error_time: <%= 100.day.ago.to_s(:db) %>
+  error_msg:  Test-Error
+
+# should be younger than Trixx::Application.config.trixx_final_errors_keep_hours
+to_keep:
+  id: 2
+  table_id: 1
+  operation: I
+  dbuser: HUGO
+  payload: {}
+  created_at: <%= 100.day.ago.to_s(:db) %>
+  error_time: <%= 2.day.ago.to_s(:db) %>
+  error_msg:  Test-Error
+

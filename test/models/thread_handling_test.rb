@@ -98,7 +98,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     # Drop all partitions from Event_Log after test to ensure next record with correct created_at will create new partition and not store records in MIN-partition
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning
+      if Trixx::Application.partitioning?
         Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").each do |p|
           Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p['partition_name']}"
         end

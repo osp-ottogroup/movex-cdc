@@ -216,7 +216,7 @@ class TransferThread
     event_logs = []
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning
+      if Trixx::Application.partitioning?
         # Iterate over partitions starting with oldest up to @max_transaction_size records
         Rails.logger.debug "TransferThread.read_event_logs_batch: Start iterating over partitions"
         partitions = Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").sort_by{|x| x['high_value']}

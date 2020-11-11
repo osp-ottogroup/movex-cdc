@@ -44,7 +44,7 @@ class Housekeeping
         pending_transactions = Database.select_one("\
           SELECT COUNT(*)
           FROM   gv$Lock l
-          JOIN   All_Objects o ON o.Object_ID = l.ID1
+          JOIN   User_Objects o ON o.Object_ID = l.ID1
           WHERE  o.Object_Name    = 'EVENT_LOGS'
           AND    o.SubObject_Name = :partition_name
           ", partition_name: part['partition_name']

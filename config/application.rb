@@ -195,7 +195,7 @@ module Trixx
     end
 
     # check if database supports partitioning (possible and licensed)
-    def partitioning
+    def partitioning?
       if !defined? @trixx_db_partitioning
         @trixx_db_partitioning = case config.trixx_db_type
                                  when 'ORACLE' then
