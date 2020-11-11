@@ -53,7 +53,8 @@ class Database
     result.first[1]                                                             # Value of Key/Value-Tupels of first element
   end
 
-  # execute SQL with bid variables
+  # execute SQL with bind variables
+  # returns the number of affected rows or 0 for DDL etc.
   # Example: Database.execute("UPDATE Table SET Value=:value", {value: 5})
   def self.execute(sql, filter = {}, options = {})
     raise "Hash expected as filter" if filter.class != Hash

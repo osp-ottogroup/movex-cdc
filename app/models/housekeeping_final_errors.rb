@@ -63,10 +63,22 @@ class HousekeepingFinalErrors
         end
       else
         # Delete single records from table
+        begin
+          ActiveRecord::Base.transaction do
+            deleted = Database.execute "DELETE FROM Event_Log_Final_Errors
+                                        WHERE  Error_Time < SYSDATE - #{Trixx::Application.config.trixx_final_errors_keep_hours} / 24
+                                        AND    RowNum <= 1000000 /* limit transaction size to  */
+                                       "
+            Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
+          end
+        end while deleted > 0                                                   # Repeat until all too old records are deleted
 
       end
     when 'SQLITE' then
-      Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{Trixx::Application.config.trixx_final_errors_keep_hours} hours')"
+      ActiveRecord::Base.transaction do
+        deleted = Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{Trixx::Application.config.trixx_final_errors_keep_hours} hours')"
+        Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
+      end
     end
   ensure
     @last_housekeeping_started = nil
