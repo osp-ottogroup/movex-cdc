@@ -1,5 +1,7 @@
 <template>
-  <div>
+  <div class="is-relative">
+    <b-loading :active="isLoading" :is-full-page="false"/>
+
     <table-table :tables="tables"
                  :schema="schema"
                  v-on="$listeners"
@@ -46,6 +48,7 @@ export default {
       // this is because buefy-table would otherwise not render headers
       tables: [{}],
       dbTables: [],
+      isLoading: false,
       modal: {
         table: null,
         mode: null,
@@ -67,6 +70,7 @@ export default {
   methods: {
     async loadTables(schema) {
       try {
+        this.isLoading = true;
         this.tables = await CRUDService.tables.getAll({ schema_id: schema.id });
         this.dbTables = await CRUDService.dbTables.getAll({ schema_name: schema.name });
       } catch (e) {
@@ -76,6 +80,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
     onAddTable() {

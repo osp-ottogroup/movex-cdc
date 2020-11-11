@@ -12,6 +12,7 @@ export default {
     selectAll: async (object) => (await HttpService.post(`${backendUrl}/columns/select_all_columns`, object)).data,
     deselectAll: async (object) => (await HttpService.post(`${backendUrl}/columns/deselect_all_columns`, object)).data,
   },
+  conditions: BaseCRUDService('conditions'),
   schemaRights: BaseCRUDService('schema_rights'),
   schemas: BaseCRUDService('schemas'),
   tables: {
@@ -44,5 +45,8 @@ export default {
       getAll: BaseCRUDService('kafka/groups').getAll,
       get: async (object) => (await HttpService.get(`${backendUrl}/kafka/describe_group`, object)).data,
     },
+  },
+  instance: {
+    info: async () => (await HttpService.get(`${Config.backendUrl}/login/home_screen_info`)).data,
   },
 };

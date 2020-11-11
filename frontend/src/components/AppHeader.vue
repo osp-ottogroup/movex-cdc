@@ -5,7 +5,7 @@
       <template v-slot:brand>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
           <span>OSP|</span>
-          <strong>Trixx</strong>
+          <strong>TriXX</strong>
         </b-navbar-item>
       </template>
 
@@ -22,8 +22,8 @@
         <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/kafka-info' }">
-          Kafka-Info
+        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/information' }">
+          Info
         </b-navbar-item>
         <b-navbar-dropdown v-if="isAdminUser" label="Administration">
           <b-navbar-item tag="router-link" :to="{ path: '/administration/server-log-level' }">
@@ -36,21 +36,26 @@
       </template>
 
       <template v-slot:end>
-        <b-navbar-item tag="div">
-          <div class="is-size-7">
-            logged in as:
-            <b class="is-size-7">
-              {{ user.name }}
-            </b>
-            <span v-if="isAdminUser">
-              (Admin)
-            </span>
+        <b-navbar-item tag="div" @click="showAccountInfo=!showAccountInfo" class="is-relative">
+          <b-button icon-right="account" class="circle-button"/>
+          <!--  TODO refactor to own component -->
+          <div v-if="showAccountInfo" @click.prevent.stop>
+            <div class="box" style="position: absolute; top: 100%; right: 1rem; min-width: 15rem">
+              <div class="triangle"></div>
+              <a class="delete" @click="showAccountInfo=false"></a>
+              <div class="is-size-7">
+                <p>Logged in as</p>
+                <p class="is-size-6"><b>{{ user.name }}</b></p>
+                <br>
+                <p>Role</p>
+                <p class="is-size-6">{{ roleName }}</p>
+              </div>
+              <br>
+              <b-button type="is-primary is-light" @click="logout" expanded>
+                Logout
+              </b-button>
+            </div>
           </div>
-        </b-navbar-item>
-        <b-navbar-item tag="div">
-          <b-button @click="logout">
-            Logout
-          </b-button>
         </b-navbar-item>
       </template>
 
@@ -66,9 +71,17 @@ export default {
   props: {
     user: { type: Object, default: () => {} },
   },
+  data() {
+    return {
+      showAccountInfo: false,
+    };
+  },
   computed: {
     isAdminUser() {
       return this.user.isAdmin;
+    },
+    roleName() {
+      return this.isAdminUser ? 'Admin' : 'User';
     },
   },
   methods: {
@@ -78,3 +91,29 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.circle-button {
+  border-radius: 50%;
+  ::v-deep span {
+    font-size: 1.3rem;
+  }
+}
+
+.triangle {
+  width: 0;
+  height: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-bottom: 10px solid white;
+  position: absolute;
+  top: -8px;
+  right: 7px;
+}
+
+.delete {
+  position: absolute;
+  top: 1rem;
+  right: 0.5rem;
+}
+</style>

@@ -4,7 +4,10 @@
       <p class="control"
          v-for="logLevel in logLevels"
          :key="logLevel">
-        <b-button :type="buttonType(logLevel)" @click="setLogLevel(logLevel)" :loading="isLoading">
+        <b-button @click="setLogLevel(logLevel)"
+                  :loading="isLoading"
+                  :type="buttonType(logLevel)"
+                  :icon-left="buttonIcon(logLevel)">
           {{ logLevel }}
         </b-button>
       </p>
@@ -66,6 +69,9 @@ export default {
     },
     buttonType(logLevel) {
       return this.currentLogLevel === logLevel ? 'is-info' : 'is-info is-light';
+    },
+    buttonIcon(logLevel) {
+      return this.currentLogLevel === logLevel ? 'check' : '';
     },
   },
 };
