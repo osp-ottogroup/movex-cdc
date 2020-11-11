@@ -65,6 +65,8 @@ class HousekeepingFinalErrors
         # Delete single records from table
 
       end
+    when 'SQLITE' then
+      Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{Trixx::Application.config.trixx_final_errors_keep_hours} hours')"
     end
   ensure
     @last_housekeeping_started = nil
