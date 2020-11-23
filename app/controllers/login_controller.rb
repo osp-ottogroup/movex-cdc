@@ -120,7 +120,9 @@ class LoginController < ApplicationController
   # array with info-hashes to display at home screen { name: xxx, value: yyy }
   def build_screen_info
     info = []
-    info<< { name: 'Contact person', value: Trixx::Application.config.trixx_info_contact_person } if Trixx::Application.config.trixx_info_contact_person
-    info
+    info << { name: 'Database URL',       value: Trixx::Application.config.trixx_db_url}
+    info << { name: 'Kafka seed broker',  value: Trixx::Application.config.trixx_kafka_seed_broker}
+    info << { name: 'Contact person', value: Trixx::Application.config.trixx_info_contact_person } if Trixx::Application.config.trixx_info_contact_person
+    info.sort{|a,b| a[:name] <=> b[:name] }                                     # Show sorted list in GUI
   end
 end
