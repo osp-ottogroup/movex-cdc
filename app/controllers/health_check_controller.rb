@@ -10,9 +10,11 @@ class HealthCheckController < ApplicationController
 
 
     @health_data = {
-        build_version:                'unknown',
-        start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         health_check_timestamp:       Time.now,
+        build_version:                'unknown',
+        database_url:                 Trixx::Application.config.trixx_db_url,
+        kafka_seed_broker:            Trixx::Application.config.trixx_kafka_seed_broker,
+        start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         warnings:                     '',
         log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
         memory:                       ExceptionHelper.memory_info_hash,
