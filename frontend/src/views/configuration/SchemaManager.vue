@@ -5,9 +5,10 @@
     <schema-table :schemas="schemas"
                   v-on="$listeners"
                   @edit-schema="onEditSchema"/>
-    <template v-if="showSchemaModal">
+
+    <template v-if="modal.show">
       <schema-modal :schema="modal.schema"
-                    @save="onSave"
+                    @saved="onSaved"
                     @close="onClose"/>
     </template>
   </div>
@@ -30,17 +31,13 @@ export default {
       schemas: [],
       isLoading: true,
       modal: {
+        show: false,
         schema: null,
       },
     };
   },
   async created() {
     await this.loadSchemas();
-  },
-  computed: {
-    showSchemaModal() {
-      return this.modal.schema !== null;
-    },
   },
   methods: {
     async loadSchemas() {
@@ -66,38 +63,18 @@ export default {
       }
     },
     onEditSchema(schema) {
-      this.modal.schema = { ...schema };
+      this.modal.schema = schema;
+      this.modal.show = true;
     },
     onClose() {
       this.modal.schema = null;
+      this.modal.show = false;
     },
-    async onSave(changedSchema) {
-      try {
-        const updatedSchema = await CRUDService.schemas.update(changedSchema.id, { schema: changedSchema });
-        this.$buefy.toast.open({
-          message: `Saved changes to schema '${updatedSchema.name}'!`,
-          type: 'is-success',
-        });
-        // TODO needs a better way of copying properties without dereferencing original object
-        this.schemas.some((schema) => {
-          if (schema.id === updatedSchema.id) { /* eslint-disable no-param-reassign */
-            schema.name = updatedSchema.name;
-            schema.topic = updatedSchema.topic;
-            schema.created_at = updatedSchema.created_at;
-            schema.updated_at = updatedSchema.updated_at;
-            return true;
-          }
-          return false;
-        });
-        this.modal.schema = null;
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
+    async onSaved(savedSchema) {
+      const index = this.schemas.findIndex((schema) => schema.id === savedSchema.id);
+      this.$set(this.schemas, index, savedSchema);
+      this.modal.schema = null;
+      this.modal.show = false;
     },
   },
 };

@@ -54,8 +54,14 @@ export default {
       if (newList && newList !== oldList && newList.length > 0) {
         // eslint-disable-next-line prefer-destructuring
         this.selectedSchema = newList[0];
-        this.$emit('schema-selected', this.selectedSchema);
       }
+      if (newList === oldList) {
+        // reference of schema list has not changed
+        // it seems that the selected schema has changed, so find changed schema
+        const newSchema = newList.find((schema) => schema.id === this.selectedSchema.id);
+        this.selectedSchema = newSchema;
+      }
+      this.$emit('schema-selected', this.selectedSchema);
     },
   },
 };

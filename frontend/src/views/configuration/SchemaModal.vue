@@ -6,6 +6,8 @@
            aria-modal
            @close="onClose">
     <div class="modal-card" style="width: auto">
+      <b-loading :active="isLoading" :is-full-page="false"/>
+
       <header class="modal-card-head">
         <p class="modal-card-title">Edit Schema ({{internalSchema.name}})</p>
         <button class="delete"
@@ -36,6 +38,9 @@
 </template>
 
 <script>
+import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
+
 export default {
   name: 'SchemaModal',
   props: {
@@ -43,16 +48,30 @@ export default {
   },
   data() {
     return {
-      // copy of property schema to avoid changing property directly
+      // copy of property 'schema' to avoid changing property directly
       internalSchema: { ...this.schema },
+      isLoading: false,
     };
   },
   methods: {
     onClose() {
       this.$emit('close');
     },
-    onSave() {
-      this.$emit('save', this.internalSchema);
+    async onSave() {
+      try {
+        this.isLoading = true;
+        const updatedSchema = await CRUDService.schemas.update(this.internalSchema.id, { schema: this.internalSchema });
+        this.$emit('saved', updatedSchema);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
     },
     lastTriggerDeployment() {
       if (this.internalSchema.last_trigger_deployment) {

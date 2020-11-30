@@ -184,8 +184,10 @@ export default {
     },
   },
   watch: {
-    async schema(newSchema) {
-      await this.loadTables(newSchema);
+    async schema(newSchema, oldSchema) {
+      if (newSchema?.id !== oldSchema?.id) {
+        await this.loadTables(newSchema);
+      }
     },
   },
 };
