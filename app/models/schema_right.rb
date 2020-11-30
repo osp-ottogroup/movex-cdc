@@ -1,6 +1,11 @@
 class SchemaRight < ApplicationRecord
-  belongs_to :user
-  belongs_to :schema
+  belongs_to  :user
+  belongs_to  :schema
+  validate    :validate_yn_columns
+
+  def validate_yn_columns
+    validate_yn_column :yn_deployment_granted
+  end
 
   # user = User
   # user_request_params = [ { :info, schema: { :name }  } ]

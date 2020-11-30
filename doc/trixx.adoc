@@ -311,7 +311,9 @@ This dialog shows:
 Possible onfiguration actions are:
 
 * add tables to configuration for a schema (only possible for tables where the user has SELECT grant for)
-* modify topic name per table
+** modify topic name per table
+** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
+** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
 * modify triggering of change events per column
 
 NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
@@ -399,6 +401,7 @@ Depending on table configuration Kafka messages may contain an additional key va
   "operation": "INSERT",
   "dbuser": "MEYER",
   "timestamp": "2020-02-21T12:07:43,396142+00:00",
+  "transaction_id": "9.5.374674",
   "new": {
     "ID": 1,
     "NAME": "Record1",
@@ -408,7 +411,7 @@ Depending on table configuration Kafka messages may contain an additional key va
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
     "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
-    "NULL_VAL": NULL
+    "NULL_VAL": null
   }
 }
 
@@ -422,6 +425,7 @@ Depending on table configuration Kafka messages may contain an additional key va
   "operation": "UPDATE",
   "dbuser": "MEYER",
   "timestamp": "2020-02-21T12:07:43,396142+00:00",
+  "transaction_id": "9.5.374674",
   "old": {
     "ID": 1,
     "NAME": "Record1",
@@ -431,7 +435,7 @@ Depending on table configuration Kafka messages may contain an additional key va
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
     "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
-    "NULL_VAL": NULL
+    "NULL_VAL": null
   },
   "new": {
     "ID": 1,
@@ -442,7 +446,7 @@ Depending on table configuration Kafka messages may contain an additional key va
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
     "ROWID_VAL": "AAAUQ6AAMAAAAJlAACAAAUQ6AAMAAAAJlAAC",
-    "NULL_VAL": NULL
+    "NULL_VAL": null
   }
 }
 
@@ -455,6 +459,7 @@ Depending on table configuration Kafka messages may contain an additional key va
   "operation": "DELETE",
   "dbuser": "MEYER",
   "timestamp": "2020-02-21T12:07:43,396142+00:00",
+  "transaction_id": null,
   "old": {
     "ID": 1,
     "NAME": "Record1",
@@ -464,7 +469,7 @@ Depending on table configuration Kafka messages may contain an additional key va
     "RAW_VAL": "FFFF",
     "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
     "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
-    "NULL_VAL": NULL
+    "NULL_VAL": null
   }
 }
 

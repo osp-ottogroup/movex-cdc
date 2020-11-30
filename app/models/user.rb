@@ -2,9 +2,13 @@ class User < ApplicationRecord
   has_many :activity_logs
   has_many :schema_rights
   validate :validate_values
-  validates :yn_admin, acceptance: { accept: ['Y', 'N'] }
+  # validates :yn_admin, acceptance: { accept: ['Y', 'N'] }
 
   def validate_values
+    validate_yn_column :yn_admin
+    validate_yn_column :yn_account_locked
+    validate_yn_column :yn_hidden
+
     self.db_user = db_user.upcase if Trixx::Application.config.trixx_db_type == 'ORACLE' && !db_user.nil?
     unless DbSchema.valid_schema_name?(db_user)
       errors.add(:db_user, "User '#{db_user}' does not exists in database")

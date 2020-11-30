@@ -4,6 +4,7 @@ class Table < ApplicationRecord
   has_many    :conditions
   validate    :topic_in_table_or_schema
   validate    :kafka_key_handling_validate
+  validate    :validate_yn_columns
 
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
@@ -19,7 +20,7 @@ class Table < ApplicationRecord
   end
 
   def kafka_key_handling_validate
-    valid_kafka_key_handlings = ['N', 'P', 'F']
+    valid_kafka_key_handlings = ['N', 'P', 'F', 'T']
     unless valid_kafka_key_handlings.include? kafka_key_handling
       errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{valid_kafka_key_handlings}")
     end
@@ -31,6 +32,15 @@ class Table < ApplicationRecord
     if kafka_key_handling == 'F' && (fixed_message_key.nil? || fixed_message_key == '')
       errors.add(:fixed_message_key, "Fixed message key must not be empty if Kafka key handling is 'F' (Fixed)")
     end
+
+    if kafka_key_handling == 'T' && (yn_record_txid != 'Y')
+      errors.add(:kafka_key_handling, "Kafka key handling 'T' (Transaction-ID) is not possible if transaction-ID is not recorded")
+    end
+  end
+
+  def validate_yn_columns
+    validate_yn_column :yn_record_txid
+    validate_yn_column :yn_hidden
   end
 
   def topic_to_use
