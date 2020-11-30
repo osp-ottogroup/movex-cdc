@@ -5,19 +5,28 @@
         <b-field label="Generate triggers for schema" >
           <b-select v-model="selectedSchema"
                     placeholder="Select a schema"
+                    :loading="isLoading"
                     expanded>
             <option v-for="schema in schemas" :key="schema.id" :value="schema">
               {{ schema.name }}
             </option>
           </b-select>
         </b-field>
-        <b-button @click="generateForSelectedSchema" type="is-primary" expanded :disabled="selectedSchema === null">
+        <b-button @click="generateForSelectedSchema"
+                  type="is-primary"
+                  expanded
+                  :disabled="selectedSchema === null || isGeneratingForSchema || isGeneratingForAllSchemas"
+                  :loading="isGeneratingForSchema">
           Generate for Schema
         </b-button>
       </div>
       <div class="column is-2 is-offset-1">
         <b-field label="Generate triggers for all schemas" >
-          <b-button @click="generateForAllSchemas" type="is-primary" expanded>
+          <b-button @click="generateForAllSchemas"
+                    type="is-primary"
+                    expanded
+                    :disabled="isGeneratingForAllSchemas || isGeneratingForSchema"
+                    :loading="isGeneratingForAllSchemas">
             Generate for All Schemas
           </b-button>
         </b-field>
@@ -51,12 +60,15 @@ export default {
   components: {},
   data() {
     return {
+      isLoading: false,
+      isGeneratingForSchema: false,
+      isGeneratingForAllSchemas: false,
       schemas: [],
       selectedSchema: null,
       resultList: null,
     };
   },
-  async mounted() {
+  async created() {
     await this.loadSchemas();
   },
   computed: {
@@ -67,6 +79,7 @@ export default {
   methods: {
     async loadSchemas() {
       try {
+        this.isLoading = true;
         this.schemas = await CRUDService.schemas.getAll();
       } catch (e) {
         this.$buefy.notification.open({
@@ -75,10 +88,13 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isLoading = false;
       }
     },
     async generateForSelectedSchema() {
       try {
+        this.isGeneratingForSchema = true;
         const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate`, { schema_name: this.selectedSchema.name });
         if (response.data) {
           // response is single object
@@ -92,10 +108,13 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isGeneratingForSchema = false;
       }
     },
     async generateForAllSchemas() {
       try {
+        this.isGeneratingForAllSchemas = true;
         const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate_all`);
         // response is already an array
         this.resultList = response.data;
@@ -106,6 +125,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isGeneratingForAllSchemas = false;
       }
     },
   },
