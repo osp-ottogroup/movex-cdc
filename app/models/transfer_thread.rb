@@ -480,7 +480,7 @@ class TransferThread
 \"tablename\": \"#{table.name}\",
 \"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
 \"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
-\"transaction_id\": #{event_log['transaction_id'].nil ? "null" : "\"#{event_log['transaction_id']}\"" },
+\"transaction_id\": #{event_log['transaction_id'].nil? ? "null" : "\"#{event_log['transaction_id']}\"" },
 #{event_log['payload']}
 }"
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size

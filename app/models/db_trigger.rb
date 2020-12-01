@@ -37,7 +37,14 @@ class DbTrigger < ApplicationRecord
     # Build hash structure with data for trigger generation
     Table.where(schema_id: schema_id).each do |table|
       if Column.count_active(table_id: table.id) > 0                            # Suppress tables without active columns in result
-        table_data = { table_id: table.id, table_name: table.name, kafka_key_handling: table.kafka_key_handling, fixed_message_key: table.fixed_message_key}
+        table_data = {
+            table_id:           table.id,
+            table_name:         table.name,
+            kafka_key_handling: table.kafka_key_handling,
+            fixed_message_key:  table.fixed_message_key,
+            yn_record_txid:     table.yn_record_txid
+        }
+
         operations_data = []
         [ { short: 'I', col: :yn_log_insert },
           { short: 'U', col: :yn_log_update },

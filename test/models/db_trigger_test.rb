@@ -35,12 +35,13 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     # Execute test for each key handling type
     [
-        {kafka_key_handling: 'N', fixed_message_key: nil},
-        {kafka_key_handling: 'P', fixed_message_key: nil},
-        {kafka_key_handling: 'F', fixed_message_key: 'hugo'},
+        {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},
+        {kafka_key_handling: 'P', fixed_message_key: nil, yn_record_txid: 'Y'},
+        {kafka_key_handling: 'F', fixed_message_key: 'hugo', yn_record_txid: 'N'},
+        {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
     ].each do |key|
       table = tables(:victim1)
-      unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key])
+      unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
         raise table.errors.full_messages
       end
       exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
@@ -95,6 +96,8 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       real_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
+
+      assert EventLog.last!.transaction_id.nil? ^ (key[:yn_record_txid] == 'Y'), "Transaction-ID must be filled only if requested! yn_record_txid=#{key[:yn_record_txid]}"
 
       # Dump Event_Logs and check JSON structure
       Rails.logger.info "======== Dump all event_logs ========="

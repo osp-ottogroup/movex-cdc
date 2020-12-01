@@ -103,6 +103,7 @@ class DbTriggerOracle < Database
             operation_short:    op[:operation],                                   # I/U/D
             kafka_key_handling: tab[:kafka_key_handling],
             fixed_message_key:  tab[:fixed_message_key],
+            yn_record_txid:     tab[:yn_record_txid],
             condition:          op[:condition],
             columns:            op[:columns]
         }
@@ -184,6 +185,7 @@ class DbTriggerOracle < Database
     when 'N' then 'NULL'
     when 'P' then primary_key_sql(target_trigger_data[:schema_name], target_trigger_data[:table_name], target_trigger_data[:operation])
     when 'F' then "'#{target_trigger_data[:fixed_message_key]}'"
+    when 'T' then "transaction_id"
     else
       raise "Unsupported Kafka key handling type '#{target_trigger_data[:kafka_key_handling]}'"
     end
@@ -257,22 +259,32 @@ TYPE Payload_Rec_Type IS RECORD (
   Msg_Key VARCHAR2(4000)
 );
 TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
-payload_rec Payload_Rec_Type;
-payload_tab Payload_Tab_Type;
-tab_size    PLS_INTEGER;
-dbuser      VARCHAR2(128) := USER;
+payload_rec     Payload_Rec_Type;
+payload_tab     Payload_Tab_Type;
+tab_size        PLS_INTEGER;
+dbuser          VARCHAR2(128) := USER;
+transaction_id  VARCHAR2(100) := NULL;
 
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO #{Trixx::Application.config.trixx_db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key)
-    VALUES (Event_Logs_Seq.NextVal, #{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', dbuser, payload_tab(i).Payload, SYSTIMESTAMP, payload_tab(i).msg_key);
+    INSERT INTO #{Trixx::Application.config.trixx_db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key, Transaction_ID)
+    VALUES (Event_Logs_Seq.NextVal,
+            #{target_trigger_data[:table_id]},
+            '#{target_trigger_data[:operation_short]}',
+            dbuser,
+            payload_tab(i).Payload,
+            SYSTIMESTAMP,
+            payload_tab(i).msg_key,
+            transaction_id
+    );
   payload_tab.DELETE;
 END Flush;
 
 BEFORE STATEMENT IS
 BEGIN
-  payload_tab.DELETE; /* remove possible fragments of previous transactions */
+  payload_tab.DELETE; /* remove possible fragments of previous transactions */\
+  #{"\ntransaction_id := DBMS_TRANSACTION.local_transaction_id;" if target_trigger_data[:yn_record_txid] == 'Y'}
 END BEFORE STATEMENT;
 
 #{position_from_operation(target_trigger_data[:operation])} EACH ROW IS
