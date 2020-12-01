@@ -6,6 +6,7 @@
                  :schema="schema"
                  v-on="$listeners"
                  @edit-table="onEditTable"/>
+
     <b-button v-if="schema"
               id="add-table-button"
               type="is-primary"
@@ -15,13 +16,14 @@
               outlined>
       Add table to observe
     </b-button>
-    <template v-if="showTableModal">
+
+    <template v-if="modal.show">
       <table-modal :tables="selectableTables"
                    :table="modal.table"
                    :schema="schema"
-                   :mode="modal.mode"
-                   @save="onSave"
-                   @remove="onRemove"
+                   @created="onCreated"
+                   @updated="onUpdated"
+                   @removed="onRemoved"
                    @close="onClose"/>
     </template>
   </div>
@@ -50,8 +52,8 @@ export default {
       dbTables: [],
       isLoading: false,
       modal: {
+        show: false,
         table: null,
-        mode: null,
       },
     };
   },
@@ -85,7 +87,6 @@ export default {
       }
     },
     onAddTable() {
-      this.modal.mode = 'ADD';
       this.modal.table = {
         id: null,
         schema_id: this.schema.id,
@@ -95,92 +96,39 @@ export default {
         kafka_key_handling: 'N',
         fixed_message_key: '',
       };
+      this.modal.show = true;
     },
     onEditTable(table) {
-      this.modal.mode = 'EDIT';
-      this.modal.table = { ...table };
+      this.modal.table = table;
+      this.modal.show = true;
     },
     onClose() {
       this.modal.table = null;
+      this.modal.show = false;
     },
-    async onRemove(table) {
-      try {
-        await CRUDService.tables.delete(table.id, table);
-        const index = this.tables.findIndex((t) => t.id === table.id);
-        this.tables.splice(index, 1);
-        this.modal.table = null;
-        this.modal.mode = null;
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
+    async onRemoved(removedTable) {
+      const index = this.tables.findIndex((table) => table.id === removedTable.id);
+      this.tables.splice(index, 1);
+      this.modal.table = null;
+      this.modal.show = false;
     },
-    async onSave(table) {
-      try {
-        if (table.id) {
-          await this.updateTable(table);
-        } else {
-          await this.createTable(table);
-        }
-        this.modal.table = null;
-        this.modal.mode = null;
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
-    },
-    async createTable(table) {
-      try {
-        const createdTable = await CRUDService.tables.create({ table });
-        this.tables.push(createdTable);
-        this.tables = this.tables.sort((a, b) => {
-          const aName = a.name.toUpperCase();
-          const bName = b.name.toUpperCase();
-          if (aName < bName) { return -1; }
-          if (aName > bName) { return 1; }
-          return 0;
-        });
-        this.$buefy.toast.open({
-          message: `Table '${createdTable.name}' added to TriXX configuration!`,
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      }
-    },
-    async updateTable(table) {
-      const updatedTable = await CRUDService.tables.update(table.id, { table });
-      this.$buefy.toast.open({
-        message: `Saved changes to table '${table.name}'!`,
-        type: 'is-success',
+    async onCreated(createdTable) {
+      this.tables.push(createdTable);
+      this.tables = this.tables.sort((a, b) => {
+        const aName = a.name.toUpperCase();
+        const bName = b.name.toUpperCase();
+        if (aName < bName) { return -1; }
+        if (aName > bName) { return 1; }
+        return 0;
       });
-      // TODO needs a better way of copying properties without dereferencing original object
-      this.tables.some((tables) => {
-        if (tables.id === updatedTable.id) { /* eslint-disable no-param-reassign */
-          tables.name = updatedTable.name;
-          tables.topic = updatedTable.topic;
-          tables.info = updatedTable.info;
-          tables.kafka_key_handling = updatedTable.kafka_key_handling;
-          tables.fixed_message_key = updatedTable.fixed_message_key;
-          tables.created_at = updatedTable.created_at;
-          tables.updated_at = updatedTable.updated_at;
-          return true;
-        }
-        return false;
-      });
+      this.modal.table = null;
+      this.modal.show = false;
+    },
+    async onUpdated(updatedTable) {
+      const index = this.tables.findIndex((table) => table.id === updatedTable.id);
+      this.$set(this.tables, index, updatedTable);
+      this.modal.table = null;
+      this.modal.show = false;
     },
   },
   watch: {
