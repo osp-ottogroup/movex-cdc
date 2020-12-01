@@ -46,9 +46,7 @@ export default {
   },
   data() {
     return {
-      // initialize array with one empty object; will be reseted in 'mounted' hook
-      // this is because buefy-table would otherwise not render headers
-      tables: [{}],
+      tables: [],
       dbTables: [],
       isLoading: false,
       modal: {
@@ -56,9 +54,6 @@ export default {
         table: null,
       },
     };
-  },
-  mounted() {
-    this.tables = [];
   },
   computed: {
     selectableTables() {
