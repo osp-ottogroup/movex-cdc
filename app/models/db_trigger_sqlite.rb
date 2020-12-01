@@ -69,6 +69,7 @@ class DbTriggerSqlite < Database
             operation_short:    op[:operation],                                   # I/U/D
             kafka_key_handling: tab[:kafka_key_handling],
             fixed_message_key:  tab[:fixed_message_key],
+            yn_record_txid:     tab[:yn_record_txid],
             condition:          op[:condition],
             columns:            op[:columns]
         }
@@ -135,6 +136,7 @@ class DbTriggerSqlite < Database
     when 'N' then 'NULL'
     when 'P' then primary_key_sql(target_trigger_data[:table_name], target_trigger_data[:operation])
     when 'F' then "'#{target_trigger_data[:fixed_message_key]}'"
+    when 'T' then "'Dummy Tx-ID'"
     else
       raise "Unsupported Kafka key handling type '#{target_trigger_data[:kafka_key_handling]}'"
     end
@@ -207,9 +209,15 @@ class DbTriggerSqlite < Database
 
     "\
 BEGIN
-  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key)
-  VALUES (#{target_trigger_data[:table_id]}, '#{target_trigger_data[:operation_short]}', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload}', #{message_key_sql(target_trigger_data)})
-  ;
+  INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
+  VALUES (#{target_trigger_data[:table_id]},
+          '#{target_trigger_data[:operation_short]}',
+          'main',
+           strftime('%Y-%m-%d %H-%M-%f','now'),
+          '#{payload}',
+           #{message_key_sql(target_trigger_data)},
+           #{target_trigger_data[:yn_record_txid] == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
+  );
 END;"
   end
 

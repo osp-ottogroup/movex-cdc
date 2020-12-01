@@ -465,8 +465,8 @@ class TransferThread
       # move event_log to list of erroneous and delete from queue
       @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_final_errors)
       Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Move to final error for Event_Logs.ID = #{event_log['id']}"}
-      Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg)
-                       SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg
+      Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg, Transaction_ID)
+                       SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg, Transaction_ID
                        FROM   Event_Logs
                        WHERE #{filter_sql}", { error_msg: "#{exception.class}:#{exception.message}. #{ExceptionHelper.explain_exception(exception)}"}.merge(filter_value)
       Database.execute "DELETE FROM Event_Logs WHERE #{filter_sql}", filter_value
@@ -480,6 +480,7 @@ class TransferThread
 \"tablename\": \"#{table.name}\",
 \"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
 \"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
+\"transaction_id\": #{event_log['transaction_id'].nil? ? "null" : "\"#{event_log['transaction_id']}\"" },
 #{event_log['payload']}
 }"
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size

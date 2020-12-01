@@ -1,6 +1,13 @@
 class Column < ApplicationRecord
   belongs_to :table
-  attribute :yn_pending, :string, limit: 1, default: 'N'  # is changed column value waiting for being activated in new generated trigger
+  attribute   :yn_pending, :string, limit: 1, default: 'N'  # is changed column value waiting for being activated in new generated trigger
+  validate    :validate_yn_columns
+
+  def validate_yn_columns
+    validate_yn_column :yn_log_insert
+    validate_yn_column :yn_log_update
+    validate_yn_column :yn_log_delete
+  end
 
   def self.count_active(filter_hash)
     retval = 0

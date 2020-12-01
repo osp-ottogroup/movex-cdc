@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_10_14_020000) do
+ActiveRecord::Schema.define(version: 2020_11_30_020000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -60,6 +60,7 @@ ActiveRecord::Schema.define(version: 2020_10_14_020000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "error_time", precision: 6, null: false
     t.text "error_msg", null: false
+    t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
   create_table "event_logs", force: :cascade do |t|
@@ -71,6 +72,7 @@ ActiveRecord::Schema.define(version: 2020_10_14_020000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
     t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
+    t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
   create_table "schema_rights", force: :cascade do |t|
@@ -126,6 +128,7 @@ ActiveRecord::Schema.define(version: 2020_10_14_020000) do
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.string "yn_record_txid", limit: 1, default: "N", null: false, comment: "Record transaction-ID for events of this table?."
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end

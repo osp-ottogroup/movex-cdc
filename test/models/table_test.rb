@@ -36,6 +36,9 @@ class TableTest < ActiveSupport::TestCase
     result = table.update(kafka_key_handling: 'F', fixed_message_key: nil)
     assert(!result, 'Validation should raise error for fixed_message_key if empty')
 
+    result = table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
+    assert(!result, 'Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
+
     result = table.update(kafka_key_handling: 'X')
     assert(!result, 'Validation should raise error for wrong kafka_key_handling')
 
@@ -43,6 +46,8 @@ class TableTest < ActiveSupport::TestCase
     result = table.update(topic: nil)
     assert(!result, 'Validation should raise error if neither table nor schema have valid topic')
 
+    result = table.update(yn_record_txid: 'f')
+    assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
   end
 
   test "oldest trigger change dates per operation" do
