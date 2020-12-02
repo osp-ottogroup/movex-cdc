@@ -9,7 +9,7 @@
         </p>
       </div>
       <div class="column is-size-7 has-text-right">
-        <span>
+        <span v-if="releaseInfo !== null">
           Release:
           <i class="release-info">{{releaseInfo}}</i>
         </span>

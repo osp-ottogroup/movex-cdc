@@ -7,6 +7,8 @@
            aria-modal
            @close="onClose">
     <div class="modal-card" style="width: auto">
+      <b-loading :active="isLoading" :is-full-page="false"/>
+
       <header class="modal-card-head">
         <p class="modal-card-title">{{title}}</p>
         <button class="delete"
@@ -17,8 +19,7 @@
 
       <section class="modal-card-body">
         <b-field v-if="showTableSelect" label="Table">
-          <b-select ref="tableSelect"
-                    v-model="internalTable.name"
+          <b-select v-model="internalTable.name"
                     placeholder="Select a table"
                     required
                     validation-message="Select a table to add"
@@ -30,8 +31,7 @@
         </b-field>
 
         <b-field label="Kafka-Topic">
-          <b-input ref="topicInput"
-                   placeholder="Enter Kafka-Topic"
+          <b-input placeholder="Enter Kafka-Topic"
                    :required="!schema.topic && !internalTable.topic"
                    validation-message="Add a topic to the table because the schema has none"
                    v-model="internalTable.topic"/>
@@ -45,8 +45,7 @@
               </option>
             </b-select>
             <b-field v-if="internalTable.kafka_key_handling === 'F'">
-              <b-input ref="fixedMessageInput"
-                       v-model="internalTable.fixed_message_key"
+              <b-input v-model="internalTable.fixed_message_key"
                        placeholder="Fixed Message Key"
                        required/>
             </b-field>
@@ -54,8 +53,7 @@
         </b-field>
 
         <b-field label="Info">
-          <b-input ref="infoTextarea"
-                   type="textarea"
+          <b-input type="textarea"
                    rows="1"
                    v-model="internalTable.info"
                    required
@@ -104,6 +102,7 @@
 
 <script>
 import CRUDService from '@/services/CRUDService';
+import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
   name: 'TableModal',
@@ -111,11 +110,10 @@ export default {
     tables: { type: Array, default: () => [] },
     table: { type: Object, default: () => {} },
     schema: { type: Object, default: () => {} },
-    isActive: { type: Boolean, default: false },
-    mode: { type: String, default: 'ADD' }, // 'ADD' or 'EDIT'
   },
   data() {
     return {
+      isLoading: false,
       internalTable: { ...this.table },
       triggerDates: {},
       kafkaKeyHandlingOptions: [
@@ -141,7 +139,7 @@ export default {
   },
   computed: {
     title() {
-      if (this.mode === 'ADD') {
+      if (this.isAddMode) {
         return 'Add table to observe';
       }
       return `Edit observed table (${this.internalTable.name})`;
@@ -150,33 +148,52 @@ export default {
       return this.isAddMode;
     },
     isAddMode() {
-      return this.mode === 'ADD';
+      return this.table.id === null;
     },
   },
   methods: {
     onClose() {
       this.$emit('close');
     },
-    onSave() {
-      if (this.showTableSelect) {
-        this.$refs.tableSelect.checkHtml5Validity();
+    async onRemove() {
+      try {
+        this.isLoading = true;
+        await CRUDService.tables.delete(this.internalTable.id, this.internalTable);
+        this.$emit('removed', this.internalTable);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
       }
-      this.$refs.topicInput.checkHtml5Validity();
-      this.$refs.infoTextarea.checkHtml5Validity();
-      if (this.internalTable.kafka_key_handling === 'F') {
-        this.$refs.fixedMessageInput.checkHtml5Validity();
-      } else {
-        this.internalTable.fixed_message_key = null;
-      }
-      const invalidFields = document.querySelectorAll('#table-modal :invalid');
-      if (invalidFields.length > 0) {
-        // invalidFields.forEach(field => field.dispatchEvent(new Event('blur')));
+    },
+    async onSave() {
+      const invalidElements = this.$el.querySelectorAll(':invalid');
+      if (invalidElements.length > 0) {
+        invalidElements.forEach((e) => e.reportValidity());
         return;
       }
-      this.$emit('save', this.internalTable);
-    },
-    onRemove() {
-      this.$emit('remove', this.internalTable);
+
+      try {
+        if (this.internalTable.id) {
+          const updatedTable = await CRUDService.tables.update(this.internalTable.id, { table: this.internalTable });
+          this.$emit('updated', updatedTable);
+        } else {
+          const createdTable = await CRUDService.tables.create({ table: this.internalTable });
+          this.$emit('created', createdTable);
+        }
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      }
     },
   },
 };

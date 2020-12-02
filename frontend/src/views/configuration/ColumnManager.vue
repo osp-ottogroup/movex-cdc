@@ -192,10 +192,10 @@ export default {
     },
   },
   watch: {
-    async table(newTable) {
-      if (newTable) {
+    async table(newTable, oldTable) {
+      if (newTable && newTable.id !== oldTable?.id) {
         await this.reload(newTable);
-      } else {
+      } else if (!newTable) {
         this.columns = [];
         this.dbColumns = [];
         this.mergedColumns = [];

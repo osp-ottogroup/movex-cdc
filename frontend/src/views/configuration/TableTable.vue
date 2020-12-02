@@ -53,12 +53,21 @@ export default {
   },
   watch: {
     tables(newList, oldList) {
-      if (!newList || newList !== oldList) {
+      if (!newList || newList.length === 0) {
         this.selectedTable = null;
-      }
-      if (newList && newList.length > 0 && this.selectedTable === null) {
+      } else if (newList && newList !== oldList) {
         // eslint-disable-next-line prefer-destructuring
         this.selectedTable = newList[0];
+      } else if (newList && newList === oldList && this.selectedTable !== null) {
+        // reference of table list has not changed
+        // it seems that the selected table has changed, so find changed table
+        const newTable = newList.find((table) => table.id === this.selectedTable.id);
+        if (newTable !== undefined) {
+          this.selectedTable = newTable;
+        } else {
+          // table was deleted
+          this.selectedTable = null;
+        }
       }
       this.$emit('table-selected', this.selectedTable);
     },
