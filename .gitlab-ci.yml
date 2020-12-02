@@ -6,12 +6,15 @@ image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
 variables:
   TEST_HOST: "oracle-db"
+  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
   - code_analysis
   - test
   - build
+  - securityscan
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
@@ -109,10 +112,6 @@ test_oracle_19.3:
 build_trixx:
   stage: build
 
-  variables:
-    #IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA
-    IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
-
   image:
     name: gcr.io/kaniko-project/executor:debug
     entrypoint: [""]
@@ -122,8 +121,8 @@ build_trixx:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
-    - echo "Docker image = $IMAGE_TAG"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $IMAGE_TAG
+    - echo "Docker image = $DOCKER_IMAGE"
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $DOCKER_IMAGE
 
 generate_asciidoc:
   stage: build
@@ -139,6 +138,14 @@ generate_asciidoc:
       - doc/trixx.html
       - doc/images/
       - doc/trixx.pdf
+
+trivy:
+  stage: securityscan
+  script:
+    # Download and install trivy
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
+    - ./trivy $DOCKER_IMAGE
+    - echo "TODO: evaluate trivy results"
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:
