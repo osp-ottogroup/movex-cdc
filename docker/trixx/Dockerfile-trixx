@@ -30,7 +30,7 @@ RUN npm run build
 RUN npm audit --production
 
 # STAGE 2: build trixx backend
-FROM jruby:9.2.11.1
+FROM jruby:9.2.13.0
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
