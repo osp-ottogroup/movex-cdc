@@ -44,7 +44,7 @@ RUN  apt-get update && \
      sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
      sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
      dpkg-reconfigure -f noninteractive tzdata && \
-     gem install bundler
+     gem install --no-document bundler
 
 WORKDIR /app
 
