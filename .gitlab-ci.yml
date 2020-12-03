@@ -145,7 +145,7 @@ trivy:
     # Download and install trivy
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
     # Check vulnerabilities, evaluates exceptions in .trivyignore
-    - ./trivy --exit_code 1 $DOCKER_IMAGE
+    - ./trivy --exit-code 1 $DOCKER_IMAGE
     - echo "TODO evaluate trivy results"
 
 # Deploy the static site to GitLab Pages, but only for master branch
