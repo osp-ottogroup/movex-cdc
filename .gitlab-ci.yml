@@ -151,10 +151,10 @@ trivy_scan:
 
 .docker_test:
   script:
-    - podman run --rm \
+    - podman --events-backend=file run --rm \
       -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
-    - podman run --rm --name trixx -p8080:8080 -d \
+    - podman --events-backend=file run --rm --name trixx -p8080:8080 -d \
       -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
     - podman stop trixx
