@@ -16,4 +16,4 @@ export RAILS_LOG_TO_STDOUT_AND_FILE=true
 export RAILS_SERVE_STATIC_FILES=true
 export RAILS_MIN_THREADS=10
 # Default for RAILS_MAX_THREADS is set as ENV in Dockerfile
-exec rails server --port 8080 --environment production
+bundle exec rails server --port 8080 --environment production
