@@ -2,7 +2,7 @@
 # Sandro Preuß, Peter Ramm, 2020-04-01
 
 # Usage:
-# Build image:      > docker pull jruby:9.2.11.1
+# Build image:      > docker pull jruby:9.2.13.0
 #                   > docker build -f docker/trixx/Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t trixx .
 # Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx -e LOG_LEVEL=debug trixx
 # Store image at git.osp-dd.de:5005/main/trixx/trixx for deployment
@@ -30,28 +30,34 @@ RUN npm run build
 RUN npm audit --production
 
 # STAGE 2: build trixx backend
-FROM jruby:9.2.13.0
+FROM adoptopenjdk/openjdk14:alpine-jre
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
 ENV RAILS_MAX_THREADS=300
+ENV JRUBY_VERSION=9.2.13.0
+ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
 
-RUN  apt-get update && \
-     apt-get -y upgrade && \
-     apt-get install -y procps git vim && \
-     sh -c "echo 'Europe/Berlin' > /etc/timezone" && \
-     sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime" && \
-     dpkg-reconfigure -f noninteractive tzdata && \
-     gem install bundler
+RUN  apk update && \
+     apk upgrade && \
+     apk add curl bash tar wget procps vim tzdata && \
+     cd /opt && wget https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
+     cd /opt && tar -xvf jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
+     ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby && \
+     ruby -v && \
+     echo 'Europe/Berlin' > /etc/timezone && \
+     ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
+     date && \
+     gem install --no-document bundler && \
+     echo "gem: --no-rdoc --no-ri" > ~/.gemrc
 
 WORKDIR /app
 
 COPY ${BACKEND_SRC_PATH}/Gemfile* ./
 
-RUN bundle config set deployment 'true' && \
-    bundle install --jobs 4
+RUN  bundle config set deployment 'true' && bundle install --jobs 4
 
 COPY ${BACKEND_SRC_PATH} .
 

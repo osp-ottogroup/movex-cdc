@@ -1,0 +1,4 @@
+# possible vulnerabilities to ignore
+
+# Targets to sprockets 2.x, we are using sprocket 4.x
+CVE-2014-7819
