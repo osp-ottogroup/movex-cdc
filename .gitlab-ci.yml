@@ -5,8 +5,10 @@
 image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
 variables:
-  TEST_HOST: "oracle-db"
-  DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  CI_DEBUG_SERVICES: trace
+  TRIXX_KAFKA_SEED_BROKER: localhost:9092
+  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
+  FINAL_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
 
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
@@ -14,7 +16,7 @@ stages:
   - code_analysis
   - test
   - build
-  - securityscan
+  - post_build
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
@@ -26,16 +28,15 @@ brakeman_analysis:
     - brakeman -A
 
 .tests:
-#  services:
-#    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
-#      alias: kafka
+  #  services:
+  #    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
+  #      alias: kafka
   variables:
     RAILS_ENV: "test"
-    TRIXX_KAFKA_SEED_BROKER: localhost:9092
-#    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
-#    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
-#    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-#    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
+  #    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
+  #    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
+  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
+  #    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
 
   script:
     # Set Timezone to CET first
@@ -121,8 +122,8 @@ build_trixx:
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
-    - echo "Docker image = $DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx --destination $DOCKER_IMAGE
+    - echo "Docker image = $TEMP_DOCKER_IMAGE"
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-alpine --destination $TEMP_DOCKER_IMAGE
 
 generate_asciidoc:
   stage: build
@@ -139,13 +140,41 @@ generate_asciidoc:
       - doc/images/
       - doc/trixx.pdf
 
-trivy:
-  stage: securityscan
+trivy_scan:
+  stage: post_build
   script:
     # Download and install trivy
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
-    - ./trivy $DOCKER_IMAGE
+    # Check vulnerabilities, evaluates exceptions in .trivyignore
+    - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
     - echo "TODO evaluate trivy results"
+
+.docker_test:
+  script:
+    # dummy action up to get service running
+    - env | sort
+    # - podman --events-backend=file run --rm \
+    #   -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
+    #   -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
+    # - podman --events-backend=file run --rm --name trixx -p8080:8080 -d \
+    #   -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
+    #   -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
+  # - podman stop trixx
+
+docker_test_oracle_12.1:
+  stage: post_build
+  extends: .docker_test
+  services:
+    - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
+      alias: oracle-db
+    - name: $TEMP_DOCKER_IMAGE
+      alias: trixx
+  variables:
+    TRIXX_DB_TYPE: ORACLE
+    TRIXX_DB_USER: trixx
+    TRIXX_DB_PASSWORD: trixx
+    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
+
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:
@@ -162,3 +191,10 @@ pages:
       - public/trixx.pdf
       - public/trixx.html
       - public/images/
+
+# Make the Docker image available for user after treating as clean
+final_tag_docker:
+  stage: deploy
+  script:
+    - podman --events-backend=file tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
+    - podman --events-backend=file push $FINAL_DOCKER_IMAGE
