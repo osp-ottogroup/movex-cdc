@@ -5,7 +5,7 @@
 image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
 variables:
-  # TEST_HOST: "oracle-db"
+  CI_DEBUG_SERVICES: trace
   TRIXX_KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   FINAL_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
