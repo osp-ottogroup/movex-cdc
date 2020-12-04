@@ -19,7 +19,8 @@ stages:
 .docker_test:
   script:
     - env
-    - curl trixx:8080/
+    - ping -c 5 trixx-ci-temp
+    - curl trixx-ci-temp:8080/
     # - podman --events-backend=file run --rm \
     #   -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
     #   -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
@@ -35,7 +36,7 @@ docker_test_oracle_12.1:
     - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
     - name: $TEMP_DOCKER_IMAGE
-      alias: trixx
+      alias: trixx-ci-temp
   variables:
     CI_DEBUG_SERVICES: trace
     TRIXX_DB_TYPE: ORACLE
