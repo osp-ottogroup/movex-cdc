@@ -196,5 +196,8 @@ pages:
 final_tag_docker:
   stage: deploy
   script:
+    # Ensure previously built image is available
+    - podman --events-backend=file pull $TEMP_DOCKER_IMAGE
+    # make master tag available for consumer
     - podman --events-backend=file tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
     - podman --events-backend=file push $FINAL_DOCKER_IMAGE
