@@ -50,6 +50,7 @@ class TablesController < ApplicationController
 
   # PATCH/PUT /tables/1
   def update
+    logger.debug table_params
     table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @table.update(table_params)
       log_activity(
@@ -84,7 +85,7 @@ class TablesController < ApplicationController
 
   # Only allow a trusted parameter "white list" through.
   def table_params
-    params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key, :lock_version)
+    params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key, :lock_version, :yn_record_txid)
   end
 
 

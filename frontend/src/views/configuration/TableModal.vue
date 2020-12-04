@@ -37,10 +37,17 @@
                    v-model="internalTable.topic"/>
         </b-field>
 
+        <b-field label="Record Transaction-ID">
+          <b-switch v-model="internalTable.yn_record_txid"
+                    @input="onRecordTxIdChanged"
+                    true-value="Y"
+                    false-value="N"/>
+        </b-field>
+
         <b-field label="Kafka Key Handling">
           <b-field>
             <b-select v-model="internalTable.kafka_key_handling" expanded>
-              <option v-for="option in kafkaKeyHandlingOptions" :key="option.value" :value="option.value">
+              <option v-for="option in kafkaKeyHandlingOptions" :key="option.value" :value="option.value" :disabled="optionDisabled(option.value)">
                 {{ option.label }}
               </option>
             </b-select>
@@ -117,9 +124,10 @@ export default {
       internalTable: { ...this.table },
       triggerDates: {},
       kafkaKeyHandlingOptions: [
-        { value: 'N', label: 'N - None' },
-        { value: 'P', label: 'P - Primary Key' },
-        { value: 'F', label: 'F - Fixed Key' },
+        { value: 'N', label: 'None' },
+        { value: 'F', label: 'Fixed Key' },
+        { value: 'P', label: 'Primary Key' },
+        { value: 'T', label: 'Transaction-ID' },
       ],
     };
   },
@@ -152,6 +160,16 @@ export default {
     },
   },
   methods: {
+    optionDisabled(value) {
+      return value === 'T' && this.internalTable.yn_record_txid === 'N';
+    },
+    onRecordTxIdChanged(value) {
+      // reset 'kafka_key_handling' to N(one) if recording of transaction id changed to disabled
+      // and 'kafka_key_handling' is currently T(ransaction)
+      if (value === 'N' && this.internalTable.kafka_key_handling === 'T') {
+        this.internalTable.kafka_key_handling = 'N';
+      }
+    },
     onClose() {
       this.$emit('close');
     },
@@ -208,5 +226,10 @@ export default {
   }
   .trigger-dates {
     margin-top: 2rem;
+  }
+  select {
+    option[disabled] {
+      color: darkgray;
+    }
   }
 </style>
