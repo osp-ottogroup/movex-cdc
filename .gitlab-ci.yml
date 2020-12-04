@@ -18,7 +18,7 @@ stages:
 
 .docker_test:
   script:
-    - env
+    - env | sort
     - ping -c 5 trixx-ci-temp
     - curl trixx-ci-temp:8080/
     # - podman --events-backend=file run --rm \
