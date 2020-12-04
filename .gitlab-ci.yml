@@ -1,165 +1,21 @@
-# Test Panorama from https://github.com/rammpeter/Panorama_Gem
-# Requires:
-#  - prebuilt database image with test users
+# Reduced Pipeline
 
 image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
 variables:
   CI_DEBUG_SERVICES: trace
   TRIXX_KAFKA_SEED_BROKER: localhost:9092
-  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
-  FINAL_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  TEMP_DOCKER_IMAGE: git.osp-dd.de:5005/main/trixx:master-ci-temp
 
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - code_analysis
-  - test
-  - build
   - post_build
-  - deploy
-
-# interactive edit config/brakemen.ignore by > brakeman -A -I
-# Use this to exclude findings after considering as false positives
-brakeman_analysis:
-  stage: code_analysis
-  script:
-    - gem install brakeman
-    - brakeman -A
-
-.tests:
-  #  services:
-  #    - name: git.osp-dd.de:5005/main/trixx/kafka-compact
-  #      alias: kafka
-  variables:
-    RAILS_ENV: "test"
-  #    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
-  #    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
-  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-  #    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
-
-  script:
-    # Set Timezone to CET first
-    - sh -c "echo 'Europe/Berlin' > /etc/timezone"
-    - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
-    - dpkg-reconfigure -f noninteractive tzdata
-    - /opt/start-kafka.sh
-    - date
-    - java -version
-    - gem install bundler
-    - bundle config set deployment 'true'
-    - bundle install --jobs 4
-    - bundle exec rake ci_preparation:create_user
-    - bundle exec rails db:migrate RAILS_ENV=test
-    - >
-      if [ "$TRIXX_DB_TYPE" == "ORACLE" ]; then
-        # Check if db:rollback is functional + restore migration
-        # SQLite does not support remove_foreign_key although it is implemented
-        bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
-      fi
-    - bundle exec rails test
-  artifacts:
-    when: always
-    paths:
-      - log/
-      - tmp/screenshots/
-      - /opt/kafka/logs/*
-    expire_in: 1 month
-
-
-.tests_SQLITE:
-  extends: .tests
-  variables:
-    TRIXX_DB_TYPE: "SQLITE"
-
-.tests_ORACLE:
-  extends: .tests
-  variables:
-    TRIXX_DB_TYPE: "ORACLE"
-    TRIXX_DB_SYS_PASSWORD: "oracle"
-    TEST_SERVICENAME: "ORCL"
-
-test_sqlite:
-  stage: test
-  extends: .tests_SQLITE
-
-#test_oracle_11.2:
-#  stage: test
-#  extends: .tests_ORACLE
-#  services:
-#    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
-#      alias: oracle-db
-#  variables:
-#    TRIXX_DB_URL: "oracle-db:1521/ORCL"
-
-test_oracle_12.1:
-  stage: test
-  extends: .tests_ORACLE
-  services:
-    - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
-      alias: oracle-db
-  variables:
-    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
-
-test_oracle_19.3:
-  stage: test
-  extends: .tests_ORACLE
-  services:
-    - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:19.3.0.0-ee
-      alias: oracle-db
-  variables:
-    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
-
-build_trixx:
-  stage: build
-
-  image:
-    name: gcr.io/kaniko-project/executor:debug
-    entrypoint: [""]
-
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
-    - cat build.json
-    - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-alpine --destination $TEMP_DOCKER_IMAGE
-
-generate_asciidoc:
-  stage: build
-  script:
-    - gem install asciidoctor
-    - asciidoctor -o doc/trixx.html doc/trixx.adoc
-    - gem install asciidoctor-pdf
-    - asciidoctor-pdf -o doc/trixx.pdf doc/trixx.adoc
-  artifacts:
-    # artifacts are downloadable at https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/download?job=generate_asciidoc
-    # direct access a'la https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/file/doc/trixx.html?job=generate_asciidoc
-    paths:
-      - doc/trixx.html
-      - doc/images/
-      - doc/trixx.pdf
-
-trivy_scan:
-  stage: post_build
-  script:
-    # Download and install trivy
-    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
-    # Check vulnerabilities, evaluates exceptions in .trivyignore
-    - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
-    - echo "TODO evaluate trivy results"
 
 .docker_test:
   script:
     # dummy action up to get service running
     - env | sort
-    # - podman --events-backend=file run --rm \
-    #   -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
-    #   -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
-    # - podman --events-backend=file run --rm --name trixx -p8080:8080 -d \
-    #   -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
-    #   -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
-  # - podman stop trixx
 
 docker_test_oracle_12.1:
   stage: post_build
@@ -176,25 +32,3 @@ docker_test_oracle_12.1:
     TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
 
 
-# Deploy the static site to GitLab Pages, but only for master branch
-pages:
-  stage: deploy
-  only:
-    refs:
-      - master
-  script:
-    - cp doc/trixx.html public/
-    - cp -r doc/images public/
-    - cp doc/trixx.pdf public/
-  artifacts:
-    paths:
-      - public/trixx.pdf
-      - public/trixx.html
-      - public/images/
-
-# Make the Docker image available for user after treating as clean
-final_tag_docker:
-  stage: deploy
-  script:
-    - podman tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
-    - podman push $FINAL_DOCKER_IMAGE
