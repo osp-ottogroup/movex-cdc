@@ -196,5 +196,5 @@ pages:
 final_tag_docker:
   stage: deploy
   script:
-    - podman tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
-    - podman push $FINAL_DOCKER_IMAGE
+    - podman --events-backend=file tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
+    - podman --events-backend=file push $FINAL_DOCKER_IMAGE
