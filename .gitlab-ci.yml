@@ -196,6 +196,7 @@ pages:
 final_tag_docker:
   stage: deploy
   script:
+    - podman login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     # Ensure previously built image is available
     - podman --events-backend=file pull $TEMP_DOCKER_IMAGE
     # make master tag available for consumer
