@@ -33,8 +33,6 @@ docker_test_oracle_12.1:
   services:
     - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
-    - name: $TEMP_DOCKER_IMAGE
-      alias: trixx
   variables:
     TRIXX_DB_TYPE: ORACLE
     TRIXX_DB_USER: trixx
