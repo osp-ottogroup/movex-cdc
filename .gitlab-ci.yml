@@ -26,11 +26,11 @@ stages:
     - podman ps
     - |
       echo "
-      MAX_WAIT=4
+      MAX_WAIT=60
       typeset -i LOOPS=0
       echo :\$LOOPS:
       while [ \$LOOPS -lt \$MAX_WAIT ]; do
-        curl localhost:8080/ >/dev/null
+        curl localhost:8080/ 2>/dev/null >/dev/null
         retval=\$?
         if [ \$retval -eq 0 ]; then
           break
@@ -40,7 +40,7 @@ stages:
         sleep 1
       done
       if [ \$LOOPS -eq \$MAX_WAIT ]; then
-        echo 'No access to port 8080'
+        echo No access to port 8080 after \$MAX_WAIT seconds
         echo retval = \$retval
         exit 1
       else
@@ -48,6 +48,7 @@ stages:
       fi
       " | bash
     - curl localhost:8080/
+    - curl localhost:8080/healthcheck
     - podman --events-backend=file stop trixx
 
 docker_test_oracle_12.1:
