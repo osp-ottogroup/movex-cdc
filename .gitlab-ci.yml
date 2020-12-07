@@ -30,7 +30,7 @@ stages:
       typeset -i LOOPS=0
       echo :\$LOOPS:
       while [ \$LOOPS -lt \$MAX_WAIT ]; do
-        curl localhost:8080/ 2>/dev/null >/dev/null
+        curl http://localhost:8080/ 2>/dev/null >/dev/null
         retval=\$?
         if [ \$retval -eq 0 ]; then
           break
@@ -47,8 +47,16 @@ stages:
         exit 0
       fi
       " | bash
-    - curl localhost:8080/
-    - curl localhost:8080/healthcheck/
+    - curl http://localhost:8080/
+    - curl -L http://localhost:8080/health_check/
+    - |
+      echo "
+      curl -L http://localhost:8080/health_check/ | grep health_check_timestamp
+      if [ \$? -ne 0 ]; then
+        echo healthcheck not complete
+        exit 1
+      fi
+      " | bash
     - podman --events-backend=file stop trixx
 
 docker_test_oracle_12.1:
