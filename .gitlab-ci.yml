@@ -25,21 +25,19 @@ stages:
     - sleep 5
     - podman ps
     - |
-      echo "
       typeset -i LOOPS=0
-      echo :$LOOPS:
-      while [ $LOOPS -lt 20 ]; do
+      echo :\$LOOPS:
+      while [ \$LOOPS -lt 20 ]; do
         curl localhost:8080/
-        if [ $? -eq 0 ]; then
+        if [ \$? -eq 0 ]; then
           break
         fi
         LOOPS=LOOPS+1
-        echo $LOOPS
+        echo \$LOOPS
         sleep 1
       done
       echo 'No access to port 8080'
       exit 1
-      " | /bin/bash
     - curl localhost:8080/
     - podman stop trixx
 
