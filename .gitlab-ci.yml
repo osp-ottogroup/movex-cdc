@@ -17,11 +17,11 @@ stages:
     # dummy action up to get service running
     - podman --events-backend=file login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - podman --events-backend=file pull $TEMP_DOCKER_IMAGE
-    - podman --events-backend=file --cgroup-manager=cgroupfs run -d --rm --net=host \
-      -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
+    - podman --events-backend=file --cgroup-manager=cgroupfs run -d --rm --net=host
+      -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
-    - podman --events-backend=file --cgroup-manager=cgroupfs run -d --rm --net=host --name=trixx -p8080:8080 \
-      -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL \
+    - podman --events-backend=file --cgroup-manager=cgroupfs run -d --rm --net=host --name=trixx -p8080:8080
+      -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
     - env | sort
     - podman ps
