@@ -33,8 +33,10 @@ stages:
           break
         fi
         LOOP_COUNT=LOOP_COUNT+1
+        echo $LOOP_COUNT
         sleep 1
-      done" | /bin/bash
+      done
+      " | /bin/bash
     - curl localhost:8080/
     - podman stop trixx
 
