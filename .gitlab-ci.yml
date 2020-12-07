@@ -28,9 +28,10 @@ stages:
       echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
-      while [ \$LOOPS -lt 20 ]; do
+      while [ \$LOOPS -lt 40 ]; do
         curl localhost:8080/
-        if [ \$? -eq 0 ]; then
+        retval=\$?
+        if [ \$retval -eq 0 ]; then
           break
         fi
         LOOPS=LOOPS+1
@@ -38,6 +39,7 @@ stages:
         sleep 1
       done
       echo 'No access to port 8080'
+      echo retval = \$retval
       exit 1
       " | bash
     - curl localhost:8080/
