@@ -188,6 +188,7 @@ trivy_scan:
     - curl -L http://localhost:8080/health_check/
     - |
       echo "
+      sleep 3
       curl -L http://localhost:8080/health_check/ | grep health_check_timestamp
       if [ \$? -ne 0 ]; then
         echo healthcheck not complete
