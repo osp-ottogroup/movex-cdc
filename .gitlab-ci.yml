@@ -22,7 +22,9 @@ stages:
     - podman --events-backend=file --cgroup-manager=cgroupfs run -d --rm --name=trixx -p8080:8080
       -e TRIXX_DB_TYPE=ORACLE -e TRIXX_DB_USER=trixx -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_URL=$TRIXX_DB_URL
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
+    - sleep 5
     - podman ps
+    - bash -c "while docker ps | grep trixx | grep 'health: starting'; do sleep 1; done"
     - curl localhost:8080/
     - podman stop trixx
 
