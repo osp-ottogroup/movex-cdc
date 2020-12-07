@@ -48,7 +48,7 @@ stages:
       fi
       " | bash
     - curl localhost:8080/
-    - curl localhost:8080/healthcheck
+    - curl localhost:8080/healthcheck/
     - podman --events-backend=file stop trixx
 
 docker_test_oracle_12.1:
