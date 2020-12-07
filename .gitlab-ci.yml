@@ -26,15 +26,15 @@ stages:
     - podman ps
     - |
       echo "
-      typeset -i LOOP_COUNT=0
-      echo :$LOOP_COUNT:
-      while [ $LOOP_COUNT -lt 20 ]; do
+      typeset -i LOOPS=0
+      echo :$LOOPS:
+      while [ $LOOPS -lt 20 ]; do
         curl localhost:8080/
         if [ $? -eq 0 ]; then
           break
         fi
-        LOOP_COUNT=LOOP_COUNT+1
-        echo $LOOP_COUNT
+        LOOPS=LOOPS+1
+        echo $LOOPS
         sleep 1
       done
       echo 'No access to port 8080'
