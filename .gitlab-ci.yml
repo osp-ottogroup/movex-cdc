@@ -27,6 +27,7 @@ stages:
     - |
       echo "
       typeset -i LOOP_COUNT=0
+      echo :$LOOP_COUNT:
       while [ $LOOP_COUNT -lt 20 ]; do
         curl localhost:8080/
         if [ $? -eq 0 ]; then
@@ -36,6 +37,8 @@ stages:
         echo $LOOP_COUNT
         sleep 1
       done
+      echo 'No access to port 8080'
+      exit 1
       " | /bin/bash
     - curl localhost:8080/
     - podman stop trixx
