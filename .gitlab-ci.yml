@@ -25,6 +25,7 @@ stages:
     - sleep 5
     - podman ps
     - |
+      echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
       while [ \$LOOPS -lt 20 ]; do
@@ -38,6 +39,7 @@ stages:
       done
       echo 'No access to port 8080'
       exit 1
+      " | bash
     - curl localhost:8080/
     - podman stop trixx
 
