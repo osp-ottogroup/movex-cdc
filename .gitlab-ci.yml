@@ -24,7 +24,16 @@ stages:
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
     - sleep 5
     - podman ps
-    - while podman ps | grep trixx | grep 'starting'; do sleep 1; done
+    - |
+      typeset -i LOOP_COUNT=0
+      while [ $LOOP_COUNT -lt 20 ]; do
+        curl localhost:8080/
+        if [ $? -eq 0 ]; then
+          break
+        fi
+        LOOP_COUNT=LOOP_COUNT+1
+        sleep 1
+      done
     - curl localhost:8080/
     - podman stop trixx
 
