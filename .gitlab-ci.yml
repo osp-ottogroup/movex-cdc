@@ -26,11 +26,11 @@ stages:
     - podman ps
     - |
       echo "
-      MAX_WAIT=40
+      MAX_WAIT=4
       typeset -i LOOPS=0
       echo :\$LOOPS:
       while [ \$LOOPS -lt \$MAX_WAIT ]; do
-        curl localhost:8080/
+        curl localhost:8080/ >/dev/null
         retval=\$?
         if [ \$retval -eq 0 ]; then
           break
@@ -48,7 +48,7 @@ stages:
       fi
       " | bash
     - curl localhost:8080/
-    - podman stop trixx
+    - podman --events-backend=file stop trixx
 
 docker_test_oracle_12.1:
   stage: post_build
