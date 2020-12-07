@@ -24,7 +24,7 @@ stages:
       -e TRIXX_KAFKA_SEED_BROKER=$TRIXX_KAFKA_SEED_BROKER $TEMP_DOCKER_IMAGE
     - sleep 5
     - podman ps
-    - bash -c "while podman ps | grep trixx | grep 'starting'; do sleep 1; done"
+    - while podman ps | grep trixx | grep 'starting'; do sleep 1; done
     - curl localhost:8080/
     - podman stop trixx
 
