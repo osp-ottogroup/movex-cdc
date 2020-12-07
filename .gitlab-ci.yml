@@ -25,7 +25,7 @@ stages:
     - sleep 5
     - podman ps
     - |
-      bash -c "
+      echo "
       typeset -i LOOP_COUNT=0
       while [ $LOOP_COUNT -lt 20 ]; do
         curl localhost:8080/
@@ -34,7 +34,7 @@ stages:
         fi
         LOOP_COUNT=LOOP_COUNT+1
         sleep 1
-      done"
+      done" | /bin/bash
     - curl localhost:8080/
     - podman stop trixx
 
