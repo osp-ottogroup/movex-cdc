@@ -44,11 +44,12 @@ For Kafka consumers the original sequence of messages is guaranteed only for mes
 Therefore you must place messages within the same partition of a topic if you want to consume them in original order. +
 Kafka has the concept of message keys for that. Kafka ensures that messages with the same key value are placed in the same partition and this way are consumed in original sequence.
 
-TriXX supports three kinds of message keys for Kafka that can be defined by GUI at table level:
+TriXX supports four kinds of message keys for Kafka that can be defined by GUI at table level:
 
 * No message key: Messages are placed randomly in partitions
 * Fixed value: All change events of a table are placed in the same partition (makes sense only if events of multiple tables are produced to the same Kafka topic)
 * Primary key values: Ensures that the change history of a single DB record is always consumed in original sequence
+* Transaction-ID: Ensures that all events of a particular DB transaction can be consumed in original sequence
 
 
 === Differentiation from other solutions for CDC ===
