@@ -9,17 +9,16 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby '2.5.7'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '6.0.3.4'
+gem 'rails', '6.1.0'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'
 
 # Use Puma as the app server
-gem 'puma', '~> 4.1'
+#gem 'puma', '~> 4.1'
+gem 'puma'
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 # gem 'jbuilder', '~> 2.7'
-# Use Redis adapter to run Action Cable in production
-# gem 'redis', '~> 4.0'
 
 # Use Json Web Token (JWT) for token based authentication
 gem 'jwt'

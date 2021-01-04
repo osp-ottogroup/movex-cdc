@@ -1,6 +1,7 @@
-# Test Panorama from https://github.com/rammpeter/Panorama_Gem
+# Build and test TriXX application
 # Requires:
-#  - prebuilt database image with test users
+#  - prebuilt database image
+#  - kafka-jruby image built from /docker/kafka-jruby
 
 image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 
