@@ -66,6 +66,10 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_raise 'Should not get access without schema rights' do
       patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
     end
+
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'newer name', topic: KafkaHelper.existing_topic_for_test, lock_version: 42 } }, as: :json
+    end
   end
 
   test "should destroy table" do
