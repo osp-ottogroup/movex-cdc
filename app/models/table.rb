@@ -4,7 +4,7 @@ class Table < ApplicationRecord
   has_many    :conditions
 
   # Tables that do not exist in database no more but are configured for TriXX
-  attribute   :yn_deleted, :string, limit: 1, default: 'N'
+  attribute   :yn_deleted_in_db, :string, limit: 1, default: 'N'
 
   validate    :topic_in_table_or_schema
   validate    :kafka_key_handling_validate
@@ -17,7 +17,7 @@ class Table < ApplicationRecord
     #    .where(["Name IN (SELECT Table_Name FROM Allowed_DB_Tables WHERE Owner = ? AND Grantee = ?)", schema.name, db_user])
 
     # Find all tables where a user is allowed to read or do not exist no more
-    Table.find_by_sql([ "SELECT t.*, CASE WHEN a.Table_Name IS NULL THEN 'Y' ELSE 'N' END YN_Deleted
+    Table.find_by_sql([ "SELECT t.*, CASE WHEN a.Table_Name IS NULL THEN 'Y' ELSE 'N' END YN_Deleted_In_DB
                          FROM   Tables t
                          LEFT OUTER JOIN Allowed_DB_Tables a ON a.Table_Name = t.Name AND a.Owner = :owner AND a.Grantee = :grantee
                          WHERE  t.Schema_ID = :schema_id
