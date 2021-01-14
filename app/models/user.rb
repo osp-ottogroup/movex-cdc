@@ -56,7 +56,10 @@ class User < ApplicationRecord
   def destroy
     super
     :destroyed
+  rescue ActiveRecord::StaleObjectError
+    raise
   rescue Exception => e
+    # Lock user in case DELETE is not possbible due to constraint violation
     self.update!(yn_account_locked: 'Y', yn_hidden: 'Y')
     :locked
   end
