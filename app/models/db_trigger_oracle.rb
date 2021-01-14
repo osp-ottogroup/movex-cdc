@@ -290,7 +290,7 @@ END BEFORE STATEMENT;
 #{position_from_operation(target_trigger_data[:operation])} EACH ROW IS
 BEGIN
   tab_size := Payload_Tab.COUNT;
-  IF tab_size > 1000 THEN
+  IF tab_size >= 1000 THEN
     Flush;
     tab_size := 0;
   END IF;
