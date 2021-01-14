@@ -2,6 +2,10 @@ class Table < ApplicationRecord
   belongs_to  :schema
   has_many    :columns
   has_many    :conditions
+
+  # Tables that do not exist in database no more but are configured for TriXX
+  attribute   :yn_deleted, :string, limit: 1, default: 'N'
+
   validate    :topic_in_table_or_schema
   validate    :kafka_key_handling_validate
   validate    :validate_yn_columns
@@ -9,8 +13,20 @@ class Table < ApplicationRecord
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
     schema = Schema.find schema_id
-    Table.where({schema_id: schema_id, yn_hidden: 'N' })
-        .where(["Name IN (SELECT Table_Name FROM Allowed_DB_Tables WHERE Owner = ? AND Grantee = ?)", schema.name, db_user])
+    #Table.where({schema_id: schema_id, yn_hidden: 'N' })
+    #    .where(["Name IN (SELECT Table_Name FROM Allowed_DB_Tables WHERE Owner = ? AND Grantee = ?)", schema.name, db_user])
+
+    # Find all tables where a user is allowed to read or do not exist no more
+    Table.find_by_sql([ "SELECT t.*, CASE WHEN a.Table_Name IS NULL THEN 'Y' ELSE 'N' END YN_Deleted
+                         FROM   Tables t
+                         LEFT OUTER JOIN Allowed_DB_Tables a ON a.Table_Name = t.Name
+                         WHERE  t.Schema_ID = :schema_id
+                         AND    t.YN_Hidden = 'N'
+                         AND    a.Owner     = :owner
+                         AND    a.Grantee   = :grantee
+                        ", {schema_id: schema_id, owner: schema.name, grantee: db_user}
+                      ]
+    )
   end
 
   def topic_in_table_or_schema
