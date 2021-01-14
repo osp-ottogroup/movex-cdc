@@ -19,12 +19,10 @@ class Table < ApplicationRecord
     # Find all tables where a user is allowed to read or do not exist no more
     Table.find_by_sql([ "SELECT t.*, CASE WHEN a.Table_Name IS NULL THEN 'Y' ELSE 'N' END YN_Deleted
                          FROM   Tables t
-                         LEFT OUTER JOIN Allowed_DB_Tables a ON a.Table_Name = t.Name
+                         LEFT OUTER JOIN Allowed_DB_Tables a ON a.Table_Name = t.Name AND a.Owner = :owner AND a.Grantee = :grantee
                          WHERE  t.Schema_ID = :schema_id
                          AND    t.YN_Hidden = 'N'
-                         AND    a.Owner     = :owner
-                         AND    a.Grantee   = :grantee
-                        ", {schema_id: schema_id, owner: schema.name, grantee: db_user}
+                        ", { owner: schema.name, grantee: db_user, schema_id: schema_id }
                       ]
     )
   end
