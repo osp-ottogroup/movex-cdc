@@ -46,13 +46,17 @@ const doFetch = async (url, requestOptions) => {
   if (!response.ok) { // HTTP-Status-Code != 200-299
     const errorMessage = `The request to ${url.toString()} responded with http-status-code ${response.status}: ${response.statusText}`;
     let errors = [];
-    if (httpStatus === 500 && data.error && data.exception) { // obviously default rails error
+    if (data.error) {
       errors.push(data.error);
+    }
+    if (data.exception) {
       errors.push(data.exception);
+    }
+    if (data.traces && data.traces instanceof Array) {
       data.traces['Application Trace'].forEach((t) => errors.push(t.trace));
-    } else if (data.errors && data.errors instanceof Array) { // obviously custom rails error
-      // eslint-disable-next-line prefer-destructuring
-      errors = data.errors;
+    }
+    if (data.errors && data.errors instanceof Array) {
+      errors = [...errors, ...data.errors];
     }
     throw new ServerError(errorMessage, errors, httpStatus);
   }
