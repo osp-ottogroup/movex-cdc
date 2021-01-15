@@ -12,6 +12,13 @@
 
         <template v-slot="props">
           {{ props.row.name }}
+          <b-tooltip label="This table doesn't exist in the database anymore. It should be removed from observation.">
+            <b-icon v-if="props.row.yn_deleted_in_db === 'Y'"
+                    class="deleted-in-db"
+                    icon="information-outline"
+                    size="is-small"
+                    type="is-danger"/>
+          </b-tooltip>
           <b-button v-show="selectedTable && selectedTable.id === props.row.id"
                     icon-right="pencil"
                     class="is-pulled-right is-small"
@@ -74,3 +81,10 @@ export default {
   },
 };
 </script>
+
+<style lang="scss" scoped>
+.deleted-in-db {
+  background-color: white;
+  border-radius: 50%;
+}
+</style>
