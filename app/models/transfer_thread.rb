@@ -140,7 +140,8 @@ class TransferThread
             max_buffer_size:      @max_message_bulk_count,
             max_buffer_bytesize:  @max_buffer_bytesize,
             transactional:        true,
-            transactional_id:     @transactional_id
+            transactional_id:     @transactional_id,
+            max_retries: 0                                                      # ensure producer does not sleep between retries, setting > 0 will reduce TriXX' throughput
         }
 
         producer_options[:compression_codec]             = Trixx::Application.config.trixx_kafka_compression_codec.to_sym        if Trixx::Application.config.trixx_kafka_compression_codec != 'none'

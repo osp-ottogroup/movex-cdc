@@ -27,6 +27,18 @@ class TableTest < ActiveSupport::TestCase
     assert(tables.count > 0, 'Should return at least one table of schema')
   end
 
+  # Check if non existing tables are also part of result
+  test "all_allowed_tables_for_schema" do
+    tables = Table.all_allowed_tables_for_schema(schemas(:one).id, Trixx::Application.config.trixx_db_user)
+    assert(tables.count >= 3, 'Should return at least 3 tables of schema 1')
+    assert(tables.select{ |t| t.id == 1}.count > 0, 'Result should contain physically existing table with ID=1')
+    assert(tables.select{ |t| t.id == 2}.count > 0, 'Result should contain physically existing table with ID=2')
+    assert(tables.select{ |t| t.id == 3}.count > 0, 'Result should contain non existing table with ID=3')
+
+    db_tables = DbTable.all_by_schema(schemas(:one).name, Trixx::Application.config.trixx_db_user)
+    assert(db_tables.select{ |t| t['name'].upcase == tables(:deletable).name.upcase}.count == 0, 'Table with ID=3 should not exist physically for this test')
+  end
+
   test "table validations" do
     table = tables(:one)
 
