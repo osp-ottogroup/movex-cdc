@@ -5,7 +5,7 @@ import router from './router';
 
 Vue.use(Buefy, {
   defaultTooltipType: 'is-light',
-  defaultTooltipDelay: 1000,
+  defaultTooltipDelay: 500,
 });
 
 Vue.config.productionTip = false;
