@@ -244,10 +244,10 @@ END;"
     col_expr = "#{accessor}.#{column_hash[:column_name]}"
     result = ''
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type]['DateTime']
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] == 'NUMBER'
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"        if column_hash[:type]['CHAR'] || column_hash[:type]['TEXT']
-    raise "Usupported data type '#{column_hash[:type]}'" if result.length == 0
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] =~ /datetime/i
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] =~ /number/i || column_hash[:type] =~ /int/i
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"        if column_hash[:type] =~ /char/i || column_hash[:type] =~ /text/i || column_hash[:type] =~ /varchar/i
+    raise "Unsupported data type '#{column_hash[:type]}'" if result.length == 0
     result
   end
 
