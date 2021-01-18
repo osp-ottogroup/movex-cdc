@@ -14,7 +14,7 @@ namespace :ci_preparation do
     def select_single(conn, sql)
       # puts "Execute: #{sql}"
       stmt = conn.prepareStatement(sql);
-      resultSet = stmt.executeQuery(sql);
+      resultSet = stmt.executeQuery;
       resultSet.next
       result = resultSet.getInt(1)
       result

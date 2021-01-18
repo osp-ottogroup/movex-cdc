@@ -15,8 +15,9 @@ namespace :ci_preparation do
 
         begin
           properties = java.util.Properties.new
-          properties.put("user",      Trixx::Application.config.trixx_db_user)
-          properties.put("password",  Trixx::Application.config.trixx_db_password)
+          properties.put("user", 'sys')
+          properties.put("password", Trixx::Application.config.trixx_db_sys_password)
+          properties.put("internal_logon", "SYSDBA")
           url = "jdbc:oracle:thin:@#{Trixx::Application.config.trixx_db_url}"
           begin
             conn = java.sql.DriverManager.getConnection(url, properties)
