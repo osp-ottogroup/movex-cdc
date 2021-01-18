@@ -50,6 +50,9 @@ brakeman_analysis:
     - gem install bundler
     - bundle config set deployment 'true'
     - bundle install --jobs 4
+    # Wait max. 10 minutes for DB available
+    - bundle exec rake "ci_preparation:wait_for_db_available[10]"
+    # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
     - bundle exec rake ci_preparation:disable_parallel_query
     - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
