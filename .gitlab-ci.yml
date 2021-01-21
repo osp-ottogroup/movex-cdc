@@ -14,11 +14,11 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - pre_build
+  - post_build
   - code_analysis
   - test
+  - pre_build
   - build
-  - post_build
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
