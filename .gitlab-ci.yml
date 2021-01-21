@@ -14,11 +14,11 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - post_build
   - code_analysis
   - test
   - pre_build
   - build
+  - post_build
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
@@ -169,8 +169,6 @@ trivy_scan:
       echo  "TRIXX_DB_SYS_PASSWORD:    oracle                   " >> trixx_run.yml &&
       echo  "TRIXX_KAFKA_SEED_BROKER:  $TRIXX_KAFKA_SEED_BROKER " >> trixx_run.yml
     - cat trixx_run.yml
-    - echo $PWD
-    - cat $PWD/trixx_run.yml
     - podman --events-backend=file --cgroup-manager=cgroupfs run --rm -v $PWD/trixx_run.yml:/trixx_run.yml
       -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
     - podman --events-backend=file --cgroup-manager=cgroupfs run --rm -v $PWD/trixx_run.yml:/trixx_run.yml
