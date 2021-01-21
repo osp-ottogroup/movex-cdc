@@ -28,16 +28,26 @@ class HealthCheckController < ApplicationController
       @health_data[:build_version] = 'File ./build_version does not exist'
     end
 
-
-
-    if Trixx::Application.config.trixx_initial_worker_threads != ThreadHandling.get_instance.thread_count
-      @health_data[:warnings] << "\nThread count = #{ThreadHandling.get_instance.thread_count} but should be #{Trixx::Application.config.trixx_initial_worker_threads}"
+    begin
+      current_thread_count = ThreadHandling.get_instance.thread_count(raise_exception_if_locked: true)
+      @health_data[:current_number_of_worker_threads]  = current_thread_count
+      if Trixx::Application.config.trixx_initial_worker_threads != current_thread_count
+        @health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{Trixx::Application.config.trixx_initial_worker_threads}"
+        @health_status = :conflict
+      end
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading current_number_of_worker_threads: #{e.class}:#{e.message}"
       @health_status = :conflict
     end
 
     @health_data[:expected_number_of_worker_threads] = Trixx::Application.config.trixx_initial_worker_threads
-    @health_data[:current_number_of_worker_threads]  = ThreadHandling.get_instance.thread_count
-    @health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
+
+    begin
+      @health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
+      @health_status = :conflict
+    end
 
     connection_info = []
     ActiveRecord::Base.connection_pool.connections.each do |conn|

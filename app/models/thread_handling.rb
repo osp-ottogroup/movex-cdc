@@ -78,15 +78,15 @@ class ThreadHandling
     end
   end
 
-  def thread_count
-    ExceptionHelper.warn_with_backtrace "ThreadHandling.thread_count: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+  def thread_count(raise_exception_if_locked: false)
+    ExceptionHelper.limited_wait_for_mutex(mutex: @thread_pool_mutex, raise_exception: raise_exception_if_locked)
     @thread_pool_mutex.synchronize { @thread_pool.count }
   end
 
   # get health check status from all worker threads
   def health_check_data
     result = []
-    ExceptionHelper.warn_with_backtrace "ThreadHandling.health_check_data: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+    ExceptionHelper.limited_wait_for_mutex(mutex: @thread_pool_mutex, raise_exception: true)
     @thread_pool_mutex.synchronize do
       @thread_pool.each do |t|
         result << t.thread_state
