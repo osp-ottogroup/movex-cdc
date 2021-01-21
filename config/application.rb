@@ -114,7 +114,7 @@ module Trixx
     config.trixx_run_config = ENV['TRIXX_RUN_CONFIG'] || "#{Rails.root}/config/trixx_run.yml"
     Trixx::Application.log_attribute('TRIXX_RUN_CONFIG', config.trixx_run_config)
     run_config = YAML.load_file(config.trixx_run_config)
-    raise "Unable to load and parse file #{config.trixx_run_config}" if run_config.nil?
+    raise "Unable to load and parse file #{config.trixx_run_config}" unless run_config
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config
     end
