@@ -64,6 +64,10 @@ COPY ${BACKEND_SRC_PATH} .
 # Copy Frontend-Build into Rails-Project for static serve
 COPY --from=frontend_build /app/dist public/
 
+# Show doc files for direct access
+# nonexistence of trixx.html and trixx.pdf is accepted for build outside CI pipeline
+COPY doc/trixx.html doc/trixx.pdf doc/images public/
+
 # use ARG not before this point, because ARGs are implicitly used by RUN commands and
 # this will force docker cache misses which results in not using cached layers
 ARG BUILD_VERSION

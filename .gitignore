@@ -34,6 +34,10 @@
 /coverage/.last_run.json
 /coverage/.resultset.json.lock
 
+/public/trixx.html
+/public/trixx.pdf
+/public/images
+
 .idea
 
 build_version
