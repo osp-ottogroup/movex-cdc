@@ -1,0 +1,92 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+younger_than_14_days_1:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 10.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+younger_than_14_days_2:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 10.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+younger_than_14_days_3:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 10.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+
+older_than_14_days_1:
+    table_id: 1
+    operation: I
+    events_success: 4
+    end_timestamp: <%= Time.now - 20.days %>
+    events_delayed_errors: 5
+    events_final_errors: 6
+    events_d_and_c_retries: 7
+    events_delayed_retries: 8
+
+older_than_14_days_2:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 20.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+older_than_14_days_3:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 20.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+older_than_3_months_1:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 100.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+older_than_3_months_2:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 100.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8
+
+older_than_3_months_3:
+  table_id: 1
+  operation: I
+  events_success: 4
+  end_timestamp: <%= Time.now - 100.days %>
+  events_delayed_errors: 5
+  events_final_errors: 6
+  events_d_and_c_retries: 7
+  events_delayed_retries: 8

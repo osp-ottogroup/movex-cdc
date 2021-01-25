@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2020_11_30_020000) do
+ActiveRecord::Schema.define(version: 2021_01_25_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -115,6 +115,7 @@ ActiveRecord::Schema.define(version: 2020_11_30_020000) do
     t.integer "events_final_errors", default: 0, null: false
     t.integer "events_d_and_c_retries", default: 0, null: false
     t.integer "events_delayed_retries", default: 0, null: false
+    t.index ["end_timestamp", "table_id", "operation"], name: "IX_STATISTICS_TS_TABLE_ID_OPER"
     t.index ["table_id"], name: "index_statistics_on_table_id"
   end
 
