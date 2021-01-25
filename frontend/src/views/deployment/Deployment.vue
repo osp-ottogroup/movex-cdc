@@ -97,9 +97,7 @@ export default {
         this.isGeneratingForSchema = true;
         const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate`, { schema_name: this.selectedSchema.name });
         if (response.data) {
-          // response is single object
-          response.data.schema_name = this.selectedSchema.name;
-          this.resultList = [response.data];
+          this.resultList = response.data.results;
         }
       } catch (e) {
         this.$buefy.notification.open({
@@ -116,8 +114,7 @@ export default {
       try {
         this.isGeneratingForAllSchemas = true;
         const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate_all`);
-        // response is already an array
-        this.resultList = response.data;
+        this.resultList = response.data.results;
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while generating the triggers'),

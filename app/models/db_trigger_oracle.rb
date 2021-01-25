@@ -119,11 +119,12 @@ class DbTriggerOracle < Database
     end
 
     existing_triggers = Database.select_all(
-        "SELECT Table_Name, Trigger_Name, Description, Trigger_Body
-         FROM   All_Triggers
-         WHERE  Owner       = :owner
-         AND    Table_Owner = :table_owner
-         AND    Trigger_Name LIKE :prefix ||'%'
+        "SELECT t.Table_Name, t.Trigger_Name, t.Description, t.Trigger_Body, o.Status
+         FROM   All_Triggers t
+         JOIN   All_Objects o ON o.Owner = t.Owner AND o.Object_Name = t.Trigger_Name AND o.Object_Type = 'TRIGGER'
+         WHERE  t.Owner       = :owner
+         AND    t.Table_Owner = :table_owner
+         AND    t.Trigger_Name LIKE :prefix ||'%'
         ",
         {
             owner:        Trixx::Application.config.trixx_db_user,
@@ -139,11 +140,13 @@ class DbTriggerOracle < Database
         target_trigger_data = target_triggers[trigger_name]
         body = build_trigger_body(target_trigger_data)                          # target body structure
 
+        # Compare existing trigger with
         if trigger['trigger_body']                != body ||
-            trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data)
+          trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data) ||
+          trigger['status'] != 'VALID'                                          # Always recreate invalid triggers because erroneous body is stored in DB
           exec_trigger_sql("#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name, trigger['table_name'])  # replace existing trigger
         else
-          Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing hs changed"
+          Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
         end
 
         target_triggers.delete trigger_name                                     # remove processed trigger from target triggers at success and also at error
