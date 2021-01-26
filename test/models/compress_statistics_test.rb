@@ -3,6 +3,22 @@ require 'test_helper'
 class CompressStatisticsTest < ActiveSupport::TestCase
 
   test "do_compress" do
+    def insert_statistics(amount, operation, end_timestamp)
+      1.upto(amount) do
+        Statistic.new(
+          table_id: 1,
+          operation: operation,
+          events_success: 4,
+          end_timestamp: end_timestamp,
+          events_delayed_errors: 5,
+          events_final_errors: 6,
+          events_d_and_c_retries: 7,
+          events_delayed_retries: 8
+      ).save!
+
+      end
+    end
+
     def get_sums
       Database.select_first_row "SELECT SUM(events_success)         events_success,
                                         SUM(events_delayed_errors)  events_delayed_errors,
@@ -12,24 +28,34 @@ class CompressStatisticsTest < ActiveSupport::TestCase
                                  FROM   Statistics
                                 "
     end
+
+    def get_single_values(operation, end_timestamp)
+      Database.select_first_row("SELECT COUNT(*) records
+                                 FROM   Statistics
+                                 WHERE  Operation = :operation
+                                 AND    End_Timestamp > :start_ts AND End_Timestamp < :end_ts",
+                                { operation: operation, start_ts: end_timestamp-2.days, end_ts: end_timestamp+2.days}
+      )
+    end
+
+    # prepare test
+    insert_statistics(3, 'I', Time.now - 10.days)
+    insert_statistics(5, 'U', Time.now - 10.days)
+    insert_statistics(3, 'I', Time.now - 20.days)
+    insert_statistics(8, 'U', Time.now - 20.days)
+    insert_statistics(3, 'I', Time.now - 100.days)
+    insert_statistics(25,'U', Time.now - 100.days)
+
     sums_before = get_sums
 
     CompressStatistics.get_instance.do_compress
 
-    younger_14_days = Database.select_first_row("SELECT COUNT(*) records FROM Statistics
-                                                 WHERE End_Timestamp > :start_ts AND End_Timestamp < :end_ts",
-                                                { start_ts: Time.now-12.days, end_ts: Time.now-8.days})
-    assert_equal 3, younger_14_days['records'], 'Number of uncompressed records younger than 14 days'
-
-    older_14_days = Database.select_first_row("SELECT COUNT(*) records FROM Statistics
-                                                 WHERE End_Timestamp > :start_ts AND End_Timestamp < :end_ts",
-                                                { start_ts: Time.now-22.days, end_ts: Time.now-18.days})
-    assert_equal 1, older_14_days['records'], 'Number of compressed records older than 14 days but younger than 3 months'
-
-    older_3_months = Database.select_first_row("SELECT COUNT(*) records FROM Statistics
-                                                 WHERE End_Timestamp > :start_ts AND End_Timestamp < :end_ts",
-                                                { start_ts: Time.now-102.days, end_ts: Time.now-98.days})
-    assert_equal 1, older_3_months['records'], 'Number of compressed records older than 3 months'
+    assert_equal 3, get_single_values('I', Time.now-10.days)['records'], 'Number of uncompressed insert records younger than 14 days'
+    assert_equal 5, get_single_values('U', Time.now-10.days)['records'], 'Number of uncompressed update records younger than 14 days'
+    assert_equal 1, get_single_values('I', Time.now-20.days)['records'], 'Number of compressed insert records older than 14 days but younger than 3 months'
+    assert_equal 1, get_single_values('U', Time.now-20.days)['records'], 'Number of compressed update records older than 14 days but younger than 3 months'
+    assert_equal 1, get_single_values('I', Time.now-100.days)['records'], 'Number of compressed insert records older than 3 months'
+    assert_equal 1, get_single_values('U', Time.now-100.days)['records'], 'Number of compressed update records older than 3 months'
 
     sums_after = get_sums
     assert_equal sums_after['events_success'],          sums_before['events_success'],          'Total number of events_success should not differ after compression'
