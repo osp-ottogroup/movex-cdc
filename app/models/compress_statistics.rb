@@ -43,7 +43,7 @@ class CompressStatistics
   def get_record_groups(min_age)
     Database.select_all "SELECT *
                          FROM (
-                               SELECT Table_ID, Operation, Min(End_Timestamp) Min_End_Timestamp, MAX(End_Timestamp) Max_End_Timestamp,
+                               SELECT table_id, operation, Min(End_Timestamp) min_end_timestamp, MAX(End_Timestamp) max_end_timestamp,
                                       SUM(events_success)         events_success,
                                       SUM(events_delayed_errors)  events_delayed_errors,
                                       SUM(events_final_errors)    events_final_errors,
@@ -51,7 +51,7 @@ class CompressStatistics
                                       SUM(events_delayed_retries) events_delayed_retries
                                FROM   Statistics
                                WHERE  End_Timestamp < :min_age
-                               GROUP BY Table_ID, Operation, End_Timestamp, #{time_group_expression(min_age)}
+                               GROUP BY Table_ID, Operation, #{time_group_expression(min_age)}
                                HAVING COUNT(*) > 1
                               )
                          #{Database.result_limit_expression('row_limit', sole_filter: true)}
@@ -87,13 +87,18 @@ class CompressStatistics
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       case min_age
-      when 3.months
-        "TRUNC('YYYY-MM-DD')"
-      when 14.days
-        "TRUNC('YYYY-MM-DD HH24')"
+      when 3.months                                                             # group by day
+        "TRUNC(End_Timestamp, 'DD')"
+      when 14.days                                                              # group by hour
+        "TRUNC(End_Timestamp, 'HH24')"
       end
     when 'SQLITE' then
-      ""
+      case min_age
+      when 3.months
+        "date(End_Timestamp)"
+      when 14.days
+        "strftime('%Y-%m-%d %H', End_Timestamp)"
+      end
     else
       raise "CompressStatistics.time_group_expression: Missing value for '#{Trixx::Application.config.trixx_db_type}'"
     end

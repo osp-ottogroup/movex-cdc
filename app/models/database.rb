@@ -28,7 +28,7 @@ class Database
 
 
   def self.select_all(sql, filter = {})
-    raise "Hash expected as filter" if filter.class != Hash
+    # group by day    raise "Hash expected as filter" if filter.class != Hash
 
     binds = []
     filter.each do |key, value|
