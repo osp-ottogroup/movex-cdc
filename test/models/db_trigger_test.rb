@@ -40,10 +40,13 @@ class DbTriggerTest < ActiveSupport::TestCase
         {kafka_key_handling: 'F', fixed_message_key: 'hugo', yn_record_txid: 'N'},
         {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
     ].each do |key|
-      table = tables(:victim1)
-      unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
-        raise table.errors.full_messages
+      # Modify tables with attributes
+      [tables(:victim1), tables(:victim2)].each do |table|
+        unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
+          raise table.errors.full_messages
+        end
       end
+
       exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
 
       result = DbTrigger.generate_triggers(victim_schema_id, user_options)
@@ -56,9 +59,9 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
 
       created_trigger_names = result[:successes].select{|x| x[:sql]['CREATE']}.map{|x| x[:trigger_name]}
-      assert_equal 1, created_trigger_names.select{|x| x['_I']}.length, 'Should have created one insert trigger'
-      assert_equal 1, created_trigger_names.select{|x| x['_U']}.length, 'Should have created one update trigger'
-      assert_equal 1, created_trigger_names.select{|x| x['_D']}.length, 'Should have created one delete trigger'
+      assert_equal 2, created_trigger_names.select{|x| x['_I']}.length, 'Should have created one insert trigger'
+      assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, 'Should have created one update trigger'
+      assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, 'Should have created one delete trigger'
 
       assert_not_nil result[:successes][0][:table_name],         ':table_name in successes result should be set for trigger'
       assert_not_nil result[:successes][0][:trigger_name],       ':trigger_name in successes result should be set for trigger'
@@ -90,9 +93,10 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
       fixture_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-      expected_event_logs = 8 + fixture_event_logs                                # created Event_Logs-records by trigger + existing from fixture
+      event_logs_to_create = 20
+      expected_event_logs = event_logs_to_create + fixture_event_logs           # created Event_Logs-records by trigger + existing from fixture
 
-      create_event_logs_for_test(8)
+      create_event_logs_for_test(event_logs_to_create)
 
       real_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')

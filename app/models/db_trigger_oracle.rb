@@ -238,7 +238,21 @@ class DbTriggerOracle < Database
 
   def build_trigger_description(target_trigger_data)
     result = "#{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} FOR #{target_trigger_data[:operation]}"
-    result << " OF #{target_trigger_data[:columns].map{|x| x[:column_name]}.join(',')}" if target_trigger_data[:operation] == 'UPDATE'
+
+    # Fire update-trigger only if relevant columns have changed by UPDATE OF column_list
+    # This prevents from switch from SQL engine to PL/SQL engine if no relevant column has changed
+    #
+    # UPDATE OF clob_column is not supported (ORA-25006)
+    # Therefore no UPDATE OF column_list filter is possible in this case to ensure trigger fires also if only CLOB column has changed
+    clob_in_column_list = target_trigger_data[:columns].select{|c| c[:data_type] == 'CLOB'}.count > 0
+    if target_trigger_data[:operation] == 'UPDATE'
+      unless clob_in_column_list
+        result << " OF #{target_trigger_data[:columns].map{|x| x[:column_name]}.join(',')}"
+      else
+        result << " /* OF <column_list> suppressed because CLOBs would raise ORA-25006 */"
+      end
+    end
+
     result << " ON #{target_trigger_data[:schema_name]}.#{target_trigger_data[:table_name]}"
     result
   end
