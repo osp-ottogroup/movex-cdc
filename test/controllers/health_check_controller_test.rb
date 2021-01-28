@@ -20,9 +20,8 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
       assert_response :conflict, '409 (conflict) expected because not all worker threads are active'
     end
 
-    assert_raises(RuntimeError, 'second check should fail within same second') do
-      get "/health_check", as: :json
-    end
+    get "/health_check", as: :json
+    assert_response :internal_server_error, 'second check should fail within same second'
 
     ThreadHandling.get_instance.shutdown_processing
   end

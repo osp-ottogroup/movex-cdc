@@ -15,10 +15,8 @@ class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
     get "/activity_logs?schema_name=SCHEMA&table_name=TABLE&column_name=COLUMN", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise(Exception, 'At least one parameter') do
-      get "/activity_logs", headers: jwt_header, as: :json
-    end
-
+    get "/activity_logs", headers: jwt_header, as: :json
+    assert_response :internal_server_error, 'At least one parameter'
   end
 
   test "should create activity_log" do
@@ -30,12 +28,7 @@ class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
       assert_response 201
     end
 
-    assert_raise do
-      post activity_logs_url, headers: jwt_header, params: { activity_log: {  level: 'hugo', user_id: 1, schema_name: 'Schema1', table_name: 'Table1', column_name: 'Column1', action: 'Something happened' } }, as: :json
-    end
-
-
+    post activity_logs_url, headers: jwt_header, params: { activity_log: {  level: 'hugo', user_id: 1, schema_name: 'Schema1', table_name: 'Table1', column_name: 'Column1', action: 'Something happened' } }, as: :json
+    assert_response :internal_server_error
   end
-
-
 end
