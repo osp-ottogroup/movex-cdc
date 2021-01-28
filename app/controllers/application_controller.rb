@@ -10,9 +10,14 @@ class ApplicationController < ActionController::API
   NotAuthorized = Class.new(StandardError)
   rescue_from ApplicationController::NotAuthorized do |e|
     Rails.logger.error "Not authorized activity '#{e.message}' in request: #{request_log_attributes}"
-    render json: { errors: [e.message] }, status: :unauthorized
+    render json: { status:  :unauthorized, error: e.message }, status: :unauthorized
   end
 
+  # Catch all remainig errors with exception content in response
+  rescue_from RuntimeError do |e|
+    ExceptionHelper.log_exception(e, "Request: #{request_log_attributes}")
+    render json: { status: :internal_server_error, error: e.message }, status: :internal_server_error
+  end
 
   protected
 
