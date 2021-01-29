@@ -7,7 +7,8 @@
                   @column-changed="onColumnChanged"
                   @select-all="onSelectAll"
                   @deselect-all="onDeselectAll"
-                  @edit-condition="onEditCondition"/>
+                  @edit-condition="onEditCondition"
+                  @remove-column="onRemoveColumn"/>
     <template v-if="conditionModal.show">
       <condition-modal :condition="conditionModal.condition"
                        @saved="onConditionSaved"
@@ -67,9 +68,7 @@ export default {
           const current = dbColumnsMap.get(column.name);
           dbColumnsMap.set(column.name, { ...current, ...column });
         } else {
-          // console.warn(`The configured column ` +
-          //   `${this.schema.name}.${this.table.name}.${column.name} `+
-          //   `does not seem to exist in the DB anymore`);
+          dbColumnsMap.set(column.name, { ...column, isDeleted: true });
         }
       });
 
@@ -154,6 +153,22 @@ export default {
       try {
         this.isLoading = true;
         await CRUDService.columns.deselectAll({ table_id: this.table.id, operation: type });
+        await this.reload(this.table);
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async onRemoveColumn(column) {
+      try {
+        this.isLoading = true;
+        await CRUDService.columns.delete(column.id, column);
         await this.reload(this.table);
       } catch (e) {
         this.$buefy.notification.open({

@@ -12,17 +12,17 @@
 
         <template v-slot="props">
           {{ props.row.name }}
-          <b-tooltip label="This table doesn't exist in the database anymore. It should be removed from observation.">
-            <b-icon v-if="props.row.yn_deleted_in_db === 'Y'"
-                    class="deleted-in-db"
-                    icon="information-outline"
-                    size="is-small"
-                    type="is-danger"/>
-          </b-tooltip>
           <b-button v-show="selectedTable && selectedTable.id === props.row.id"
                     icon-right="pencil"
                     class="is-pulled-right is-small"
                     @click="onEditClicked()" />
+          <div v-if="props.row.yn_deleted_in_db === 'Y'"
+               :class="{'deleted-in-db--margin': selectedTable && selectedTable.id === props.row.id}"
+               class="is-size-7 has-text-danger deleted-in-db">
+            This table doesn't exist in the database anymore.
+            This will lead to errors when generating the triggers.
+            It should be removed from observation.
+          </div>
         </template>
       </b-table-column>
 
@@ -85,6 +85,9 @@ export default {
 <style lang="scss" scoped>
 .deleted-in-db {
   background-color: white;
-  border-radius: 50%;
+  padding: 0.2rem;
+  &--margin {
+    margin-top: 0.5rem;
+  }
 }
 </style>

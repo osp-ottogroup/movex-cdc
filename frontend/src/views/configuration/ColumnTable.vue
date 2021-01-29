@@ -11,6 +11,11 @@
         </template>
         <template v-slot="props">
           {{ props.row.name }}
+          <div v-if="props.row.isDeleted" class="is-size-7 has-text-danger">
+            This column doesn't exist in the database anymore. This will lead to errors when generating the triggers.
+            <br>
+            <a @click="onRemoveColumn(props.row)">Remove now</a>
+          </div>
         </template>
       </b-table-column>
       <b-table-column centered field="name" label="Insert-Trigger" searchable>
@@ -113,6 +118,9 @@ export default {
     },
     onEditCondition(type) {
       this.$emit('edit-condition', type);
+    },
+    onRemoveColumn(column) {
+      this.$emit('remove-column', column);
     },
   },
 };
