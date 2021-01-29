@@ -36,6 +36,14 @@
       </template>
 
       <template v-slot:end>
+        <b-navbar-dropdown label="Help">
+          <b-navbar-item tag="a" :href="`${backendUrl}/trixx.html`" target="_blank" rel="noreferrer noopener">
+            TriXX Docs (html)
+          </b-navbar-item>
+          <b-navbar-item tag="a" :href="`${backendUrl}/trixx.pdf`" target="_blank" rel="noreferrer noopener">
+            TriXX Docs (pdf)
+          </b-navbar-item>
+        </b-navbar-dropdown>
         <b-navbar-item tag="div" @click="showAccountInfo=!showAccountInfo" class="is-relative">
           <b-button icon-right="account" class="circle-button"/>
           <!--  TODO refactor to own component -->
@@ -64,6 +72,7 @@
 </template>
 
 <script>
+import Config from '@/config/config';
 import LoginService from '../services/LoginService';
 
 export default {
@@ -74,6 +83,7 @@ export default {
   data() {
     return {
       showAccountInfo: false,
+      backendUrl: Config.backendUrl,
     };
   },
   computed: {
