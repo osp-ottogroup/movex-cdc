@@ -19,22 +19,19 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
     get '/db_triggers?schema_id=1', headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise 'Should not get access without schema rights' do
-      get "/db_triggers?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    get "/db_triggers?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
 
-    assert_raise(Exception, 'Should get error for non existing schema') do
-      get "/db_triggers?schema_id=177", headers: jwt_header, as: :json
-    end
+    get "/db_triggers?schema_id=177", headers: jwt_header, as: :json
+    assert_response :internal_server_error, 'Should get error for non existing schema'
   end
 
   test "show trigger" do
     get "/db_triggers/details?table_id=1&trigger_name=hugo", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise(Exception, 'Should not get access without schema rights') do
-      get "/db_triggers/details?table_id=1&trigger_name=hugo", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    get "/db_triggers/details?table_id=1&trigger_name=hugo", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
 
     assert_raise(Exception, 'Non existing table should raise exception') do
       get "/db_triggers/details?table_id=177&trigger_name=hugo", headers: jwt_header, as: :json
@@ -45,13 +42,11 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
     post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise(Exception, 'Unknown schema should raise exception') do
-      post "/db_triggers/generate?schema_name=hugo", headers: jwt_header, as: :json
-    end
+    post "/db_triggers/generate?schema_name=hugo", headers: jwt_header, as: :json
+    assert_response :internal_server_error, 'Unknown schema should raise exception'
 
-    assert_raise(Exception, 'Should not get access without schema rights') do
-      post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 
   test "generate all triggers" do

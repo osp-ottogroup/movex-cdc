@@ -22,6 +22,8 @@ class DbTriggersController < ApplicationController
 
   # POST /db_triggers/generate
   # Generate triggers for named schema
+  # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
+  # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate
     schema_name = params.require :schema_name
     schema = Schema.find_by_name schema_name
@@ -30,12 +32,21 @@ class DbTriggersController < ApplicationController
     # TODO: uncomment after establishing yn_deployment_granted in GUI
     # raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 
-    result = DbTrigger.generate_triggers(schema.id, { user_id: @current_user.id, client_ip_info: client_ip_info})
-    render json: result, status: result[:errors].count == 0 ? :ok : :internal_server_error
+    schema_result = DbTrigger.generate_triggers(schema.id, { user_id: @current_user.id, client_ip_info: client_ip_info})
+    result = { results: [ schema_result.merge(schema_name: schema_name) ] }
+
+    if schema_result[:errors].count == 0
+      render json: result, status: :ok
+    else
+      result[:errors] = structured_errors_to_string(schema_result[:errors], schema_name)
+      render json: result, status: :internal_server_error
+    end
   end
 
   # POST /db_triggers/generate_all
   # Generate triggers for all schema the user has rights for
+  # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
+  # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate_all
     # TODO: uncomment after establishing yn_deployment_granted in GUI
     #schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
@@ -43,16 +54,29 @@ class DbTriggersController < ApplicationController
     if schema_rights.empty?
       render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
     else
-      result = []
-      status = :ok
+      results = []
+      error_strings = []
       schema_rights.each do |sr|
         schema_result = DbTrigger.generate_triggers(sr.schema_id, { user_id: @current_user.id, client_ip_info: client_ip_info })
-        status = :internal_server_error if schema_result[:errors].count > 0
+        error_strings.concat(structured_errors_to_string(schema_result[:errors], sr.schema.name)) if schema_result[:errors].count > 0
         schema_result[:schema_name] = sr.schema.name
-        result << schema_result
+        results << schema_result
       end
-      render json: result, status: status
+      result = { results: results}
+      if error_strings.count == 0
+        render json: result, status: :ok
+      else
+        result[:errors] = error_strings
+        render json: result, status: :internal_server_error
+      end
     end
   end
 
+  private
+  # convert Array of structured errors to Array of Strings
+  def structured_errors_to_string(errors, schema_name)
+    errors.map do |error|
+      "Table '#{schema_name}.#{error[:table_name]}', Trigger '#{error[:trigger_name]}'\n#{error[:exception_class]}: #{error[:exception_message]}"
+    end
+  end
 end

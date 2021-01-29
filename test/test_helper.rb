@@ -120,6 +120,9 @@ class ActiveSupport::TestCase
           END BEFORE STATEMENT;
         END TRIXX_Victim1_U;
       ")
+
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql(victim_connection, "GRANT SELECT ON #{victim_schema_prefix}#{tables(:victim2).name} TO #{Trixx::Application.config.trixx_db_user}")
     when 'SQLITE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
@@ -135,14 +138,15 @@ class ActiveSupport::TestCase
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
       ")
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
-    "PRIMARY KEY(ID, Num_Val, Char_Name, Date_Val, TS_Val, Raw_Val, TSTZ_Val, RowID_Val)"
   end
 
   def drop_victim_structures(victim_connection)
     exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
+    exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim2).name}")
   end
 
   # create records in Event_Log by trigger on tables(:victim1)
@@ -172,7 +176,7 @@ class ActiveSupport::TestCase
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
 
-    # create exactly 8 records in Event_Logs
+    # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
 
     victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}#{tables(:victim1).name}"
@@ -193,8 +197,31 @@ class ActiveSupport::TestCase
     # Next record should not generate record in Event_Logs due to excluding condition
     exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+5}, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
 
+    # create exactly 3 records in Event_Logs for Victim2
+    victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}#{tables(:victim2).name}"
+    victim2_max_id = 0 if victim2_max_id.nil?
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE'
+      # create content > 4K in CLOB column
+      exec_victim_sql(@victim_connection, "
+      DECLARE
+        clob_content CLOB := '';
+      BEGIN
+        FOR i IN 1..100 LOOP
+          clob_content  := clob_content || '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789';
+        END LOOP;
+        INSERT INTO #{victim_schema_prefix}#{tables(:victim2).name} (ID, Large_Text) VALUES (#{victim2_max_id+1}, clob_content);
+      END;
+      ")
+    when 'SQLITE'
+          exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim2).name} (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
+    end
+    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim2).name}  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
+    exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim2).name} WHERE ID = #{victim2_max_id+1}")
+
     # create the reamining records in Event_Log
-    (number_of_records-8).downto(1).each do |i|
+    (number_of_records-(8+3)).downto(1).each do |i|
       exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
       VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
       )")

@@ -75,6 +75,17 @@ class Database
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then "SYSTIMESTAMP"
     when 'SQLITE' then "DATETIME('now')"
+    else
+      raise "Database.systimestamp: missing value for '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+
+  def self.result_limit_expression(bind_variable_name, sole_filter: false)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then " #{sole_filter ? " WHERE" : " AND"} RowNum <= :#{bind_variable_name}"
+    when 'SQLITE' then " LIMIT :#{bind_variable_name}"
+    else
+      raise "Database.result_limit_expression: missing value for '#{Trixx::Application.config.trixx_db_type}'"
     end
   end
 

@@ -119,11 +119,12 @@ class DbTriggerOracle < Database
     end
 
     existing_triggers = Database.select_all(
-        "SELECT Table_Name, Trigger_Name, Description, Trigger_Body
-         FROM   All_Triggers
-         WHERE  Owner       = :owner
-         AND    Table_Owner = :table_owner
-         AND    Trigger_Name LIKE :prefix ||'%'
+        "SELECT t.Table_Name, t.Trigger_Name, t.Description, t.Trigger_Body, o.Status
+         FROM   All_Triggers t
+         JOIN   All_Objects o ON o.Owner = t.Owner AND o.Object_Name = t.Trigger_Name AND o.Object_Type = 'TRIGGER'
+         WHERE  t.Owner       = :owner
+         AND    t.Table_Owner = :table_owner
+         AND    t.Trigger_Name LIKE :prefix ||'%'
         ",
         {
             owner:        Trixx::Application.config.trixx_db_user,
@@ -139,11 +140,13 @@ class DbTriggerOracle < Database
         target_trigger_data = target_triggers[trigger_name]
         body = build_trigger_body(target_trigger_data)                          # target body structure
 
+        # Compare existing trigger with
         if trigger['trigger_body']                != body ||
-            trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data)
+          trigger['description'].gsub("\n", '') != build_trigger_description(target_trigger_data) ||
+          trigger['status'] != 'VALID'                                          # Always recreate invalid triggers because erroneous body is stored in DB
           exec_trigger_sql("#{build_trigger_header(target_triggers[trigger_name])}\n#{body}", trigger_name, trigger['table_name'])  # replace existing trigger
         else
-          Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing hs changed"
+          Rails.logger.debug "DbTriggerOracle.generate_db_triggers_internal: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
         end
 
         target_triggers.delete trigger_name                                     # remove processed trigger from target triggers at success and also at error
@@ -235,7 +238,21 @@ class DbTriggerOracle < Database
 
   def build_trigger_description(target_trigger_data)
     result = "#{Trixx::Application.config.trixx_db_user}.#{target_trigger_data[:trigger_name]} FOR #{target_trigger_data[:operation]}"
-    result << " OF #{target_trigger_data[:columns].map{|x| x[:column_name]}.join(',')}" if target_trigger_data[:operation] == 'UPDATE'
+
+    # Fire update-trigger only if relevant columns have changed by UPDATE OF column_list
+    # This prevents from switch from SQL engine to PL/SQL engine if no relevant column has changed
+    #
+    # UPDATE OF clob_column is not supported (ORA-25006)
+    # Therefore no UPDATE OF column_list filter is possible in this case to ensure trigger fires also if only CLOB column has changed
+    clob_in_column_list = target_trigger_data[:columns].select{|c| c[:data_type] == 'CLOB'}.count > 0
+    if target_trigger_data[:operation] == 'UPDATE'
+      unless clob_in_column_list
+        result << " OF #{target_trigger_data[:columns].map{|x| x[:column_name]}.join(',')}"
+      else
+        result << " /* OF <column_list> suppressed because CLOBs would raise ORA-25006 */"
+      end
+    end
+
     result << " ON #{target_trigger_data[:schema_name]}.#{target_trigger_data[:table_name]}"
     result
   end

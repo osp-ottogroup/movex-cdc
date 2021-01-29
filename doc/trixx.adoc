@@ -338,6 +338,7 @@ List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#p
 [cols="~,~,~"]
 |===
 |Error|Description|Solution
+
 |Kafka::UnknownError: Unknown error with code 53
 |TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
 The transactional id used by TriXX is not authorized to produce messages
@@ -351,6 +352,28 @@ This record has failed the validation on broker and hence will be rejected.
 Prevent from sending 'tombstone events' without key in this case.
 |===
 
+=== Statistics ===
+Throughput values ot TriXX are cumulated in the database table "Statistics".
+For table, operation and time period several values are recorded.
+
+.throughput parameters recorded in Statistics
+[cols="~,~"]
+|===
+|Column name |Description
+
+|Events_Success|Number of successful processed events
+|Events_Delayed_Errors|Number of erroneous single event processings ending in another retry after delay
+|Events_Final_Errors|Number of erroneous single event processings ending in final error after retries
+|Events_D_and_C_Retries|Number of additional event processings due to divide&conquer retries
+|Events_Delayed_Retries|Number of additional event processings due to delayed retries
+|===
+
+At first this values are cumulated for each minute. Later on statistics data will be compressed for greater time periods:
+
+* After 14 days values per minute are compressed to values per hour
+* After 3 months values per hour are compressed to values per day
+
+Compression is executed once a day as background job in TriXX application.
 
 
 ===== Oracle-DB =====

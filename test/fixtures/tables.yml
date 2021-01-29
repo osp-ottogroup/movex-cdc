@@ -31,6 +31,18 @@ victim1:
     when 'SQLITE' then 1
     end %>
   name: VICTIM1                                                                 # really existing table in test schema, created in test_helper.rb
-  info: Victim table in separate schema for use with triggers
+  info: Victim table in separate schema for use with triggers. Does not contain CLOB column.
+  topic: <%= KafkaHelper.existing_topic_for_test %>
+  lock_version: 1
+
+victim2:
+  id: 5
+  schema_id: <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then 2
+    when 'SQLITE' then 1
+    end %>
+  name: VICTIM2                                                                 # really existing table in test schema, created in test_helper.rb
+  info: Victim table in separate schema for use with triggers. Contains CLOB column.
   topic: <%= KafkaHelper.existing_topic_for_test %>
   lock_version: 1

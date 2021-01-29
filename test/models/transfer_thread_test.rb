@@ -21,11 +21,11 @@ class TransferThreadTest < ActiveSupport::TestCase
 
 
   test "process" do
-    create_event_logs_for_test(10)
+    create_event_logs_for_test(20)
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Regular processing of all records')
     assert_equal 0, remaining_event_log_count, 'All Records from Event_Logs should be processed and deleted now'
 
-    create_event_logs_for_test(10)
+    create_event_logs_for_test(20)
     EventLog.last.update!(retry_count: 1, last_error_time: Time.now+20000)  # set erroneous, keep in mind that DB time and client time may differ in time zone
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Processing with one error record')
     assert_equal 1, remaining_event_log_count, 'All Records from Event_Logs except the one erroneous should be processed and deleted now'
@@ -44,12 +44,12 @@ class TransferThreadTest < ActiveSupport::TestCase
     Database.execute "DELETE FROM Statistics"                                   # Remove previous existing value to ensure valid assertions
 
     Trixx::Application.config.trixx_error_retry_start_delay = 1000              # ensure no retry processing takes place
-    create_event_logs_for_test(10)
+    create_event_logs_for_test(20)
     huge_payload = "\"payload\": \""
     1.upto(1024*105){ huge_payload << "0123456789"}  # more than 1 MB
     huge_payload << "\""
     EventLog.last.update!(payload: huge_payload)
-    create_event_logs_for_test(10)                                              # create another records to ensure error is in the middle
+    create_event_logs_for_test(20)                                              # create another records to ensure error is in the middle
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
     assert_equal 1, remaining_event_log_count, 'One event_Log record with huge payload should cause processing error'
 
@@ -65,10 +65,10 @@ class TransferThreadTest < ActiveSupport::TestCase
     # end
 
     # possibly too volatile tests
-    assert_statistics(11, 4, 'I', :events_success)
+    assert_statistics(25, 4, 'I', :events_success)
     assert_statistics(3,  4, 'I', :events_delayed_errors)
     assert_statistics(1,  4, 'I', :events_final_errors)
-    assert_statistics(14, 4, 'I', :events_d_and_c_retries)
+    assert_statistics(30, 4, 'I', :events_d_and_c_retries)
     assert_statistics(3,  4, 'I', :events_delayed_retries)
 
     assert_statistics(4,  4, 'U', :events_success)

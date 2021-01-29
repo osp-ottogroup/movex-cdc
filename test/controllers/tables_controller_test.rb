@@ -10,9 +10,8 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     get "/tables?schema_id=1", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise 'Should not get access without schema rights' do
-      get "/tables?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    get "/tables?schema_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 
   test "should create table" do
@@ -26,9 +25,8 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    assert_raise 'Should not get access without schema rights' do
-      post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
-    end
+    post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1, name: 'New table', info: 'New info' } }, as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
 
     # reopen hidden table instead of creation
     tables_deletable = tables(:deletable)
@@ -44,18 +42,16 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     get table_url(@table), headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise 'Should not get access without schema rights' do
-      get table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    get table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 
   test "should get trigger dates of table" do
     get "/trigger_dates/#{@table.id}", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_raise 'Should not get access without schema rights' do
-      get "/trigger_dates/#{@table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    end
+    get "/trigger_dates/#{@table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 
 
@@ -63,9 +59,8 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'new name', topic: KafkaHelper.existing_topic_for_test, lock_version: @table.lock_version } }, as: :json
     assert_response 200
 
-    assert_raise 'Should not get access without schema rights' do
-      patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
-    end
+    patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
 
     assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
       patch table_url(@table), headers: jwt_header, params: { table: { schema_id: 1, name: 'newer name', topic: KafkaHelper.existing_topic_for_test, lock_version: 42 } }, as: :json
@@ -88,8 +83,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
   test "should not destroy table" do
     @deletable = tables(:deletable)
-    assert_raise 'Should not get access without schema rights' do
-      delete table_url(@deletable), headers: jwt_header(@jwt_no_schema_right_token), params: { table: @deletable.attributes}, as: :json
-    end
+    delete table_url(@deletable), headers: jwt_header(@jwt_no_schema_right_token), params: { table: @deletable.attributes}, as: :json
+    assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 end

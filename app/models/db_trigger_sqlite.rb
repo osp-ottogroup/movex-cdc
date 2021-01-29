@@ -246,7 +246,9 @@ END;"
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] =~ /datetime/i
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] =~ /number/i || column_hash[:type] =~ /int/i
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"        if column_hash[:type] =~ /char/i || column_hash[:type] =~ /text/i || column_hash[:type] =~ /varchar/i
+    if column_hash[:type] =~ /char/i || column_hash[:type] =~ /text/i || column_hash[:type] =~ /varchar/i || column_hash[:type] =~ /clob/i
+      result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"
+    end
     raise "Unsupported data type '#{column_hash[:type]}'" if result.length == 0
     result
   end
