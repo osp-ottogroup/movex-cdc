@@ -17,9 +17,11 @@ class UsersController < ApplicationController
   # POST /users
   def create
     users = User.where email: user_params[:email]
-    if users.length > 0 && user[0].yn_hidden == 'Y'
+    if users.length > 0 && users[0].yn_hidden == 'Y'
       @user = users[0]
       save_result = @user.update(user_params.to_h.merge({yn_account_locked: 'N', yn_hidden: 'N'}))    # mark visible for GUI and unlocked
+    elsif users.length > 0
+      render json: { errors: ["User with email '#{user_params[:email]}' already exists"] }, status: :unprocessable_entity and return
     else
       @user = User.new(user_params)
       save_result = @user.save

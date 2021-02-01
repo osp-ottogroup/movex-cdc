@@ -28,6 +28,25 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   end
 
+  test "should not create user with already existing email" do
+    assert_difference('User.count') do
+      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+      } }, as: :json
+    end
+    assert_response 201
+
+    assert_no_difference('User.count') do
+      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+      } }, as: :json
+    end
+    assert_response :unprocessable_entity
+
+  end
+
   test "should show user" do
     get user_url(@user), headers: jwt_header(@jwt_admin_token), as: :json
     assert_response :success
