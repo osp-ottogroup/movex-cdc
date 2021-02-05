@@ -39,3 +39,4 @@
 .idea
 
 build_version
+/systemtest/node_modules/
