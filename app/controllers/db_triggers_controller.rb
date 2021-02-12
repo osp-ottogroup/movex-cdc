@@ -4,7 +4,7 @@ class DbTriggersController < ApplicationController
   # List triggers for schema
   def index
     schema_id = params.require(:schema_id).to_i                                 # should only list tables of specific schema
-    check_user_for_valid_schema_right(schema_id)
+    @current_user.check_user_for_valid_schema_right(schema_id)
 
     @triggers = DbTrigger.find_all_by_schema_id schema_id
     render json: @triggers
@@ -15,7 +15,7 @@ class DbTriggersController < ApplicationController
   def show
     params.require([:table_id, :trigger_name])
     table = Table.find params[:table_id]
-    check_user_for_valid_schema_right(table.schema_id)
+    @current_user.check_user_for_valid_schema_right(table.schema_id)
     @trigger = DbTrigger.find_by_table_id_and_trigger_name(params[:table_id], params[:trigger_name])
     render json: @trigger
   end
@@ -28,7 +28,7 @@ class DbTriggersController < ApplicationController
     schema_name = params.require :schema_name
     schema = Schema.find_by_name schema_name
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
-    schema_right = check_user_for_valid_schema_right(schema.id)
+    schema_right = @current_user.check_user_for_valid_schema_right(schema.id)
     # TODO: uncomment after establishing yn_deployment_granted in GUI
     # raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 

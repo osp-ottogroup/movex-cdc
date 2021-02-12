@@ -2,11 +2,17 @@ class Column < ApplicationRecord
   belongs_to :table
   attribute   :yn_pending, :string, limit: 1, default: 'N'  # is changed column value waiting for being activated in new generated trigger
   validate    :validate_yn_columns
+  validate    :validate_unchanged_attributes
 
   def validate_yn_columns
     validate_yn_column :yn_log_insert
     validate_yn_column :yn_log_update
     validate_yn_column :yn_log_delete
+  end
+
+  def validate_unchanged_attributes
+    errors.add(:table_id, "Change of table_id not allowed!")  if table_id_changed? && self.persisted?
+    errors.add(:name,     "Change of name not allowed!")      if name_changed?     && self.persisted?
   end
 
   def self.count_active(filter_hash)
