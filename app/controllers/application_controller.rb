@@ -38,6 +38,7 @@ class ApplicationController < ActionController::API
     { controller: :help,          action: :doc_pdf}
   ]
 
+  # Terminate further processing if request is not authorized
   def authorize_request
     Database.set_application_info("#{controller_name}/#{action_name}")
 
@@ -49,11 +50,15 @@ class ApplicationController < ActionController::API
       @decoded = JsonWebToken.decode(header)
       @current_user = User.find(@decoded[:user_id])
     rescue ActiveRecord::RecordNotFound => e
-      Rails.logger.error "Unauthorized request with valid token but not existing user: #{request_log_attributes}"
-      render json: { errors: [e.message] }, status: :unauthorized
+      msg = "Unauthorized request with valid token but not existing user: #{request_log_attributes}\n#{e.class} #{e.message}"
+      Rails.logger.error msg
+      # raise ApplicationController::NotAuthorized.new(msg)
+      render json: { errors: [msg] }, status: :unauthorized
     rescue JWT::DecodeError => e
-      Rails.logger.error "Unauthorized request with invalid token: #{request_log_attributes}"
-      render json: { errors: [e.message] }, status: :unauthorized
+      msg = "Unauthorized request with invalid token: #{request_log_attributes}\n#{e.class} #{e.message}"
+      Rails.logger.error msg
+      # raise ApplicationController::NotAuthorized.new(msg)
+      render json: { errors: [msg] }, status: :unauthorized
     end
   end
 
@@ -63,17 +68,6 @@ class ApplicationController < ActionController::API
     retval = nil if retval == ''
     retval.strip! unless retval.nil? # Remove leading and trailing blanks
     retval
-  end
-
-  # Requires execution of 'authorize_request' in before_filter to fill @current_user
-  def check_user_for_valid_schema_right(schema_id)
-    raise "Missing parameter schema_id for check of schema_rights for current user '#{@current_user.email}'" if schema_id.nil?
-    schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
-    if schema_right.nil?
-      schema = Schema.find_by_id schema_id
-      raise "Current user '#{@current_user.email}' has no right for schema '#{schema&.name}'"
-    end
-    schema_right
   end
 
   def client_ip_info

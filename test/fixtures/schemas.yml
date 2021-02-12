@@ -9,7 +9,7 @@ one:
 
 <% if Trixx::Application.config.trixx_db_type != 'SQLITE' %>
 victim:
-  id:   2
+  id:   <%= Trixx::Application.config.trixx_db_victim_schema_id %>
   name: <%= Trixx::Application.config.trixx_db_victim_user %>
   topic: <%= KafkaHelper.existing_topic_for_test %>
 

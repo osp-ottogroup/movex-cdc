@@ -140,11 +140,13 @@ module Trixx
         Trixx::Application.set_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim')
         config.trixx_db_victim_user = config.trixx_db_victim_user.upcase
         Trixx::Application.log_attribute(:trixx_db_victim_user.to_s.upcase, config.trixx_db_victim_user)
+        config.trixx_db_victim_schema_id  = 2                                   # ID of corresponding victim schema in fixture schemas.yml
       end
     when 'SQLITE' then
-      config.trixx_db_user              = 'main'
+      config.trixx_db_user                = 'main'
       if Rails.env.test?
-        config.trixx_db_victim_user     = 'main'  if Rails.env.test?
+        config.trixx_db_victim_user       = 'main'
+        config.trixx_db_victim_schema_id  = 1                                   # run tests in main schema
       end
     else
       raise "unsupported DB type '#{config.trixx_db_type}'"

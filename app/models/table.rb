@@ -9,6 +9,7 @@ class Table < ApplicationRecord
   validate    :topic_in_table_or_schema
   validate    :kafka_key_handling_validate
   validate    :validate_yn_columns
+  validate    :validate_unchanged_attributes
 
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
@@ -17,11 +18,14 @@ class Table < ApplicationRecord
     #    .where(["Name IN (SELECT Table_Name FROM Allowed_DB_Tables WHERE Owner = ? AND Grantee = ?)", schema.name, db_user])
 
     # Find all tables where a user is allowed to read or do not exist no more
-    Table.find_by_sql([ "SELECT t.*, CASE WHEN a.Table_Name IS NULL THEN 'Y' ELSE 'N' END yn_deleted_in_db
+    Table.find_by_sql([ "SELECT t.*,
+                         CASE WHEN dt.Table_Name IS NULL THEN 'Y' ELSE 'N' END yn_deleted_in_db /* does not exist in DB no more */
                          FROM   Tables t
+                         LEFT OUTER JOIN All_DB_Tables dt ON dt.Owner = :owner AND dt.Table_Name = t.Name
                          LEFT OUTER JOIN Allowed_DB_Tables a ON a.Table_Name = t.Name AND a.Owner = :owner AND a.Grantee = :grantee
                          WHERE  t.Schema_ID = :schema_id
                          AND    t.YN_Hidden = 'N'
+                         AND    (a.Table_Name IS NOT NULL OR dt.Table_Name IS NULL) /* Show tables if allowed or physically deleted */
                         ", { owner: schema.name, grantee: db_user, schema_id: schema_id }
                       ]
     )
@@ -57,6 +61,11 @@ class Table < ApplicationRecord
     validate_yn_column :yn_hidden
   end
 
+  def validate_unchanged_attributes
+    errors.add(:schema_id, "Change of schema_id not allowed!")  if schema_id_changed? && self.persisted?
+    errors.add(:name, "Change of name not allowed!")            if name_changed?      && self.persisted?
+  end
+
   def topic_to_use
     if topic.nil? || topic == ''
       schema.topic
@@ -80,5 +89,72 @@ class Table < ApplicationRecord
       end
     end
     youngest_change_dates
+  end
+
+  # Check if maintenance of table is allowed for the current db_user
+  # raise exception if not allowed
+  def self.check_table_allowed_for_db_user(current_user:, schema_name:, table_name:, allow_for_nonexisting_table: false)
+    current_user.check_user_for_valid_schema_right(Schema.find_by_name schema_name)  # First check user config
+
+    table_exists = Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
+                                       owner: schema_name, table_name: table_name) > 0
+
+    return if current_user.db_user == schema_name && table_exists               # Allow maintenance for own existing tables
+
+    return if allow_for_nonexisting_table && !table_exists                      # Allow action for non existing table without further check if requested
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      # Check for public selectable tables
+      return if Database.select_one("SELECT COUNT(*)
+                                     FROM   DBA_Tab_Privs tp
+                                     WHERE  tp.Grantee          = 'PUBLIC'
+                                     AND    tp.Privilege        = 'SELECT'
+                                     AND    tp.Type             = 'TABLE'
+                                     AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
+                                     AND    tp.Owner = :owner
+                                     AND    tp.Table_Name = :table_name",
+                                    owner: schema_name, table_name: table_name) > 0
+
+      # Check for explicite table grants for user
+      return if Database.select_one("SELECT COUNT(*)
+                                     FROM   DBA_TAB_PRIVS
+                                     WHERE  Privilege   = 'SELECT'
+                                     AND    Type        = 'TABLE'
+                                     AND    Owner       = :owner
+                                     AND    Grantee     = :db_user
+                                     AND    Table_Name  = :table_name",
+                                    owner: schema_name, db_user: current_user.db_user, table_name: table_name) > 0
+
+      # Check if user has SELECT ANY TABLE
+      return if Database.select_one("SELECT COUNT(*)
+                                     FROM   DBA_Sys_Privs
+                                     WHERE  Privilege = 'SELECT ANY TABLE'
+                                     AND    Grantee     = :db_user",
+                                    db_user: current_user.db_user) > 0
+
+      # Check for implicite table grants for users's roles
+      return if Database.select_one("SELECT COUNT(*)
+                                     FROM   DBA_Tab_Privs tp
+                                     JOIN   (SELECT Granted_Role, CONNECT_BY_ROOT GRANTEE Grantee
+                                             FROM DBA_Role_Privs
+                                             CONNECT BY PRIOR Granted_Role = Grantee
+                                            ) rp ON rp.Granted_Role = tp.Grantee
+                                     WHERE  tp.Privilege   = 'SELECT'
+                                     AND    tp.Type        = 'TABLE'
+                                     AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
+                                     AND    tp.Owner       = :owner
+                                     AND    rp.Grantee     = :db_user
+                                     AND    tp.Table_Name  = :table_name",
+                                    owner: schema_name, db_user: current_user.db_user, table_name: table_name) > 0
+
+    when 'SQLITE' then
+      return if Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
+                                    owner: schema_name, table_name: table_name) > 0 # Table should exist
+    else
+      raise "Table.check_table_allowed_for_db_user: Declaration missing for #{Trixx::Application.config.trixx_db_type}"
+    end
+    # Raise exception if none of previous checks has returned from method
+    raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{current_user.db_user}"
   end
 end
