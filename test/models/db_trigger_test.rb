@@ -115,7 +115,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate erroneous trigger" do
     user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
-    condition = Condition.find_by_table_id_and_operation(tables(:victim1).id, 'I')
+    condition = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
     original_filter = condition.filter
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
     result = DbTrigger.generate_triggers(victim_schema_id, user_options)

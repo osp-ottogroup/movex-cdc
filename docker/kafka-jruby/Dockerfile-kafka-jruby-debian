@@ -3,7 +3,7 @@
 # Peter Ramm, 2020-03-17
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-debian --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14 .
 # Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
 # Use
 

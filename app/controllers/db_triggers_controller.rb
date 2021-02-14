@@ -26,7 +26,7 @@ class DbTriggersController < ApplicationController
   # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate
     schema_name = params.require :schema_name
-    schema = Schema.find_by_name schema_name
+    schema = Schema.where(name: schema_name).first
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     schema_right = @current_user.check_user_for_valid_schema_right(schema.id)
     # TODO: uncomment after establishing yn_deployment_granted in GUI

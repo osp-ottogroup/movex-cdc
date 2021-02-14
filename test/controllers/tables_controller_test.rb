@@ -39,7 +39,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_response :internal_server_error, 'Should not get access without schema rights'
 
     # reopen hidden table instead of creation
-    tables_deletable = Table.find_by_schema_id_and_name(@victim_schema_id, 'VICTIM3')
+    tables_deletable = Table.where(schema_id: @victim_schema_id, name: 'VICTIM3').first
     tables_deletable.update(yn_hidden: 'Y')
     assert_no_difference('Table.count') do
       post tables_url, headers: jwt_header, params: { table: { schema_id: tables_deletable.schema_id, name: tables_deletable.name, info: 'different info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
@@ -68,7 +68,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
 
   test "should update table" do
-    patch table_url(@victim1_table), headers: jwt_header, params: { table: { info: 'new info', topic: KafkaHelper.existing_topic_for_test, lock_version: @table.lock_version } }, as: :json
+    patch table_url(@victim1_table), headers: jwt_header, params: { table: { info: 'new info', topic: KafkaHelper.existing_topic_for_test, lock_version: @victim1_table.lock_version } }, as: :json
     assert_response 200
 
     patch table_url(@table), headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: 1,  } }, as: :json
