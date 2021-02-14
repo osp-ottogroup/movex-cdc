@@ -17,12 +17,12 @@ class SchemaRight < ApplicationRecord
     end
 
     user_request_params.each do |p|
-      schema =  Schema.find_by_name(p[:schema][:name])
+      schema =  Schema.where(name: p[:schema][:name]).first
       if schema.nil?                                                            # create schema if not already exists
         schema = Schema.new(name: p[:schema][:name])
         schema.save!
       end
-      schema_right = SchemaRight.find_by_user_id_and_schema_id(user.id, schema.id)
+      schema_right = SchemaRight.where(user_id: user.id, schema_id: schema.id).first
       if schema_right
         # TODO: reduce to variant with lock_version when lock_version is sent from GUI
         if p[:lock_version]

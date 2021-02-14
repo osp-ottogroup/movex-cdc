@@ -2,22 +2,23 @@ source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 # According to JRuby-Version (trixx/.ruby-version)
-# jruby-9.2.8.0: 2.5.3
-# jruby-9.2.9.0: 2.5.7
-# jruby-9.2.11.1: 2.5.7
+# TODO: switch to current jruby if Docker image becomes available for current JDK
 # jruby-9.2.13.0
 ruby '2.5.7'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # rails 6.1.0 and 6.1.1 are buggy with optimistic logging,
-# TODO: change to current Rails version suspended until this bug is fixed and released: https://github.com/rails/rails/pull/41049
-gem 'rails', '6.0.3.4'
+# TODO: still Rails 6.0.3.4: change to current Rails version suspended until this bug is fixed and released: https://github.com/rails/rails/pull/41049
+gem 'rails', '6.1.2.1'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'
 
+# TODO: 1.8.8 leads to error: NoMethodError (undefined method `deep_merge!' for {}:Concurrent::Hash
+gem 'i18n', '1.8.7'
+
+
 # Use Puma as the app server
-#gem 'puma', '~> 4.1'
 gem 'puma'
 # Build JSON APIs with ease. Read more: https://github.com/rails/jbuilder
 # gem 'jbuilder', '~> 2.7'

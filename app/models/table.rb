@@ -94,7 +94,7 @@ class Table < ApplicationRecord
   # Check if maintenance of table is allowed for the current db_user
   # raise exception if not allowed
   def self.check_table_allowed_for_db_user(current_user:, schema_name:, table_name:, allow_for_nonexisting_table: false)
-    current_user.check_user_for_valid_schema_right(Schema.find_by_name schema_name)  # First check user config
+    current_user.check_user_for_valid_schema_right(Schema.where(name: schema_name).first.id)  # First check user config
 
     table_exists = Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
                                        owner: schema_name, table_name: table_name) > 0

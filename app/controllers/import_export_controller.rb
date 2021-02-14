@@ -51,7 +51,7 @@ class ImportExportController < ApplicationController
                                                 [conditions: [condition_columns.map{|c| c.to_sym}]]
                                       ]],
                                       schema_rights: [schema_right_columns.map{|c| c.to_sym}].append(:email))
-        import_schema = Schema.find_by_name(schema_params[:name])
+        import_schema = Schema.where(name: schema_params[:name]).first
         if import_schema
           logger.info 'Found existing Schema "' + schema_params[:name] + '", going clean it'
           import_schema.tables.each do |table|
