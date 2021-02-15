@@ -23,15 +23,18 @@ class SchemaRight < ApplicationRecord
         schema.save!
       end
       schema_right = SchemaRight.where(user_id: user.id, schema_id: schema.id).first
-      if schema_right
-        # TODO: reduce to variant with lock_version when lock_version is sent from GUI
-        if p[:lock_version]
-          schema_right.update!(info: p[:info], yn_deployment_granted: p[:yn_deployment_granted], lock_version: p[:lock_version])  # update existing schema_right
-        else
-          schema_right.update!(info: p[:info], yn_deployment_granted: p[:yn_deployment_granted])                                  # update existing schema_right
-        end
+      if schema_right                                                           # update existing schema_right
+        raise "SchemaRight.process_user_request: lock_version is required for schema_right" if p[:lock_version].nil?
+        schema_right.update!(info:                  p[:info],
+                             yn_deployment_granted: p[:yn_deployment_granted],
+                             lock_version:          p[:lock_version]
+        )
       else                                                                      # create schema_right if not yet exists
-        schema_right = SchemaRight.new(user_id: user.id, schema_id: schema.id, info: p[:info], yn_deployment_granted: p[:yn_deployment_granted])
+        schema_right = SchemaRight.new(user_id:               user.id,
+                                       schema_id:             schema.id,
+                                       info:                  p[:info],
+                                       yn_deployment_granted: p[:yn_deployment_granted]
+        )
         schema_right.save!
       end
     end
