@@ -134,7 +134,9 @@
                             size="is-small"/>
                 </div>
                 <div class="column">
-                  <b-input v-model="schemaRight.info" size="is-small"></b-input>
+                  <b-tooltip :label="schemaRight.info">
+                    <b-input v-model="schemaRight.info" size="is-small"></b-input>
+                  </b-tooltip>
                 </div>
                 <div class="column is-2">
                   <b-button type="is-info is-light"
@@ -183,12 +185,6 @@ export default {
         ));
 
         this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email, db_user: this.user.db_user });
-
-        // eslint-disable-next-line no-plusplus
-        for (let i = 0; i < 1000; i++) {
-          this.authorizableDbSchemas.push({ name: `Schema ${i}` });
-        }
-
         this.authorizableDbSchemas.sort((a, b) => (
           a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
         ));
