@@ -17,7 +17,7 @@ class SchemaRight < ApplicationRecord
     end
 
     schema_rights_params.each do |p|
-      schema =  Schema.where(p[:schema][:name]).first
+      schema =  Schema.where(name: p[:schema][:name]).first
       if schema.nil?                                                            # create schema if not already exists
         schema = Schema.new(name: p[:schema][:name])
         schema.save!
