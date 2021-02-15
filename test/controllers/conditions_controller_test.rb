@@ -2,12 +2,16 @@ require 'test_helper'
 
 class ConditionsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @condition = conditions(:one)
+    @condition = conditions(:victim1_I)
+    @victim1_table      = tables(:victim1)
+    @victim_connection  = create_victim_connection
+    create_victim_structures(@victim_connection)
+    @victim_schema_id = Trixx::Application.config.trixx_db_victim_schema_id
   end
 
   test "should get index" do
     # Setting params for get leads to switch GET to POST, only in test
-    get "/conditions?table_id=1", headers: jwt_header, as: :json
+    get "/conditions?table_id=#{@victim1_table.id}", headers: jwt_header, as: :json
     assert_response :success
 
     get "/conditions?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
@@ -16,7 +20,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create condition" do
     assert_difference('Condition.count') do
-      post conditions_url, headers: jwt_header, params: { condition: { table_id: 1, operation: 'U', filter: 'ID IS NULL' } }, as: :json
+      post conditions_url, headers: jwt_header, params: { condition: { table_id: @victim1_table.id, operation: 'U', filter: 'ID IS NULL' } }, as: :json
     end
     assert_response 201
 
@@ -47,7 +51,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     assert_response 204
 
     assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      delete condition_url(conditions(:two)), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
+      delete condition_url(conditions(:victim1_D)), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
     end
 
   end

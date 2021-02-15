@@ -63,4 +63,17 @@ class User < ApplicationRecord
     self.update!(yn_account_locked: 'Y', yn_hidden: 'Y')
     :locked
   end
+
+  # Check and raise exception if no right available
+  def check_user_for_valid_schema_right(schema_id)
+    raise "Missing parameter schema_id for check of schema_rights for user '#{self.email}'" if schema_id.nil?
+    schema_right = self.schema_rights.where(schema_id: schema_id).first
+    # schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
+    if schema_right.nil?
+      schema = Schema.where(id: schema_id).first
+      raise "User '#{self.email}' has no right for schema '#{schema&.name}'"
+    end
+    schema_right
+  end
+
 end

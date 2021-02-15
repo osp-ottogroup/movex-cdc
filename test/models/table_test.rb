@@ -74,4 +74,54 @@ class TableTest < ActiveSupport::TestCase
     end
   end
 
+  test "check_table_allowed_for_db_user" do
+    current_user = users(:one)
+    # Check if own table is maintainable (no exception)
+    assert_nothing_raised do
+      Table.check_table_allowed_for_db_user(current_user: current_user,
+                                      schema_name: Trixx::Application.config.trixx_db_victim_user,
+                                      table_name:  tables(:victim1).name,
+                                      allow_for_nonexisting_table: false
+      )
+    end
+
+    assert_raise('Non-existing table should raise exception if allow_for_nonexisting_table=false') do
+      Table.check_table_allowed_for_db_user(current_user:                 current_user,
+                                            schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                            table_name:                   'Non_Existing',
+                                            allow_for_nonexisting_table:  false
+      )
+    end
+
+    # Non-existing table should not raise exception if allow_for_nonexisting_table=true
+    assert_nothing_raised do
+      Table.check_table_allowed_for_db_user(current_user:                 current_user,
+                                            schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                            table_name:                   'Non_Existing',
+                                            allow_for_nonexisting_table:  true
+      )
+    end
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      assert_raise('Non-selectable table should raise exception') do
+        Table.check_table_allowed_for_db_user(current_user:                 current_user,
+                                              schema_name:                  Trixx::Application.config.trixx_db_user,
+                                              table_name:                   'TABLES',
+                                              allow_for_nonexisting_table:  false
+        )
+      end
+
+      # selectable table of other schema schould not raise exception
+      assert_nothing_raised do
+        Table.check_table_allowed_for_db_user(current_user:                 current_user,
+                                              schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                              table_name:                   tables(:victim1).name,
+                                              allow_for_nonexisting_table:  false
+        )
+      end
+
+      # TODO: Test for user with SELECT ANY TABLE and implicite table grants for users's roles still missing
+    end
+  end
 end

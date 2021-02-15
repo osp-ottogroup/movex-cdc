@@ -6,7 +6,7 @@ class ColumnsController < ApplicationController
   def index
     table_id = params.require(:table_id)                                        # Should only list columns of specific table
     table = Table.find table_id
-    check_user_for_valid_schema_right(table.schema_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
 
     @columns = Column.includes(table: :schema).joins(table: :schema).where(table_id: table_id)
     render json: @columns
@@ -22,7 +22,7 @@ class ColumnsController < ApplicationController
     column_params.require [:table_id]                                           # minimum set of values
     @column = Column.new(column_params)
     table = Table.find @column.table_id
-    check_user_for_valid_schema_right(table.schema_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
 
     if @column.save
       log_activity(
@@ -67,13 +67,17 @@ class ColumnsController < ApplicationController
 
   # POST /columns/select_all_columns table_id, operation (I/U/D)
   def tag_operation_for_all_columns
-    Column.tag_operation_for_all_columns(params.require(:table_id), params.require(:operation), 'Y')
+    table = Table.find params.require(:table_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Column.tag_operation_for_all_columns(table.id, params.require(:operation), 'Y')
     index                                                                       # return complete list of existing columns in table COLUMNS
   end
 
   # POST /columns/deselect_all_columns table_id, operation (I/U/D)
   def untag_operation_for_all_columns
-    Column.tag_operation_for_all_columns(params.require(:table_id), params.require(:operation), 'N')
+    table = Table.find params.require(:table_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Column.tag_operation_for_all_columns(table.id, params.require(:operation), 'N')
     index                                                                       # return complete list of existing columns in table COLUMNS
   end
 
@@ -81,8 +85,8 @@ class ColumnsController < ApplicationController
     # Use callbacks to share common setup or constraints between actions.
     def set_column
       @column = Column.find(params[:id])
-      table = Table.find @column.table_id
-      check_user_for_valid_schema_right(table.schema_id)
+      @table = Table.find @column.table_id
+      Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: @table.schema.name, table_name: @table.name)
     end
 
     # Only allow a trusted parameter "white list" through.

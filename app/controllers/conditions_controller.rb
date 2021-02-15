@@ -5,7 +5,7 @@ class ConditionsController < ApplicationController
   def index
     table_id = params.require(:table_id)                                        # Should only list conditions of specific table
     table = Table.find table_id
-    check_user_for_valid_schema_right(table.schema_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
     @conditions = Condition.where table_id: table_id
     render json: @conditions
   end
@@ -20,7 +20,7 @@ class ConditionsController < ApplicationController
     condition_params.require [:table_id, :operation, :filter]                   # minimum set of values
     @condition = Condition.new(condition_params)
     table = Table.find @condition.table_id
-    check_user_for_valid_schema_right(table.schema_id)
+    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
 
     if @condition.save
       log_activity(
@@ -65,7 +65,7 @@ class ConditionsController < ApplicationController
     def set_condition
       @condition = Condition.find(params[:id])
       table = Table.find @condition.table_id
-      check_user_for_valid_schema_right(table.schema_id)
+      Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
     end
 
     # Only allow a trusted parameter "white list" through.

@@ -3,7 +3,7 @@ require 'test_helper'
 class InitializationJobTest < ActiveJob::TestCase
   test "startup" do
     # Remove exsting admin user created by fixture, should be recreated by next action
-    admin = User.find_by_email 'admin'
+    admin = User.where(email: 'admin').first
     admin.destroy if admin
 
     assert_difference('User.count', 1, 'Should add new user admin') do

@@ -355,7 +355,8 @@ class TransferThread
         Database.select_all("SELECT *
                              FROM   Event_Logs
                              WHERE #{filter}
-                             AND   (Retry_Count = 0 OR  DATETIME(Last_Error_Time, '+'||CAST(#{Trixx::Application.config.trixx_error_retry_start_delay}*Retry_Count*Retry_Count AS VARCHAR)||' seconds') < DATETIME('now'))
+                             /* Time-value with ' UTC' is not accepted for DATETIME(xx, '+ 5 seconds') */
+                             AND   (Retry_Count = 0 OR  DATETIME(REPLACE(Last_Error_Time, ' UTC', ''), '+'||CAST(#{Trixx::Application.config.trixx_error_retry_start_delay}*Retry_Count*Retry_Count AS VARCHAR)||' seconds') < DATETIME('now'))
                              LIMIT  #{fetch_limit}", params)
       end
     else

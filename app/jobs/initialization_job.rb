@@ -43,7 +43,7 @@ class InitializationJob < ApplicationJob
   private
   # ensure that user admin exists
   def ensure_admin_existence
-    admin = User.find_by_email 'admin'
+    admin = User.where(email: 'admin').first
     unless admin
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do

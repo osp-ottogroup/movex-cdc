@@ -123,6 +123,8 @@ class ActiveSupport::TestCase
 
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
       exec_victim_sql(victim_connection, "GRANT SELECT ON #{victim_schema_prefix}#{tables(:victim2).name} TO #{Trixx::Application.config.trixx_db_user}")
+      # Table VICTIM3 without fixture in Tables
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
     when 'SQLITE' then
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
@@ -139,6 +141,8 @@ class ActiveSupport::TestCase
         END;
       ")
       exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      # Table VICTIM3 without fixture in Tables
+      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
@@ -147,6 +151,7 @@ class ActiveSupport::TestCase
   def drop_victim_structures(victim_connection)
     exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
     exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim2).name}")
+    exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}VICTIM3")
   end
 
   # create records in Event_Log by trigger on tables(:victim1)

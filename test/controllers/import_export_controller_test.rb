@@ -280,7 +280,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
 
-    new_schema = Schema.find_by_name("another")
+    new_schema = Schema.where(name: "another").first
     assert_not_nil new_schema
     assert_equal "TheWeather", new_schema.topic
     assert_equal 1, new_schema.tables.count
