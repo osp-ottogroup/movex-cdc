@@ -13,7 +13,7 @@
 ActiveRecord::Schema.define(version: 2021_02_10_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
-    t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
+    t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
     t.string "schema_name", limit: 256, comment: "Name of schema"
     t.string "table_name", limit: 256, comment: "Name of table"
     t.string "column_name", limit: 256, comment: "Name of column"
@@ -25,8 +25,8 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
 
-  create_table "columns", comment: "Columns with flags for DML operation to trigger", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+  create_table "columns", id: { precision: 38, comment: "Columns with flags for DML operation to trigger" }, comment: "Columns with flags for DML operation to trigger", force: :cascade do |t|
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "name", limit: 256, null: false, comment: "Column name of database table"
     t.string "info", limit: 1000, comment: "Additional info"
     t.string "yn_log_insert", limit: 1, null: false, comment: "Log this column at insert operation (Y/N)"
@@ -40,7 +40,7 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
   end
 
   create_table "conditions", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "operation", limit: 1, null: false, comment: "Type of operation: I=insert, U=update, D=delete"
     t.string "filter", limit: 4000, null: false, comment: "Filter exporession for WHEN-clause of trigger"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
@@ -48,11 +48,6 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.datetime "updated_at", precision: 6, null: false
     t.index ["table_id", "operation"], name: "ix_conditions_table_id_oper", unique: true
     t.index ["table_id"], name: "index_conditions_on_table_id"
-  end
-
-  create_table "dummy", force: :cascade do |t|
-    t.string "name"
-    t.index ["name"], name: "ix_dummy_name"
   end
 
   create_table "event_log_final_errors", id: false, force: :cascade do |t|
@@ -68,8 +63,7 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
-  create_table "event_logs", id: false, force: :cascade do |t|
-    t.integer "id", limit: 18, precision: 18, null: false
+  create_table "event_logs", id: { limit: 18, precision: 18 }, force: :cascade do |t|
     t.integer "table_id", limit: 18, precision: 18, null: false
     t.string "operation", limit: 1, null: false
     t.string "dbuser", limit: 128, null: false
@@ -81,14 +75,9 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
-  create_table "hugo", id: false, force: :cascade do |t|
-    t.decimal "id"
-    t.string "name", limit: 20
-  end
-
   create_table "schema_rights", force: :cascade do |t|
-    t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
-    t.integer "schema_id", limit: 19, precision: 19, null: false, comment: "Reference to schema"
+    t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
+    t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
     t.string "info", limit: 1000, comment: "Additional info"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
     t.datetime "created_at", precision: 6, null: false
@@ -99,7 +88,7 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.index ["user_id"], name: "index_schema_rights_on_user_id"
   end
 
-  create_table "schemas", comment: "Schemas allowed for use with TriXX by admin acount", force: :cascade do |t|
+  create_table "schemas", id: { precision: 38, comment: "Schemas allowed for use with TriXX by admin acount" }, comment: "Schemas allowed for use with TriXX by admin acount", force: :cascade do |t|
     t.string "name", limit: 256, null: false, comment: "Name of corresponding database schema"
     t.string "topic", comment: "Default topic name for tables of this schema if no topic is defined at table level. Null if topic should be defined at table level"
     t.datetime "last_trigger_deployment", precision: 6, comment: "Timestamp of last successful trigger deployment for schema (no matter if there have been changes for triggers or not)"
@@ -109,15 +98,15 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.index ["name"], name: "ix_schemas_name", unique: true
   end
 
-  create_table "semaphores", comment: "Records to lock at database level as precondition for start of processing", force: :cascade do |t|
+  create_table "semaphores", id: { precision: 38, comment: "Records to lock at database level as precondition for start of processing" }, comment: "Records to lock at database level as precondition for start of processing", force: :cascade do |t|
     t.string "process_identifier", limit: 300, null: false, comment: "Unique identifier of process (hostname + process id)"
     t.integer "thread_id", precision: 38, null: false, comment: "ID of transfer thread"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
   end
 
-  create_table "statistics", comment: "Throughput statistics", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+  create_table "statistics", id: { precision: 38, comment: "Throughput statistics" }, comment: "Throughput statistics", force: :cascade do |t|
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "operation", limit: 1, null: false, comment: "Operation (I=Insert, U=Update, D=Delete)"
     t.integer "events_success", precision: 38, null: false, comment: "Number of successful processed events"
     t.datetime "end_timestamp", precision: 6, null: false, comment: "End of period where events are processed"
@@ -129,8 +118,8 @@ ActiveRecord::Schema.define(version: 2021_02_10_000000) do
     t.index ["table_id"], name: "index_statistics_on_table_id"
   end
 
-  create_table "tables", comment: "Tables planned for triger creation", force: :cascade do |t|
-    t.integer "schema_id", limit: 19, precision: 19, null: false, comment: "Reference to schema"
+  create_table "tables", id: { precision: 38, comment: "Tables planned for triger creation" }, comment: "Tables planned for triger creation", force: :cascade do |t|
+    t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
     t.string "name", limit: 256, null: false, comment: "Table name of database table"
     t.string "info", limit: 1000, comment: "Additional info like responsible team"
     t.string "topic", comment: "Topic name for table. Topic name of schema is used s default if Null"

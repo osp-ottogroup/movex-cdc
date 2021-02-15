@@ -76,6 +76,6 @@ class UsersController < ApplicationController
     end
 
     def schema_rights_params
-      params.fetch(:user, {}).permit( [schema_rights: [:info, {schema: :name }, :lock_version] ] )[:schema_rights]
+      params.fetch(:user, {}).permit( [schema_rights: [:info, :yn_deployment_granted, :lock_version, {schema: :name }] ] )[:schema_rights]
     end
 end
