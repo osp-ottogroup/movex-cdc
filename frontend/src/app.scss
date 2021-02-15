@@ -11,6 +11,9 @@ $link-focus-border: $primary;
 
 // Import Bulma's core
 @import "~bulma/sass/utilities/_all";
+
+$label-weight: $weight-medium;
+
 // Import Bulma and Buefy styles
 @import "~bulma";
 @import "~buefy/src/scss/buefy";

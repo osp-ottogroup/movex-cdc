@@ -18,7 +18,7 @@
 
         <div class="columns">
           <div class="column">
-            <div class="is-size-6 mb-3">User Data</div>
+            <div class="is-size-6 mb-3 has-text-weight-semibold has-text-info-dark">User Data</div>
             <b-field label="First Name">
               <b-input v-model="user.first_name"
                        type="text"
@@ -79,10 +79,10 @@
           </div>
 
           <div class="column is-8 border-left">
-            <div class="is-size-6">Authorized Schemas</div>
+            <div class="is-size-6 has-text-weight-semibold has-text-info-dark">Add Authorized Schema</div>
             <div class="columns is-marginless">
               <div class="column">
-                <b-field label="Schema" custom-class="is-small">
+                <b-field label="Schema">
                   <b-select v-model="schemaRightToAdd.schema"
                             placeholder="Select a schema"
                             :loading="isLoading"
@@ -94,8 +94,8 @@
                   </b-select>
                 </b-field>
               </div>
-              <div class="column">
-                <b-field label="Deployment granted" custom-class="is-small">
+              <div class="column is-4">
+                <b-field label="Deployment granted">
                   <b-switch v-model="schemaRightToAdd.yn_deployment_granted"
                             true-value="Y"
                             false-value="N"
@@ -103,12 +103,12 @@
                 </b-field>
               </div>
               <div class="column">
-                <b-field label="Info" custom-class="is-small">
+                <b-field label="Info">
                   <b-input v-model="schemaRightToAdd.info" size="is-small"></b-input>
                 </b-field>
               </div>
               <div class="column is-2">
-                <b-field custom-class="is-small">
+                <b-field>
                   <template #label>
                     <span class="is-invisible">invisible</span>
                   </template>
@@ -122,12 +122,18 @@
               </div>
             </div>
 
-            <div class="mt-5 schema-rights-list">
+            <div class="mt-5 is-size-6 has-text-weight-semibold has-text-info-dark">Authorized Schemas</div>
+            <div v-if="user.schema_rights.length === 0"
+                 class="content has-text-grey has-text-centered is-size-7">
+              <b-icon icon="information" />
+              <p>No schemas are authorized so far!</p>
+            </div>
+            <div class="mt-3 schema-rights-list">
               <div v-for="(schemaRight, index) in user.schema_rights" :key="index" class="columns is-marginless">
                 <div class="column is-size-7">
                   {{ schemaRight.schema.name }}
                 </div>
-                <div class="column">
+                <div class="column is-4">
                   <b-switch v-model="schemaRight.yn_deployment_granted"
                             true-value="Y"
                             false-value="N"
@@ -337,7 +343,7 @@ export default {
     margin-left: auto;
   }
   .modal-card {
-    width: 1024px;
+    width: auto;
   }
   .border-left {
     border-left: 1px solid lightgray;
