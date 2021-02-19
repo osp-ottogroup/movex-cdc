@@ -1,6 +1,7 @@
 class User < ApplicationRecord
   has_many :activity_logs
   has_many :schema_rights
+  has_many :schemas, through: :schema_rights
   validate :validate_values
   # validates :yn_admin, acceptance: { accept: ['Y', 'N'] }
 
@@ -74,6 +75,14 @@ class User < ApplicationRecord
       raise "User '#{self.email}' has no right for schema '#{schema&.name}'"
     end
     schema_right
+  end
+
+  def deployable_schemas
+    self.schemas.where(:schema_rights => {yn_deployment_granted: 'Y'})
+  end
+
+  def can_deploy_schemas?
+    self.deployable_schemas.count > 0
   end
 
 end

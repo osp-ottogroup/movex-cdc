@@ -105,5 +105,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "should have deployable schemas" do
+    # using fixtures user(:one) and schema_rights(one)
+    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    assert_response :success
+  end
+
+  test "should not have deployable schemas" do
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
+    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    assert_response :success
+  end
 
 end
