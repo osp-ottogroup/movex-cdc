@@ -54,10 +54,10 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 import HttpService from '@/services/HttpService';
 import Config from '@/config/config';
+import UserService from '@/services/UserService';
 
 export default {
   name: 'Deployment',
-  components: {},
   data() {
     return {
       isLoading: false,
@@ -66,6 +66,7 @@ export default {
       schemas: [],
       selectedSchema: null,
       resultList: null,
+      user: UserService.getUser(),
     };
   },
   async created() {
@@ -80,7 +81,7 @@ export default {
     async loadSchemas() {
       try {
         this.isLoading = true;
-        this.schemas = await CRUDService.schemas.getAll();
+        this.schemas = await CRUDService.users.deployableSchemas(this.user);
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),

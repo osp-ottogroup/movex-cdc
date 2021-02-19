@@ -19,7 +19,10 @@ export default {
     ...BaseCRUDService('tables'),
     triggerDates: BaseCRUDService('/trigger_dates').get,
   },
-  users: BaseCRUDService('users'),
+  users: {
+    ...BaseCRUDService('users'),
+    deployableSchemas: async (user) => (await HttpService.get(`${backendUrl}/users/${user.id}/deployable_schemas`)).data,
+  },
   dbColumns: { getAll: BaseCRUDService('db_columns').getAll },
   dbSchemas: {
     getAll: BaseCRUDService('db_schemas').getAll,

@@ -73,17 +73,16 @@
 
 <script>
 import Config from '@/config/config';
+import UserService from '@/services/UserService';
 import LoginService from '../services/LoginService';
 
 export default {
   name: 'AppHeader',
-  props: {
-    user: { type: Object, default: () => {} },
-  },
   data() {
     return {
       showAccountInfo: false,
       backendUrl: Config.backendUrl,
+      user: UserService.getUser(),
     };
   },
   computed: {
