@@ -19,7 +19,7 @@
         <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
           Configuration
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
+        <b-navbar-item v-if="canDeploy" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
         <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/information' }">
@@ -89,6 +89,9 @@ export default {
   computed: {
     isAdminUser() {
       return this.user.isAdmin;
+    },
+    canDeploy() {
+      return this.user.canDeploy;
     },
     roleName() {
       return this.isAdminUser ? 'Admin' : 'User';

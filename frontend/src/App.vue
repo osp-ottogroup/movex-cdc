@@ -59,6 +59,7 @@ export default {
       this.user = {
         name: `${TokenService.getPayload().first_name} ${TokenService.getPayload().last_name}`,
         isAdmin: TokenService.getPayload().is_admin,
+        canDeploy: TokenService.getPayload().can_deploy,
       };
     },
     async onCreated() {
