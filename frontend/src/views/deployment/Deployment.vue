@@ -1,37 +1,53 @@
 <template>
-  <div>
-    <div class="columns">
-      <div class="column is-2 is-offset-1">
-        <b-field label="Generate triggers for schema" >
-          <b-select v-model="selectedSchema"
-                    placeholder="Select a schema"
-                    :loading="isLoading"
-                    expanded>
-            <option v-for="schema in schemas" :key="schema.id" :value="schema">
-              {{ schema.name }}
-            </option>
-          </b-select>
-        </b-field>
-        <b-button @click="generateForSelectedSchema"
-                  type="is-primary"
-                  expanded
-                  :disabled="selectedSchema === null || isGeneratingForSchema || isGeneratingForAllSchemas"
-                  :loading="isGeneratingForSchema">
-          Generate for Schema
-        </b-button>
-      </div>
-      <div class="column is-2 is-offset-1">
-        <b-field label="Generate triggers for all schemas" >
-          <b-button @click="generateForAllSchemas"
-                    type="is-primary"
-                    expanded
-                    :disabled="isGeneratingForAllSchemas || isGeneratingForSchema"
-                    :loading="isGeneratingForAllSchemas">
-            Generate for All Schemas
-          </b-button>
-        </b-field>
-      </div>
-    </div>
+  <div class="container">
+    <b-tabs>
+      <b-tab-item label="Generate triggers for schema">
+        <div class="columns">
+          <div class="column is-3">
+            <b-field>
+              <b-select v-model="selectedSchema"
+                        placeholder="Select a schema"
+                        expanded
+                        :loading="isLoading">
+                <option v-for="schema in schemas" :key="schema.id" :value="schema">
+                  {{ schema.name }}
+                </option>
+              </b-select>
+            </b-field>
+            <b-button @click="generateForSelectedSchema"
+                      type="is-primary"
+                      expanded
+                      :disabled="selectedSchema === null || isGeneratingForSchema || isGeneratingForAllSchemas"
+                      :loading="isGeneratingForSchema">
+              Generate for Schema
+            </b-button>
+          </div>
+        </div>
+      </b-tab-item>
+
+      <b-tab-item label="Generate triggers for all schemas">
+        <div class="columns">
+          <div class="column is-3">
+            <b-field>
+              <b-button @click="generateForAllSchemas"
+                        type="is-primary"
+                        expanded
+                        :disabled="isGeneratingForAllSchemas || isGeneratingForSchema"
+                        :loading="isGeneratingForAllSchemas">
+                Generate for All Schemas
+              </b-button>
+            </b-field>
+          </div>
+          <div class="column is-3 is-size-7 has-text-info-dark">
+            <b-icon icon="information-outline" size="is-small" />
+            <span>
+              This will only generate triggers for schemas, for which you have deployment rights.
+            </span>
+          </div>
+        </div>
+      </b-tab-item>
+    </b-tabs>
+
     <div v-if="showResultList" class="columns">
       <div class="column is-10 is-offset-1">
         <h4 class="title is-4">Triggers that are newly generated or modified by this request:</h4>
