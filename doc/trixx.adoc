@@ -76,6 +76,8 @@ Accepting the synchroneous overhead of triggers in business transactions the sol
 Works with https://docs.oracle.com/database/121/XSTRM/xstrm_intro.htm#XSTRM1086[XStream API] (requires Golden Gate license for consumer) or directly by LogMiner for Oracle.
 |https://docs.oracle.com/goldengate/c1230/gg-winux/index.html[Oracle Golden Gate]|
 Commercial solution, requires licensing of producer and consumer
+|https://www.quest.com/documents/shareplex-for-kafka-target-datasheet-144821.pdf[Quest SharePlex]|
+Commercial solution, processes redo log files.
 |https://docs.confluent.io/kafka-connect-oracle-cdc/current/index.html[Oracle CDC Source Connector for Confluent Platform:]|
 Commercial solution, based on Logminer function.
 Not yet functioning for Oracle 19c.
