@@ -67,6 +67,15 @@ But this solutions also mean:
 This is the case where TriXX comes into play. +
 Accepting the synchroneous overhead of triggers in business transactions the solution is sized for the expected amount of observed change events independent from the total transaction throughput of the entire database.
 
+Other common existing solutions for change data capturing are:
+
+ * https://debezium.io[Debezium]: Open source solution for several database systems. +
+Works with https://docs.oracle.com/database/121/XSTRM/xstrm_intro.htm#XSTRM1086[XStream API] (requires Golden Gate license for consumer) or directly by LogMiner for Oracle.
+ * https://docs.oracle.com/goldengate/c1230/gg-winux/index.html[Oracle Golden Gate] +
+requires licensing of producer and consumer
+ * https://docs.confluent.io/kafka-connect-oracle-cdc/current/index.html[Oracle CDC Source Connector for Confluent Platform:] +
+works with Logminer function, not yet for Oracle 19c
+
 === Supported databases ===
 
 ==== Oracle Database ====
