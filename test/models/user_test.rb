@@ -35,8 +35,8 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "should have deployable schemas" do
-    # using fixtures user(:one), schema_rights(:one) and schema(:one)
-    ds = users(:one).deployable_schemas
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'Y').save!
+    ds = users(:two).deployable_schemas
     assert(ds.count == 1, 'Should have one deployable schema')
     assert(ds.first.name == schemas(:one).name, 'Should be correct schema name')
   end
