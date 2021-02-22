@@ -4,6 +4,12 @@
       <b-tab-item label="Generate triggers for schema">
         <div class="columns">
           <div class="column is-3">
+            <div class="is-size-7 has-text-info-dark mb-3">
+              <b-icon icon="information-outline" size="is-small" />
+              <span>
+                You can only select schemas, for which you have deployment rights.
+              </span>
+            </div>
             <b-field>
               <b-select v-model="selectedSchema"
                         placeholder="Select a schema"
@@ -28,6 +34,12 @@
       <b-tab-item label="Generate triggers for all schemas">
         <div class="columns">
           <div class="column is-3">
+            <div class="is-size-7 has-text-info-dark mb-3">
+              <b-icon icon="information-outline" size="is-small" />
+              <span>
+                This will only generate triggers for schemas, for which you have deployment rights.
+              </span>
+            </div>
             <b-field>
               <b-button @click="generateForAllSchemas"
                         type="is-primary"
@@ -37,12 +49,6 @@
                 Generate for All Schemas
               </b-button>
             </b-field>
-          </div>
-          <div class="column is-3 is-size-7 has-text-info-dark">
-            <b-icon icon="information-outline" size="is-small" />
-            <span>
-              This will only generate triggers for schemas, for which you have deployment rights.
-            </span>
           </div>
         </div>
       </b-tab-item>
