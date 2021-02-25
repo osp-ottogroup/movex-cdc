@@ -19,7 +19,8 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                 SELECT tp.Owner, rp.Grantee, tp.Table_Name
                 FROM   DBA_Tab_Privs tp
                 JOIN   (SELECT Granted_Role, CONNECT_BY_ROOT GRANTEE Grantee
-                        FROM DBA_Role_Privs
+                        FROM   DBA_Role_Privs
+                        WHERE  Default_Role = 'YES' /* Accept roles only if fix assignment to user exists */
                         CONNECT BY PRIOR Granted_Role = Grantee
                        ) rp ON rp.Granted_Role = tp.Grantee
                 WHERE  tp.Privilege = 'SELECT'
@@ -43,7 +44,10 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
         WHERE  Table_Name NOT LIKE 'BIN$%'  /* exclude recycle bin */
         "
     when 'SQLITE' then
-      ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables" if view_exists? 'ALLOWED_DB_TABLES'
+      # if view_exists? 'Allowed_DB_Tables' doesn not function for SQLite
+      if Database.select_one("SELECT COUNT(*) FROM sqlite_master WHERE name = 'Allowed_DB_Tables'") > 0
+        ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables"
+      end
       ActiveRecord::Base.connection.execute "CREATE VIEW Allowed_DB_Tables AS SELECT 'main' Owner, 'main' Grantee, Name Table_Name FROM SQLite_Master WHERE type='table'"
     else
       raise "Declaration for view Allowed_DB_Tables missing for #{Trixx::Application.config.trixx_db_type}"
