@@ -45,7 +45,9 @@ brakeman_analysis:
     - /opt/start-kafka.sh
     - date
     - java -version
-    - gem install bundler
+    - gem install --no-doc bundler
+    # due to sh: line 0: exec: jrake: not found
+    - gem install --no-doc digest-crc
     - bundle config set deployment 'true'
     - bundle install --jobs 4
     # Wait max. 10 minutes for DB available
