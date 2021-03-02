@@ -46,10 +46,9 @@ brakeman_analysis:
     - date
     - java -version
     - gem install --no-doc bundler
-    # due to sh: line 0: exec: jrake: not found
-    - gem install --no-doc digest-crc
     - bundle config set deployment 'true'
-    - bundle install --jobs 4
+    # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
+    - alias jrake=rake && bundle install --jobs 4
     # Wait max. 10 minutes for DB available
     - bundle exec rake "ci_preparation:wait_for_db_available[10]"
     # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
