@@ -3,11 +3,11 @@
 # Peter Ramm, 2020-03-17
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby-debian --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14 .
-# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.13.0-jdk14
+# Build image:      > docker build -f Dockerfile-kafka-jruby-debian --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.15.0-jre11 .
+# Run container:    > docker run  git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.15.0-jre11
 # Use
 
-FROM jruby:9.2.13.0-jdk14
+FROM jruby:9.2.15.0-jre11
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
@@ -25,7 +25,7 @@ ENV KAFKA_HOME=/opt/kafka
 # - install podman
 # - install Kafka
 RUN  apt-get update && \
-     apt-get upgrade && \
+     apt-get -y upgrade && \
      apt-get install -y procps && \
      echo 'deb https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/ /' > /etc/apt/sources.list.d/devel:kubic:libcontainers:stable.list && \
      curl -L https://download.opensuse.org/repositories/devel:/kubic:/libcontainers:/stable/Debian_10/Release.key | apt-key add - && \
