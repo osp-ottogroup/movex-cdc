@@ -26,7 +26,7 @@ stages:
 brakeman_analysis:
   stage: code_analysis
   script:
-    - gem install --no-doc ruby_parser brakeman
+    - gem install --no-doc racc brakeman
     - brakeman -A
 
 .tests:
