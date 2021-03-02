@@ -369,6 +369,11 @@ This record has failed the validation on broker and hence will be rejected.
 Prevent from sending 'tombstone events' without key in this case.
 |===
 
+===== Oracle-DB =====
+* If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
+* Oracle's number format for values between -1 and 1 is not JSON-compatible (0,123 = .123).
+Up to Rel. 12.2 the patch https://support.oracle.com/epmos/faces/PatchResultsNDetails?_adf.ctrl-state=19z17iq454_4&releaseId=600000000018520&requestId=21922926&patchId=27486853&languageId=0&platformId=226&searchdata=%3Ccontext+type%3D%22BASIC%22+search%3D%22%26lt%3BSearch%26gt%3B%26lt%3BFilter+name%3D%26quot%3Bpatch_number%26quot%3B+op%3D%26quot%3Bis%26quot%3B+value%3D%26quot%3B27486853%26quot%3B%2F%26gt%3B%26lt%3B%2FSearch%26gt%3B%22%2F%3E&_afrLoop=164497543848765[27486853] is needed to generate valid JSON in this case.
+
 === Statistics ===
 Throughput values ot TriXX are cumulated in the database table "Statistics".
 For table, operation and time period several values are recorded.
@@ -391,12 +396,6 @@ At first this values are cumulated for each minute. Later on statistics data wil
 * After 3 months values per hour are compressed to values per day
 
 Compression is executed once a day as background job in TriXX application.
-
-
-===== Oracle-DB =====
-* If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
-* Oracle's number format for values between -1 and 1 is not JSON-compatible (0,123 = .123).
-Up to Rel. 12.2 the patch https://support.oracle.com/epmos/faces/PatchResultsNDetails?_adf.ctrl-state=19z17iq454_4&releaseId=600000000018520&requestId=21922926&patchId=27486853&languageId=0&platformId=226&searchdata=%3Ccontext+type%3D%22BASIC%22+search%3D%22%26lt%3BSearch%26gt%3B%26lt%3BFilter+name%3D%26quot%3Bpatch_number%26quot%3B+op%3D%26quot%3Bis%26quot%3B+value%3D%26quot%3B27486853%26quot%3B%2F%26gt%3B%26lt%3B%2FSearch%26gt%3B%22%2F%3E&_afrLoop=164497543848765[27486853] is needed to generate valid JSON in this case.
 
 == Technical implementation ==
 === Structure of Kafka messages ===
