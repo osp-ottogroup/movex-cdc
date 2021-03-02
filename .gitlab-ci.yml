@@ -26,6 +26,7 @@ stages:
 brakeman_analysis:
   stage: code_analysis
   script:
+    # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
     - gem install --no-doc racc brakeman
     - brakeman -A
 
@@ -41,10 +42,6 @@ brakeman_analysis:
   #    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
 
   script:
-    # Set Timezone to CET first
-    - sh -c "echo 'Europe/Berlin' > /etc/timezone"
-    - sh -c "rm /etc/localtime && ln -s /usr/share/zoneinfo/Europa/Berlin /etc/localtime"
-    - dpkg-reconfigure -f noninteractive tzdata
     - /opt/start-kafka.sh
     - date
     - java -version
