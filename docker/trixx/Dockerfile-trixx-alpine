@@ -50,6 +50,8 @@ RUN  apk update && \
      echo 'Europe/Berlin' > /etc/timezone && \
      ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
      date && \
+     echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
+     ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake && \
      gem install --no-document bundler && \
      echo "gem: --no-rdoc --no-ri" > ~/.gemrc
 
