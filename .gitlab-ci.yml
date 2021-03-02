@@ -69,6 +69,7 @@ brakeman_analysis:
       - log/
       - tmp/screenshots/
       - /opt/kafka/logs/*
+      - /builds/main/trixx/vendor/bundle/jruby/2.5.0/extensions/universal-java-11/2.5.0/digest-crc-0.6.3/gem_make.out
     expire_in: 1 month
 
 
