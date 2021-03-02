@@ -35,7 +35,7 @@ RUN  microdnf update && \
      ruby -v && \
      echo 'Europe/Berlin' > /etc/timezone && rm -f /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
      date && \
-     gem install --no-doc bundler ruby_parser && \
+     gem install --no-doc bundler && \
      echo "gem: --no-rdoc --no-ri" > ~/.gemrc
 
 # Without own volume for ontime usage in CI pipeline
