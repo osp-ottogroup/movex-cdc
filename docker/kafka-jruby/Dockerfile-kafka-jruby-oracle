@@ -25,7 +25,7 @@ ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
 # - install podman
 # - install Kafka
 RUN  microdnf update && \
-     microdnf install procps wget tar gzip vim java-11-openjdk.x86_64 podman && \
+     microdnf install procps wget tar gzip vim java-11-openjdk.x86_64 util-linux podman && \
      wget "https://mirror.softaculous.com/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} && \
