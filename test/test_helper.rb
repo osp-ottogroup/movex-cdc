@@ -286,11 +286,11 @@ class ActiveSupport::TestCase
     Thread.new do
       loop_count = 0
       while loop_count < options[:max_wait_time] do                           # wait up to x seconds for processing
-      loop_count += 1
-      event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-      Rails.logger.debug "#{event_logs} records remaining in Event_Logs"
-      break if event_logs == options[:expected_remaining_records]             # All records processed, no need to wait anymore
-      sleep 1
+        loop_count += 1
+        event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
+        Rails.logger.debug "#{event_logs} records remaining in Event_Logs"
+        break if event_logs == options[:expected_remaining_records]           # All records processed, no need to wait anymore
+        sleep 1
       end
       worker.stop_thread
     end
@@ -298,7 +298,7 @@ class ActiveSupport::TestCase
     worker.process                                                            # only synchrone execution ensures valid test of function
 
     remaining_event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-    log_event_logs_content(console_output: true, caption: "#{options[:title]}: Event_Logs records after processing") if remaining_event_log_count > options[:expected_remaining_records]   # List remaining events from table
+    log_event_logs_content(console_output: true, caption: "#{options[:title]}: #{remaining_event_log_count} Event_Logs records after processing") if remaining_event_log_count > options[:expected_remaining_records]   # List remaining events from table
 
     Trixx::Application.config.trixx_initial_worker_threads = original_worker_threads  # Restore possibly differing value
     remaining_event_log_count

@@ -50,7 +50,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     huge_payload << "\""
     EventLog.last.update!(payload: huge_payload)
     create_event_logs_for_test(20)                                              # create another records to ensure error is in the middle
-    remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
+    remaining_event_log_count = process_eventlogs(max_wait_time: 30, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
     assert_equal 1, remaining_event_log_count, 'One event_Log record with huge payload should cause processing error'
 
     Trixx::Application.config.trixx_error_retry_start_delay = 1                 # ensure retry processing takes place now
