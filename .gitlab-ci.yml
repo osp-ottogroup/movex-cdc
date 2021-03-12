@@ -3,7 +3,7 @@
 #  - prebuilt database image
 #  - kafka-jruby image built from /docker/kafka-jruby
 
-image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.15.0-jdk11
+image: git.osp-dd.de:5005/main/trixx/kafka-jruby:cypress-test
 
 variables:
   CI_DEBUG_SERVICES: trace
