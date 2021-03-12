@@ -115,8 +115,4 @@ cypress_systemtest:
   script:
     # install dependencies
     - cd systemtest
-    - npm ci
-    # start the server in the background
-    - npm run start:ci &
-    # run Cypress tests
     - npx cypress run --browser chrome
