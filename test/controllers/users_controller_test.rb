@@ -18,7 +18,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
           email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-          schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+          schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response 201
@@ -32,7 +32,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
         email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response 201
@@ -40,7 +40,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_no_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
         email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user} }]
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response :unprocessable_entity
@@ -64,7 +64,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
                                                                                         {
                                                                                             info: 'Info for right',
                                                                                             schema: { name: Trixx::Application.config.trixx_db_user},
-                                                                                            lock_version: schema_right&.lock_version
+                                                                                            lock_version: schema_right&.lock_version,
+                                                                                            yn_deployment_granted: 'N'
                                                                                         }
                                                                                     ],
                                                                                     lock_version: @user.lock_version
@@ -104,5 +105,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
+  test "should have deployable schemas" do
+    # using fixtures user(:one) and schema_rights(one)
+    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    assert_response :success
+  end
+
+  test "should not have deployable schemas" do
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
+    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    assert_response :success
+  end
 
 end

@@ -2,12 +2,16 @@ require 'test_helper'
 
 class ColumnsControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @column = columns(:one)
+    @column = columns(:victim1_3)
+    @victim1_table      = tables(:victim1)
+    @victim_connection  = create_victim_connection
+    create_victim_structures(@victim_connection)
+    @victim_schema_id = Trixx::Application.config.trixx_db_victim_schema_id
   end
 
   test "should get index" do
     # Setting params for get leads to switch GET to POST, only in test
-    get "/columns?table_id=1", headers: jwt_header, as: :json
+    get "/columns?table_id=#{@victim1_table.id}", headers: jwt_header, as: :json
     assert_response :success
 
     get "/columns?table_id=1", headers: jwt_header(@jwt_no_schema_right_token), as: :json
@@ -16,7 +20,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create column" do
     assert_difference('Column.count') do
-      post columns_url, headers: jwt_header, params: { column: {  table_id: 1, name: 'New column', info: 'New info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y'  } }, as: :json
+      post columns_url, headers: jwt_header, params: { column: {  table_id: @victim1_table.id, name: 'New column', info: 'New info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y'  } }, as: :json
     end
     assert_response 201
 
@@ -47,7 +51,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
     assert_response 204
 
     assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      delete column_url(columns(:two)), headers: jwt_header, params: { column: {lock_version: 42}}, as: :json
+      delete column_url(columns(:victim1_4)), headers: jwt_header, params: { column: {lock_version: 42}}, as: :json
     end
 
   end

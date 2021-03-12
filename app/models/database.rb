@@ -1,4 +1,5 @@
 # Base class for models without DB table but using ActiveRecord::Base
+require 'select_hash_helper'
 class Database
 
   # delegate method calls to DB-specific implementation classes
@@ -35,7 +36,11 @@ class Database
       binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
     end
 
-    ActiveRecord::Base.connection.select_all(sql, "Database.select_all Thread=#{Thread.current.object_id}", binds)
+    result = ActiveRecord::Base.connection.select_all(sql, "Database.select_all Thread=#{Thread.current.object_id}", binds)
+    result.each do |record|
+      record.extend TolerantSelectHashHelper
+    end
+    result
   rescue Exception => e
     ExceptionHelper.log_exception(e, "Database.select_all: Erroneous SQL:\n#{sql}")
     raise

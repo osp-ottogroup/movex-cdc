@@ -32,9 +32,31 @@ class UserTest < ActiveSupport::TestCase
     assert_difference('User.count', -1, 'User should be physically deleted now') do
       users(:one).destroy!
     end
+  end
 
+  test "should have deployable schemas" do
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'Y').save!
+    ds = users(:two).deployable_schemas
+    assert(ds.count == 1, 'Should have one deployable schema')
+    assert(ds.first.name == schemas(:one).name, 'Should be correct schema name')
+  end
 
+  test "should not have deployable schemas" do
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
+    ds = users(:two).deployable_schemas
+    assert(ds.count == 0, 'Should have no deployable schemas')
+  end
 
+  test "should be able to deploy schemas" do
+    # using fixtures user(:one), schema_rights(:one) and schema(:one)
+    can_deploy = users(:one).can_deploy_schemas?
+    assert(can_deploy)
+  end
+
+  test "should not be able to deploy schemas" do
+    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
+    can_deploy = users(:two).can_deploy_schemas?
+    assert(can_deploy == false)
   end
 
 end

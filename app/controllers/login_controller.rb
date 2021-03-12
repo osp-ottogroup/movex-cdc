@@ -50,7 +50,8 @@ class LoginController < ApplicationController
             user_id: user.id,
             first_name: user.first_name,
             last_name: user.last_name,
-            is_admin: user.yn_admin == 'Y'
+            is_admin: user.yn_admin == 'Y',
+            can_deploy: user.can_deploy_schemas?
           },
           token_lifetime_hours.hours.from_now
         )

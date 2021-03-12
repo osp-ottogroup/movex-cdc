@@ -4,7 +4,7 @@ class DbTriggersController < ApplicationController
   # List triggers for schema
   def index
     schema_id = params.require(:schema_id).to_i                                 # should only list tables of specific schema
-    check_user_for_valid_schema_right(schema_id)
+    @current_user.check_user_for_valid_schema_right(schema_id)
 
     @triggers = DbTrigger.find_all_by_schema_id schema_id
     render json: @triggers
@@ -15,7 +15,7 @@ class DbTriggersController < ApplicationController
   def show
     params.require([:table_id, :trigger_name])
     table = Table.find params[:table_id]
-    check_user_for_valid_schema_right(table.schema_id)
+    @current_user.check_user_for_valid_schema_right(table.schema_id)
     @trigger = DbTrigger.find_by_table_id_and_trigger_name(params[:table_id], params[:trigger_name])
     render json: @trigger
   end
@@ -26,13 +26,12 @@ class DbTriggersController < ApplicationController
   # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate
     schema_name = params.require :schema_name
-    schema = Schema.find_by_name schema_name
+    schema = Schema.where(name: schema_name).first
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
-    schema_right = check_user_for_valid_schema_right(schema.id)
-    # TODO: uncomment after establishing yn_deployment_granted in GUI
-    # raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
+    schema_right = @current_user.check_user_for_valid_schema_right(schema.id)
+    raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 
-    schema_result = DbTrigger.generate_triggers(schema.id, { user_id: @current_user.id, client_ip_info: client_ip_info})
+    schema_result = DbTrigger.generate_schema_triggers(schema_id: schema.id, user_options: { user_id: @current_user.id, client_ip_info: client_ip_info})
     result = { results: [ schema_result.merge(schema_name: schema_name) ] }
 
     if schema_result[:errors].count == 0
@@ -48,16 +47,14 @@ class DbTriggersController < ApplicationController
   # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
   # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate_all
-    # TODO: uncomment after establishing yn_deployment_granted in GUI
-    #schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
-    schema_rights = SchemaRight.where(user_id: @current_user.id)
+    schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
     if schema_rights.empty?
       render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
     else
       results = []
       error_strings = []
       schema_rights.each do |sr|
-        schema_result = DbTrigger.generate_triggers(sr.schema_id, { user_id: @current_user.id, client_ip_info: client_ip_info })
+        schema_result = DbTrigger.generate_schema_triggers(schema_id: sr.schema_id, user_options: { user_id: @current_user.id, client_ip_info: client_ip_info })
         error_strings.concat(structured_errors_to_string(schema_result[:errors], sr.schema.name)) if schema_result[:errors].count > 0
         schema_result[:schema_name] = sr.schema.name
         results << schema_result

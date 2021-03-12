@@ -41,7 +41,10 @@ Rails.application.routes.draw do
 
   resources :tables
   get  '/trigger_dates/:id',                          to: 'tables#trigger_dates'
-  resources :users
+
+  resources :users do
+    get :deployable_schemas, on: :member
+  end
 
   root 'login#index'
 end

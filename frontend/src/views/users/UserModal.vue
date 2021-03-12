@@ -18,6 +18,7 @@
 
         <div class="columns">
           <div class="column">
+            <div class="is-size-6 mb-3 has-text-weight-semibold has-text-info-dark">User Data</div>
             <b-field label="First Name">
               <b-input v-model="user.first_name"
                        type="text"
@@ -75,38 +76,83 @@
                 </p>
               </b-field>
             </b-field>
-
           </div>
 
-          <div class="column border-left">
-            <label class="label">DB Schemas</label>
-            <div v-if="authorizableDbSchemas.length === 0 && !user.db_user"
+          <div class="column is-8 border-left">
+            <div class="is-size-6 has-text-weight-semibold has-text-info-dark">Add Authorized Schema</div>
+            <div class="columns is-marginless">
+              <div class="column">
+                <b-field label="Schema">
+                  <b-select v-model="schemaRightToAdd.schema"
+                            placeholder="Select a schema"
+                            :loading="isLoading"
+                            size="is-small"
+                            expanded>
+                    <option v-for="schema in authorizableDbSchemas" :key="schema.name" :value="schema">
+                      {{ schema.name }}
+                    </option>
+                  </b-select>
+                </b-field>
+              </div>
+              <div class="column is-4">
+                <b-field label="Deployment granted">
+                  <b-switch v-model="schemaRightToAdd.yn_deployment_granted"
+                            true-value="Y"
+                            false-value="N"
+                            size="is-small"/>
+                </b-field>
+              </div>
+              <div class="column">
+                <b-field label="Info">
+                  <b-input v-model="schemaRightToAdd.info" size="is-small"></b-input>
+                </b-field>
+              </div>
+              <div class="column is-2">
+                <b-field>
+                  <template #label>
+                    <span class="is-invisible">invisible</span>
+                  </template>
+                  <b-button type="is-info is-light"
+                            @click="onAddSchemaRight"
+                            :disabled="this.schemaRightToAdd.schema === null"
+                            size="is-small">
+                    Add
+                  </b-button>
+                </b-field>
+              </div>
+            </div>
+
+            <div class="mt-5 is-size-6 has-text-weight-semibold has-text-info-dark">Authorized Schemas</div>
+            <div v-if="user.schema_rights.length === 0"
                  class="content has-text-grey has-text-centered is-size-7">
               <b-icon icon="information" />
-              <p>Select a DB User</p>
+              <p>No schemas are authorized so far!</p>
             </div>
-            <button class="button is-fullwidth is-small"
-                    @click="onAddSchemaRight(index)"
-                    v-for="(authorizableDbSchema, index) in authorizableDbSchemas"
-                    :key="index">
-              <span class="flex-auto">{{ authorizableDbSchema.name }}</span>
-              <span class="icon is-small">
-                <i class="mdi mdi-greater-than"></i>
-              </span>
-            </button>
-          </div>
-
-          <div class="column border-left">
-            <label class="label">Authorized Schemas</label>
-            <button class="button is-fullwidth is-small"
-                    @click="onRemoveSchemaRight(index)"
-                    v-for="(schemaRight, index) in user.schema_rights"
-                    :key="index">
-              <span class="icon is-small">
-                <i class="mdi mdi-less-than"></i>
-              </span>
-              <span class="flex-auto">{{ schemaRight.schema.name }}</span>
-            </button>
+            <div class="mt-3 schema-rights-list">
+              <div v-for="(schemaRight, index) in user.schema_rights" :key="index" class="columns is-marginless">
+                <div class="column is-size-7">
+                  {{ schemaRight.schema.name }}
+                </div>
+                <div class="column is-4">
+                  <b-switch v-model="schemaRight.yn_deployment_granted"
+                            true-value="Y"
+                            false-value="N"
+                            size="is-small"/>
+                </div>
+                <div class="column">
+                  <b-tooltip :label="schemaRight.info">
+                    <b-input v-model="schemaRight.info" size="is-small"></b-input>
+                  </b-tooltip>
+                </div>
+                <div class="column is-2">
+                  <b-button type="is-info is-light"
+                            @click="onRemoveSchemaRight(index)"
+                            size="is-small">
+                    Remove
+                  </b-button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -140,7 +186,14 @@ export default {
     try {
       if (this.isUpdateMode) {
         this.user = await CRUDService.users.get(this.userId);
+        this.user.schema_rights.sort((a, b) => (
+          a.schema.name.localeCompare(b.schema.name, undefined, { numeric: true, sensitivity: 'base' })
+        ));
+
         this.authorizableDbSchemas = await CRUDService.dbSchemas.authorizableSchemas({ email: this.user.email, db_user: this.user.db_user });
+        this.authorizableDbSchemas.sort((a, b) => (
+          a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
+        ));
       }
       this.dbSchemas = await CRUDService.dbSchemas.getAll();
     } catch (e) {
@@ -166,6 +219,7 @@ export default {
         yn_account_locked: 'N',
         schema_rights: [],
       },
+      schemaRightToAdd: this.initialSchemaRight(),
       isLoading: true,
       isSaving: false,
       isDeleting: false,
@@ -240,20 +294,21 @@ export default {
         this.isSaving = false;
       }
     },
-    onAddSchemaRight(index) {
-      this.user.schema_rights.push({
-        info: 'TODO',
-        schema: this.authorizableDbSchemas[index],
-      });
+    onAddSchemaRight() {
+      this.user.schema_rights.push(this.schemaRightToAdd);
       this.user.schema_rights.sort((a, b) => (
-        a.schema.name.toUpperCase() > b.schema.name.toUpperCase() ? 1 : -1
+        a.schema.name.localeCompare(b.schema.name, undefined, { numeric: true, sensitivity: 'base' })
       ));
-      this.authorizableDbSchemas.splice(index, 1);
+      const index = this.authorizableDbSchemas.findIndex((s) => s.name === this.schemaRightToAdd.schema.name);
+      if (index >= 0) {
+        this.authorizableDbSchemas.splice(index, 1);
+      }
+      this.schemaRightToAdd = this.initialSchemaRight();
     },
     onRemoveSchemaRight(index) {
       this.authorizableDbSchemas.push(this.user.schema_rights[index].schema);
       this.authorizableDbSchemas.sort((a, b) => (
-        a.name.toUpperCase() > b.name.toUpperCase() ? 1 : -1
+        a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' })
       ));
       this.user.schema_rights.splice(index, 1);
     },
@@ -272,6 +327,13 @@ export default {
         this.isLoading = false;
       }
     },
+    initialSchemaRight() {
+      return {
+        info: '',
+        yn_deployment_granted: 'N',
+        schema: null,
+      };
+    },
   },
 };
 </script>
@@ -281,12 +343,22 @@ export default {
     margin-left: auto;
   }
   .modal-card {
-    width: 1024px;
+    width: auto;
   }
   .border-left {
     border-left: 1px solid lightgray;
   }
-  .flex-auto {
-    flex: auto;
+  .schema-rights-list {
+    overflow-y: auto;
+    max-height: 50vh;
+    & .columns {
+      border-top: 1px solid lightgray;
+      &:last-of-type {
+        border-bottom: 1px solid lightgray;
+      }
+      &:nth-of-type(even) {
+        background-color: #fafafa;
+      }
+    }
   }
 </style>

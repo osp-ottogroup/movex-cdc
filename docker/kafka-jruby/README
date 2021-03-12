@@ -1,0 +1,5 @@
+Docker-image kafka-jruby
+------------------------
+Base image for CI-pipeline
+
+2021-03-02: Switched to Oracle linux because Debian image became incompatible with current podman's library requirements

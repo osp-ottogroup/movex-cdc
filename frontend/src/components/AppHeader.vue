@@ -19,7 +19,7 @@
         <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
           Configuration
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/deployment' }">
+        <b-navbar-item v-if="canDeploy" tag="router-link" :to="{ path: '/deployment' }">
           Deployment
         </b-navbar-item>
         <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/information' }">
@@ -73,22 +73,24 @@
 
 <script>
 import Config from '@/config/config';
+import UserService from '@/services/UserService';
 import LoginService from '../services/LoginService';
 
 export default {
   name: 'AppHeader',
-  props: {
-    user: { type: Object, default: () => {} },
-  },
   data() {
     return {
       showAccountInfo: false,
       backendUrl: Config.backendUrl,
+      user: UserService.getUser(),
     };
   },
   computed: {
     isAdminUser() {
       return this.user.isAdmin;
+    },
+    canDeploy() {
+      return this.user.canDeploy;
     },
     roleName() {
       return this.isAdminUser ? 'Admin' : 'User';

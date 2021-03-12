@@ -97,7 +97,8 @@ class CompressStatistics
       when 3.months
         "date(End_Timestamp)"
       when 14.days
-        "strftime('%Y-%m-%d %H', End_Timestamp)"
+        # strftime evaluates to nil of date column ends with ' UTC'
+        "strftime('%Y-%m-%d %H', REPLACE(End_Timestamp, ' UTC', ''))"
       end
     else
       raise "CompressStatistics.time_group_expression: Missing value for '#{Trixx::Application.config.trixx_db_type}'"

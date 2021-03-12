@@ -29,3 +29,14 @@ victim1_I:
     end %>
   lock_version: 1
 
+victim1_D:
+  table_id: 4
+  operation: D
+  filter: >
+    <%=
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then ":old.ID IS NOT NULL"
+    when 'SQLITE' then "old.ID IS NOT NULL"
+    end %>
+  lock_version: 1
+

@@ -16,5 +16,6 @@ two:
   user_id: 1
   schema_id: 2
   info: Info1
+  yn_deployment_granted: Y
   lock_version: 1
   <% end %>

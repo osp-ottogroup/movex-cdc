@@ -1,6 +1,6 @@
 class UsersController < ApplicationController
-  before_action :check_for_current_user_admin
-  before_action :set_user, only: [:show, :update, :destroy]
+  before_action :check_for_current_user_admin, except: [:deployable_schemas]
+  before_action :set_user, only: [:show, :update, :destroy, :deployable_schemas]
 
   # GET /users
   def index
@@ -64,6 +64,11 @@ class UsersController < ApplicationController
     # always return status = 204 No Content
   end
 
+  # GET /users/:id/deployable_schemas
+  def deployable_schemas
+    render json: @user.deployable_schemas
+  end
+
   private
     # Use callbacks to share common setup or constraints between actions.
     def set_user
@@ -76,6 +81,6 @@ class UsersController < ApplicationController
     end
 
     def schema_rights_params
-      params.fetch(:user, {}).permit( [schema_rights: [:info, {schema: :name }, :lock_version] ] )[:schema_rights]
+      params.fetch(:user, {}).permit( [schema_rights: [:info, :yn_deployment_granted, :lock_version, {schema: :name }] ] )[:schema_rights]
     end
 end
