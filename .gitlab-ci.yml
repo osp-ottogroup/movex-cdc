@@ -14,12 +14,12 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - code_analysis
-  - test
-  - pre_build
+#  - code_analysis TODO
+#  - test
+#  - pre_build
   - build
   - post_build
-  - deploy
+#  - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
@@ -147,7 +147,8 @@ build_trixx:
     - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-alpine --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
-  stage: post_build
+  stage: deploy #TODO
+#  stage: post_build
   script:
     # Download and install trivy
     - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
@@ -215,8 +216,22 @@ trivy_scan:
       " | bash
     - podman --events-backend=file stop trixx
 
-docker_test_oracle_12.1:
+cypress_systemtest:
+  image: cypress/browsers:node12.14.1-chrome85-ff81
   stage: post_build
+  extends: .docker_test
+  script:
+    # install dependencies
+    - cd systemtest
+    - npm ci
+    # start the server in the background
+    - npm run start:ci &
+    # run Cypress tests
+    - npx cypress run --browser chrome
+
+docker_test_oracle_12.1:
+  stage: deploy #TODO
+#  stage: post_build
   extends: .docker_test
   services:
     - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
