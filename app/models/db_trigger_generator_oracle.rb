@@ -408,7 +408,7 @@ END Flush;
       result << "\n)"
     else
       result = "'\"#{old_new}\": {\n'||"
-      result << trigger_config[:columns].map {|c| "\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
+      result << trigger_config[:columns].map {|c| '"\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
       result << "||'}'"
     end
     result
