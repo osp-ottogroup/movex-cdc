@@ -22,15 +22,6 @@ stages:
   - post_build
   - deploy
 
-# interactive edit config/brakemen.ignore by > brakeman -A -I
-# Use this to exclude findings after considering as false positives
-brakeman_analysis:
-  stage: code_analysis
-  script:
-    # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
-    - gem install --no-doc racc brakeman
-    - brakeman -A
-
 generate_asciidoc:
   stage: pre_build
   script:
