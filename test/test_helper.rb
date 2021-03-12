@@ -88,11 +88,7 @@ class ActiveSupport::TestCase
 
   def create_victim_structures(victim_connection)
     # Renove possible pending structures before recreating
-    begin
-      drop_victim_structures(victim_connection)
-    rescue
-      nil
-    end
+    drop_victim_structures(victim_connection, suppress_exception: true)
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
     victim1_table = tables(:victim1)
@@ -112,7 +108,7 @@ class ActiveSupport::TestCase
         END TRIXX_Victim1_I;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER #{DbTriggerOracle.trigger_name_prefix}_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
+        CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -148,20 +144,25 @@ class ActiveSupport::TestCase
     end
   end
 
-  def drop_victim_structures(victim_connection)
-    exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
-    exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}#{tables(:victim2).name}")
-    exec_victim_sql(victim_connection, "DROP TABLE #{victim_schema_prefix}VICTIM3")
+  def drop_victim_structures(victim_connection, suppress_exception: false)
+    exec_drop = proc do |sql|
+      exec_victim_sql(victim_connection, sql)
+    rescue
+      raise unless suppress_exception
+    end
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}#{tables(:victim2).name}")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
   end
 
   # create records in Event_Log by trigger on tables(:victim1)
   def create_event_logs_for_test(number_of_records)
     raise "Should create at least 8 records" if number_of_records < 8
 
-    result = DbTrigger.generate_triggers(victim_schema_id, { user_id: users(:one).id, client_ip_info: '0.0.0.0'})
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: { user_id: users(:one).id, client_ip_info: '0.0.0.0'})
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
-    result.assert_valid_keys(:successes, :errors)
+    result.assert_valid_keys(:successes, :errors, :load_sqls)
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
     case Trixx::Application.config.trixx_db_type
