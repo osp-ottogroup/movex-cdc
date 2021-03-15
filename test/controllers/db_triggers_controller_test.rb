@@ -38,12 +38,7 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  test "generate triggers" do
-    existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema_id).count
-    post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}", headers: jwt_header, as: :json
-    assert_response :success
-    assert_not_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, 'trigger count should be changed by dry run')
-
+  test "generate triggers with failures" do
     post "/db_triggers/generate?schema_name=hugo", headers: jwt_header, as: :json
     assert_response :internal_server_error, 'Unknown schema should raise exception'
 
@@ -51,31 +46,71 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
     assert_response :internal_server_error, 'Should not get access without schema rights'
   end
 
-  test "generate triggers dry_run" do
+  def run_generate_triggers(params: {}, trigger_count_changed_expected:)
     existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema_id).count
-
-    post "/db_triggers/generate?schema_name=#{Schema.find(victim_schema_id).name}&dry_run=true", headers: jwt_header, as: :json
+    post "/db_triggers/generate", params: {schema_name: Schema.find(victim_schema_id).name}.merge(params), headers: jwt_header, as: :json
     assert_response :success
-
-    assert_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, 'trigger count should not be changed by dry run')
+    if trigger_count_changed_expected
+      assert_not_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, "trigger count should not be changed for #{params}")
+    else
+      assert_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, "trigger count should not be changed for #{params}")
+    end
   end
 
+  test "generate triggers" do
+    run_generate_triggers(trigger_count_changed_expected: true)
+  end
 
-  test "generate all triggers" do
-    post "/db_triggers/generate_all", headers: jwt_header, as: :json
-    assert_response :success
+  test "generate triggers dry_run" do
+    run_generate_triggers(params: { dry_run: true}, trigger_count_changed_expected: false)
+  end
 
+  test "generate triggers table_id_list not in" do
+    run_generate_triggers(params: { table_id_list: [1278, 5664] }, trigger_count_changed_expected: false)
+  end
+
+  test "generate triggers table_id_list in" do
+    run_generate_triggers(params: { table_id_list: [tables(:victim1).id] }, trigger_count_changed_expected: true)
+  end
+
+  test "generate triggers table_id_list dry_run" do
+    run_generate_triggers(params: { dry_run: true, table_id_list: [tables(:victim1).id] }, trigger_count_changed_expected: false)
+  end
+
+  test "generate all triggers with failures" do
     post "/db_triggers/generate_all", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :not_found, 'Should not get access without schema rights'
   end
 
-  test "generate all triggers dry_run" do
+  def run_generate_all_triggers(params: {}, trigger_count_changed_expected:)
     existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema_id).count
-
-    post "/db_triggers/generate_all?dry_run=true", headers: jwt_header, as: :json
+    post "/db_triggers/generate_all", params: params, headers: jwt_header, as: :json
     assert_response :success
+    if trigger_count_changed_expected
+      assert_not_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, "trigger count should not be changed for #{params}")
+    else
+      assert_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, "trigger count should not be changed for #{params}")
+    end
+  end
 
-    assert_equal(existing_triggers_before, DbTrigger.find_all_by_schema_id(victim_schema_id).count, 'trigger count should not be changed by dry run')
+  test "generate all triggers" do
+    run_generate_all_triggers(trigger_count_changed_expected: true)
+  end
+
+  test "generate all triggers dry_run" do
+    run_generate_all_triggers(params: { dry_run: true }, trigger_count_changed_expected: false)
+  end
+
+  test "generate all triggers table_id_list not in" do
+    run_generate_all_triggers(params: { table_id_list: [1278, 5664] }, trigger_count_changed_expected: false)
+  end
+
+  test "generate all triggers table_id_list in" do
+    run_generate_all_triggers(params: { table_id_list: [tables(:victim1).id] }, trigger_count_changed_expected: true)
+  end
+
+  test "generate all triggers table_id_list dry_run" do
+    run_generate_all_triggers(params: { dry_run: true, table_id_list: [tables(:victim1).id] }, trigger_count_changed_expected: false)
   end
 
 end

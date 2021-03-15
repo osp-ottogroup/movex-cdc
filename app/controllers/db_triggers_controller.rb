@@ -26,8 +26,9 @@ class DbTriggersController < ApplicationController
   # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
   # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate
+    prepare_generate_params
     schema_name = params.require :schema_name
-    dry_run = params[:dry_run]&.downcase == 'true'
+
     schema = Schema.where(name: schema_name).first
     raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
     schema_right = @current_user.check_user_for_valid_schema_right(schema.id)
@@ -35,7 +36,8 @@ class DbTriggersController < ApplicationController
 
     schema_result = DbTrigger.generate_schema_triggers(schema_id:     schema.id,
                                                        user_options:  { user_id: @current_user.id, client_ip_info: client_ip_info},
-                                                       dry_run:       dry_run
+                                                       dry_run:       @dry_run,
+                                                       table_id_list: @table_id_list
     )
     result = { results: [ schema_result.merge(schema_name: schema_name) ] }
 
@@ -53,7 +55,7 @@ class DbTriggersController < ApplicationController
   # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
   # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate_all
-    dry_run = params[:dry_run]&.downcase == 'true'
+    prepare_generate_params
     schema_rights = SchemaRight.where(user_id: @current_user.id, yn_deployment_granted: 'Y')
     if schema_rights.empty?
       render json: { errors: ["No schemas available for user '#{@current_user.email}'"] }, status: :not_found
@@ -63,7 +65,8 @@ class DbTriggersController < ApplicationController
       schema_rights.each do |sr|
         schema_result = DbTrigger.generate_schema_triggers(schema_id:     sr.schema_id,
                                                            user_options:  { user_id: @current_user.id, client_ip_info: client_ip_info },
-                                                           dry_run:       dry_run
+                                                           dry_run:       @dry_run,
+                                                           table_id_list: @table_id_list
         )
         error_strings.concat(structured_errors_to_string(schema_result[:errors], sr.schema.name)) if schema_result[:errors].count > 0
         schema_result[:schema_name] = sr.schema.name
@@ -84,6 +87,17 @@ class DbTriggersController < ApplicationController
   def structured_errors_to_string(errors, schema_name)
     errors.map do |error|
       "Table '#{schema_name}.#{error[:table_name]}', Trigger '#{error[:trigger_name]}'\n#{error[:exception_class]}: #{error[:exception_message]}"
+    end
+  end
+
+  def prepare_generate_params
+    @dry_run = params[:dry_run]
+    @table_id_list = params[:table_id_list]
+    @table_id_list = nil if @table_id_list == ''
+    if @table_id_list
+      raise "Parameter 'table_id_list' should be a table of IDs instead of #{@table_id_list.class}!" unless @table_id_list.instance_of? Array
+      @table_id_list = @table_id_list.map{|i| i.to_i}
+      raise "Non-integer content in parameter 'table_id_list'!" if @table_id_list.select{|i| i==0}.length > 0   # Contains IDs with result of to_i == 0
     end
   end
 end
