@@ -54,7 +54,7 @@ namespace :ci_preparation do
       exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
 
       # For test-users to fix slow access on All_Synonyms
-      exec(conn, "CREATE OR REPLACE VIEW #{username}.Dummy AS SELECT null Owner, null table_owner, null table_name, null Synonym_name FROM DUAL WHERE 1=2; ")
+      exec(conn, "CREATE OR REPLACE VIEW #{username}.Dummy AS SELECT null Owner, null table_owner, null table_name, null Synonym_name FROM DUAL WHERE 1=2")
       exec(conn, "GRANT CREATE SYNONYM TO #{username}")
       exec(conn, "CREATE OR REPLACE SYNONYM #{username}.All_Synonyms FOR #{username}.Dummy")
     end
