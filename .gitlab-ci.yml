@@ -8,7 +8,7 @@ image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.15.0-jdk11
 variables:
   CI_DEBUG_SERVICES: trace
   TRIXX_KAFKA_SEED_BROKER: localhost:9092
-  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
+  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:master-ci-temp
   FINAL_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
 
@@ -22,9 +22,9 @@ rapid7_scan:
   script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     # TODO: FINAL -> TEMP
-    - $PODMAN pull $FINAL_DOCKER_IMAGE
+    - $PODMAN pull $TEMP_DOCKER_IMAGE
     - $PODMAN pull docker.io/rapid7/container-image-scanner
-    - $PODMAN save $FINAL_DOCKER_IMAGE -o trixx.tar
+    - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
     - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
     - cat rapid7.json
 
