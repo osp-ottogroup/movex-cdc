@@ -30,7 +30,7 @@ rapid7_scan:
     - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
     - cat rapid7.json | jq .assessment
     - |
-      RISK_SCORE = `cat rapid7.json | jq .assessment.risk_score`
+      RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
       if [ `echo "$RISK_SCORE > $MAXIMAL_ALLOWED_RISK_SCORE" | bc` -eq 1 ]; then
         echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
         echo ''
