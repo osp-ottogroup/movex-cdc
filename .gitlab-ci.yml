@@ -19,6 +19,8 @@ stages:
 
 rapid7_scan:
   stage: post_build
+  variables:
+    MAXIMAL_ALLOWED_RISK_SCORE: 0
   script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     # TODO: FINAL -> TEMP
@@ -26,7 +28,13 @@ rapid7_scan:
     - $PODMAN pull docker.io/rapid7/container-image-scanner
     - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
     - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
-    - cat rapid7.json
-    - jq --version
+    - echo "1+1"| bc
+    - cat rapid7.json | jq .assessment
+    - |
+      RISK_SCORE = `cat rapid7.json | jq .assessment.risk_score`
+      if [ $RISK_SCORE -gt $MAXIMAL_ALLOWED_RISK_SCORE ]; then
+        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
+        exit 1
+      fi
 
 
