@@ -27,5 +27,6 @@ rapid7_scan:
     - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
     - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
     - cat rapid7.json
+    - jq --version
 
 
