@@ -3,7 +3,7 @@
 #  - prebuilt database image
 #  - kafka-jruby image built from /docker/kafka-jruby
 
-image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.15.0-jdk11
+image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.16.0-jdk11
 
 variables:
   CI_DEBUG_SERVICES: trace
@@ -154,6 +154,26 @@ trivy_scan:
     # Check vulnerabilities, evaluates exceptions in .trivyignore
     - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
     - echo "TODO evaluate trivy results"
+
+rapid7_scan:
+  stage: post_build
+  variables:
+    MAXIMAL_ALLOWED_RISK_SCORE: 0
+  script:
+    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - $PODMAN pull $TEMP_DOCKER_IMAGE
+    - $PODMAN pull docker.io/rapid7/container-image-scanner
+    - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
+    - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
+    - cat rapid7.json | jq .assessment
+    - |
+      RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
+      if [ `echo "$RISK_SCORE > $MAXIMAL_ALLOWED_RISK_SCORE" | bc` -eq 1 ]; then
+        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
+        echo ''
+        cat rapid7.json
+        exit 1
+      fi
 
 .docker_test:
   script:
