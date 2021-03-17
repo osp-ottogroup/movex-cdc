@@ -64,24 +64,24 @@ class TransferThreadTest < ActiveSupport::TestCase
     #   puts s
     # end
 
-    # possibly too volatile tests
-    assert_statistics(25, 4, 'I', :events_success)
-    assert_statistics(3,  4, 'I', :events_delayed_errors)
-    assert_statistics(1,  4, 'I', :events_final_errors)
-    assert_statistics(30, 4, 'I', :events_d_and_c_retries)
-    assert_statistics(3,  4, 'I', :events_delayed_retries)
+    # possibly too volatile tests if partition change is included in test data, use max_expected: to cover this
+    assert_statistics(expected: 25, table_id: 4, operation: 'I', column_name: events_success)
+    assert_statistics(expected: 3,  table_id: 4, operation: 'I', column_name: :events_delayed_errors)
+    assert_statistics(expected: 1,  table_id: 4, operation: 'I', column_name: :events_final_errors)
+    assert_statistics(expected: 30, table_id: 4, operation: 'I', column_name: :events_d_and_c_retries)
+    assert_statistics(expected: 3,  table_id: 4, operation: 'I', column_name: :events_delayed_retries)
 
-    assert_statistics(4,  4, 'U', :events_success)
-    assert_statistics(0,  4, 'U', :events_delayed_errors)
-    assert_statistics(0,  4, 'U', :events_final_errors)
-    assert_statistics(4,  4, 'U', :events_d_and_c_retries)
-    assert_statistics(0,  4, 'U', :events_delayed_retries)
+    assert_statistics(expected: 4,  table_id: 4, operation: 'U', column_name: :events_success)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_delayed_errors)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_final_errors)
+    assert_statistics(expected: 4,  table_id: 4, operation: 'U', column_name: :events_d_and_c_retries,  max_expected: 8)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_delayed_retries)
 
-    assert_statistics(4,  4, 'D', :events_success)
-    assert_statistics(0,  4, 'D', :events_delayed_errors)
-    assert_statistics(0,  4, 'D', :events_final_errors)
-    assert_statistics(4,  4, 'D', :events_d_and_c_retries)
-    assert_statistics(0,  4, 'D', :events_delayed_retries)
+    assert_statistics(expected: 4,  table_id: 4, operation: 'D', column_name: :events_success)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_delayed_errors)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_final_errors)
+    assert_statistics(expected: 4,  table_id: 4, operation: 'D', column_name: :events_d_and_c_retries)
+    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_delayed_retries)
  end
 
 end

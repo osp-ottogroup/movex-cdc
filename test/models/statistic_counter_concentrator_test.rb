@@ -22,7 +22,7 @@ class StatisticCounterConcentratorTest < ActiveSupport::TestCase
     [tables(:one).id, tables(:two).id].each do |table_id|
       ['I', 'U', 'D'].each do |operation|
         StatisticCounter.supported_counter_types.each do |counter_type|
-          assert_statistics(8, table_id, operation, counter_type)
+          assert_statistics(expected: 8, table_id: table_id, operation: operation, column_name: counter_type)
         end
       end
     end

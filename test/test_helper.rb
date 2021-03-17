@@ -305,13 +305,18 @@ class ActiveSupport::TestCase
     remaining_event_log_count
   end
 
-  def assert_statistics(expected, table_id, operation, column_name)
+  # check for exact value (max_expected = nil) or range (expected .. max_expected)
+  def assert_statistics(expected:, table_id:, operation:, column_name:, max_expected: nil)
     result = Database.select_one "SELECT SUM(#{column_name}) Value
                                   FROM   Statistics
                                   WHERE  Table_ID  = :table_id
                                   AND    Operation = :operation
                                  ", { table_id: table_id, operation: operation}
-    assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+    if max_expected.nil?
+      assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+    else
+      assert result >= expected && result <= max_expected, "Statistics value #{result} not between #{expected} and #{max_expected} for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+    end
   end
 
 end

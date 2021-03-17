@@ -34,6 +34,10 @@ RUN  microdnf update && \
      cd /opt && tar -xvf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby && \
      ruby -v && \
+     wget "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm" && \
+     microdnf install liberation-fonts libXScrnSaver.x86_64 libappindicator-gtk3.x86_64 vulkan libgbm xdg-utils && \
+     rpm -i google-chrome-stable_current_x86_64.rpm && \
+     rm google-chrome-stable_current_x86_64.rpm && \
      echo 'Europe/Berlin' > /etc/timezone && rm -f /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
      date && \
      gem install --no-doc bundler && \
