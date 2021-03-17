@@ -119,9 +119,9 @@ test_oracle_19.3:
 generate_asciidoc:
   stage: pre_build
   script:
-    - gem install asciidoctor
+    - gem install --no-doc asciidoctor
     - asciidoctor -o doc/trixx.html doc/trixx.adoc
-    - gem install asciidoctor-pdf
+    - gem install --no-doc asciidoctor-pdf
     - asciidoctor-pdf -o doc/trixx.pdf doc/trixx.adoc
   artifacts:
     # artifacts are downloadable at https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/download?job=generate_asciidoc
