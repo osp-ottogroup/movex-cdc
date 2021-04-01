@@ -7,9 +7,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby '2.5.7'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-# rails 6.1.0 and 6.1.1 are buggy with optimistic logging,
-# TODO: still Rails 6.0.3.4: change to current Rails version suspended until this bug is fixed and released: https://github.com/rails/rails/pull/41049
-gem 'rails', '6.1.2.1'
+gem 'rails', '6.1.3.1'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'

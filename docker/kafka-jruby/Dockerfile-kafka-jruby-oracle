@@ -18,6 +18,8 @@ ENV KAFKA_HOME=/opt/kafka
 ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
 
 #EXPOSE 2181/tcp 9092/tcp
+# Allow chromedriver to use this port at all interfaces
+EXPOSE  9515
 
 # RUN-Steps:
 # - update system
