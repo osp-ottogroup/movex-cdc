@@ -10,6 +10,7 @@ class Table < ApplicationRecord
   validate    :kafka_key_handling_validate
   validate    :validate_yn_columns
   validate    :validate_unchanged_attributes
+  validate    :validate_yn_initialization
 
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
@@ -59,11 +60,27 @@ class Table < ApplicationRecord
   def validate_yn_columns
     validate_yn_column :yn_record_txid
     validate_yn_column :yn_hidden
+    validate_yn_column :yn_initialization
   end
 
   def validate_unchanged_attributes
     errors.add(:schema_id, "Change of schema_id not allowed!")  if schema_id_changed? && self.persisted?
     errors.add(:name, "Change of name not allowed!")            if name_changed?      && self.persisted?
+  end
+
+  def validate_yn_initialization
+    if yn_initialization_changed? and yn_initialization == 'Y'
+      begin
+        raise_if_table_not_readable_by_trixx
+      rescue Exception => e
+        errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka: #{e.class}:#{e.message}")
+      end
+    end
+  end
+
+  # check if table is readable by TriXX DB user and raise exception if not
+  def raise_if_table_not_readable_by_trixx
+    Database.select_one "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} #{Database.result_limit_expression('limit', sole_filter: true)}", limit: 1
   end
 
   def topic_to_use

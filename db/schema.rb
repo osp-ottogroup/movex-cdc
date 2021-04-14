@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2021_02_25_000000) do
+ActiveRecord::Schema.define(version: 2021_04_14_010000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
@@ -130,6 +130,8 @@ ActiveRecord::Schema.define(version: 2021_02_25_000000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "yn_record_txid", limit: 1, default: "N", null: false, comment: "Record transaction-ID for events of this table?."
+    t.string "yn_initialization", limit: 1, default: "N", null: false, comment: "Should current content of table be transferred to Kafka as insert events at next trigger generation?"
+    t.string "initialization_filter", limit: 4000, comment: "SQL filter expression to filter current content of table before transferred to Kafka as insert events at next trigger generation"
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end

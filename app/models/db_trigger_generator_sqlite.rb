@@ -77,10 +77,7 @@ class DbTriggerGeneratorSqlite < Database
               c.YN_Log_Insert,
               c.YN_Log_Update,
               c.YN_Log_Delete,
-              t.Name table_name,
-              t.YN_Record_TxId,
-              t.Kafka_Key_Handling,
-              t.Fixed_Message_Key
+              t.Name table_name
        FROM   Columns c
        JOIN   Tables t ON t.ID = c.Table_ID
        WHERE  t.Schema_ID = :schema_id
@@ -105,10 +102,7 @@ class DbTriggerGeneratorSqlite < Database
 
       unless @expected_triggers.has_key?(crec.table_name)
         @expected_triggers[crec.table_name] = {
-          table_name:         crec.table_name,
-          yn_record_txid:     crec.yn_record_txid,
-          kafka_key_handling: crec.kafka_key_handling,
-          fixed_message_key:  crec.fixed_message_key
+          table_name:         crec.table_name
         }
       end
       ['I', 'U', 'D'].each do |operation|
@@ -163,12 +157,14 @@ class DbTriggerGeneratorSqlite < Database
           create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
           existing_trigger = @existing_triggers.select{|t| t.table_name == table.name && t.operation == operation }.first
           if existing_trigger
-            if create_sql != "#{existing_trigger.sql};"                           # Trigger code has changed
-              exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table.name)       # Remove existing trigger
-              exec_trigger_sql(create_sql, trigger_name, table.name)              # create trigger again
+            if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
+              exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
+              exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
+              create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
             end
           else
-            exec_trigger_sql(create_sql, trigger_name, table.name)                # create new trigger
+            exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
+            create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
           end
         end
       end
@@ -183,7 +179,7 @@ class DbTriggerGeneratorSqlite < Database
     }.each do |t|
       unless @expected_triggers[table.name][operation]
         Rails.logger.debug("drop_obsolete_triggers: Existing trigger  #{table.name}.#{t.trigger_name} not expected in config, drop to remove")
-        exec_trigger_sql("DROP TRIGGER #{t.trigger_name}", t.trigger_name, t.table_name)       # Remove existing trigger
+        exec_trigger_sql("DROP TRIGGER #{t.trigger_name}", t.trigger_name, table)       # Remove existing trigger
       else
         Rails.logger.debug("drop_obsolete_triggers: Existing trigger #{table.name}.#{t.trigger_name} expected in config, not dropped")
       end
@@ -218,10 +214,7 @@ class DbTriggerGeneratorSqlite < Database
 
     payload = ''
     accessors.each do |accessor|
-      payload << "\"#{accessor}\": {"
-      # TODO: put quotes on string and date
-      payload << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
-      payload << "}"
+      payload << "\"#{accessor}\": #{payload_json(trigger_config, accessor)}"
       payload << "," if accessors.length == 2 && accessor == 'old'
     end
 
@@ -233,41 +226,74 @@ BEGIN
           'main',
            strftime('%Y-%m-%d %H-%M-%f','now'),
           '#{payload}',
-           #{message_key_sql(table_config, operation)},
-           #{table_config[:yn_record_txid] == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
+           #{message_key_sql(table, operation)},
+           #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
   );
 END;"
   end
 
+  def payload_json(trigger_config, accessor)
+    json = "{"
+    json << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
+    json << "}"
+    json
+  end
+
+  # called only if operation == 'I' and yn_initialization == 'Y'
+  def create_load_sql(table, trigger_name)
+    trigger_config    = @expected_triggers[table.name]['I']
+
+    sql = "\
+INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
+VALUES (#{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload_json(trigger_config, nil)}, #{message_key_sql(table, 'N')},
+        #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
+       )
+"
+    @load_sqls << { table_name: table.name, sql: sql }
+
+    begin                                                                       # Check if table is readable
+      table.raise_if_table_not_readable_by_trixx
+    rescue Exception => e
+      @errors << {
+        table_name:         table.name,
+        trigger_name:       trigger_name,
+        exception_class:    e.class.name,
+        exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
+        sql:                sql
+      }
+    end
+  end
+
   # Build SQL expression for message key
-  def message_key_sql(table_config, operation)
-    case table_config[:kafka_key_handling]
+  def message_key_sql(table, operation)
+    case table.kafka_key_handling
     when 'N' then 'NULL'
-    when 'P' then primary_key_sql(table_config, operation)
-    when 'F' then "'#{table_config[:fixed_message_key]}'"
+    when 'P' then primary_key_sql(table, operation)
+    when 'F' then "'#{table.fixed_message_key}'"
     when 'T' then "'Dummy Tx-ID'"
     else
-      raise "Unsupported Kafka key handling type '#{table_config[:kafka_key_handling]}'"
+      raise "Unsupported Kafka key handling type '#{table.kafka_key_handling}'"
     end
   end
 
   # get primary key columns sql for conversion to string
-  def primary_key_sql(table_config, operation)
+  def primary_key_sql(table, operation)
 
     pk_accessor =
       case operation
-      when 'I' then 'new'
-      when 'U' then 'new'
-      when 'D' then 'old'
+      when 'I' then 'new.'
+      when 'U' then 'new.'
+      when 'D' then 'old.'
+      when 'N' then ''                                                          # initialization of table data
       end
 
-    pk_columns = Database.select_all("PRAGMA table_info(#{table_config[:table_name]})").select{|c| c.pk > 0}
+    pk_columns = Database.select_all("PRAGMA table_info(#{table.name})").select{|c| c.pk > 0}
     raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if pk_columns.length == 0
 
     result = "'{' ||"
     result << pk_columns.map {|pkc|
       # TODO: put quotes on string and date
-      "'#{pkc.name}: '|| #{pk_accessor}.#{pkc.name}"
+      "'#{pkc.name}: '|| #{pk_accessor}#{pkc.name}"
     }.join("||','||")
     result << "|| ' }'"
     result
@@ -285,18 +311,18 @@ END;"
   end
 
 
-  def exec_trigger_sql(sql, trigger_name, table_name)
+  def exec_trigger_sql(sql, trigger_name, table)
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql) unless  @dry_run
     @successes << {
-      table_name:   table_name,
+      table_name:   table.name,
       trigger_name: trigger_name,
       sql:          sql
     }
   rescue Exception => e
     ExceptionHelper.log_exception(e, "DbTriggerSqlite.exec_trigger_sql: Executing SQL\n#{sql}")
     @errors << {
-      table_name:         table_name,
+      table_name:         table.name,
       trigger_name:       trigger_name,
       exception_class:    e.class.name,
       exception_message:  e.message,
@@ -305,7 +331,8 @@ END;"
   end
 
   def convert_col(column_hash, accessor)
-    col_expr = "#{accessor}.#{column_hash[:column_name]}"
+    local_accessor = accessor.nil? ? '' : "#{accessor}."
+    col_expr = "#{local_accessor}#{column_hash[:column_name]}"
     result = ''
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] =~ /datetime/i

@@ -53,6 +53,14 @@ class DbTrigger < ApplicationRecord
       Rails.logger.error "#{error[:sql]}"
     end
 
+    unless dry_run
+      # Schedule initialization of table data if requested
+      generator.load_sqls.each do |load|
+        Rails.logger.debug "Schedule table data initialization for #{schema.name}.#{load[:table_name]}"
+        TableInitialization.get_instance.add_table_initialization(load[:sql])
+      end
+    end
+
     # Log activities
     schema.update!(last_trigger_deployment: Time.now) if generator.errors.count == 0  # Flag trigger generation successful
     raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id

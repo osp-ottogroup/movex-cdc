@@ -206,7 +206,7 @@ class DbTriggerGeneratorOracle < Database
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} should persist and will not be dropped.")
       else
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
-        exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger.trigger_name}", trigger.trigger_name, table.name)
+        exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
       end
     end
   end
@@ -221,13 +221,10 @@ class DbTriggerGeneratorOracle < Database
       if existing_trigger.nil? ||
          trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" ||
         existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
-        exec_trigger_sql(trigger_sql, trigger_name, table.name)
+        exec_trigger_sql(trigger_sql, trigger_name, table)
+        generate_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
       else
         Rails.logger.debug "DbTriggerGeneratorOracle.create_or_rebuild_trigger: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
-      end
-
-      if operation == 'I'
-        @load_sqls << { table_name: table.name, sql: generate_load_sql(table)} # TODO: filter for load required and check for first creation
       end
     end
   end
@@ -289,7 +286,7 @@ END #{build_trigger_name(table.id, operation)};
     body_sql
   end
 
-  def generate_load_sql(table)
+  def generate_load_sql(table, trigger_name)
     # current SCN directly after creation of insert trigger
     scn = Database.select_one "SELECT current_scn FROM V$DATABASE"
     table_config    = @expected_triggers[table.name]
@@ -312,7 +309,19 @@ BEGIN
   Flush;
 END;
 "
-    load_sql
+    @load_sqls << { table_name: table.name, sql: load_sql}
+
+    begin                                                                       # Check if table is readable
+      table.raise_if_table_not_readable_by_trixx
+    rescue Exception => e
+      @errors << {
+        table_name:         table.name,
+        trigger_name:       trigger_name,
+        exception_class:    e.class.name,
+        exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
+        sql:                sql
+      }
+    end
   end
 
   def generate_declare_section(table, operation, mode)
@@ -514,7 +523,7 @@ END Flush;
     DbTriggerGeneratorOracle.build_trigger_name(@schema.id, table_id, operation)
   end
 
-  def exec_trigger_sql(sql, trigger_name, table_name)
+  def exec_trigger_sql(sql, trigger_name, table)
     if @dry_run
       errors = []
     else
@@ -530,14 +539,14 @@ END Flush;
     end
     if errors.count == 0
       @successes << {
-        table_name:   table_name,
+        table_name:   table.name,
         trigger_name: trigger_name,
         sql:          sql
       }
     else
       errors.each do |error|
         @errors << {
-          table_name:         table_name,
+          table_name:         table.name,
           trigger_name:       trigger_name,
           exception_class:    "Compile error line #{error['line']} position #{error['position']}",
           exception_message:  error['text'],
@@ -548,6 +557,7 @@ END Flush;
   rescue Exception => e
     ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.exec_trigger_sql: Executing SQL:\n#{sql}")
     @errors << {
+      table_name:         table.name,
       trigger_name:       trigger_name,
       exception_class:    e.class.name,
       exception_message:  e.message,

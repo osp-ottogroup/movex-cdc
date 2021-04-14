@@ -213,6 +213,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB * TRIXX_INITIAL_WORKER_THREADS. +
 If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|100
 |TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
+|TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
 |===
 
@@ -522,7 +523,11 @@ The following things are executed at startup of application / docker container i
 
 ==== Generation of database triggers ====
 ===== Initial transfer of table content at first trigger generation =====
-TODO:
+If requested in table config, after first generation of trigger a asynchroneous job will be created for transfer of the already existing records of a table to Kafka.
+The maximum number of simultaneously processed table initializations is limited by the environment setting TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
+
+Precondition for initial transfer of table data is that TriXX-user is allowed to read this table by SELECT, because initial transfer is done directly by selecting from table, not bei trigger execution.
+
 
 ==== Transfer of triggered events to Kafka ====
 An consecutive ID is used to define the order of message creation at trigger level. +

@@ -60,6 +60,12 @@ class TableTest < ActiveSupport::TestCase
 
     result = table.update(yn_record_txid: 'f')
     assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
+
+    result = table.update(yn_initialization: 'f')
+    assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
+
+    result = tables(:deletable).update(yn_initialization: 'Y')
+    assert(!result, 'Validation should raise error if yn_initialization=Y for not readable table')
   end
 
   test "oldest trigger change dates per operation" do
