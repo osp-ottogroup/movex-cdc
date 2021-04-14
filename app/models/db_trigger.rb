@@ -55,17 +55,15 @@ class DbTrigger < ApplicationRecord
 
     # Log activities
     schema.update!(last_trigger_deployment: Time.now) if generator.errors.count == 0  # Flag trigger generation successful
-    unless user_options.empty?
-      raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
-      raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
-      generator.successes.each do |success_trigger|
-        action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
-      end
-      generator.errors.each do |error_trigger|
-        action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
-      end
+    raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
+    raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
+    generator.successes.each do |success_trigger|
+      action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+      ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+    end
+    generator.errors.each do |error_trigger|
+      action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+      ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
     end
 
     { successes: generator.successes, errors: generator.errors, load_sqls: generator.load_sqls}

@@ -2,9 +2,7 @@ source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 # According to JRuby-Version (trixx/.ruby-version)
-# TODO: switch to current jruby if Docker image becomes available for current JDK
-# jruby-9.2.13.0
-ruby '2.5.7'
+ruby '2.5.8'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 gem 'rails', '6.1.3.1'
