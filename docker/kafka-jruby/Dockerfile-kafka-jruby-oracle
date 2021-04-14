@@ -3,12 +3,12 @@
 # Peter Ramm, 2021-03-02
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.16.0-jdk11 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t git.osp-dd.de:5005/main/trixx/kafka-jruby:9.2.17.0-jdk11 .
 
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
-ARG JRUBY_VERSION=9.2.16.0
+ARG JRUBY_VERSION=9.2.17.0
 ARG KAFKA_VERSION=2.7.0
 ARG SCALA_VERSION=2.13
 ENV JRUBY_VERSION=$JRUBY_VERSION

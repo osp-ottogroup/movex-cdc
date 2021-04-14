@@ -341,14 +341,6 @@ NOTE: The configuration in this screen is not user-specific. Each table/column c
 ==== Generation of database triggers ====
 
 === Troubleshooting ===
-==== Health check ====
-There is a healthcheck service available at:
-
- http://<TriXX-URL>/health_check
-
-Status code 200 (ok) is returned if the configured number of worker threads exists and is functional. +
-The http-response contains a JSON-object with detailled informations.
-
 ==== Common error traps ====
 ===== Kafka =====
 List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#protocol_error_codes
@@ -529,6 +521,9 @@ The following things are executed at startup of application / docker container i
 ** The GUI user "admin" acts as supervisor with the authorization to administrate further user accounts
 
 ==== Generation of database triggers ====
+===== Initial transfer of table content at first trigger generation =====
+TODO:
+
 ==== Transfer of triggered events to Kafka ====
 An consecutive ID is used to define the order of message creation at trigger level. +
 This ID allows the reconstruction of the original order of messages in Kafka even if using topics with multiple partitions.
@@ -561,6 +556,18 @@ Reasons for transfer errors can be for example:
 ==== Houskeeping ====
 
 ==== Health check ====
+The healthcheck service is available at:
+
+ http://<TriXX-URL>/health_check
+
+It can be called maximum once a second.
+The http-response contains a JSON-object with detailled informations.
+There's no authentification needed for execution of health check.
+The response status code contains the health status of the running instance:
+
+- 200 (ok): Health Check o.k., the configured number of worker threads exists and is functional.
+- 409 (conflict): Health check recognized a problem in operation
+- 500 (internal server error): Technical problem during processing of health check request or called too frequently (further details in response body)
 
 === API endpoints ===
 Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside TriXX. +

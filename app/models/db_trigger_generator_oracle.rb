@@ -348,6 +348,7 @@ END Flush;
 "
   end
 
+  #
   def generate_row_section(table_config, operation, mode)
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent

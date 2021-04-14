@@ -43,7 +43,7 @@ class DbTrigger < ApplicationRecord
 
     Table.where(schema_id: schema_id).each do |table|
       if table_id_list.nil? || table_id_list.include?(table.id)
-        table_result = generator.generate_table_triggers(table_id: table.id) # check if drop or create trigger is to do
+        generator.generate_table_triggers(table_id: table.id) # check if drop or create trigger is to do
       end
     end
 
