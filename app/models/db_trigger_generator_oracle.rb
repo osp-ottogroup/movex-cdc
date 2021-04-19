@@ -309,12 +309,13 @@ BEGIN
   Flush;
 END;
 "
-    @load_sqls << { table_name: table.name, sql: load_sql}
+    @load_sqls << { table_id: table.id, table_name: table.name, sql: load_sql}
 
     begin                                                                       # Check if table is readable
       table.raise_if_table_not_readable_by_trixx
     rescue Exception => e
       @errors << {
+        table_id:           table.id,
         table_name:         table.name,
         trigger_name:       trigger_name,
         exception_class:    e.class.name,
@@ -539,6 +540,7 @@ END Flush;
     end
     if errors.count == 0
       @successes << {
+        table_id:     table.id,
         table_name:   table.name,
         trigger_name: trigger_name,
         sql:          sql
@@ -546,6 +548,7 @@ END Flush;
     else
       errors.each do |error|
         @errors << {
+          table_id:           table.id,
           table_name:         table.name,
           trigger_name:       trigger_name,
           exception_class:    "Compile error line #{error['line']} position #{error['position']}",
@@ -557,6 +560,7 @@ END Flush;
   rescue Exception => e
     ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.exec_trigger_sql: Executing SQL:\n#{sql}")
     @errors << {
+      table_id:           table.id,
       table_name:         table.name,
       trigger_name:       trigger_name,
       exception_class:    e.class.name,

@@ -27,11 +27,15 @@ class DbTrigger < ApplicationRecord
   end
 
   # Generate triggers
-  # Parameter: - schema_id:     schema all pending triggers are generated for
-  #            - user_options:  User/request attributes for activity logging (:user_id, :client_ip_info)
-  #            - dry_run:       compile triggers or not
-  #            - table_id_list: Array of table-IDs to generate triggers for, nil=all
-  # return:    { schema_id:, successes: [], errors: []}
+  # @param schema_id      schema all pending triggers are generated for
+  # @param user_options   User/request attributes for activity logging (:user_id, :client_ip_info)
+  # @param dry_run        compile triggers or not
+  # @param table_id_list  Array of table-IDs to generate triggers for, nil=all
+  # @return { schema_id:,
+  #   successes: [{table_id, table_name, trigger_name, sql}, ...],
+  #   errors: [{table_id, table_name, trigger_name, exception_class, exception_message, sql}, ...],
+  #   load_sqls: [{table_id, table_name, sql}, ...],
+  #   }
   def self.generate_schema_triggers(schema_id:, user_options:, dry_run: false, table_id_list: nil)
     schema = Schema.find schema_id
     generator = case Trixx::Application.config.trixx_db_type

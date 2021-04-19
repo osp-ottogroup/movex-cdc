@@ -249,12 +249,13 @@ VALUES (#{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
        )
 "
-    @load_sqls << { table_name: table.name, sql: sql }
+    @load_sqls << { table_id: table.id, table_name: table.name, sql: sql }
 
     begin                                                                       # Check if table is readable
       table.raise_if_table_not_readable_by_trixx
     rescue Exception => e
       @errors << {
+        table_id:           table.id,
         table_name:         table.name,
         trigger_name:       trigger_name,
         exception_class:    e.class.name,
@@ -315,6 +316,7 @@ VALUES (#{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload
     Rails.logger.info "Execute trigger action: #{sql}"
     ActiveRecord::Base.connection.execute(sql) unless  @dry_run
     @successes << {
+      table_id:     table.id,
       table_name:   table.name,
       trigger_name: trigger_name,
       sql:          sql
@@ -322,6 +324,7 @@ VALUES (#{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload
   rescue Exception => e
     ExceptionHelper.log_exception(e, "DbTriggerSqlite.exec_trigger_sql: Executing SQL\n#{sql}")
     @errors << {
+      table_id:           table.id,
       table_name:         table.name,
       trigger_name:       trigger_name,
       exception_class:    e.class.name,

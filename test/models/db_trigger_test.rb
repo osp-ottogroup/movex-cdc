@@ -63,6 +63,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, 'Should have created x update trigger'
       assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, 'Should have created x delete trigger'
 
+      assert_not_nil result[:successes][0][:table_id],           ':table_id in successes result should be set for trigger'
       assert_not_nil result[:successes][0][:table_name],         ':table_name in successes result should be set for trigger'
       assert_not_nil result[:successes][0][:trigger_name],       ':trigger_name in successes result should be set for trigger'
       assert_not_nil result[:successes][0][:sql],                ':sql in successes result should be set for trigger'
@@ -150,6 +151,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)
     assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
+    assert_not_nil result[:errors][0][:table_id],           ':table_id in error result should be set for trigger'
     assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
     assert_not_nil result[:errors][0][:trigger_name],       ':trigger_name in error result should be set for trigger'
     assert_not_nil result[:errors][0][:exception_class],    ':exception_class in error result should be set for trigger'
@@ -161,4 +163,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)                 # Create trigger again to raise DDL that commits the update on condition
   end
 
+  test "generate trigger with initialization" do
+    # TODO
+  end
 end
