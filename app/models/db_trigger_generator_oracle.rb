@@ -327,7 +327,7 @@ END;
         trigger_name:       trigger_name,
         exception_class:    e.class.name,
         exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
-        sql:                sql
+        sql:                load_sql
       }
     end
   end
