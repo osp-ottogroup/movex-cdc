@@ -166,7 +166,6 @@ class DbTriggerTest < ActiveSupport::TestCase
     victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{tables(:victim1).name}" # requires select-Grant
     max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name}"
     second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID != :max_id", max_id: max_victim_id
-    sleep(1)                                                                    # prevent from ORA-01466
     insert_condition = case Trixx::Application.config.trixx_db_type
                        when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
@@ -181,6 +180,7 @@ class DbTriggerTest < ActiveSupport::TestCase
         else
           condition.update! filter: condition_filter
         end
+        sleep(1)                                                                    # prevent from ORA-01466
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
         filtered_records_count = 0
         filtered_records_count += 1 unless init_filter.nil?
