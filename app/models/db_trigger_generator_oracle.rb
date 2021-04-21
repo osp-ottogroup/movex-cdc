@@ -311,7 +311,7 @@ BEGIN
 "
     trigger_row_section = generate_row_section(table_config, operation)
     load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
-    load_sql << "\
+    load_sql << "
   END LOOP;
   Flush;
 END;

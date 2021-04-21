@@ -8,8 +8,8 @@ class TableInitialization
     @@instance
   end
 
-  def add_table_initialization(table_id, table_name, sql)
-    @init_requests_mutex.synchronize { @init_requests << {table_id: table_id, table_name: table_name, sql: sql} }
+  def add_table_initialization(table_id, table_name, sql, user_options)
+    @init_requests_mutex.synchronize { @init_requests << {table_id: table_id, table_name: table_name, sql: sql, user_options: user_options} }
     check_for_next_processing
   end
 

@@ -244,14 +244,14 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-SELECT #{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload_json(trigger_config, nil)}, #{message_key_sql(table, 'N')},
+SELECT #{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '#{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'N')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
 FROM   main.#{table.name}
 "
     sql << "WHERE " if table.initialization_filter || trigger_config[:condition]
-    sql << "(#{table.initialization_filter})" if table.initialization_filter
+    sql << "(/* init filter */ #{table.initialization_filter})" if table.initialization_filter
     sql << " AND " if table.initialization_filter && trigger_config[:condition]
-    sql << "(#{trigger_config[:condition]})" if trigger_config[:condition]
+    sql << "(/* insert condition */ #{trigger_config[:condition].gsub(/new./i, '')})" if trigger_config[:condition]
 
     @load_sqls << { table_id: table.id, table_name: table.name, sql: sql }
 

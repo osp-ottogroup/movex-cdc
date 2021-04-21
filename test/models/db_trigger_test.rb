@@ -160,19 +160,19 @@ class DbTriggerTest < ActiveSupport::TestCase
     DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options) # Create trigger again to raise DDL that commits the update on condition
   end
 
-  def dummy(msg)
-    puts "#{Table.find(4).yn_initialization} #{msg}"
-  end
-
   test "generate trigger with initialization" do
     org_yn_initialization = tables(:victim1).yn_initialization
     create_event_logs_for_test(20)                                              # create some records in victim1 before yn_initialization is set
     victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{tables(:victim1).name}" # requires select-Grant
     max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name}"
     second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID != :max_id", max_id: max_victim_id
-    sleep(1)                                                                # prevent from ORA-01466
+    sleep(1)                                                                    # prevent from ORA-01466
+    insert_condition = case Trixx::Application.config.trixx_db_type
+                       when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
+                       when 'SQLITE' then "new.ID != #{second_max_victim_id}"
+                       end
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
-      [nil, ":new.ID != #{second_max_victim_id}"].each do |condition_filter|  # condition filter should be valid for execution inside trigger
+      [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
         condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
         original_condition_filter = condition.filter
 
@@ -182,14 +182,11 @@ class DbTriggerTest < ActiveSupport::TestCase
           condition.update! filter: condition_filter
         end
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
-        dummy('nach update')
         filtered_records_count = 0
         filtered_records_count += 1 unless init_filter.nil?
         filtered_records_count += 1 unless condition_filter.nil?
         event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-        dummy('vor Generierung')
         result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
-        dummy('nach Generierung')
         assert_equal 1, result[:load_sqls].length, 'load SQLs should be generated'
 
         # Wait for successful initialization
@@ -198,7 +195,6 @@ class DbTriggerTest < ActiveSupport::TestCase
         table_init = TableInitialization.get_instance
         while (table_init.running_threads_count > 0 || table_init.init_requests_count > 0) && loop_count < 20 do
           loop_count += 1
-          puts '.'
           sleep 1
         end
         assert_equal 0, table_init.init_requests_count, 'There should not be unprocessed requests'
@@ -206,7 +202,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
 
         event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-        assert_equal(event_logs_count_after - event_logs_count_before, victim_record_count - filtered_records_count,
+        assert_equal(victim_record_count - filtered_records_count, event_logs_count_after - event_logs_count_before,
                      'Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records')
 
         if condition_filter.nil?
