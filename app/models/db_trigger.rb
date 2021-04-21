@@ -61,7 +61,7 @@ class DbTrigger < ApplicationRecord
       # Schedule initialization of table data if requested
       generator.load_sqls.each do |load|
         Rails.logger.debug "Schedule table data initialization for #{schema.name}.#{load[:table_name]}"
-        TableInitialization.get_instance.add_table_initialization(load[:sql])
+        TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql])
       end
     end
 

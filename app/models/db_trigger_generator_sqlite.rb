@@ -136,7 +136,7 @@ class DbTriggerGeneratorSqlite < Database
 
       unless table_config.nil?                                                  # at least one trigger expected for table
         trigger_config  = table_config[operation]
-        unless trigger_config.nil?                                              # there should be a trigger for tble/operation
+        unless trigger_config.nil?                                              # there should be a trigger for table/operation
           columns         = trigger_config[:columns]
           trigger_name    = build_trigger_name(table_id, operation)
 
@@ -160,12 +160,11 @@ class DbTriggerGeneratorSqlite < Database
             if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
               exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
               exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
-              create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
             end
           else
             exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
-            create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
           end
+          create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
         end
       end
     end
@@ -245,10 +244,15 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-VALUES (#{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload_json(trigger_config, nil)}, #{message_key_sql(table, 'N')},
+SELECT #{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), #{payload_json(trigger_config, nil)}, #{message_key_sql(table, 'N')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
-       )
+FROM   main.#{table.name}
 "
+    sql << "WHERE " if table.initialization_filter || trigger_config[:condition]
+    sql << "(#{table.initialization_filter})" if table.initialization_filter
+    sql << " AND " if table.initialization_filter && trigger_config[:condition]
+    sql << "(#{trigger_config[:condition]})" if trigger_config[:condition]
+
     @load_sqls << { table_id: table.id, table_name: table.name, sql: sql }
 
     begin                                                                       # Check if table is readable

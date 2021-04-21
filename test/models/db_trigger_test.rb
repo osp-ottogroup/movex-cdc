@@ -6,6 +6,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     # Create victim tables and triggers
     @victim_connection = create_victim_connection
     create_victim_structures(@victim_connection)
+    @user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
   end
 
   teardown do
@@ -31,8 +32,6 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "generate_triggers" do
-    user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
-
     # Execute test for each key handling type
     [
         {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},
@@ -49,7 +48,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
 
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -89,7 +88,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_not_nil Schema.find(victim_schema_id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
 
       # second run of trigger generation should not touch the already existing triggers
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
       assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
@@ -115,7 +114,6 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "generate_triggers dry run" do
-    user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
     # Execute test for each key handling type
     [
       {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},
@@ -132,7 +130,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema_id)
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options, dry_run: true)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options, dry_run: true)
 
       existing_triggers_after = DbTrigger.find_all_by_schema_id(victim_schema_id)
 
@@ -145,11 +143,10 @@ class DbTriggerTest < ActiveSupport::TestCase
 
 
   test "generate erroneous trigger" do
-    user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
     condition = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
     original_filter = condition.filter
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
     assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
     assert_not_nil result[:errors][0][:table_id],           ':table_id in error result should be set for trigger'
     assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
@@ -160,10 +157,67 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     Rails.logger.debug("Reset condition to '#{original_filter}'")
     condition.update!(filter: original_filter)                                  # reset valid entry
-    DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: user_options)                 # Create trigger again to raise DDL that commits the update on condition
+    DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options) # Create trigger again to raise DDL that commits the update on condition
+  end
+
+  def dummy(msg)
+    puts "#{Table.find(4).yn_initialization} #{msg}"
   end
 
   test "generate trigger with initialization" do
-    # TODO
+    org_yn_initialization = tables(:victim1).yn_initialization
+    create_event_logs_for_test(20)                                              # create some records in victim1 before yn_initialization is set
+    victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{tables(:victim1).name}" # requires select-Grant
+    max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name}"
+    second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID != :max_id", max_id: max_victim_id
+    sleep(1)                                                                # prevent from ORA-01466
+    [nil, "ID != #{max_victim_id}"].each do |init_filter|
+      [nil, ":new.ID != #{second_max_victim_id}"].each do |condition_filter|  # condition filter should be valid for execution inside trigger
+        condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
+        original_condition_filter = condition.filter
+
+        if condition_filter.nil?
+          condition.destroy!
+        else
+          condition.update! filter: condition_filter
+        end
+        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
+        dummy('nach update')
+        filtered_records_count = 0
+        filtered_records_count += 1 unless init_filter.nil?
+        filtered_records_count += 1 unless condition_filter.nil?
+        event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+        dummy('vor Generierung')
+        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+        dummy('nach Generierung')
+        assert_equal 1, result[:load_sqls].length, 'load SQLs should be generated'
+
+        # Wait for successful initialization
+
+        loop_count = 0
+        table_init = TableInitialization.get_instance
+        while (table_init.running_threads_count > 0 || table_init.init_requests_count > 0) && loop_count < 20 do
+          loop_count += 1
+          puts '.'
+          sleep 1
+        end
+        assert_equal 0, table_init.init_requests_count, 'There should not be unprocessed requests'
+        assert_equal 0, table_init.running_threads_count, 'There should not be running threads'
+
+
+        event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+        assert_equal(event_logs_count_after - event_logs_count_before, victim_record_count - filtered_records_count,
+                     'Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records')
+
+        if condition_filter.nil?
+          Condition.new(condition.attributes).save!                             # recreate the dropped condition
+        else
+          condition.update!(filter: original_condition_filter)                  # restore original
+        end
+      end
+    end
+
+
+    tables(:victim1).update!(yn_initialization: org_yn_initialization)          # restore original state
   end
 end

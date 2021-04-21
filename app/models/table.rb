@@ -73,14 +73,28 @@ class Table < ApplicationRecord
       begin
         raise_if_table_not_readable_by_trixx
       rescue Exception => e
-        errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka: #{e.class}:#{e.message}")
+        errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka!\n#{e.class}:#{e.message}")
       end
     end
   end
 
   # check if table is readable by TriXX DB user and raise exception if not
   def raise_if_table_not_readable_by_trixx
-    Database.select_one "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} #{Database.result_limit_expression('limit', sole_filter: true)}", limit: 1
+    error_msg_add = ''
+    sql           = ''
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      scn = Database.select_one "SELECT current_scn FROM V$DATABASE"            # Check if read and flashback is possible
+      sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
+      error_msg_add = "FLASHBACK grant on table or FLASHBACK ANY TABLE is needed for TriXX DB user!"
+    when 'SQLITE' then
+      sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} LIMIT 1"
+    end
+    Database.select_one sql
+  rescue Exception => e
+    msg = "#{e.class}:#{e.message} Table #{self.schema.name}.#{self.name} is not readable.\nSQL: #{sql}\n#{error_msg_add}"
+    Rails.logger.error msg
+    raise msg
   end
 
   def topic_to_use

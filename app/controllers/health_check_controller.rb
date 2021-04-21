@@ -75,6 +75,38 @@ class HealthCheckController < ApplicationController
     @health_data[:number_of_threads] = thread_info.count
     @health_data[:threads] = thread_info.sort_by {|t| t[:object_id] }
 
+
+    begin
+      current_init_requests_count = TableInitialization.get_instance.init_requests_count(raise_exception_if_locked: true)
+      @health_data[:current_number_of_table_initialization_requests]  = current_init_requests_count
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading current_number_of_table_initialization_requests: #{e.class}:#{e.message}"
+      @health_status = :conflict
+    end
+    begin
+      @health_data[:table_initialization_requests] = TableInitialization.get_instance.health_check_data_requests
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading table_initialization_requests: #{e.class}:#{e.message}"
+      @health_status = :conflict
+    end
+
+    begin
+      current_init_thread_count = TableInitialization.get_instance.running_threads_count(raise_exception_if_locked: true)
+      @health_data[:current_number_of_table_initialization_threads]  = current_init_thread_count
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading current_number_of_table_initialization_threads: #{e.class}:#{e.message}"
+      @health_status = :conflict
+    end
+    begin
+      @health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError reading table_initialization_threads: #{e.class}:#{e.message}"
+      @health_status = :conflict
+    end
+
+
+
+
     render json: JSON.pretty_generate(@health_data), status: @health_status
   end
 

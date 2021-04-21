@@ -222,10 +222,10 @@ class DbTriggerGeneratorOracle < Database
          trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" ||
         existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
         exec_trigger_sql(trigger_sql, trigger_name, table)
-        generate_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y'
       else
         Rails.logger.debug "DbTriggerGeneratorOracle.create_or_rebuild_trigger: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
       end
+      generate_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
     end
   end
 
@@ -272,7 +272,7 @@ END BEFORE STATEMENT;
 #{position_from_operation(operation)} EACH ROW IS
 BEGIN
 "
-    body_sql << generate_row_section(table_config, operation, :body)
+    body_sql << generate_row_section(table_config, operation)
     body_sql << "\
 END #{position_from_operation(operation)} EACH ROW;
 
@@ -291,19 +291,26 @@ END #{build_trigger_name(table.id, operation)};
     scn = Database.select_one "SELECT current_scn FROM V$DATABASE"
     table_config    = @expected_triggers[table.name]
     operation       = 'I'
-    trigger_config  = table_config[operation]                                             # Loads columns declared for insert trigger
+    trigger_config  = table_config[operation]                                   # Loads columns declared for insert trigger
     columns         = trigger_config[:columns]
+
+    where = ''                                                                  # optional conditions
+    where << "WHERE " if table.initialization_filter || trigger_config[:condition]
+    where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
+    where << " AND " if table.initialization_filter && trigger_config[:condition]
+    where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
 
     load_sql = "DECLARE\n"
     load_sql << generate_declare_section(table, operation, :load)
     load_sql << "
 BEGIN
   FOR rec IN (SELECT #{columns.map{|x| x[:column_name]}.join(',')}
-              FROM   #{Trixx::Application.config.trixx_db_user}.#{table.name}
-              AS OF SCN #{scn}
+              FROM   #{table.schema.name}.#{table.name} AS OF SCN #{scn}
+              #{where}
              ) LOOP
 "
-    load_sql << generate_row_section(table_config, operation, :load)
+    trigger_row_section = generate_row_section(table_config, operation)
+    load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
     load_sql << "\
   END LOOP;
   Flush;
@@ -359,7 +366,7 @@ END Flush;
   end
 
   #
-  def generate_row_section(table_config, operation, mode)
+  def generate_row_section(table_config, operation)
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent
     update_indent    = operation == 'U' ? '  ' : ''
@@ -374,8 +381,8 @@ END Flush;
   #{"IF #{trigger_config[:condition]} THEN" if trigger_config[:condition]}
     #{"#{condition_indent}IF #{old_new_compare(trigger_config[:columns])} THEN" if operation == 'U'}
     #{"/* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */" unless @use_json_object}
-    #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, mode)};
-  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation, mode)};
+    #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation)};
+  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};
   #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;
   #{"#{condition_indent}END IF;" if operation == 'U'}
   #{"END IF;" if trigger_config[:condition]}
@@ -397,18 +404,14 @@ END Flush;
 
   # generate concatenated PL/SQL-commands for payload
   # - mode: :body or :load
-  def payload_command(table_config, operation, mode)
+  def payload_command(table_config, operation)
     trigger_config = table_config[operation]
-    if mode == :load
-      payload_command_internal(trigger_config, 'rec')
+    case operation
+    when 'I' then payload_command_internal(trigger_config, 'new')
+    when 'U' then "#{payload_command_internal(trigger_config, 'old')}||',\n'||#{payload_command_internal(trigger_config, 'new')}"
+    when 'D' then payload_command_internal(trigger_config, 'old')
     else
-      case operation
-      when 'I' then payload_command_internal(trigger_config, 'new')
-      when 'U' then "#{payload_command_internal(trigger_config, 'old')}||',\n'||#{payload_command_internal(trigger_config, 'new')}"
-      when 'D' then payload_command_internal(trigger_config, 'old')
-      else
-        raise "Unknown operation #{operation}"
-      end
+      raise "Unknown operation #{operation}"
     end
   end
 
@@ -453,10 +456,10 @@ END Flush;
   end
 
   # Build SQL expression for message key
-  def message_key_sql(table_config, operation, mode)
+  def message_key_sql(table_config, operation)
     case table_config[:kafka_key_handling]
     when 'N' then 'NULL'
-    when 'P' then primary_key_sql(table_config, operation, mode)
+    when 'P' then primary_key_sql(table_config, operation)
     when 'F' then "'#{table_config[:fixed_message_key]}'"
     when 'T' then "transaction_id"
     else
@@ -465,7 +468,7 @@ END Flush;
   end
 
   # get primary key columns sql for conversion to string
-  def primary_key_sql(table_config, operation, mode)
+  def primary_key_sql(table_config, operation)
     raise "Table #{@schema.name}.#{table_config[:table_name]} does not have primary key columns, but Kafka key handling should be 'P'" if table_config[:pk_columns].nil?
 
     pk_accessor =
@@ -474,19 +477,11 @@ END Flush;
       when 'U' then 'new'
       when 'D' then 'old'
       end
-    pk_accessor = 'rec' if mode == :load
 
     result = "'{'||"
-
     result << table_config[:pk_columns]
       .map{|pkc| "'#{pkc[:column_name]}: '||#{convert_col({column_name: pkc[:column_name] , data_type: pkc[:data_type]}, pk_accessor)}" }
       .join("||','||")
-
-    #first = true
-    #table_config[:pk_columns].each do |i|
-    #  result << "||'#{',' unless first} #{i['column_name']}: '||#{convert_col({column_name: i['column_name'] , data_type: i['data_type']}, pk_accessor)}"
-    #  first = false
-    #end
     result << "||'}'"
     result
   end

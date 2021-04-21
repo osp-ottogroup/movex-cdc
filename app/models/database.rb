@@ -94,4 +94,22 @@ class Database
     end
   end
 
+  # set TCP timeout to ensure canceling of session also if SQL timeout is not working
+  def self.set_current_session_network_timeout(timeout_seconds:)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      raw_conn = ActiveRecord::Base.connection.raw_connection
+      # Ensure that hanging SQL executions are cancelled after timeout
+      raw_conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor, timeout_seconds * 1000)
+    end
+  end
+
+  def self.db_session_info
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      Database.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
+    else '< not implemented >'
+    end
+  end
+
 end

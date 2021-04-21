@@ -122,7 +122,7 @@ To ensure sufficient user rights the TriXX schema owner can also be created by T
 
 ===== Rights for owner of TriXX DB schema: Oracle =====
 
-.Grants required for Oracle
+.Minimum grants required to operate TriXX with Oracle DB
 [cols="~,~"]
 |===
 |Grant|Description
@@ -156,6 +156,16 @@ docker run --rm \
   -e TRIXX_DB_SYS_PASSWORD=oracle
   -e TRIXX_DB_URL=10.213.131.150:1521/ORCLPDB1
   git.osp-dd.de:5005/main/trixx:master rake ci_preparation:create_user
+
+
+.Optional grants required to initially transfer table content in Oracle DB
+[cols="~,~"]
+|===
+|Grant|Description
+
+|SELECT ON <table>|Allows selection of table data for initial transfer to Kafka
+|FLASHBACK ON <table>|Allows selection of table data by flashback query limited to the existing records at the current SCN of trigger creation
+|===
 
 ==== Kafka configuration ====
 .Options for Kafka consumer
@@ -523,8 +533,11 @@ The following things are executed at startup of application / docker container i
 
 ==== Generation of database triggers ====
 ===== Initial transfer of table content at first trigger generation =====
-If requested in table config, after first generation of trigger a asynchroneous job will be created for transfer of the already existing records of a table to Kafka.
-The maximum number of simultaneously processed table initializations is limited by the environment setting TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
+If requested in table config, after generation of trigger a job will be created for transfer of the already existing records of a table to Kafka. +
+For each record in the table existing at the time of trigger creation an insert-event will be transferred to Kafka.
+The table's filter condition for insert operation as well as the filter condition for initialization are considered. +
+This jobs are queued and processed deferred asynchronously.
+The maximum number of simultaneously processed table initialization jobs is limited by the environment setting TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
 
 Precondition for initial transfer of table data is that TriXX-user is allowed to read this table by SELECT, because initial transfer is done directly by selecting from table, not bei trigger execution.
 

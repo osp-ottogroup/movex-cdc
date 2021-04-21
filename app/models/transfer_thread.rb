@@ -54,8 +54,8 @@ class TransferThread
     # process Event_Logs for  ID mod worker_count = worker_ID for update skip locked
     Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}, Thread-ID=#{Thread.current.object_id}"}
     Database.set_application_info("worker #{@worker_id}/process")
-    @db_session_info = db_session_info                                          # Session ID etc., get information from within separate thread
-    set_query_timeouts                                                          # ensure hanging sessions are cancelled sometimes
+    @db_session_info = Database.db_session_info                                          # Session ID etc., get information from within separate thread
+    Database.set_current_session_network_timeout(timeout_seconds: Trixx::Application.config.trixx_db_query_timeout * 2) # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
     @kafka_producer = create_kafka_producer                                     # Initial creation
@@ -510,14 +510,6 @@ class TransferThread
     timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"
   end
 
-  def db_session_info
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then
-      Database.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
-    else '< not implemented >'
-    end
-  end
-
   def sleep_and_watch(sleeptime)
     1.upto(sleeptime) do
       sleep(1)
@@ -596,15 +588,6 @@ class TransferThread
     if @record_cache[:first_access] + RECORD_CACHE_REFRESH_CYCLE < Time.now
       Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after #{RECORD_CACHE_REFRESH_CYCLE} seconds"
       @record_cache = {}                                                        # reset record cache after 1 minute to reread possibly changed topic names
-    end
-  end
-
-  def set_query_timeouts
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then
-      raw_conn = ActiveRecord::Base.connection.raw_connection
-      # Ensure that hanging SQL executions are cancelled after timeout
-      raw_conn.setNetworkTimeout(java.util.concurrent.Executors.newSingleThreadExecutor, Trixx::Application.config.trixx_db_query_timeout * 2 * 1000)
     end
   end
 
