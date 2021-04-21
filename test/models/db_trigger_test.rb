@@ -180,7 +180,9 @@ class DbTriggerTest < ActiveSupport::TestCase
         else
           condition.update! filter: condition_filter
         end
-        sleep(1)                                                                    # prevent from ORA-01466
+        ActiveRecord::Base.transaction do
+          sleep(1)                                                                    # prevent from ORA-01466
+        end
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
         filtered_records_count = 0
         filtered_records_count += 1 unless init_filter.nil?
