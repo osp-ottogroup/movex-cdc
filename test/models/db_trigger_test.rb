@@ -180,9 +180,12 @@ class DbTriggerTest < ActiveSupport::TestCase
         else
           condition.update! filter: condition_filter
         end
-        ActiveRecord::Base.transaction do
-          sleep(1)                                                                    # prevent from ORA-01466
+        case Trixx::Application.config.trixx_db_type
+        when 'ORACLE' then
+          # prevent from ORA-01466
+          Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once
         end
+
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
         filtered_records_count = 0
         filtered_records_count += 1 unless init_filter.nil?
