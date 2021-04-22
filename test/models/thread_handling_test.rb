@@ -30,6 +30,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
       # MaxValue for sequence is 999999999999999999
       curval = Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
+      Rails.logger.debug "Current value of Event_Logs_SEQ is #{curval}"
       increment = 99999999999900000 - curval
       Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY #{increment}"   # MaxValue -999999, Distance to MaxValue should be greater than Cache size and max. increase factor 10
       Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
