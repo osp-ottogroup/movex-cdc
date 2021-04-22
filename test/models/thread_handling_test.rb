@@ -30,11 +30,9 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
       # MaxValue for sequence is 999999999999999999
       curval = Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
-      Rails.logger.debug "Current value of Event_Logs_SEQ is #{curval}"
-      increment = 99999999999900000 - curval
-      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY #{increment}"   # MaxValue -999999, Distance to MaxValue should be greater than Cache size and max. increase factor 10
-      Database.select_one "SELECT Event_Logs_SEQ.NextVal FROM Dual"
-      Database.execute "ALTER SEQUENCE Event_Logs_SEQ INCREMENT BY 1"
+      Rails.logger.debug "Current value of Event_Logs_SEQ was #{curval}"
+      Database.execute "DROP SEQUENCE Event_Logs_SEQ"
+      Database.execute "CREATE SEQUENCE Event_Logs_SEQ MAXVALUE 999999999999999999 CACHE 100000 CYCLE START WITH #{99999999999900000 + curval}"
 
       ['SYSDATE', 'SYSDATE+0.5', 'SYSDATE+1'].each do |created_at|              # ensure multiple partitions are filled with data, Partitions are created only for newer dates, else MIN is used
         # Store enough messages to provoke Oracle JDBC error in returning affected number of rows at executeUpdate
