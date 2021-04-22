@@ -54,4 +54,5 @@ Rails.application.configure do
     "[#{date_format}] (#{Thread.current.object_id}): #{msg}\n"
   end
 
+  config.use_transactional_tests = false
 end

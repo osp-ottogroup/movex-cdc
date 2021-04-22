@@ -14,7 +14,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once to prevent from ORA-01466
     end
 
-    self.use_transactional_tests = false
+    self.use_transactional_tests = false                                        #
   end
 
   teardown do
