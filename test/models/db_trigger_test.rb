@@ -170,10 +170,12 @@ class DbTriggerTest < ActiveSupport::TestCase
                        when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
                        end
+    sleep(4)                                                                    # avoid ORA-01466
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
-        sleep(4)
+        Rails.logger.debug("Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'")
         # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
+        # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
 
         condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
