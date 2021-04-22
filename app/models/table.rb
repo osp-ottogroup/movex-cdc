@@ -86,7 +86,7 @@ class Table < ApplicationRecord
     when 'ORACLE' then
       scn = Database.select_one "SELECT current_scn FROM V$DATABASE"            # Check if read and flashback is possible
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
-      error_msg_add = "FLASHBACK grant on table or FLASHBACK ANY TABLE is needed for TriXX DB user!"
+      error_msg_add = "FLASHBACK grant on table #{self.schema.name}.#{self.name} or FLASHBACK ANY TABLE is needed for TriXX DB user!"
     when 'SQLITE' then
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} LIMIT 1"
     end

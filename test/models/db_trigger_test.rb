@@ -7,6 +7,13 @@ class DbTriggerTest < ActiveSupport::TestCase
     @victim_connection = create_victim_connection
     create_victim_structures(@victim_connection)
     @user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      # prevent from ORA-01466
+      Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once
+    end
+
   end
 
   teardown do
@@ -179,11 +186,6 @@ class DbTriggerTest < ActiveSupport::TestCase
           condition.destroy!
         else
           condition.update! filter: condition_filter
-        end
-        case Trixx::Application.config.trixx_db_type
-        when 'ORACLE' then
-          # prevent from ORA-01466
-          Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once
         end
 
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
