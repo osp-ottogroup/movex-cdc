@@ -85,7 +85,7 @@ class Table < ApplicationRecord
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
-      Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once to prevent from ORA-01466
+      Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
 
       scn = Database.select_one "SELECT current_scn FROM V$DATABASE"            # Check if read and flashback is possible
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
