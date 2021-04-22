@@ -66,7 +66,7 @@ class DbTrigger < ApplicationRecord
     end
 
     if Trixx::Application.config.trixx_db_type == 'SQLITE'
-      # defer next processing until asynchronous processing of loads has finished, to avoid connection concurrency
+      # defer next processing until asynchronous processing of load_sqls has finished, to avoid connection concurrency
       max_wait_for_job = 100
       while (TableInitialization.get_instance.init_requests_count > 0 ||
         TableInitialization.get_instance.running_threads_count > 0) &&
