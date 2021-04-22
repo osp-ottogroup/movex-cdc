@@ -14,6 +14,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once to prevent from ORA-01466
     end
 
+    self.use_transactional_tests = false
   end
 
   teardown do
@@ -179,7 +180,10 @@ class DbTriggerTest < ActiveSupport::TestCase
                        end
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
+
+        # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
+
         condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
         original_condition_filter = condition.filter
         if condition_filter.nil?
