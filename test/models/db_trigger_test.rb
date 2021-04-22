@@ -179,16 +179,15 @@ class DbTriggerTest < ActiveSupport::TestCase
                        end
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
+        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
         condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
         original_condition_filter = condition.filter
-
         if condition_filter.nil?
           condition.destroy!
         else
           condition.update! filter: condition_filter
         end
 
-        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
         filtered_records_count = 0
         filtered_records_count += 1 unless init_filter.nil?
         filtered_records_count += 1 unless condition_filter.nil?
