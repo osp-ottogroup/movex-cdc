@@ -10,8 +10,8 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      # prevent from ORA-01466
-      Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once
+      # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
+      Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once to prevent from ORA-01466
     end
 
   end
