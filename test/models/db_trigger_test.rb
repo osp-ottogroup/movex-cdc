@@ -7,12 +7,6 @@ class DbTriggerTest < ActiveSupport::TestCase
     @victim_connection = create_victim_connection
     create_victim_structures(@victim_connection)
     @user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
-
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then
-      # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
-      Database.execute "BEGIN\nCOMMIT;\nEND;"                                # ensure SCN is incremented at least once to prevent from ORA-01466
-    end
   end
 
   teardown do
@@ -178,7 +172,7 @@ class DbTriggerTest < ActiveSupport::TestCase
                        end
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
-
+        sleep(4)
         # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
         Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
 
