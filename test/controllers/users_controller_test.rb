@@ -77,24 +77,28 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy user" do
-    ActivityLog.new(user_id: @user.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
+    user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: Trixx::Application.config.trixx_db_user, first_name: 'hans', last_name: 'dampf2')
+    user_to_delete.save!
+
+    ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
+
     assert_difference('User.count', 0, 'User should be deactivated instead of deleted if foreign key supresses delete') do
-      delete user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: @user.attributes}, as: :json
+      delete user_url(user_to_delete), headers: jwt_header(@jwt_admin_token), params: { user: user_to_delete.attributes}, as: :json
     end
     assert_response 204
 
     # Remove objects that may cause foreign key error
-    ActivityLog.all.each do |al|
+    ActivityLog.where(user_id: user_to_delete.id).each do |al|
       al.destroy!
     end
 
-    @user = User.find @user.id                                                  # ensure record has correct lock_version after above update
+    user_to_delete = User.find user_to_delete.id                                # ensure record has correct lock_version after above update
     assert_difference('User.count', -1) do
-      delete user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: @user.attributes}, as: :json
+      delete user_url(user_to_delete), headers: jwt_header(@jwt_admin_token), params: { user: user_to_delete.attributes}, as: :json
     end
     assert_response 204
 
-    delete user_url(@user), headers: jwt_header, as: :json
+    delete user_url(user_to_delete), headers: jwt_header, as: :json
     assert_response :unauthorized, 'Access allowed to supervisor only'
 
   end

@@ -27,6 +27,13 @@ class Database
     @@METHODS_TO_DELEGATE.include?(method) || super
   end
 
+  def self.initialize_connection
+    case Trixx::Application.config.trixx_db_type
+    when 'SQLITE' then
+      journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
+      Rails.logger.info "SQLITE journal mode = #{journal_mode}"
+    end
+  end
 
   def self.select_all(sql, filter = {})
     raise "Hash expected as filter" if filter.class != Hash

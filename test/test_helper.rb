@@ -7,11 +7,16 @@ class ActiveSupport::TestCase
   # parallel tests deactivated due to database consistency problems, Ramm, 21.12.2019
   # parallelize(workers: :number_of_processors, with: :threads)
 
+  # Oracle: if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
+  # solution is to execute test without using savepoints to rollback changes
+  self.use_transactional_tests = false
+
   # Setup all fixtures in test/fixtures/*.yml for all tests in alphabetical order.
   fixtures :all
 
   setup do
     JdbcInfo.log_version
+    Database.initialize_connection                                              # do some init actions for DB connection before use
   end
 
 
@@ -322,6 +327,7 @@ class ActiveSupport::TestCase
 end
 
 class ActionDispatch::IntegrationTest
+  self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
     # create JWT token for following tests
     @jwt_token                  = jwt_token users(:one).id
@@ -329,6 +335,7 @@ class ActionDispatch::IntegrationTest
     @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
 
     JdbcInfo.log_version
+    Database.initialize_connection                                              # do some init actions for DB connection before use
   end
 
   def jwt_token(user_id)

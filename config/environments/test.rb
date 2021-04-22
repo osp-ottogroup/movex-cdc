@@ -53,6 +53,4 @@ Rails.application.configure do
     date_format = datetime.strftime("%Y-%m-%d %H:%M:%S.%3N")
     "[#{date_format}] (#{Thread.current.object_id}): #{msg}\n"
   end
-
-  config.use_transactional_tests = false
 end

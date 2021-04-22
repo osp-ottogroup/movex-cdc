@@ -45,8 +45,11 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy condition" do
+    condition_to_delete = Condition.new(table_id: tables(:victim2).id, operation: 'D', filter: '1=1')
+    condition_to_delete.save!
+
     assert_difference('Condition.count', -1) do
-      delete condition_url(@condition), headers: jwt_header, params: { condition: @condition.attributes}, as: :json
+      delete condition_url(condition_to_delete), headers: jwt_header, params: { condition: condition_to_delete.attributes}, as: :json
     end
     assert_response 204
 

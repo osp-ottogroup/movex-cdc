@@ -20,21 +20,27 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "destroy user" do
-    ActivityLog.new(user_id: users(:one).id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
-    users(:one).destroy!
-    assert_equal 'Y', User.find(users(:one).id).yn_account_locked, 'Account should be locked instead of delete after destroy if foreign keys prevents this'
+    user_to_delete = User.new(email: 'hans.dampf@hugo.de', db_user: Trixx::Application.config.trixx_db_user, first_name: 'hans', last_name: 'dampf', yn_account_locked: 'N')
+    user_to_delete.save!
+
+    ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
+    user_to_delete.destroy!
+    assert_equal 'Y', User.find(user_to_delete.id).yn_account_locked, 'Account should be locked instead of delete after destroy if foreign keys prevents this'
 
     # Remove objects that may cause foreign key error
-    ActivityLog.all.each do |al|
+    ActivityLog.where(user_id: user_to_delete.id).each do |al|
       al.destroy!
     end
 
     assert_difference('User.count', -1, 'User should be physically deleted now') do
-      users(:one).destroy!
+      user_to_delete.destroy!
     end
   end
 
   test "should have deployable schemas" do
+    # remove possibly existing record
+    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+
     SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'Y').save!
     ds = users(:two).deployable_schemas
     assert(ds.count == 1, 'Should have one deployable schema')
@@ -42,6 +48,9 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "should not have deployable schemas" do
+    # remove possibly existing record
+    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+
     SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
     ds = users(:two).deployable_schemas
     assert(ds.count == 0, 'Should have no deployable schemas')
@@ -54,6 +63,9 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "should not be able to deploy schemas" do
+    # remove possibly existing record
+    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+
     SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
     can_deploy = users(:two).can_deploy_schemas?
     assert(can_deploy == false)

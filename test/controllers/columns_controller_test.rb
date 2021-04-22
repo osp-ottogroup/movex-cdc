@@ -45,8 +45,10 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy column" do
+    column_to_destroy = Column.new(table_id: tables(:victim1).id, name: 'Dummy43', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N')
+    column_to_destroy.save!
     assert_difference('Column.count', -1) do
-      delete column_url(@column), headers: jwt_header, params: { column: @column.attributes}, as: :json
+      delete column_url(column_to_destroy), headers: jwt_header, params: { column: column_to_destroy.attributes}, as: :json
     end
     assert_response 204
 

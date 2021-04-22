@@ -13,8 +13,6 @@ class DbTriggerTest < ActiveSupport::TestCase
       # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
       Database.execute "BEGIN\nCOMMIT;\nEND;"                               # ensure SCN is incremented at least once to prevent from ORA-01466
     end
-
-    self.use_transactional_tests = false                                        #
   end
 
   teardown do

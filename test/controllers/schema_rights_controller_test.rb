@@ -44,8 +44,11 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy schema_right" do
+    schema_right_to_delete = SchemaRight.new(user_id: users(:no_schema_right).id, schema_id: schemas(:one).id)
+    schema_right_to_delete.save!
+
     assert_difference('SchemaRight.count', -1) do
-      delete schema_right_url(@schema_right), headers: jwt_header(@jwt_admin_token), params: { schema_right: @schema_right.attributes}, as: :json
+      delete schema_right_url(schema_right_to_delete), headers: jwt_header(@jwt_admin_token), params: { schema_right: schema_right_to_delete.attributes}, as: :json
     end
     assert_response 204
 

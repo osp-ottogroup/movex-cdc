@@ -7,6 +7,7 @@ class InitializationJob < ApplicationJob
 
   def perform(*args)
     puts "Initialization at startup"
+    Database.initialize_connection                                              # do some init actions for DB connection before use
     ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
