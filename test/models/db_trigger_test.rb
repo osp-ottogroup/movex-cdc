@@ -161,7 +161,7 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "generate trigger with initialization" do
-    org_yn_initialization = tables(:victim1).yn_initialization
+    org_table_attributes = tables(:victim1).attributes
     create_event_logs_for_test(20)                                              # create some records in victim1 before yn_initialization is set
     victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{tables(:victim1).name}" # requires select-Grant
     max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name}"
@@ -171,12 +171,24 @@ class DbTriggerTest < ActiveSupport::TestCase
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
                        end
     sleep(4)                                                                    # avoid ORA-01466
+    msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false)
+
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
         Rails.logger.debug("Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'")
+
+        raise "Other test process necessary because there are more key types than test loops" if msgkeys.count == 0
+        kafka_key_handling = msgkeys.delete_at(0)                               # Remove used key handling so next test loop will use the next one for test
+        fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo' : nil
+        yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'
         # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
         # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
-        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y', initialization_filter: init_filter) # set a init filter for one record
+        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y',
+                                                initialization_filter:  init_filter,
+                                                kafka_key_handling:     kafka_key_handling,
+                                                fixed_message_key:      fixed_message_key,
+                                                yn_record_txid:         yn_record_txid
+        ) # set a init filter for one record
 
         condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
         original_condition_filter = condition.filter
@@ -218,6 +230,6 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
 
 
-    tables(:victim1).update!(yn_initialization: org_yn_initialization)          # restore original state
+    tables(:victim1).update!(org_table_attributes)                              # restore original state
   end
 end

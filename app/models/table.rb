@@ -38,10 +38,10 @@ class Table < ApplicationRecord
     end
   end
 
+  VALID_KAFKA_KEY_HANDLINGS = ['N', 'P', 'F', 'T']
   def kafka_key_handling_validate
-    valid_kafka_key_handlings = ['N', 'P', 'F', 'T']
-    unless valid_kafka_key_handlings.include? kafka_key_handling
-      errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{valid_kafka_key_handlings}")
+    unless Table::VALID_KAFKA_KEY_HANDLINGS.include? kafka_key_handling
+      errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{Table::VALID_KAFKA_KEY_HANDLINGS}")
     end
 
     if kafka_key_handling != 'F' && !(fixed_message_key.nil? || fixed_message_key == '')
