@@ -67,6 +67,20 @@
                    validation-message="Add an info text why this table is used in TriXX"/>
         </b-field>
 
+        <b-field label="Initialize data">
+          <b-tooltip label="Initially transfer all table records as insert events to Kafka at next deployment?" position="is-right">
+            <b-switch v-model="internalTable.yn_initialization"
+                      true-value="Y"
+                      false-value="N"/>
+          </b-tooltip>
+        </b-field>
+
+        <b-field label="Optional filter expression for initial transfer" v-if="internalTable.yn_initialization === 'Y'">
+          <b-input type="textarea"
+                   rows="1"
+                   v-model="internalTable.initialization_filter"/>
+        </b-field>
+
         <template v-if="!isAddMode">
           <b-field label="Date Of Last Trigger Deployment" custom-class="is-small" class="trigger-dates">
             <div class="columns is-1 is-variable">

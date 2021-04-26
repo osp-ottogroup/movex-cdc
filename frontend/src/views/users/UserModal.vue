@@ -96,10 +96,12 @@
               </div>
               <div class="column is-4">
                 <b-field label="Deployment granted">
-                  <b-switch v-model="schemaRightToAdd.yn_deployment_granted"
-                            true-value="Y"
-                            false-value="N"
-                            size="is-small"/>
+                  <b-tooltip label="Allow deployment of this schema for user?">
+                    <b-switch v-model="schemaRightToAdd.yn_deployment_granted"
+                              true-value="Y"
+                              false-value="N"
+                              size="is-small"/>
+                  </b-tooltip>
                 </b-field>
               </div>
               <div class="column">
@@ -134,10 +136,12 @@
                   {{ schemaRight.schema.name }}
                 </div>
                 <div class="column is-4">
-                  <b-switch v-model="schemaRight.yn_deployment_granted"
-                            true-value="Y"
-                            false-value="N"
-                            size="is-small"/>
+                  <b-tooltip label="Allow deployment of this schema for user?">
+                    <b-switch v-model="schemaRight.yn_deployment_granted"
+                              true-value="Y"
+                              false-value="N"
+                              size="is-small"/>
+                  </b-tooltip>
                 </div>
                 <div class="column">
                   <b-tooltip :label="schemaRight.info">
