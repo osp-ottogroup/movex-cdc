@@ -20,6 +20,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
       assert_response :conflict, '409 (conflict) expected because not all worker threads are active'
     end
 
+    get "/health_check", as: :json                                              # warmup health check to ensure next response within one second
     get "/health_check", as: :json
     assert_response :internal_server_error, 'second check should fail within same second'
 
