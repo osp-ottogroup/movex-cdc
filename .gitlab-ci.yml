@@ -135,7 +135,9 @@ build_trixx:
   stage: build
 
   image:
-    name: gcr.io/kaniko-project/executor:debug
+    # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
+    # name: gcr.io/kaniko-project/executor:debug
+    name: git.osp-dd.de:5005/main/trixx/kaniko-executor:debug
     entrypoint: [""]
 
   script:
