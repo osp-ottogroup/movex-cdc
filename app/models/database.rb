@@ -92,6 +92,9 @@ class Database
     end
   end
 
+  # add DB-specific LIMIT expression
+  # @param [String] bind_variable_name
+  # @param [Object] sole_filter is there already a WHERE clause in SQL (false) or is limit expression the only filter (true)
   def self.result_limit_expression(bind_variable_name, sole_filter: false)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then " #{sole_filter ? " WHERE" : " AND"} RowNum <= :#{bind_variable_name}"

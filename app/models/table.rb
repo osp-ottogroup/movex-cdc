@@ -11,6 +11,7 @@ class Table < ApplicationRecord
   validate    :validate_yn_columns
   validate    :validate_unchanged_attributes
   validate    :validate_yn_initialization
+  validate    :validate_initialization_filter
 
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
@@ -69,11 +70,26 @@ class Table < ApplicationRecord
   end
 
   def validate_yn_initialization
-    if yn_initialization_changed? and yn_initialization == 'Y'
+    if yn_initialization_changed? && yn_initialization == 'Y'
       begin
         raise_if_table_not_readable_by_trixx
       rescue Exception => e
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka!\n#{e.class}:#{e.message}")
+      end
+      if Column.where(table_id: self.id, yn_log_insert: 'Y').count == 0
+        errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} should have at least one column registered for insert trigger to execute initialization!")
+      end
+    end
+  end
+
+  def validate_initialization_filter
+    if initialization_filter_changed? && !initialization_filter.nil? && initialization_filter.length > 0
+      sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} WHERE #{initialization_filter} #{Database.result_limit_expression('limit')}"
+      begin
+        Database.select_one sql, {limit: 0}
+      rescue Exception => e
+        Rails.logger.debug "#{e.class}:#{e.message} in Table.validate_initialization_filter for SQL:\n#{sql}"
+        errors.add(:initialization_filter, "Error '#{e.class}:#{e.message}' at check of initialization filter with '#{sql}'")
       end
     end
   end
