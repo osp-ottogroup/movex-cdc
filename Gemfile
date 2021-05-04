@@ -40,7 +40,7 @@ gem 'snappy'
 
 group :development do
   gem 'listen', '>= 3.0.5', '< 3.2'
-  gem 'rubocop'
+  # gem 'rubocop' not really needed as deployment artifact
 end
 
 group :test do
