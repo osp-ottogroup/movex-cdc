@@ -2,3 +2,7 @@
 
 # Targets to sprockets 2.x, we are using sprocket 4.x
 CVE-2014-7819
+
+# Bouncycastle installed with jRuby, but not directly used
+# opt/jruby-9.2.17.0/lib/ruby/stdlib/org/bouncycastle/bcprov-jdk15on/1.65/bcprov-jdk15on-1.65.jar
+CVE-2020-28052
