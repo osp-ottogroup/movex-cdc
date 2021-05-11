@@ -30,7 +30,7 @@
       </div>
     </div>
 
-    <div v-if="dryRunResultList.length > 0">
+    <div v-if="dryRunResultList.length > 0 && deployResultList.length === 0">
       <div>
         <h4 class="title is-5">Triggers that would be newly generated or modified</h4>
         <DeploymentResults :deployment-results="dryRunResultList"
@@ -196,16 +196,18 @@ export default {
           tableMap.get(entry.table_name).erroneousTriggers.push({
             triggerName: entry.trigger_name,
             triggerSql: entry.sql,
+            exceptionClass: entry.exception_class,
+            exceptionMessage: entry.exception_message,
           });
         });
 
         result.load_sqls.forEach((entry) => {
           tableMap.get(entry.table_name).loadSql = entry.sql;
         });
-
         const schemaData = {
           schemaName: result.schema_name,
-          tables: Object.fromEntries(tableMap),
+          tables: [...tableMap.values()],
+          errorCount: result.errors.length,
         };
 
         results.push(schemaData);

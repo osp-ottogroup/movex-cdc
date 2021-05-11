@@ -63,6 +63,7 @@ class HousekeepingFinalErrors
         end
       else
         # Delete single records from table
+        deleted = nil                                                           # declare variable outside begin/end
         begin
           ActiveRecord::Base.transaction do
             deleted = Database.execute "DELETE FROM Event_Log_Final_Errors

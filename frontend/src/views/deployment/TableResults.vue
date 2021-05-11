@@ -7,21 +7,21 @@
       <template #trigger="props">
         <div class="card-header" role="button">
           <div class="card-header-title is-justify-content-space-between">
-              <div class="">
-                <b-field grouped>
-                  <b-field v-if="enableSwitches" label="Deploy" custom-class="is-size-7">
-                    <b-switch size="is-small" @click.native.stop @input="onDeploySwitched"/>
-                  </b-field>
-                  <b-field label="Table" custom-class="is-size-7">
-                    {{table.tableName}}
-                  </b-field>
-                </b-field>
-              </div>
-              <div class="">
-                <label class="label is-size-7">{{table.successfulTriggers.length}} Successful</label>
-                <label class="label is-size-7">{{table.erroneousTriggers.length}} Erroneous</label>
-                <label class="label is-size-7">{{table.loadSql !== '' ? '1' : '0'}} Load SQL</label>
-              </div>
+            <b-field grouped>
+              <b-field v-if="enableSwitches" label="Deploy" custom-class="is-size-7">
+                <b-switch size="is-small" @click.native.stop @input="onDeploySwitched"/>
+              </b-field>
+              <b-field label="Table" custom-class="is-size-7">
+                {{table.tableName}}
+              </b-field>
+            </b-field>
+            <div>
+              <label class="label is-size-7">{{table.successfulTriggers.length}} Successful</label>
+              <label class="label is-size-7" :class="{'has-text-danger': table.erroneousTriggers.length > 0}">
+                {{table.erroneousTriggers.length}} Erroneous
+              </label>
+              <label class="label is-size-7">{{table.loadSql !== '' ? '1' : '0'}} Load SQL</label>
+            </div>
           </div>
           <a class="card-header-icon">
             <b-icon
@@ -38,8 +38,10 @@
           </div>
         </div>
         <div v-for="(trigger, index) in table.erroneousTriggers" :key="index" class="columns result-entry">
-          <div class="column is-3">{{trigger.triggerName}}</div>
+          <div class="column is-3 has-text-danger">{{trigger.triggerName}}</div>
           <div class="column is-9">
+            <pre>{{trigger.exceptionClass}}</pre>
+            <pre>{{trigger.exceptionMessage}}</pre>
             <pre>{{trigger.triggerSql}}</pre>
           </div>
         </div>

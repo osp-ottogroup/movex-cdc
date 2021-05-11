@@ -12,6 +12,26 @@
 
 ActiveRecord::Schema.define(version: 2021_04_14_010000) do
 
+  create_table "VICTIM1", primary_key: ["ID", "Num_Val", "Name", "Date_Val", "TS_Val", "Raw_Val"], force: :cascade do |t|
+    t.decimal "ID"
+    t.decimal "Num_Val"
+    t.string "Name", limit: 20
+    t.string "Char_Name", limit: 1
+    t.datetime "Date_Val"
+    t.datetime "TS_Val", precision: 6
+    t.binary "Raw_Val"
+    t.datetime "TSTZ_Val", precision: 6
+    t.text "RowID_Val"
+  end
+
+  create_table "VICTIM2", primary_key: "ID", id: :decimal, force: :cascade do |t|
+    t.text "Large_Text"
+  end
+
+  create_table "VICTIM3", primary_key: "ID", id: :decimal, force: :cascade do |t|
+    t.string "Name", limit: 20
+  end
+
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
     t.string "schema_name", limit: 256

@@ -6,11 +6,15 @@
       :key="index">
       <template #trigger="props">
         <div class="card-header" role="button">
-          <p class="card-header-title">
+          <div class="card-header-title is-justify-content-space-between">
             <b-field label="Schema" custom-class="is-size-7">
               {{result.schemaName}}
             </b-field>
-          </p>
+            <div>
+              <label class="label is-size-7">{{tableMessage(result)}}</label>
+              <label v-if="result.errorCount > 0" class="label is-size-7 has-text-danger">{{errorsMessage(result)}}</label>
+            </div>
+          </div>
           <a class="card-header-icon">
             <b-icon
               :icon="props.open ? 'menu-down' : 'menu-up'">
@@ -42,6 +46,16 @@ export default {
   props: {
     deploymentResults: { type: Array, default: () => [] },
     enableSwitches: { type: Boolean, default: false },
+  },
+  methods: {
+    tableMessage(result) {
+      const count = result.tables.length;
+      return count === 1 ? `${count} Table` : `${count} Tables`;
+    },
+    errorsMessage(result) {
+      const count = result.errorCount;
+      return count === 1 ? `${count} error exists` : `${count} errors exists`;
+    },
   },
 };
 </script>

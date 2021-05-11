@@ -176,7 +176,7 @@ class DbTriggerGeneratorSqlite < Database
     @existing_triggers.select{|t|
       t.table_name == table.name && t.operation == operation
     }.each do |t|
-      unless @expected_triggers[table.name][operation]
+      if !@expected_triggers.has_key?(table.name) || !@expected_triggers[table.name].has_key?(operation)
         Rails.logger.debug("drop_obsolete_triggers: Existing trigger  #{table.name}.#{t.trigger_name} not expected in config, drop to remove")
         exec_trigger_sql("DROP TRIGGER #{t.trigger_name}", t.trigger_name, table)       # Remove existing trigger
       else
