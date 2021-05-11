@@ -1,10 +1,9 @@
-FROM jruby:9.2.11.1
-
+FROM jruby:9.2.17
 WORKDIR /app
 
 COPY Gemfile* ./
 
-RUN gem install bundler -v '2.2.4'
+RUN gem install bundler -v '2.2.16'
 
 RUN bundle install --jobs 4
 
