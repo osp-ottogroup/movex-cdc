@@ -1,73 +1,64 @@
 <template>
   <div class="container">
-    <b-tabs>
-      <b-tab-item label="Generate triggers for schema">
-        <div class="columns">
-          <div class="column is-3">
-            <div class="is-size-7 has-text-info-dark mb-3">
-              <b-icon icon="information-outline" size="is-small" />
-              <span>
-                You can only select schemas, for which you have deployment rights.
-              </span>
-            </div>
-            <b-field>
-              <b-select v-model="selectedSchema"
-                        placeholder="Select a schema"
-                        expanded
-                        :loading="isLoading">
-                <option v-for="schema in schemas" :key="schema.id" :value="schema">
-                  {{ schema.name }}
-                </option>
-              </b-select>
-            </b-field>
-            <b-button @click="generateForSelectedSchema"
-                      type="is-primary"
-                      expanded
-                      :disabled="selectedSchema === null || isGeneratingForSchema || isGeneratingForAllSchemas"
-                      :loading="isGeneratingForSchema">
-              Generate for Schema
-            </b-button>
-          </div>
+    <div class="columns">
+       <div class="column is-3">
+        <div class="is-size-7 has-text-info-dark mb-3">
+          <b-icon icon="information-outline" size="is-small" />
+          <span>
+            You can only generate triggers for schemas, for which you have deployment rights.
+            This also includes the option "All Schemas".
+          </span>
         </div>
-      </b-tab-item>
+        <b-field>
+          <b-select v-model="selectedSchema"
+                    placeholder="Select a schema"
+                    expanded
+                    :loading="isLoading">
+            <option value="ALL_SCHEMAS">- All Schemas -</option>
+            <option v-for="schema in schemas" :key="schema.id" :value="schema">
+              {{ schema.name }}
+            </option>
+          </b-select>
+        </b-field>
+        <b-button @click="onGenerateClicked"
+                  type="is-primary"
+                  expanded
+                  :disabled="selectedSchema === null || isGenerating || isDeploying"
+                  :loading="isGenerating">
+          Generate for Schema
+        </b-button>
+      </div>
+    </div>
 
-      <b-tab-item label="Generate triggers for all schemas">
-        <div class="columns">
-          <div class="column is-3">
-            <div class="is-size-7 has-text-info-dark mb-3">
-              <b-icon icon="information-outline" size="is-small" />
-              <span>
-                This will only generate triggers for schemas, for which you have deployment rights.
-              </span>
-            </div>
-            <b-field>
-              <b-button @click="generateForAllSchemas"
-                        type="is-primary"
-                        expanded
-                        :disabled="isGeneratingForAllSchemas || isGeneratingForSchema"
-                        :loading="isGeneratingForAllSchemas">
-                Generate for All Schemas
-              </b-button>
-            </b-field>
-          </div>
-        </div>
-      </b-tab-item>
-    </b-tabs>
-
-    <div v-if="showResultList" class="columns">
-      <div class="column is-10 is-offset-1">
-        <h4 class="title is-4">Triggers that are newly generated or modified by this request:</h4>
-        <div v-for="(result, index) in resultList" :key="index">
-          <h5 class="subtitle is-5">Schema: {{result.schema_name}}</h5>
-          <div v-for="(entry, index) in result.successes" :key="index" class="columns result-entry">
-            <div class="column is-3">{{entry.trigger_name}}</div>
-            <div class="column is-9">
-              <pre>{{entry.sql}}</pre>
-            </div>
-          </div>
+    <div v-if="dryRunResultList.length > 0">
+      <div>
+        <h4 class="title is-5">Triggers that would be newly generated or modified</h4>
+        <DeploymentResults :deployment-results="dryRunResultList"
+                           :enable-switches="true"
+                           @tableSelected="onTableSelected"
+                           @tableDeselected="onTableDeselected"
+        />
+      </div>
+      <div class="columns is-mobile mt-1">
+        <div class="column is-one-quarter">
+          <b-button @click="onDeployClicked"
+                    type="is-primary"
+                    expanded
+                    :disabled="tableList.length === 0 || isGenerating || isDeploying"
+                    :loading="isGenerating">
+            Deploy
+          </b-button>
         </div>
       </div>
     </div>
+
+    <div v-if="deployResultList.length > 0" class="mt-5">
+      <div>
+        <h4 class="title is-5">Triggers that are newly generated or modified</h4>
+        <DeploymentResults :deployment-results="deployResultList" :enable-switches="false"/>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -77,77 +68,150 @@ import { getErrorMessageAsHtml } from '@/helpers';
 import HttpService from '@/services/HttpService';
 import Config from '@/config/config';
 import UserService from '@/services/UserService';
+import DeploymentResults from '@/views/deployment/DeploymentResults.vue';
 
 export default {
   name: 'Deployment',
+  components: {
+    DeploymentResults,
+  },
   data() {
     return {
       isLoading: false,
-      isGeneratingForSchema: false,
-      isGeneratingForAllSchemas: false,
+      isGenerating: false,
+      isDeploying: false,
       schemas: [],
       selectedSchema: null,
-      resultList: null,
+      dryRunResultList: [],
+      deployResultList: [],
+      tableList: [],
       user: UserService.getUser(),
     };
   },
   async created() {
     await this.loadSchemas();
   },
-  computed: {
-    showResultList() {
-      return this.resultList && this.resultList.length > 0;
-    },
-  },
   methods: {
+    showErrorNotification(e, message) {
+      this.$buefy.notification.open({
+        message: getErrorMessageAsHtml(e, message),
+        type: 'is-danger',
+        indefinite: true,
+        position: 'is-top',
+      });
+    },
     async loadSchemas() {
       try {
         this.isLoading = true;
         this.schemas = await CRUDService.users.deployableSchemas(this.user);
       } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e, 'An error occurred while loading schemas!'),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
+        this.showErrorNotification(e, 'An error occurred while loading schemas!');
       } finally {
         this.isLoading = false;
       }
     },
-    async generateForSelectedSchema() {
+    async onGenerateClicked() {
       try {
-        this.isGeneratingForSchema = true;
-        const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate`, { schema_name: this.selectedSchema.name });
+        this.dryRunResultList = [];
+        this.deployResultList = [];
+        this.tableList = [];
+        this.isGenerating = true;
+        const data = { dry_run: true };
+        let response = null;
+        if (this.selectedSchema === 'ALL_SCHEMAS') {
+          response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate_all`, data);
+        } else {
+          data.schema_name = this.selectedSchema.name;
+          response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate`, data);
+        }
         if (response.data) {
-          this.resultList = response.data.results;
+          this.dryRunResultList = this.prepareResults(response.data.results);
         }
       } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e, 'An error occurred while generating the triggers'),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
+        this.showErrorNotification(e, 'An error occurred while generating the triggers');
       } finally {
-        this.isGeneratingForSchema = false;
+        this.isGenerating = false;
       }
     },
-    async generateForAllSchemas() {
+    onTableSelected(table) {
+      this.tableList.push(table);
+    },
+    onTableDeselected(table) {
+      const index = this.tableList.indexOf(table);
+      this.tableList.splice(index, 1);
+    },
+    async onDeployClicked() {
       try {
-        this.isGeneratingForAllSchemas = true;
-        const response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate_all`);
-        this.resultList = response.data.results;
+        this.isGenerating = true;
+        const tableIdList = this.tableList.map((table) => table.tableId);
+        const data = {
+          dry_run: false,
+          table_id_list: tableIdList,
+        };
+        let response = null;
+        if (this.selectedSchema === 'ALL_SCHEMAS') {
+          response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate_all`, data);
+        } else {
+          data.schema_name = this.selectedSchema.name;
+          response = await HttpService.post(`${Config.backendUrl}/db_triggers/generate`, data);
+        }
+        if (response.data) {
+          this.deployResultList = this.prepareResults(response.data.results);
+        }
       } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e, 'An error occurred while generating the triggers'),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
+        this.showErrorNotification(e, 'An error occurred while deploying the triggers');
       } finally {
-        this.isGeneratingForAllSchemas = false;
+        this.isGenerating = false;
       }
+    },
+    prepareResults(rawResults) {
+      const results = [];
+      rawResults.forEach((result) => {
+        const tableMap = new Map();
+
+        const initMap = (entry) => {
+          if (!tableMap.has(entry.table_name)) {
+            tableMap.set(entry.table_name, {
+              tableId: entry.table_id,
+              tableName: entry.table_name,
+              successfulTriggers: [],
+              erroneousTriggers: [],
+              loadSql: '',
+            });
+          }
+        };
+
+        result.successes.forEach(initMap);
+        result.errors.forEach(initMap);
+        result.load_sqls.forEach(initMap);
+
+        result.successes.forEach((entry) => {
+          tableMap.get(entry.table_name).successfulTriggers.push({
+            triggerName: entry.trigger_name,
+            triggerSql: entry.sql,
+          });
+        });
+
+        result.errors.forEach((entry) => {
+          tableMap.get(entry.table_name).erroneousTriggers.push({
+            triggerName: entry.trigger_name,
+            triggerSql: entry.sql,
+          });
+        });
+
+        result.load_sqls.forEach((entry) => {
+          tableMap.get(entry.table_name).loadSql = entry.sql;
+        });
+
+        const schemaData = {
+          schemaName: result.schema_name,
+          tables: Object.fromEntries(tableMap),
+        };
+
+        results.push(schemaData);
+      });
+
+      return results;
     },
   },
 };
