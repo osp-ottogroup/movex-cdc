@@ -144,8 +144,6 @@ class DbTriggerGeneratorOracle < Database
     # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
     @expected_triggers = {}
     expected_trigger_columns.each do |crec|
-      raise "Column #{crec.column_name} does not exist in table #{@schema.name}.#{crec.table_name}" if crec.data_type.nil?
-
       unless @expected_triggers.has_key?(crec.table_name)
         @expected_triggers[crec.table_name] = {
           table_name:         crec.table_name,
@@ -193,8 +191,18 @@ class DbTriggerGeneratorOracle < Database
     table = Table.find table_id
     ['I', 'U', 'D'].each do |operation|
       drop_obsolete_triggers(table, operation)
+      check_for_physical_column_existence(table, operation)
       create_or_rebuild_trigger(table, operation)
     end
+  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    @errors << {
+      table_id:           table.id,
+      table_name:         table.name,
+      trigger_name:       '[not specified]',
+      exception_class:    e.class.name,
+      exception_message:  e.message,
+      sql:                '[not specified]'
+    }
   end
 
   private
@@ -210,6 +218,12 @@ class DbTriggerGeneratorOracle < Database
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
         exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
       end
+    end
+  end
+
+  def check_for_physical_column_existence(table, operation)
+    @expected_triggers[table.name][operation][:columns].each do |c|
+      raise "Column #{c[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if c[:data_type].nil?
     end
   end
 

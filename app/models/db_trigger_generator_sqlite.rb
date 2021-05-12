@@ -170,6 +170,15 @@ class DbTriggerGeneratorSqlite < Database
         end
       end
     end
+  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    @errors << {
+      table_id:           table.id,
+      table_name:         table.name,
+      trigger_name:       '[not specified]',
+      exception_class:    e.class.name,
+      exception_message:  e.message,
+      sql:                '[not specified]'
+    }
   end
 
   private

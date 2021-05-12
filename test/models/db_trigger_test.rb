@@ -124,6 +124,19 @@ class DbTriggerTest < ActiveSupport::TestCase
     tables(:victim1).update(yn_hidden: 'N')                                        # restore original state
   end
 
+  test "generate trigger for not existing table or column" do
+    table = Table.new(schema_id: Trixx::Application.config.trixx_db_victim_schema_id, name: 'Dummy', info: 'Not existing table')
+    table.save!
+    column = Column.new(table_id: table.id, name: 'Dummy', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
+    column.save!
+
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+    assert_equal 1, result[:errors].length,     'Not existing column should lead to error for this table'
+
+    column.delete                                                               # Remove temporary object
+    table.delete                                                                # Remove temporary object
+  end
+
   test "generate_triggers dry run" do
     # Execute test for each key handling type
     [
