@@ -112,6 +112,7 @@ class DbTriggerGeneratorOracle < Database
        LEFT OUTER JOIN DBA_Tab_Columns tc ON tc.Owner = :schema_name AND tc.Table_Name = t.Name AND tc.Column_Name = c.Name
        WHERE  t.Schema_ID = :schema_id
        AND    (c.YN_Log_Insert = 'Y' OR c.YN_Log_Update = 'Y' OR c.YN_Log_Delete = 'Y')
+       AND    t.YN_Hidden = 'N'
       ", { schema_name: @schema.name, schema_id: @schema.id}
     )
 
@@ -122,6 +123,7 @@ class DbTriggerGeneratorOracle < Database
        FROM   Conditions cd
        JOIN   Tables t ON t.ID = cd.Table_ID
        WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 

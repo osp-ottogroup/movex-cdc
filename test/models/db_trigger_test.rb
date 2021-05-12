@@ -113,6 +113,17 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
+  test "drop existing TRIXX trigger without table config" do
+    tables(:victim1).update(yn_hidden: 'Y')                                        # Ensure this table is not considered for trigger generation
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+    assert_equal 2, result[:successes].select{|s| s[:table_id] == tables(:victim1).id }.length,
+                 'drop trigger should return only drop of existing triggers for victim1'
+    assert_equal 0, result[:errors].length,     'drop trigger should not have errors'
+    assert_equal 0, result[:load_sqls].length,  'drop trigger should not have load SQLs'
+
+    tables(:victim1).update(yn_hidden: 'N')                                        # restore original state
+  end
+
   test "generate_triggers dry run" do
     # Execute test for each key handling type
     [

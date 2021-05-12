@@ -82,6 +82,7 @@ class DbTriggerGeneratorSqlite < Database
        JOIN   Tables t ON t.ID = c.Table_ID
        WHERE  t.Schema_ID = :schema_id
        AND    (c.YN_Log_Insert = 'Y' OR c.YN_Log_Update = 'Y' OR c.YN_Log_Delete = 'Y')
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 
@@ -92,6 +93,7 @@ class DbTriggerGeneratorSqlite < Database
        FROM   Conditions cd
        JOIN   Tables t ON t.ID = cd.Table_ID
        WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 
