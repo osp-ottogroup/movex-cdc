@@ -171,6 +171,7 @@ class DbTriggerGeneratorSqlite < Database
       end
     end
   rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    ExceptionHelper.log_exception(e, "DbTriggerGeneratorSqlite.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
     @errors << {
       table_id:           table.id,
       table_name:         table.name,

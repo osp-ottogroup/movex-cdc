@@ -195,6 +195,7 @@ class DbTriggerGeneratorOracle < Database
       create_or_rebuild_trigger(table, operation)
     end
   rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
     @errors << {
       table_id:           table.id,
       table_name:         table.name,
@@ -222,8 +223,11 @@ class DbTriggerGeneratorOracle < Database
   end
 
   def check_for_physical_column_existence(table, operation)
-    @expected_triggers[table.name][operation][:columns].each do |c|
-      raise "Column #{c[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if c[:data_type].nil?
+    columns = @expected_triggers.fetch(table.name, nil)&.fetch(operation, nil)&.fetch(:columns, nil)
+    unless columns.nil?
+      columns.each do |c|
+        raise "Column #{c[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if c[:data_type].nil?
+      end
     end
   end
 
