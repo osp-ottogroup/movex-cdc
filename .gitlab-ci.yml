@@ -175,7 +175,7 @@ rapid7_scan:
     - $PODMAN pull $TEMP_DOCKER_IMAGE
     - $PODMAN pull docker.io/rapid7/container-image-scanner
     - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
-    - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
+    - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json || sh -c "exit 0"
     - cat rapid7.json | jq .assessment
     - |
       RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
