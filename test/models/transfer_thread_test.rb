@@ -3,14 +3,7 @@ require 'test_helper'
 class TransferThreadTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
-    @victim_connection = create_victim_connection
-    create_victim_structures(@victim_connection)
-  end
-
-  teardown do
-    # Remove victim structures
-    drop_victim_structures(@victim_connection)
-    logoff_victim_connection(@victim_connection)
+    create_victim_structures
   end
 
   test "create worker" do
@@ -64,24 +57,25 @@ class TransferThreadTest < ActiveSupport::TestCase
     #   puts s
     # end
 
+    table_id = victim1_table.id
     # possibly too volatile tests if partition change is included in test data, use max_expected: to cover this
-    assert_statistics(expected: 25, table_id: 4, operation: 'I', column_name: :events_success)
-    assert_statistics(expected: 3,  table_id: 4, operation: 'I', column_name: :events_delayed_errors)
-    assert_statistics(expected: 1,  table_id: 4, operation: 'I', column_name: :events_final_errors)
-    assert_statistics(expected: 30, table_id: 4, operation: 'I', column_name: :events_d_and_c_retries, max_expected: 31)
-    assert_statistics(expected: 3,  table_id: 4, operation: 'I', column_name: :events_delayed_retries)
+    assert_statistics(expected: 25, table_id: table_id, operation: 'I', column_name: :events_success)
+    assert_statistics(expected: 3,  table_id: table_id, operation: 'I', column_name: :events_delayed_errors)
+    assert_statistics(expected: 1,  table_id: table_id, operation: 'I', column_name: :events_final_errors)
+    assert_statistics(expected: 30, table_id: table_id, operation: 'I', column_name: :events_d_and_c_retries, max_expected: 31)
+    assert_statistics(expected: 3,  table_id: table_id, operation: 'I', column_name: :events_delayed_retries)
 
-    assert_statistics(expected: 4,  table_id: 4, operation: 'U', column_name: :events_success)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_delayed_errors)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_final_errors)
-    assert_statistics(expected: 4,  table_id: 4, operation: 'U', column_name: :events_d_and_c_retries,  max_expected: 8)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'U', column_name: :events_delayed_retries)
+    assert_statistics(expected: 4,  table_id: table_id, operation: 'U', column_name: :events_success)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'U', column_name: :events_delayed_errors)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'U', column_name: :events_final_errors)
+    assert_statistics(expected: 4,  table_id: table_id, operation: 'U', column_name: :events_d_and_c_retries,  max_expected: 8)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'U', column_name: :events_delayed_retries)
 
-    assert_statistics(expected: 4,  table_id: 4, operation: 'D', column_name: :events_success)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_delayed_errors)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_final_errors)
-    assert_statistics(expected: 4,  table_id: 4, operation: 'D', column_name: :events_d_and_c_retries)
-    assert_statistics(expected: 0,  table_id: 4, operation: 'D', column_name: :events_delayed_retries)
+    assert_statistics(expected: 4,  table_id: table_id, operation: 'D', column_name: :events_success)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_delayed_errors)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_final_errors)
+    assert_statistics(expected: 4,  table_id: table_id, operation: 'D', column_name: :events_d_and_c_retries)
+    assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_delayed_retries)
  end
 
 end

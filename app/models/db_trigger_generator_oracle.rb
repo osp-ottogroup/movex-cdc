@@ -131,6 +131,7 @@ class DbTriggerGeneratorOracle < Database
       "WITH Constraints AS (SELECT /*+ NO_MERGE MATERIALIZE */ Owner, Table_Name, Constraint_Name
                             FROM   DBA_Constraints
                             WHERE  Owner       = :schema_name
+                            AND    Table_Name NOT LIKE 'BIN$%' /* exclude logically dropped tables */
                             AND    Constraint_Type = 'P'
                            )
        SELECT c.Table_Name, cc.column_name, tc.Data_Type

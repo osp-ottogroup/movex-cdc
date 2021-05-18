@@ -6,6 +6,11 @@ class StatisticCounterConcentrator
     @@instance
   end
 
+  # Necessary only for test to ensure dealing with fresh instance
+  def self.remove_instance
+    @@instance = nil
+  end
+
   # called from different threads
   # counter_type = :events_success | :events_failure
   def cumulate(values_hash)

@@ -2,7 +2,6 @@ require 'test_helper'
 
 class SchemasControllerTest < ActionDispatch::IntegrationTest
   setup do
-    @schema = schemas(:one)
   end
 
   test "should get index for allowed schemata" do
@@ -31,13 +30,15 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should show schema" do
-    get schema_url(@schema), headers: jwt_header, as: :json
+    get schema_url(user_schema), headers: jwt_header, as: :json
     assert_response :success
   end
 
   test "should update schema" do
-    patch schema_url(@schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: KafkaHelper.existing_topic_for_test, lock_version: @schema.lock_version} }, as: :json
+    schema = Schema.find(user_schema.id)
+    patch schema_url(schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: KafkaHelper.existing_topic_for_test, lock_version: schema.lock_version} }, as: :json
     assert_response 200
+    Schema.find(user_schema.id).update!(user_schema.attributes.select{|key, value| key != 'lock_version'})  # Restore original state
   end
 
   test "should destroy schema" do

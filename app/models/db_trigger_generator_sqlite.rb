@@ -135,8 +135,7 @@ class DbTriggerGeneratorSqlite < Database
 
     ['I', 'U', 'D'].each do |operation|
       drop_obsolete_triggers(table, operation)
-
-      unless table_config.nil?                                                  # at least one trigger expected for table
+        unless table_config.nil?                                                  # at least one trigger expected for table
         trigger_config  = table_config[operation]
         unless trigger_config.nil?                                              # there should be a trigger for table/operation
           columns         = trigger_config[:columns]
@@ -153,7 +152,7 @@ class DbTriggerGeneratorSqlite < Database
           end
 
           columns.each do |trigger_column|
-            raise "Column #{trigger_column.column_name} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
+            raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
           end
 
           create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"

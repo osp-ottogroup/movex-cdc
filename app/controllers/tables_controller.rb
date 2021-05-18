@@ -70,7 +70,7 @@ class TablesController < ApplicationController
     Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: @table.schema.name, table_name: @table.name, allow_for_nonexisting_table: true)
     @table.lock_version = table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     ActiveRecord::Base.transaction do
-      @table.update(yn_hidden: 'Y')
+      @table.update!(yn_hidden: 'Y')
       Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", {id: @table.id}
       log_activity(
         schema_name:  @table.schema.name,

@@ -12,6 +12,9 @@ class UserTest < ActiveSupport::TestCase
     end
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.trixx_db_victim_user).save! }
+
+    User.where(email: 'Hans.Dampf@web.de').first.destroy                        # cleanup user table
+    User.where(email: 'Hans.Dampf2@web.de').first.destroy                       # cleanup user table
   end
 
   test "select user" do
@@ -39,36 +42,41 @@ class UserTest < ActiveSupport::TestCase
 
   test "should have deployable schemas" do
     # remove possibly existing record
-    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+    SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).each {|sr| sr.destroy!}
 
-    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'Y').save!
-    ds = users(:two).deployable_schemas
+    sr = SchemaRight.new(user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info', yn_deployment_granted: 'Y')
+    sr.save!
+    ds = sandro_user.deployable_schemas
     assert(ds.count == 1, 'Should have one deployable schema')
-    assert(ds.first.name == schemas(:one).name, 'Should be correct schema name')
+    assert(ds.first.name == user_schema.name, 'Should be correct schema name')
+    sr.destroy!
   end
 
   test "should not have deployable schemas" do
     # remove possibly existing record
-    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+    SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).each {|sr| sr.destroy!}
 
-    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
-    ds = users(:two).deployable_schemas
+    sr = SchemaRight.new(user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info', yn_deployment_granted: 'N')
+    sr.save!
+    ds = sandro_user.deployable_schemas
     assert(ds.count == 0, 'Should have no deployable schemas')
+    sr.destroy!
   end
 
   test "should be able to deploy schemas" do
-    # using fixtures user(:one), schema_rights(:one) and schema(:one)
-    can_deploy = users(:one).can_deploy_schemas?
+    can_deploy = peter_user.can_deploy_schemas?
     assert(can_deploy)
   end
 
   test "should not be able to deploy schemas" do
     # remove possibly existing record
-    SchemaRight.where(user_id: users(:two).id, schema_id: schemas(:one).id).each {|sr| sr.destroy!}
+    SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).each {|sr| sr.destroy!}
 
-    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
-    can_deploy = users(:two).can_deploy_schemas?
+    sr = SchemaRight.new(user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info', yn_deployment_granted: 'N')
+    sr.save!
+    can_deploy = sandro_user.can_deploy_schemas?
     assert(can_deploy == false)
+    sr.destroy!
   end
 
 end

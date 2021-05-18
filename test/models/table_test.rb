@@ -3,73 +3,80 @@ require 'test_helper'
 class TableTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
-    @victim_connection = create_victim_connection
-    create_victim_structures(@victim_connection)
+    create_victim_structures
   end
-
-  teardown do
-    # Remove victim structures
-    drop_victim_structures(@victim_connection)
-    logoff_victim_connection(@victim_connection)
-  end
-
 
   test "create table" do
-    Table.new(schema_id: 1, name: 'Table_new',  info: 'info').save!
-    Table.new(schema_id: 1, name: 'Table_new2', info: 'info', topic: KafkaHelper.existing_topic_for_test).save!
+    schema_without_topic = Schema.where(name: 'WITHOUT_TOPIC').first
+    t1 = Table.new(schema_id: user_schema.id, name: 'Table_new',  info: 'info')
+    t1.save!
+    t2 = Table.new(schema_id: user_schema.id, name: 'Table_new2', info: 'info', topic: KafkaHelper.existing_topic_for_test)
+    t2.save!
 
-    assert_raise(Exception, 'Duplicate should raise unique index violation') { Table.new(schema_id: 1, name: 'Table_new', info: 'info').save! }
-    assert_raise(Exception, 'No topic at table and schema should raise validation error') { Table.new(schema_id: 3, name: 'Without_Topic', info: 'info').save! }
+    assert_raise(Exception, 'Duplicate should raise unique index violation') { Table.new(schema_id: user_schema.id, name: 'Table_new', info: 'info').save! }
+    assert_raise(Exception, 'No topic at table and schema should raise validation error') { Table.new(schema_id: schema_without_topic.id, name: 'Without_Topic', info: 'info').save! }
+    t1.destroy!
+    t2.destroy!
   end
 
   test "select table" do
-    tables = Table.where(schema_id: 1)
+    tables = Table.where(schema_id: victim_schema.id)
     assert(tables.count > 0, 'Should return at least one table of schema')
   end
 
   # Check if non existing tables are also part of result
   test "all_allowed_tables_for_schema" do
-    tables = Table.all_allowed_tables_for_schema(schemas(:one).id, Trixx::Application.config.trixx_db_user)
+    non_existing_table = Table.new(schema_id: user_schema.id, name: 'NON_EXISTING')
+    non_existing_table.save!
+    tables = Table.all_allowed_tables_for_schema(user_schema.id, Trixx::Application.config.trixx_db_user)
     assert(tables.count >= 3, 'Should return at least 3 tables of schema 1')
-    assert(tables.select{ |t| t.id == 1}.count > 0, 'Result should contain physically existing table with ID=1')
-    assert(tables.select{ |t| t.id == 2}.count > 0, 'Result should contain physically existing table with ID=2')
-    assert(tables.select{ |t| t.id == 3}.count > 0, 'Result should contain non existing table with ID=3')
+    assert(tables.select{ |t| t.name == 'TABLES'}.count > 0, 'Result should contain physically existing table with name = TABLES')
+    assert(tables.select{ |t| t.name == 'COLUMNS'}.count > 0, 'Result should contain physically existing table with name=TABLES')
+    assert(tables.select{ |t| t.name == 'NON_EXISTING'}.count > 0, 'Result should contain non existing table with name=NON_EXISTING')
 
-    db_tables = DbTable.all_by_schema(schemas(:one).name, Trixx::Application.config.trixx_db_user)
-    assert(db_tables.select{ |t| t['name'].upcase == tables(:deletable).name.upcase}.count == 0, 'Table with ID=3 should not exist physically for this test')
+    db_tables = DbTable.all_by_schema(user_schema.name, Trixx::Application.config.trixx_db_user)
+    assert(db_tables.select{ |t| t['name'].upcase == non_existing_table.name.upcase}.count == 0, 'Table with name=NON_EXISTING should not exist physically for this test')
+    non_existing_table.destroy!
   end
 
   test "table validations" do
-    table = tables(:one)
-
-    result = table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
+    result = tables_table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
     assert(!result, 'Validation should raise error for fixed_message_key if not empty')
 
-    result = table.update(kafka_key_handling: 'F', fixed_message_key: nil)
+    result = tables_table.update(kafka_key_handling: 'F', fixed_message_key: nil)
     assert(!result, 'Validation should raise error for fixed_message_key if empty')
 
-    result = table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
+    result = tables_table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
     assert(!result, 'Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
 
-    result = table.update(kafka_key_handling: 'X')
+    result = tables_table.update(kafka_key_handling: 'X')
     assert(!result, 'Validation should raise error for wrong kafka_key_handling')
 
-    schemas(:one).update(topic: nil)
-    result = table.update(topic: nil)
+    org_topic = Schema.find(tables_table.schema_id).topic
+    schema = Schema.find(user_schema.id)
+    schema.tables.each {|t| t.update!(topic: KafkaHelper.existing_topic_for_test) if t.topic.nil?}  # Topic may have been changed by previous tests
+    schema.update!(topic: nil)
+    result = tables_table.update(topic: nil)
     assert(!result, 'Validation should raise error if neither table nor schema have valid topic')
 
-    result = table.update(yn_record_txid: 'f')
+    result = tables_table.update(yn_record_txid: 'f')
     assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
 
-    result = table.update(yn_initialization: 'f')
+    result = tables_table.update(yn_initialization: 'f')
     assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
 
-    result = tables(:deletable).update(yn_initialization: 'Y')
+    non_existing_table = Table.new(schema_id: victim_schema.id, name: 'NON_EXISTING', topic: 'Hugo')
+    non_existing_table.save!
+
+    result = non_existing_table.update(yn_initialization: 'Y')
     assert(!result, 'Validation should raise error if yn_initialization=Y for not readable table')
+
+    non_existing_table.destroy!
+    Schema.find(tables_table.schema_id).update!(topic: org_topic)                      # restore original state
   end
 
   test "oldest trigger change dates per operation" do
-    oldest_change_dates = tables(:victim1).youngest_trigger_change_dates_per_operation
+    oldest_change_dates = victim1_table.youngest_trigger_change_dates_per_operation
     ['I', 'U', 'D'].each do |operation|
       oldest_change_date = oldest_change_dates[operation]
       if operation == 'I' && ['ORACLE'].include?(Trixx::Application.config.trixx_db_type)
@@ -81,18 +88,17 @@ class TableTest < ActiveSupport::TestCase
   end
 
   test "check_table_allowed_for_db_user" do
-    current_user = users(:one)
     # Check if own table is maintainable (no exception)
     assert_nothing_raised do
-      Table.check_table_allowed_for_db_user(current_user: current_user,
+      Table.check_table_allowed_for_db_user(current_user: peter_user,
                                       schema_name: Trixx::Application.config.trixx_db_victim_user,
-                                      table_name:  tables(:victim1).name,
+                                      table_name:  'VICTIM1',
                                       allow_for_nonexisting_table: false
       )
     end
 
     assert_raise('Non-existing table should raise exception if allow_for_nonexisting_table=false') do
-      Table.check_table_allowed_for_db_user(current_user:                 current_user,
+      Table.check_table_allowed_for_db_user(current_user:                 peter_user,
                                             schema_name:                  Trixx::Application.config.trixx_db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  false
@@ -101,7 +107,7 @@ class TableTest < ActiveSupport::TestCase
 
     # Non-existing table should not raise exception if allow_for_nonexisting_table=true
     assert_nothing_raised do
-      Table.check_table_allowed_for_db_user(current_user:                 current_user,
+      Table.check_table_allowed_for_db_user(current_user:                 peter_user,
                                             schema_name:                  Trixx::Application.config.trixx_db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  true
@@ -111,7 +117,7 @@ class TableTest < ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       assert_raise('Non-selectable table should raise exception') do
-        Table.check_table_allowed_for_db_user(current_user:                 current_user,
+        Table.check_table_allowed_for_db_user(current_user:                 peter_user,
                                               schema_name:                  Trixx::Application.config.trixx_db_user,
                                               table_name:                   'TABLES',
                                               allow_for_nonexisting_table:  false
@@ -120,9 +126,9 @@ class TableTest < ActiveSupport::TestCase
 
       # selectable table of other schema schould not raise exception
       assert_nothing_raised do
-        Table.check_table_allowed_for_db_user(current_user:                 current_user,
+        Table.check_table_allowed_for_db_user(current_user:                 peter_user,
                                               schema_name:                  Trixx::Application.config.trixx_db_victim_user,
-                                              table_name:                   tables(:victim1).name,
+                                              table_name:                   'VICTIM1',
                                               allow_for_nonexisting_table:  false
         )
       end
