@@ -187,8 +187,11 @@ rapid7_scan:
         exit 1
       fi
   artifacts:
+    when: always
     paths:
       - rapid7.json
+    expire_in: 1 month
+
 
 .docker_test:
   script:
