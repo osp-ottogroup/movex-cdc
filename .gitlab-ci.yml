@@ -186,6 +186,9 @@ rapid7_scan:
         cat rapid7.json
         exit 1
       fi
+  artifacts:
+    paths:
+      - rapid7.json
 
 .docker_test:
   script:
