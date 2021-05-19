@@ -166,31 +166,32 @@ trivy_scan:
     - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
     - echo "TODO evaluate trivy results"
 
-rapid7_scan:
-  stage: post_build
-  variables:
-    MAXIMAL_ALLOWED_RISK_SCORE: 0
-  script:
-    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - $PODMAN pull $TEMP_DOCKER_IMAGE
-    - $PODMAN pull docker.io/rapid7/container-image-scanner
-    - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
-    - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json || sh -c "exit 0"
-    - cat rapid7.json | jq .assessment
-    - |
-      RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
-      # Use bc for comparison because $RISK_SCORE can be a floating point number
-      if [ `echo "$RISK_SCORE > $MAXIMAL_ALLOWED_RISK_SCORE" | bc` -eq 1 ]; then
-        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
-        echo ''
-        cat rapid7.json
-        exit 1
-      fi
-  artifacts:
-    when: always
-    paths:
-      - rapid7.json
-    expire_in: 1 month
+#rapid7_scan:
+# # deactivated because of error if calling in podman: Failed to analyze image. java.io.IOException: Insufficient disk space to extract resource. 0 available, 9 required.
+#  stage: post_build
+#  variables:
+#    MAXIMAL_ALLOWED_RISK_SCORE: 0
+#  script:
+#    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+#    - $PODMAN pull $TEMP_DOCKER_IMAGE
+#    - $PODMAN pull docker.io/rapid7/container-image-scanner
+#    - $PODMAN save $TEMP_DOCKER_IMAGE -o trixx.tar
+#    - $PODMAN run -it --rm -v $PWD/trixx.tar:/trixx.tar rapid7/container-image-scanner -f trixx.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
+#    - cat rapid7.json | jq .assessment
+#    - |
+#      RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
+#      # Use bc for comparison because $RISK_SCORE can be a floating point number
+#      if [ `echo "$RISK_SCORE > $MAXIMAL_ALLOWED_RISK_SCORE" | bc` -eq 1 ]; then
+#        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
+#        echo ''
+#        cat rapid7.json
+#        exit 1
+#      fi
+#  artifacts:
+#    when: always
+#    paths:
+#      - rapid7.json
+#    expire_in: 1 month
 
 
 .docker_test:
