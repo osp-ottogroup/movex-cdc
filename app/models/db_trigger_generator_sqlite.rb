@@ -82,6 +82,7 @@ class DbTriggerGeneratorSqlite < Database
        JOIN   Tables t ON t.ID = c.Table_ID
        WHERE  t.Schema_ID = :schema_id
        AND    (c.YN_Log_Insert = 'Y' OR c.YN_Log_Update = 'Y' OR c.YN_Log_Delete = 'Y')
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 
@@ -92,6 +93,7 @@ class DbTriggerGeneratorSqlite < Database
        FROM   Conditions cd
        JOIN   Tables t ON t.ID = cd.Table_ID
        WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 
@@ -133,8 +135,7 @@ class DbTriggerGeneratorSqlite < Database
 
     ['I', 'U', 'D'].each do |operation|
       drop_obsolete_triggers(table, operation)
-
-      unless table_config.nil?                                                  # at least one trigger expected for table
+        unless table_config.nil?                                                  # at least one trigger expected for table
         trigger_config  = table_config[operation]
         unless trigger_config.nil?                                              # there should be a trigger for table/operation
           columns         = trigger_config[:columns]
@@ -151,7 +152,7 @@ class DbTriggerGeneratorSqlite < Database
           end
 
           columns.each do |trigger_column|
-            raise "Column #{trigger_column.column_name} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
+            raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
           end
 
           create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
@@ -168,6 +169,16 @@ class DbTriggerGeneratorSqlite < Database
         end
       end
     end
+  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    ExceptionHelper.log_exception(e, "DbTriggerGeneratorSqlite.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
+    @errors << {
+      table_id:           table.id,
+      table_name:         table.name,
+      trigger_name:       '[not specified]',
+      exception_class:    e.class.name,
+      exception_message:  e.message,
+      sql:                '[not specified]'
+    }
   end
 
   private

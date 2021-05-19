@@ -14,11 +14,10 @@ class SchemaTest < ActiveSupport::TestCase
   end
 
   test "update schema without topic" do
-    schema = schemas(:one)
+    schema = Schema.find(user_schema.id)
     # Remove topics from tables of schema
     schema.tables.each do |table|
-      table.topic = nil
-      table.update topic:nil
+      table.update! topic:nil
     end
     success = schema.update(topic:nil)
     assert success == false, 'Validation should suppress empty schema.topic if any table of schema has no topic'

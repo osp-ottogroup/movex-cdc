@@ -1,10 +1,6 @@
 require 'test_helper'
 
 class UsersControllerTest < ActionDispatch::IntegrationTest
-  setup do
-    @user = users(:one)
-  end
-
   test "should get index" do
     get users_url, headers: jwt_header(@jwt_admin_token), as: :json
     assert_response :success
@@ -26,6 +22,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     post users_url, headers: jwt_header, params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
     assert_response :unauthorized, 'Access allowed to supervisor only'
 
+    User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy                 # cleanup user table
   end
 
   test "should not create user with already existing email" do
@@ -45,21 +42,22 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :unprocessable_entity
 
+    User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy                 # cleanup user table
   end
 
   test "should show user" do
-    get user_url(@user), headers: jwt_header(@jwt_admin_token), as: :json
+    get user_url(peter_user), headers: jwt_header(@jwt_admin_token), as: :json
     assert_response :success
 
-    get user_url(@user), headers: jwt_header, as: :json
+    get user_url(peter_user), headers: jwt_header, as: :json
     assert_response :unauthorized, 'Access allowed to supervisor only'
 
   end
 
   test "should update user" do
-    schema_right = SchemaRight.where(user_id: @user.id, schema_id: 1)[0]        # schema_right regularly already exists
-
-    patch user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: { email: 'Dummy@dummy.com',
+    schema_right = SchemaRight.where(user_id: peter_user.id, schema_id: user_schema.id)[0]        # schema_right regularly already exists
+    user = User.find(peter_user.id)
+    patch user_url(user), headers: jwt_header(@jwt_admin_token), params: { user: { first_name: 'Peter',
                                                                                     schema_rights: [
                                                                                         {
                                                                                             info: 'Info for right',
@@ -68,17 +66,23 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
                                                                                             yn_deployment_granted: 'N'
                                                                                         }
                                                                                     ],
-                                                                                    lock_version: @user.lock_version
+                                                                                    lock_version: user.lock_version
     } }, as: :json
     assert_response 200
 
-    patch user_url(@user), headers: jwt_header, params: { user: { email: 'Dummy@dummy.com' } }, as: :json
+    patch user_url(peter_user), headers: jwt_header, params: { user: { first_name: 'Hugo' } }, as: :json
     assert_response :unauthorized, 'Access allowed to supervisor only'
+
+    GlobalFixtures.restore_schema_rights
   end
 
   test "should destroy user" do
     user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: Trixx::Application.config.trixx_db_user, first_name: 'hans', last_name: 'dampf2')
     user_to_delete.save!
+
+    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
+      delete user_url(user_to_delete), headers: jwt_header(@jwt_admin_token), params: { user: {lock_version: 42}}, as: :json
+    end
 
     ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
 
@@ -103,22 +107,22 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   end
 
-  test "should not destroy user" do                                             # separate test because connect requires existence of user :one
-    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      delete user_url(@user), headers: jwt_header(@jwt_admin_token), params: { user: {lock_version: 42}}, as: :json
-    end
-  end
-
   test "should have deployable schemas" do
     # using fixtures user(:one) and schema_rights(one)
-    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    get deployable_schemas_user_url(peter_user), headers: jwt_header(@jwt_admin_token)
     assert_response :success
   end
 
   test "should not have deployable schemas" do
-    SchemaRight.new(user_id: users(:two).id, schema_id: schemas(:one).id, info: 'Info', yn_deployment_granted: 'N').save!
-    get deployable_schemas_user_url(@user), headers: jwt_header(@jwt_admin_token)
+    new_sr = SchemaRight.new(user_id: sandro_user.id,
+                    schema_id:  user_schema.id,
+                    info:       'Info',
+                    yn_deployment_granted: 'N'
+    )
+    new_sr.save!
+    get deployable_schemas_user_url(sandro_user), headers: jwt_header(@jwt_admin_token)
     assert_response :success
+    new_sr.destroy!
   end
 
 end

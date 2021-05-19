@@ -112,6 +112,7 @@ class DbTriggerGeneratorOracle < Database
        LEFT OUTER JOIN DBA_Tab_Columns tc ON tc.Owner = :schema_name AND tc.Table_Name = t.Name AND tc.Column_Name = c.Name
        WHERE  t.Schema_ID = :schema_id
        AND    (c.YN_Log_Insert = 'Y' OR c.YN_Log_Update = 'Y' OR c.YN_Log_Delete = 'Y')
+       AND    t.YN_Hidden = 'N'
       ", { schema_name: @schema.name, schema_id: @schema.id}
     )
 
@@ -122,6 +123,7 @@ class DbTriggerGeneratorOracle < Database
        FROM   Conditions cd
        JOIN   Tables t ON t.ID = cd.Table_ID
        WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
     )
 
@@ -129,6 +131,7 @@ class DbTriggerGeneratorOracle < Database
       "WITH Constraints AS (SELECT /*+ NO_MERGE MATERIALIZE */ Owner, Table_Name, Constraint_Name
                             FROM   DBA_Constraints
                             WHERE  Owner       = :schema_name
+                            AND    Table_Name NOT LIKE 'BIN$%' /* exclude logically dropped tables */
                             AND    Constraint_Type = 'P'
                            )
        SELECT c.Table_Name, cc.column_name, tc.Data_Type
@@ -142,8 +145,6 @@ class DbTriggerGeneratorOracle < Database
     # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
     @expected_triggers = {}
     expected_trigger_columns.each do |crec|
-      raise "Column #{crec.column_name} does not exist in table #{@schema.name}.#{crec.table_name}" if crec.data_type.nil?
-
       unless @expected_triggers.has_key?(crec.table_name)
         @expected_triggers[crec.table_name] = {
           table_name:         crec.table_name,
@@ -191,8 +192,19 @@ class DbTriggerGeneratorOracle < Database
     table = Table.find table_id
     ['I', 'U', 'D'].each do |operation|
       drop_obsolete_triggers(table, operation)
+      check_for_physical_column_existence(table, operation)
       create_or_rebuild_trigger(table, operation)
     end
+  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
+    ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
+    @errors << {
+      table_id:           table.id,
+      table_name:         table.name,
+      trigger_name:       '[not specified]',
+      exception_class:    e.class.name,
+      exception_message:  e.message,
+      sql:                '[not specified]'
+    }
   end
 
   private
@@ -207,6 +219,15 @@ class DbTriggerGeneratorOracle < Database
       else
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
         exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
+      end
+    end
+  end
+
+  def check_for_physical_column_existence(table, operation)
+    columns = @expected_triggers.fetch(table.name, nil)&.fetch(operation, nil)&.fetch(:columns, nil)
+    unless columns.nil?
+      columns.each do |c|
+        raise "Column #{c[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if c[:data_type].nil?
       end
     end
   end

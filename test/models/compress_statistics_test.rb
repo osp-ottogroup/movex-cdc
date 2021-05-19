@@ -6,7 +6,7 @@ class CompressStatisticsTest < ActiveSupport::TestCase
     def insert_statistics(amount, operation, end_timestamp)
       1.upto(amount) do
         Statistic.new(
-          table_id: 1,
+          table_id: tables_table.id,
           operation: operation,
           events_success: 4,
           end_timestamp: end_timestamp,

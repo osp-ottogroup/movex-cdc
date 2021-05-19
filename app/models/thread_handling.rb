@@ -9,6 +9,10 @@ class ThreadHandling
     @@instance
   end
 
+  def self.has_instance?
+    @@instance != nil
+  end
+
   # Ensure that matching number of worker threads is active
   def ensure_processing
     ExceptionHelper.warn_with_backtrace "ThreadHandling.ensure_processing: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?

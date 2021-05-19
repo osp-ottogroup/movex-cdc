@@ -3,8 +3,7 @@ require 'test_helper'
 class DbSchemaTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
-    @victim_connection = create_victim_connection
-    create_victim_structures(@victim_connection)
+    create_victim_structures
   end
 
   test "get db schema" do
@@ -23,19 +22,20 @@ class DbSchemaTest < ActiveSupport::TestCase
       raise "Specify test condition for trixx_db_type"
     end
 
-    db_schemas = DbSchema.authorizable_schemas(users(:one).email, nil) # existing user name
+    db_schemas = DbSchema.authorizable_schemas(peter_user.email, nil) # existing user name
     match_schemas = db_schemas.to_a.map{|s| s['name']}
-    assert(!match_schemas.include?(users(:one).db_user), 'Corresponding schema_right from user should not be in list')
+    assert(!match_schemas.include?(peter_user.db_user), 'Corresponding schema_right from user should not be in list')
 
     SchemaRight.delete_all
-    db_schemas = DbSchema.authorizable_schemas(users(:one).email, nil) # existing user name
+    db_schemas = DbSchema.authorizable_schemas(peter_user.email, nil) # existing user name
     match_schemas = db_schemas.to_a.map{|s| s['name']}
-    assert(match_schemas.include?(users(:one).db_user), 'users DB_User should be in list now for existing user')
+    assert(match_schemas.include?(peter_user.db_user), 'users DB_User should be in list now for existing user')
 
-    db_schemas = DbSchema.authorizable_schemas(nil, users(:one).db_user) # while creating user (not already saved)
+    db_schemas = DbSchema.authorizable_schemas(nil, peter_user.db_user) # while creating user (not already saved)
     match_schemas = db_schemas.to_a.map{|s| s['name']}
-    assert(match_schemas.include?(users(:one).db_user), 'users DB_User should be in list now for new user')
+    assert(match_schemas.include?(peter_user.db_user), 'users DB_User should be in list now for new user')
 
+    GlobalFixtures.restore_schema_rights
   end
 
   test "valid_schema_name" do

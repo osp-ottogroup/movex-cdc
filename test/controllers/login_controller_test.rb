@@ -88,7 +88,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
       post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: Trixx::Application.config.trixx_db_password}
       assert_response :unauthorized, 'Also the valid password should not function now'
 
-      User.find(users(:admin).id).update!(yn_account_locked: 'N')
+      User.where(email: 'admin').first.update!(yn_account_locked: 'N')
 
       post login_do_logon_url, params: { email: Trixx::Application.config.trixx_db_user.downcase, password: Trixx::Application.config.trixx_db_password}
       assert_response :success, 'After unlock user logon should be possible again'

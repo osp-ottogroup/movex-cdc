@@ -20,7 +20,7 @@
 !/tmp/.keep
 
 /db/development.sqlite3
-/db/test.sqlite3
+/db/test.sqlite3*
 
 # Ignore uploaded files in development.
 /storage/*

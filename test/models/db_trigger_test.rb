@@ -4,29 +4,21 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   setup do
     # Create victim tables and triggers
-    @victim_connection = create_victim_connection
-    create_victim_structures(@victim_connection)
-    @user_options = { user_id: users(:one).id, client_ip_info: '10.10.10.10'}
-  end
-
-  teardown do
-    # Remove victim structures
-    drop_victim_structures(@victim_connection)
-    logoff_victim_connection(@victim_connection)
+    create_victim_structures
+    @user_options = { user_id: peter_user.id, client_ip_info: '10.10.10.10'}
   end
 
   test "find_all_by_schema_id" do
-    triggers = DbTrigger.find_all_by_schema_id(victim_schema_id)
+    triggers = DbTrigger.find_all_by_schema_id(victim_schema.id)
     assert_equal(2, triggers.count, 'Should find the number of triggers in victim schema')
   end
 
   test "find_all_by_table" do
-    triggers = DbTrigger.find_all_by_table(tables(:victim1).schema_id, tables(:victim1).id, tables(:victim1).schema.name, tables(:victim1).name)
+    triggers = DbTrigger.find_all_by_table(victim1_table.schema_id, victim1_table.id, victim1_table.schema.name, victim1_table.name)
     assert_equal(1, triggers.count, 'Should find triggers for table with valid trixx trigger names')
   end
 
   test "find_by_table_id_and_trigger_name" do
-    victim1_table = tables(:victim1)
     trigger = DbTrigger.find_by_table_id_and_trigger_name(victim1_table.id, DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I'))
     assert_not_equal(nil, trigger, 'Should find the trigger in victim schema')
   end
@@ -40,15 +32,15 @@ class DbTriggerTest < ActiveSupport::TestCase
         {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
     ].each do |key|
       # Modify tables with attributes
-      [tables(:victim1), tables(:victim2)].each do |table|
-        unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
+      [victim1_table, victim2_table].each do |table|
+        unless Table.find(table.id).update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
           raise table.errors.full_messages
         end
       end
 
-      exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name}")  # Ensure record count starts at 0
+      exec_victim_sql("DELETE FROM #{victim_schema_prefix}#{victim1_table.name}")  # Ensure record count starts at 0
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
 
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -58,9 +50,9 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
 
       created_trigger_names = result[:successes].select{|x| x[:sql]['CREATE']}.map{|x| x[:trigger_name]}
-      assert_equal 2, created_trigger_names.select{|x| x['_I']}.length, 'Should have created x insert trigger'
-      assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, 'Should have created x update trigger'
-      assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, 'Should have created x delete trigger'
+      assert_equal 2, created_trigger_names.select{|x| x['_I']}.length, "Should have created x insert trigger"
+      assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, "Should have created x update trigger"
+      assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, "Should have created x delete trigger"
 
       assert_not_nil result[:successes][0][:table_id],           ':table_id in successes result should be set for trigger'
       assert_not_nil result[:successes][0][:table_name],         ':table_name in successes result should be set for trigger'
@@ -85,10 +77,10 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
       assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
-      assert_not_nil Schema.find(victim_schema_id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
+      assert_not_nil Schema.find(victim_schema.id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
 
       # second run of trigger generation should not touch the already existing triggers
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
       assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
@@ -113,6 +105,30 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
+  test "drop existing TRIXX trigger without table config" do
+    Table.find(victim1_table.id).update!(yn_hidden: 'Y')                        # Ensure this table is not considered for trigger generation
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    assert_equal 2, result[:successes].select{|s| s[:table_id] == victim1_table.id }.length,
+                 'drop trigger should return only drop of existing triggers for victim1'
+    assert_equal 0, result[:errors].length,     'drop trigger should not have errors'
+    assert_equal 0, result[:load_sqls].length,  'drop trigger should not have load SQLs'
+
+    Table.find(victim1_table.id).update!(yn_hidden: 'N')                        # restore original state
+  end
+
+  test "generate trigger for not existing table or column" do
+    table = Table.new(schema_id: victim_schema.id, name: 'Dummy', info: 'Not existing table')
+    table.save!
+    column = Column.new(table_id: table.id, name: 'Dummy', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
+    column.save!
+
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    assert_equal 1, result[:errors].length,     'Not existing column should lead to error for this table'
+
+    column.delete                                                               # Remove temporary object
+    table.delete                                                                # Remove temporary object
+  end
+
   test "generate_triggers dry run" do
     # Execute test for each key handling type
     [
@@ -122,17 +138,17 @@ class DbTriggerTest < ActiveSupport::TestCase
       {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
     ].each do |key|
       # Modify tables with attributes
-      [tables(:victim1), tables(:victim2)].each do |table|
-        unless table.update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
+      [victim1_table, victim2_table].each do |table|
+        unless Table.find(table.id).update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
           raise table.errors.full_messages
         end
       end
 
-      existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema_id)
+      existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema.id)
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options, dry_run: true)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options, dry_run: true)
 
-      existing_triggers_after = DbTrigger.find_all_by_schema_id(victim_schema_id)
+      existing_triggers_after = DbTrigger.find_all_by_schema_id(victim_schema.id)
 
       assert_equal existing_triggers_before.count, existing_triggers_after.count, 'existing triggers should not be touched by dry run'
 
@@ -143,10 +159,10 @@ class DbTriggerTest < ActiveSupport::TestCase
 
 
   test "generate erroneous trigger" do
-    condition = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
+    condition = Condition.where(table_id: victim1_table.id, operation: 'I').first
     original_filter = condition.filter
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
     assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
     assert_not_nil result[:errors][0][:table_id],           ':table_id in error result should be set for trigger'
     assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
@@ -157,15 +173,15 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     Rails.logger.debug("Reset condition to '#{original_filter}'")
     condition.update!(filter: original_filter)                                  # reset valid entry
-    DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options) # Create trigger again to raise DDL that commits the update on condition
+    DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options) # Create trigger again to raise DDL that commits the update on condition
   end
 
   test "generate trigger with initialization" do
-    org_table_attributes = tables(:victim1).attributes
+    org_table_attributes = victim1_table.attributes
     create_event_logs_for_test(20)                                              # create some records in victim1 before yn_initialization is set
-    victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{tables(:victim1).name}" # requires select-Grant
-    max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name}"
-    second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID != :max_id", max_id: max_victim_id
+    victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{victim1_table.name}" # requires select-Grant
+    max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name}"
+    second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != :max_id", max_id: max_victim_id
     insert_condition = case Trixx::Application.config.trixx_db_type
                        when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
@@ -183,14 +199,14 @@ class DbTriggerTest < ActiveSupport::TestCase
         yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'
         # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
         # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
-        Table.find(tables(:victim1).id).update!(yn_initialization: 'Y',
-                                                initialization_filter:  init_filter,
-                                                kafka_key_handling:     kafka_key_handling,
-                                                fixed_message_key:      fixed_message_key,
-                                                yn_record_txid:         yn_record_txid
+        Table.find(victim1_table.id).update!(yn_initialization:      'Y',
+                                             initialization_filter:  init_filter,
+                                             kafka_key_handling:     kafka_key_handling,
+                                             fixed_message_key:      fixed_message_key,
+                                             yn_record_txid:         yn_record_txid
         ) # set a init filter for one record
 
-        condition         = Condition.where(table_id: tables(:victim1).id, operation: 'I').first
+        condition         = Condition.where(table_id: victim1_table.id, operation: 'I').first
         original_condition_filter = condition.filter
         if condition_filter.nil?
           condition.destroy!
@@ -202,7 +218,7 @@ class DbTriggerTest < ActiveSupport::TestCase
         filtered_records_count += 1 unless init_filter.nil?
         filtered_records_count += 1 unless condition_filter.nil?
         event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: @user_options)
+        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
         assert_equal 1, result[:load_sqls].length, 'load SQLs should be generated'
 
         # Wait for successful initialization
@@ -229,7 +245,6 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
     end
 
-
-    tables(:victim1).update!(org_table_attributes)                              # restore original state
+    victim1_table.update!(org_table_attributes.select{|key, value| key != 'lock_version'})  # restore original state
   end
 end

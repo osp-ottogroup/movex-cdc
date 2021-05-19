@@ -2,7 +2,29 @@ ENV['RAILS_ENV'] ||= 'test'
 require_relative '../config/environment'
 require 'rails/test_help'
 
+module TestHelper
+
+  def user_schema;    GlobalFixtures.user_schema;     end # schema for tables without triggers for tests
+  def victim_schema;  GlobalFixtures.victim_schema;   end # schema for tables with triggers for tests
+  def peter_user;     GlobalFixtures.peter_user;      end
+  def sandro_user;    GlobalFixtures.sandro_user;     end
+  def tables_table;   GlobalFixtures.tables_table;    end
+  def victim1_table;  GlobalFixtures.victim1_table;   end
+  def victim2_table;  GlobalFixtures.victim2_table;   end
+
+  # get schemaname if used for DB
+  def victim_schema_prefix
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then "#{Trixx::Application.config.trixx_db_victim_user}."
+    when 'SQLITE' then ''
+    else
+      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+    end
+  end
+end
+
 class ActiveSupport::TestCase
+  include TestHelper
   # Run tests in parallel with specified workers
   # parallel tests deactivated due to database consistency problems, Ramm, 21.12.2019
   # parallelize(workers: :number_of_processors, with: :threads)
@@ -17,47 +39,15 @@ class ActiveSupport::TestCase
   setup do
     JdbcInfo.log_version
     Database.initialize_connection                                              # do some init actions for DB connection before use
+    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
   end
 
-
-  # schema for tables with triggers for tests
-  def victim_schema_id
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then schemas(:victim).id
-    when 'SQLITE' then schemas(:one).id                                         # SQLite does not support multiple schema
-    else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
-    end
+  teardown do
+    ThreadHandling.get_instance.shutdown_processing if ThreadHandling.has_instance?
+    StatisticCounterConcentrator.remove_instance                                # Ensure next test starts with fresh instance
   end
 
-  # get schemaname if used for DB
-  def victim_schema_prefix
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then "#{Trixx::Application.config.trixx_db_victim_user}."
-    when 'SQLITE' then ''
-    else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
-    end
-  end
-
-  def create_victim_connection
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then
-      db_config = Rails.configuration.database_configuration[Rails.env].clone
-      db_config['username'] = Trixx::Application.config.trixx_db_victim_user
-      db_config['password'] = Trixx::Application.config.trixx_db_victim_password
-      db_config.symbolize_keys!
-      Rails.logger.debug "create_victim_connection: creating JDBCConnection"
-      ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
-    when 'SQLITE' then ActiveRecord::Base.connection                            # SQLite uses default AR connection
-    else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
-    end
-  rescue Exception => e
-    ExceptionHelper.log_exception(e, 'create_victim_connection')
-    raise
-  end
-
+=begin
   def logoff_victim_connection(connection)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then connection.logoff
@@ -66,12 +56,13 @@ class ActiveSupport::TestCase
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
   end
+=end
 
-  def exec_victim_sql(connection, sql)
+  def exec_victim_sql(sql)
     ActiveSupport::Notifications.instrumenter.instrument("sql.active_record", sql: sql, name: 'exec_victim_sql') do
       case Trixx::Application.config.trixx_db_type
-      when 'ORACLE' then connection.exec sql
-      when 'SQLITE' then connection.execute sql                                   # standard method for AR.connection
+      when 'ORACLE' then GlobalFixtures.victim_connection.exec sql
+      when 'SQLITE' then GlobalFixtures.victim_connection.execute sql           # standard method for AR.connection
       else
         raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
       end
@@ -91,18 +82,24 @@ class ActiveSupport::TestCase
     raise msg
   end
 
-  def create_victim_structures(victim_connection)
-    # Renove possible pending structures before recreating
-    drop_victim_structures(victim_connection, suppress_exception: true)
+  def create_victim_structures
+    # Remove possible pending structures before recreating
+    exec_drop = proc do |sql|
+      exec_victim_sql(sql)
+    rescue                                                                      # Ignore drop errors
+    end
+
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM1")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM2")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
-    victim1_table = tables(:victim1)
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
-      exec_victim_sql(victim_connection, "GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.trixx_db_user}") # needed for table initialization
+      exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.trixx_db_user}") # needed for table initialization
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
@@ -122,13 +119,13 @@ class ActiveSupport::TestCase
         END TRIXX_Victim1_U;
       ")
 
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
-      exec_victim_sql(victim_connection, "GRANT SELECT ON #{victim_schema_prefix}#{tables(:victim2).name} TO #{Trixx::Application.config.trixx_db_user}")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{Trixx::Application.config.trixx_db_user}")
       # Table VICTIM3 without fixture in Tables
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
     when 'SQLITE' then
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
-        ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), Char_Name CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
+        ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), CHAR_NAME CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I')} INSERT ON #{victim1_table.name}
         BEGIN
@@ -141,30 +138,24 @@ class ActiveSupport::TestCase
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
       ")
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}#{tables(:victim2).name} (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
       # Table VICTIM3 without fixture in Tables
-      exec_victim_sql(victim_connection, "CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
     else
       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
     end
   end
 
-  def drop_victim_structures(victim_connection, suppress_exception: false)
-    exec_drop = proc do |sql|
-      exec_victim_sql(victim_connection, sql)
-    rescue
-      raise unless suppress_exception
-    end
-    exec_drop.call("DROP TABLE #{victim_schema_prefix}#{tables(:victim1).name}")
-    exec_drop.call("DROP TABLE #{victim_schema_prefix}#{tables(:victim2).name}")
-    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
-  end
-
-  # create records in Event_Log by trigger on tables(:victim1)
+  # create records in Event_Log by trigger on VICTIM1
   def create_event_logs_for_test(number_of_records)
     raise "Should create at least 8 records" if number_of_records < 8
+    if ThreadHandling.get_instance.thread_count > 0
+      msg = "There are already #{ThreadHandling.get_instance.thread_count} running worker threads! Created Event_Logs will be processed immediately!"
+      Rails.logger.debug msg
+      raise msg
+    end
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema_id, user_options: { user_id: users(:one).id, client_ip_info: '0.0.0.0'})
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: { user_id: peter_user.id, client_ip_info: '0.0.0.0'})
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -190,53 +181,55 @@ class ActiveSupport::TestCase
     # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
 
-    victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}#{tables(:victim1).name}"
+    victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM1"
     victim_max_id = 0 if victim_max_id.nil?
 
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+    ActiveRecord::Base.transaction do
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
       VALUES (#{victim_max_id+1}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
       )")
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+2}, 0.456,    'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+3}, 48.375,   'Record''3', #{date_val}, #{ts_val}, #{raw_val})")
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+4}, -23.475,  'Record''4', #{date_val}, #{ts_val}, #{raw_val})")
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+2}, 0.456,    'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+3}, 48.375,   'Record''3', #{date_val}, #{ts_val}, #{raw_val})")
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+4}, -23.475,  'Record''4', #{date_val}, #{ts_val}, #{raw_val})")
 
-    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
-    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
-    exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim1).name} WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
-    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim1).name}  SET Name = Name")  # Should not generate records in Event_Logs
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
+      exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
 
-    # Next record should not generate record in Event_Logs due to excluding condition
-    exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+5}, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
+      # Next record should not generate record in Event_Logs due to excluding condition
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+5}, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
 
-    # create exactly 3 records in Event_Logs for Victim2
-    victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}#{tables(:victim2).name}"
-    victim2_max_id = 0 if victim2_max_id.nil?
+      # create exactly 3 records in Event_Logs for Victim2
+      victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
+      victim2_max_id = 0 if victim2_max_id.nil?
 
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE'
-      # create content > 4K in CLOB column
-      exec_victim_sql(@victim_connection, "
+      case Trixx::Application.config.trixx_db_type
+      when 'ORACLE'
+        # create content > 4K in CLOB column
+        exec_victim_sql("
       DECLARE
         clob_content CLOB := '';
       BEGIN
         FOR i IN 1..100 LOOP
           clob_content  := clob_content || '0123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789';
         END LOOP;
-        INSERT INTO #{victim_schema_prefix}#{tables(:victim2).name} (ID, Large_Text) VALUES (#{victim2_max_id+1}, clob_content);
+        INSERT INTO #{victim_schema_prefix}VICTIM2 (ID, Large_Text) VALUES (#{victim2_max_id+1}, clob_content);
       END;
       ")
-    when 'SQLITE'
-          exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim2).name} (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
-    end
-    exec_victim_sql(@victim_connection, "UPDATE #{victim_schema_prefix}#{tables(:victim2).name}  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
-    exec_victim_sql(@victim_connection, "DELETE FROM #{victim_schema_prefix}#{tables(:victim2).name} WHERE ID = #{victim2_max_id+1}")
+      when 'SQLITE'
+        exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM2 (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
+      end
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM2  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
+      exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM2 WHERE ID = #{victim2_max_id+1}")
 
-    # create the reamining records in Event_Log
-    (number_of_records-(8+3)).downto(1).each do |i|
-      exec_victim_sql(@victim_connection, "INSERT INTO #{victim_schema_prefix}#{tables(:victim1).name} (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+      # create the reamining records in Event_Log
+      (number_of_records-(8+3)).downto(1).each do |i|
+        exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
       VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
       )")
-    end
+      end
+    end # COMMIT
 
     event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
     assert_equal(event_logs_before+number_of_records, event_logs_after, "Number of event_logs should be increased by #{number_of_records}")
@@ -318,24 +311,35 @@ class ActiveSupport::TestCase
                                   AND    Operation = :operation
                                  ", { table_id: table_id, operation: operation}
     if max_expected.nil?
-      assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+      assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id} Name='#{Table.find(table_id).name}', Operation='#{operation}', Column='#{column_name}'"
     else
-      assert result >= expected && result <= max_expected, "Statistics value #{result} not between #{expected} and #{max_expected} for Table_ID=#{table_id}, Operation='#{operation}', Column='#{column_name}'"
+      assert result >= expected && result <= max_expected, "Statistics value #{result} not between #{expected} and #{max_expected} for Table_ID=#{table_id} Name='#{Table.find(table_id).name}, Operation='#{operation}', Column='#{column_name}'"
     end
   end
 
 end
 
 class ActionDispatch::IntegrationTest
+  include TestHelper
+
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
-    # create JWT token for following tests
-    @jwt_token                  = jwt_token users(:one).id
-    @jwt_admin_token            = jwt_token users(:admin).id
-    @jwt_no_schema_right_token  = jwt_token users(:no_schema_right).id
-
     JdbcInfo.log_version
     Database.initialize_connection                                              # do some init actions for DB connection before use
+    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
+
+    # create JWT token for following tests
+    @jwt_token                  = jwt_token peter_user.id
+    @jwt_admin_token            = jwt_token User.where(email: 'admin').first.id
+    @jwt_no_schema_right_token  = jwt_token User.where(email: 'no_schema_right@xy.com').first.id
+  end
+
+  teardown do
+    if ThreadHandling.has_instance?
+      ThreadHandling.get_instance.shutdown_processing
+      raise "ThreadHandling.get_instance.shutdown_processing not successful" if ThreadHandling.get_instance.thread_count(raise_exception_if_locked: true) != 0
+    end
+    StatisticCounterConcentrator.remove_instance                                # Ensure next test starts with fresh instance
   end
 
   def jwt_token(user_id)
@@ -361,4 +365,173 @@ class JdbcInfo
       @@jdbc_driver_logged = true
     end
   end
+end
+
+class GlobalFixtures
+
+  @@global_fixtures_initialized = false
+  def self.initialize
+    unless @@global_fixtures_initialized
+      # Fixtures to load only once
+      @@global_fixtures_initialized = true                                      # call only once at start of test suite
+
+      ActiveRecord::Base.transaction do
+        EventLog.delete_all
+        Database.execute "DELETE FROM event_log_final_errors"
+        ActivityLog.delete_all
+        SchemaRight.delete_all
+        User.delete_all
+        Condition.delete_all
+        Column.delete_all
+        Table.delete_all
+        Schema.delete_all
+
+        # load admin from DB each time because ID may change
+        User.new(email: 'admin',                        db_user: Trixx::Application.config.trixx_db_user,         first_name: 'Admin',  last_name: 'from fixture', yn_admin: 'Y').save!
+        @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com',     db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Peter',  last_name: 'Ramm')
+        @@peter_user.save!
+        @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com',  db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Sandro', last_name: 'Preuß')
+        @@sandro_user.save!
+        @@no_schema_user = User.new(email: 'no_schema_right@xy.com',       db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'No',     last_name: 'Schema')
+        @@no_schema_user.save!
+
+        @@user_schema = Schema.new(name: Trixx::Application.config.trixx_db_user, topic: KafkaHelper.existing_topic_for_test)
+        @@user_schema.save!
+
+        if Trixx::Application.config.trixx_db_type != 'SQLITE'
+          @@victim_schema = Schema.new(name: Trixx::Application.config.trixx_db_victim_user, topic: KafkaHelper.existing_topic_for_test)
+          @@victim_schema.save!
+          Schema.new(name: 'WITHOUT_TOPIC').save!
+        else
+          @@victim_schema = @@user_schema
+        end
+
+        restore_schema_rights
+
+        # 1
+        @@tables_table = Table.new(schema_id:  @@user_schema.id,
+                                   name:       'TABLES',
+                                   info:       'Mein Text',
+                                   topic:      KafkaHelper.existing_topic_for_test
+        )
+        @@tables_table.save!
+
+        # 2
+        @@columns_table = Table.new(schema_id:  @@user_schema.id,
+                          name:       'COLUMNS',
+                          info:       'Mein Text',
+                          topic:      KafkaHelper.existing_topic_for_test
+        )
+        @@columns_table.save!
+
+        # 4
+        @@victim1_table = Table.new(schema_id:  @@victim_schema.id,
+                                    name:       'VICTIM1',
+                                    info:       'Victim table in separate schema for use with triggers. Does not contain CLOB column.',
+                                    topic:      KafkaHelper.existing_topic_for_test
+        )
+        @@victim1_table.save!
+
+        # 5
+        @@victim2_table = Table.new(schema_id:  @@victim_schema.id,
+                                    name:       'VICTIM2',
+                                    info:       'Victim table in separate schema for use with triggers. Contains CLOB column.',
+                                    topic:      KafkaHelper.existing_topic_for_test
+        )
+        @@victim2_table.save!
+
+        Column.new(table_id: @@tables_table.id, name: 'SCHEMA_ID', info: 'Mein Text', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
+        Condition.new(table_id: @@tables_table.id, operation: 'I', filter: 'ID IS NOT NULL').save!
+        Condition.new(table_id: @@tables_table.id, operation: 'D', filter: 'ID IS NOT NULL').save!
+
+        Column.new(table_id: @@columns_table.id, name: 'TABLE_ID', info: 'Mein Text', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
+
+        Column.new(table_id: @@victim1_table.id, name: 'ID',        info: 'Number test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'NAME',      info: 'Varchar2 test',  yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'CHAR_NAME', info: 'Char test',      yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'DATE_VAL',  info: 'Date test',      yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'TS_VAL',    info: 'Timestamp test', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'RAW_VAL',   info: 'Raw test',       yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'TSTZ_VAL',  info: 'TS with TZ test',yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'ROWID_VAL', info: 'RowID test',     yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim1_table.id, name: 'NUM_VAL',   info: 'NumVal test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Condition.new(table_id: @@victim1_table.id, operation: 'I',
+                      filter: case Trixx::Application.config.trixx_db_type
+                              when 'ORACLE' then ":new.Name != 'EXCLUDE FILTER'"
+                              when 'SQLITE' then "new.Name != 'EXCLUDE FILTER'"
+                              end
+        ).save!
+        Condition.new(table_id: @@victim1_table.id, operation: 'D',
+                      filter: case Trixx::Application.config.trixx_db_type
+                              when 'ORACLE' then ":old.ID IS NOT NULL"
+                              when 'SQLITE' then "old.ID IS NOT NULL"
+                              end
+        ).save!
+
+        Column.new(table_id: @@victim2_table.id, name: 'ID',          info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+        Column.new(table_id: @@victim2_table.id, name: 'LARGE_TEXT',  info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+      end
+
+      @@victim_connection = case Trixx::Application.config.trixx_db_type
+                            when 'ORACLE' then
+                              db_config = Rails.configuration.database_configuration[Rails.env].clone
+                              db_config['username'] = Trixx::Application.config.trixx_db_victim_user
+                              db_config['password'] = Trixx::Application.config.trixx_db_victim_password
+                              db_config.symbolize_keys!
+                              Rails.logger.debug "create_victim_connection: creating JDBCConnection"
+                              ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
+                            end
+
+    end
+  end
+
+  # Ensure all necessary schema_rights exists
+  def self.restore_schema_rights
+    schema_right = SchemaRight.where(user_id: peter_user.id, schema_id: @@user_schema.id).first
+    if schema_right.nil?
+      SchemaRight.new(user_id:    peter_user.id,
+                      schema_id:  user_schema.id,
+                      info:       'Info1',
+                      yn_deployment_granted: 'Y'
+      ).save!
+    else
+      schema_right.update!(yn_deployment_granted: 'Y')
+    end
+
+    if Trixx::Application.config.trixx_db_type != 'SQLITE'
+      schema_right = SchemaRight.where(user_id: peter_user.id, schema_id: @@victim_schema.id).first
+      if schema_right.nil?
+        SchemaRight.new(user_id:    peter_user.id,
+                        schema_id:  victim_schema.id,
+                        info:       'Info2',
+                        yn_deployment_granted: 'Y'
+        ).save!
+      else
+        schema_right.update!(yn_deployment_granted: 'Y')
+      end
+    end
+  end
+
+  def self.user_schema;       @@user_schema;        end
+  def self.victim_schema;     @@victim_schema;      end
+  def self.peter_user;        @@peter_user;         end
+  def self.sandro_user;       @@sandro_user;        end
+  def self.sandro_user;       @@sandro_user;        end
+  def self.tables_table;      @@tables_table;       end
+  def self.victim1_table;     @@victim1_table;      end
+  def self.victim2_table;     @@victim2_table;      end
+
+  def self.victim_connection
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then @@victim_connection
+    when 'SQLITE' then ActiveRecord::Base.connection                            # use currently active connection
+    end
+  end
+
+  # initialize again after global changes of IDs and content, e.g. from import
+  def self.reinitialize
+    @@global_fixtures_initialized = false
+    initialize
+  end
+
 end

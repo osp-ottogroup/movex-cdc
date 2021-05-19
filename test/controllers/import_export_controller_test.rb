@@ -148,15 +148,15 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert objects_equal?(generate_expected_users, exported['users'])
     assert objects_equal?(expected_schemas, exported['schemas'])
 
+    GlobalFixtures.reinitialize                                                 # load original fixtures because table-IDs have changed
   end
 
   # Test Goal: Ensure that a user, matched by his email, can be updated through import
   test "import_user_update" do
-    old_user = User.find(2)
-    assert_equal "Sandro", old_user['first_name']
-    assert_equal "Preuß", old_user['last_name']
-    assert_equal "N", old_user['yn_admin']
-    assert_equal Trixx::Application.config.trixx_db_victim_user, old_user['db_user']
+    assert_equal "Sandro", sandro_user.first_name
+    assert_equal "Preuß", sandro_user.last_name
+    assert_equal "N", sandro_user.yn_admin
+    assert_equal Trixx::Application.config.trixx_db_victim_user, sandro_user.db_user
     assert_no_difference('User.count') do
       post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "Sandro.Preuss@ottogroup.com", db_user: Trixx::Application.config.trixx_db_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
                                                                              schemas: [generate_expected_schema(Trixx::Application.config.trixx_db_user)] # use dummy schema to fulfill requirements
@@ -164,11 +164,13 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
 
-    new_user = User.find(2)
+    new_user = User.where(email: 'Sandro.Preuss@ottogroup.com').first
     assert_equal "Grzgorz", new_user['first_name']
     assert_equal "Pol", new_user['last_name']
     assert_equal "Y", new_user['yn_admin']
     assert_equal Trixx::Application.config.trixx_db_user, new_user['db_user']
+
+    GlobalFixtures.reinitialize                                                 # load original fixtures
   end
 
   # Test Goal: Ensure that a user can be created through import
@@ -185,13 +187,15 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Pol", new_user['last_name']
     assert_equal "Y", new_user['yn_admin']
     assert_equal Trixx::Application.config.trixx_db_victim_user, new_user['db_user']
+
+    GlobalFixtures.reinitialize                                                 # load original fixtures
   end
 
   # Test Goal: Ensure that a schema configuration can be emptied through import
   # Removal of parts are not necessary, since it is the same behaviour: as soon as a schema is in params,
   # it will be emptied completely and refilled with what is passed.
   test "import_schema_remove_all" do
-    old_schema = Schema.find(1)
+    old_schema = Schema.where(name: Trixx::Application.config.trixx_db_user).first
     #assert_equal "main", old_schema.name
     assert_equal KafkaHelper.existing_topic_for_test, old_schema.topic
     assert old_schema.tables.count > 0, 'original schema should contain tables'
@@ -204,16 +208,19 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
 
-    new_schema = Schema.find(1)
+    new_schema = Schema.where(name: Trixx::Application.config.trixx_db_user).first
     assert_equal old_schema.name, new_schema.name
     assert_equal "TheWeather", new_schema.topic
     assert_equal 0, new_schema.tables.count, 'imported schema should not have any table'
     assert_equal 0, new_schema.schema_rights.count, 'imported schema should not have any schema rights'
+    Schema.find(new_schema.id).update!(old_schema.attributes.select{|key, value| key != 'lock_version'})  # Restore original state
+
+    GlobalFixtures.reinitialize                                                 # load original fixtures
   end
 
   # Test Goal: Ensure that a schema import does work and fills the schema with all given data
   test "import_schema_update" do
-    old_schema = Schema.find(1)
+    old_schema = Schema.where(name: Trixx::Application.config.trixx_db_user).first
     #assert_equal "main", old_schema.name
 
     schema = [{name: old_schema.name, topic: "TheWeather",
@@ -227,7 +234,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :success
 
-    new_schema = Schema.find(1)
+    new_schema = Schema.where(name: Trixx::Application.config.trixx_db_user).first
     assert_equal old_schema.name, new_schema.name
     assert_equal "TheWeather", new_schema.topic
     assert_equal 1, new_schema.tables.count
@@ -265,6 +272,8 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     cond_i = table1.conditions.find { |cond| cond.operation === "I" }
     assert_not_nil cond_i
     assert_equal "ID IS nil", cond_i.filter
+
+    GlobalFixtures.reinitialize                                                 # load original fixtures
   end
 
   # Test Goal: Ensure that a schema import does work and fills the schema with all given data
@@ -317,6 +326,8 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     cond_i = table1.conditions.find { |cond| cond.operation === "I" }
     assert_not_nil cond_i
     assert_equal "ID IS nil", cond_i.filter
+
+    GlobalFixtures.reinitialize                                                 # load original fixtures
   end
 end
 

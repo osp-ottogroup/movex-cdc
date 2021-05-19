@@ -4,7 +4,10 @@ class InitializationJobTest < ActiveJob::TestCase
   test "startup" do
     # Remove exsting admin user created by fixture, should be recreated by next action
     admin = User.where(email: 'admin').first
-    admin.destroy if admin
+    if admin
+      ActivityLog.delete(ActivityLog.where(user_id: admin.id).map{|a| a.id})    # Remove relation to allow delete of user
+      admin.destroy!
+    end
 
     assert_difference('User.count', 1, 'Should add new user admin') do
       InitializationJob.new.perform
