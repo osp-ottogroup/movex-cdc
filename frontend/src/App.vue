@@ -6,7 +6,9 @@
     <template v-else>
       <template v-if="loggedIn">
         <app-header class="header"/>
-        <router-view />
+        <div class="router-view pt-3">
+          <router-view />
+        </div>
         <app-footer />
       </template>
       <template v-else>
@@ -75,7 +77,10 @@ export default {
 <style lang="scss">
 @import './app.scss';
 
-.header {
-  margin-bottom: 1rem;
+.router-view {
+  // viewport - header height - footer height
+  height: calc(100vh - 3.25rem - 30px);
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

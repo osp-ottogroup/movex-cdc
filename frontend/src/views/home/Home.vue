@@ -1,5 +1,5 @@
 <template>
-  <section class="hero is-fullheight-with-navbar">
+  <section class="hero">
     <b-loading :active="isLoading" :is-full-page="false"></b-loading>
     <div class="hero-body">
       <div class="container has-text-centered">
