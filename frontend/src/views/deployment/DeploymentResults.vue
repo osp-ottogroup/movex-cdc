@@ -7,8 +7,21 @@
       <template #trigger="props">
         <div class="card-header" role="button">
           <div class="card-header-title is-justify-content-space-between">
-            <b-field label="Schema" custom-class="is-size-7">
-              {{result.schemaName}}
+            <b-field grouped>
+              <b-field label="Schema" custom-class="is-size-7">
+                {{result.schemaName}}
+              </b-field>
+              <b-field v-if="enableSwitches">
+                <template #label>
+                  <div class="is-size-7 has-text-grey" @click.stop>
+                    Deploy
+                    <a @click="onSelectAll(result)">All</a>
+                    |
+                    <a @click="onDeselectAll(result)">No</a>
+                    tables
+                  </div>
+                </template>
+              </b-field>
             </b-field>
             <div>
               <label class="label is-size-7">{{tableMessage(result)}}</label>
@@ -27,8 +40,6 @@
                       :key="index"
                       :table="table"
                       :enableSwitches="enableSwitches"
-                      @tableSelected="$emit('tableSelected', table)"
-                      @tableDeselected="$emit('tableDeselected', table)"
         />
       </div>
     </b-collapse>
@@ -48,13 +59,25 @@ export default {
     enableSwitches: { type: Boolean, default: false },
   },
   methods: {
-    tableMessage(result) {
-      const count = result.tables.length;
+    tableMessage(schema) {
+      const count = schema.tables.length;
       return count === 1 ? `${count} Table` : `${count} Tables`;
     },
-    errorsMessage(result) {
-      const count = result.errorCount;
+    errorsMessage(schema) {
+      const count = schema.errorCount;
       return count === 1 ? `${count} error exists` : `${count} errors exists`;
+    },
+    onSelectAll(schema) {
+      schema.tables.forEach((table) => {
+        // eslint-disable-next-line no-param-reassign
+        table.deploy = true;
+      });
+    },
+    onDeselectAll(schema) {
+      schema.tables.forEach((table) => {
+        // eslint-disable-next-line no-param-reassign
+        table.deploy = false;
+      });
     },
   },
 };

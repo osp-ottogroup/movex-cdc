@@ -41,12 +41,7 @@ class DbTriggersController < ApplicationController
     )
     result = { results: [ schema_result.merge(schema_name: schema_name) ] }
 
-    if schema_result[:errors].count == 0
-      render json: result, status: :ok
-    else
-      result[:errors] = structured_errors_to_string(schema_result[:errors], schema_name)
-      render json: result, status: :internal_server_error
-    end
+    render json: result, status: :ok
   end
 
   # POST /db_triggers/generate_all
@@ -73,12 +68,8 @@ class DbTriggersController < ApplicationController
         results << schema_result
       end
       result = { results: results}
-      if error_strings.count == 0
-        render json: result, status: :ok
-      else
-        result[:errors] = error_strings
-        render json: result, status: :internal_server_error
-      end
+
+      render json: result, status: :ok
     end
   end
 

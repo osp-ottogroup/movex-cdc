@@ -35,8 +35,6 @@
         <h4 class="title is-5">Triggers that would be newly generated or modified</h4>
         <DeploymentResults :deployment-results="dryRunResultList"
                            :enable-switches="true"
-                           @tableSelected="onTableSelected"
-                           @tableDeselected="onTableDeselected"
         />
       </div>
       <div class="columns is-mobile mt-1">
@@ -44,7 +42,7 @@
           <b-button @click="onDeployClicked"
                     type="is-primary"
                     expanded
-                    :disabled="tableList.length === 0 || isGenerating || isDeploying"
+                    :disabled="!isDeployable || isGenerating || isDeploying"
                     :loading="isGenerating">
             Deploy
           </b-button>
@@ -84,12 +82,16 @@ export default {
       selectedSchema: null,
       dryRunResultList: [],
       deployResultList: [],
-      tableList: [],
       user: UserService.getUser(),
     };
   },
   async created() {
     await this.loadSchemas();
+  },
+  computed: {
+    isDeployable() {
+      return this.dryRunResultList.some((schema) => schema.tables.some((table) => table.deploy));
+    },
   },
   methods: {
     showErrorNotification(e, message) {
@@ -114,7 +116,6 @@ export default {
       try {
         this.dryRunResultList = [];
         this.deployResultList = [];
-        this.tableList = [];
         this.isGenerating = true;
         const data = { dry_run: true };
         let response = null;
@@ -133,17 +134,17 @@ export default {
         this.isGenerating = false;
       }
     },
-    onTableSelected(table) {
-      this.tableList.push(table);
-    },
-    onTableDeselected(table) {
-      const index = this.tableList.indexOf(table);
-      this.tableList.splice(index, 1);
-    },
     async onDeployClicked() {
       try {
         this.isGenerating = true;
-        const tableIdList = this.tableList.map((table) => table.tableId);
+        const tableIdList = [];
+        this.dryRunResultList.forEach((schema) => {
+          schema.tables.forEach((table) => {
+            if (table.deploy) {
+              tableIdList.push(table.tableId);
+            }
+          });
+        });
         const data = {
           dry_run: false,
           table_id_list: tableIdList,
@@ -177,6 +178,7 @@ export default {
               successfulTriggers: [],
               erroneousTriggers: [],
               loadSql: '',
+              deploy: false,
             });
           }
         };
