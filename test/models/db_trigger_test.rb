@@ -261,6 +261,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
     end
 
-    victim1_table.update!(org_table_attributes.select{|key, value| key != 'lock_version'})  # restore original state
+    restored_table = Table.find(victim1_table.id)
+    restored_table.update!(org_table_attributes.select{|key, value| key != 'lock_version'}.merge(lock_version: restored_table.lock_version))  # restore original state
   end
 end
