@@ -126,7 +126,7 @@ class Table < ApplicationRecord
 
   # get array of corresponding database trigger objects as hash if exist
   def db_triggers
-    DbTrigger.find_all_by_table(schema_id, id, schema.name, name)
+    DbTrigger.find_all_by_table(self)
   end
 
   # get oldest change date of existing trigger for every operation (I/U/D)

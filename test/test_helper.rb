@@ -101,7 +101,7 @@ class ActiveSupport::TestCase
       )")
       exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.trixx_db_user}") # needed for table initialization
       exec_db_user_sql("\
-        CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
+        CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
@@ -127,7 +127,7 @@ class ActiveSupport::TestCase
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), CHAR_NAME CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
       exec_db_user_sql("\
-        CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table.schema_id, victim1_table.id, 'I')} INSERT ON #{victim1_table.name}
+        CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} INSERT ON #{victim1_table.name}
         BEGIN
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
