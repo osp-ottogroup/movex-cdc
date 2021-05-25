@@ -40,7 +40,8 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     patch condition_url(@condition), headers: jwt_header, params: { condition: { filter: 'new filter', lock_version: @condition.lock_version } }, as: :json
     assert_response 200
 
-    Condition.find(@condition.id).update!(filter: org_filter)                   # Restore previous state
+    condition = Condition.find(@condition.id)                                   # load fresh state from DB
+    condition.update!(filter: org_filter, lock_version: condition.lock_version) # Restore previous state
 
     patch condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
     assert_response :internal_server_error, 'Should not get access without schema rights'

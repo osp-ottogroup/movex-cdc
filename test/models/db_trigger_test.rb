@@ -33,7 +33,12 @@ class DbTriggerTest < ActiveSupport::TestCase
     ].each do |key|
       # Modify tables with attributes
       [victim1_table, victim2_table].each do |table|
-        unless Table.find(table.id).update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
+        current_table = Table.find(table.id)
+        unless current_table.update(kafka_key_handling: key[:kafka_key_handling],
+                                    fixed_message_key:  key[:fixed_message_key],
+                                    yn_record_txid:     key[:yn_record_txid],
+                                    lock_version:       current_table.lock_version
+        )
           raise table.errors.full_messages
         end
       end
@@ -139,7 +144,12 @@ class DbTriggerTest < ActiveSupport::TestCase
     ].each do |key|
       # Modify tables with attributes
       [victim1_table, victim2_table].each do |table|
-        unless Table.find(table.id).update(kafka_key_handling: key[:kafka_key_handling], fixed_message_key: key[:fixed_message_key], yn_record_txid: key[:yn_record_txid])
+        current_table = Table.find(table.id)                                  # load fresh state from DB
+        unless current_table.update(kafka_key_handling: key[:kafka_key_handling],
+                                    fixed_message_key:  key[:fixed_message_key],
+                                    yn_record_txid:     key[:yn_record_txid],
+                                    lock_version:       current_table.lock_version
+        )
           raise table.errors.full_messages
         end
       end
@@ -199,11 +209,13 @@ class DbTriggerTest < ActiveSupport::TestCase
         yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'
         # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
         # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
-        Table.find(victim1_table.id).update!(yn_initialization:      'Y',
-                                             initialization_filter:  init_filter,
-                                             kafka_key_handling:     kafka_key_handling,
-                                             fixed_message_key:      fixed_message_key,
-                                             yn_record_txid:         yn_record_txid
+        current_victim1_table = Table.find(victim1_table.id)                    # load fresh state from DB
+        current_victim1_table.update!(yn_initialization:      'Y',
+                                      initialization_filter:  init_filter,
+                                      kafka_key_handling:     kafka_key_handling,
+                                      fixed_message_key:      fixed_message_key,
+                                      yn_record_txid:         yn_record_txid,
+                                      lock_version:           current_victim1_table.lock_version
         ) # set a init filter for one record
 
         condition         = Condition.where(table_id: victim1_table.id, operation: 'I').first
@@ -219,6 +231,10 @@ class DbTriggerTest < ActiveSupport::TestCase
         filtered_records_count += 1 unless condition_filter.nil?
         event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
         result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+        if result[:errors].length > 0
+          result[:errors].each {|e| puts e}
+          assert_equal 0, result[:errors].length, 'No errors should occur'
+        end
         assert_equal 1, result[:load_sqls].length, 'load SQLs should be generated'
 
         # Wait for successful initialization
