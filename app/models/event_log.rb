@@ -6,7 +6,11 @@ class EventLog < ApplicationRecord
     expected_value = Trixx::Application.config.trixx_max_simultaneous_transactions
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      current_value = Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
+      current_value =  if Trixx::Application.partitioning?
+                         Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
+                       else
+                         Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
+                       end
       if current_value != expected_value
         Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
         Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
