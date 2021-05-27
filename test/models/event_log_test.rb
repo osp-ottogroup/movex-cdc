@@ -2,10 +2,6 @@ require 'test_helper'
 
 class EventLogTest < ActiveSupport::TestCase
 
-  test "create event log" do
-    EventLog.new(table_id: victim1_table.id, operation: 'I', dbuser: 'HUGO', payload: '"new": { "id": 25}').save!
-  end
-
   test "select event log" do
     event_logs = EventLog.all
   end
