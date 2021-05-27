@@ -12,5 +12,12 @@ class DailyJob < ApplicationJob
     rescue Exception => e
       ExceptionHelper.log_exception(e, "HourlyJob.perform: calling CompressStatistics.do_compress!")
     end
+
+    begin
+      Database.set_application_info('DailyJob/Housekeeping.check_partition_interval')
+      Housekeeping.get_instance.check_partition_interval                        # update high value of MIN partition if necessary
+    rescue Exception => e
+      ExceptionHelper.log_exception(e, "HourlyJob.perform: calling Housekeeping.check_partition_interval!")
+    end
   end
 end

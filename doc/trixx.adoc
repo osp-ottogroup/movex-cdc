@@ -226,6 +226,10 @@ If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BUL
 |TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
 |TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
+|TRIXX_PARTITION_INTERVAL|Interval in minutes between partition changes for table EVENT_LOGS. +
+Partition change is used to free already used storage after some minutes and keep the footprint of table EVENT_LOGS as small as possible. +
+Relevant only if EVENT_LOGS is used partitioned.
+|10 minutes
 |===
 
 

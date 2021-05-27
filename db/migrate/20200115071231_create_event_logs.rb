@@ -4,6 +4,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
     when 'ORACLE' then
       # Start MIN partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value
+      # Interval is initially set to 10 minutes but can be changed by
       EventLog.connection.execute("\
       CREATE TABLE Event_Logs (
         ID          NUMBER(18)    NOT NULL,
