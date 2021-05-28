@@ -45,9 +45,10 @@ Access to dictionary views has massively slowed down in PDB environments while u
         conn = ORACLE_DRIVER.connect(url, properties)
       end
 
-      db_version_gt_12_1 = select_single conn, "SELECT CASE WHEN Version > '12.1' THEN 1 ELSE 0 END FROM v$Instance"
-      if db_version_gt_12_1
+      db_version_gt_12_1 = select_single conn, "SELECT CASE WHEN Version < '12.2' THEN 0 ELSE 1 END FROM v$Instance"
+      if db_version_gt_12_1 == 1
         # Speed up execution in smaller test DBs
+        # in 12.1: ORA-65040: operation not allowed from within a pluggable database
         exec conn, "ALTER SYSTEM SET parallel_max_servers=0 SCOPE=BOTH"
       end
 
