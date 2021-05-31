@@ -89,23 +89,24 @@ test_sqlite:
   stage: test
   extends: .tests_SQLITE
 
-#test_oracle_11.2:
-#  stage: test
-#  extends: .tests_ORACLE
-#  services:
-#    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
-#      alias: oracle-db
-#  variables:
-#    TRIXX_DB_URL: "oracle-db:1521/ORCL"
-
-test_oracle_12.1:
+test_oracle_11.2:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:12.1.0.2-ee
+    - name: dockerhub.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
       alias: oracle-db
   variables:
-    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
+    TRIXX_DB_URL: "oracle-db:1521/ORCL"
+
+# Test suspended because of error in PQ at db_:migrate
+#test_oracle_12.1:
+#  stage: test
+#  extends: .tests_ORACLE
+#  services:
+#    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:12.1.0.2-ee
+#      alias: oracle-db
+#  variables:
+#    TRIXX_DB_URL: "oracle-db:1521/ORCLPDB1"
 
 test_oracle_12.2:
   stage: test
