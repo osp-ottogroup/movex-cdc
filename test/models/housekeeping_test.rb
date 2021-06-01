@@ -20,8 +20,8 @@ class HousekeepingTest < ActiveSupport::TestCase
         # Adjust high value of first partition to an older date
         set_high_value = proc do |high_value_time, interval|
           Trixx::Application.config.trixx_partition_interval = interval
-          EventLog.adjust_interval                                              # adjust in DB according to Trixx::Application.config.trixx_partition_interval
           if get_time_from_high_value.call >= high_value_time                   # high value should by adjusted to an older Time
+            Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"           # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
             partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
             Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
@@ -29,6 +29,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             Database.execute "ALTER TABLE Event_Logs RENAME PARTITION TestSplit1 TO MIN"
             Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
           end
+          EventLog.adjust_interval                                              # adjust in DB according to Trixx::Application.config.trixx_partition_interval
         end
 
         do_check = proc do |interval, prev_interval|

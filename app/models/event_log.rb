@@ -25,7 +25,7 @@ class EventLog < ApplicationRecord
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         current_interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) FROM User_Part_Tables WHERE Table_Name = 'EVENT_LOGS'"
-        if current_interval != expected_interval
+        if current_interval.nil? || current_interval != expected_interval
           Rails.logger.info "EventLog.adjust_interval: Change partition interval from #{current_interval} to #{expected_interval} "
           Database.execute "ALTER TABLE Event_Logs SET INTERVAL(NUMTODSINTERVAL(#{expected_interval},'MINUTE'))"
         end
