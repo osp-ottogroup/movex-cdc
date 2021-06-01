@@ -52,7 +52,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     end
   rescue
     Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
-      msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value}"
+      msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval}"
       Rails.logger.debug msg
       puts msg
     end
