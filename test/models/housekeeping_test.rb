@@ -34,7 +34,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         do_check = proc do |interval, prev_interval|
           max_minutes_for_interval_prev= 700000*prev_interval                   # > 1/2 of max. partition count (1024*1024-1) for default interval
           set_high_value.call(Time.now-max_minutes_for_interval_prev*60, prev_interval) # set old high_value to 1/2 of possible partition count and default interval
-          Housekeeping.get_instance.check_parti tion_interval
+          Housekeeping.get_instance.check_partition_interval
 
           current_hv = get_time_from_high_value.call
           max_expected_minutes_for_interval = (1024*1024)/6*interval            # < 1/4 of max. partition count (1024*1024-1) for interval
