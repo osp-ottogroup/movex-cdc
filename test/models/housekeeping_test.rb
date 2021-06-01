@@ -36,6 +36,11 @@ class HousekeepingTest < ActiveSupport::TestCase
               log_state.call                                                    # log partitions
               Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"         # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
               partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
+              # Remove all range partitions except the MIN partition
+              Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position != 1").each do |p|
+                Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+              end
+
               Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
@@ -44,6 +49,14 @@ class HousekeepingTest < ActiveSupport::TestCase
               log_state.call                                                    # log partitions
             end
             EventLog.adjust_interval                                            # adjust in DB according to Trixx::Application.config.trixx_partition_interval
+
+            # ensure existence of at least one interval partition
+            ActiveRecord::Base.transaction do
+              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+                                 created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+              raise ActiveRecord::Rollback
+            end
+
           end
 
           do_check = proc do |interval, prev_interval|

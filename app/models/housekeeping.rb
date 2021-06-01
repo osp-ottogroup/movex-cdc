@@ -116,37 +116,36 @@ class Housekeeping
           Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of MIN partition"
         end
         if Time.now - min_time > max_distance_minutes*60                        # update of high_value of MIN partition should happen
+          # Check if more than one range partition exists
+          if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
+            msg = "There are more than one range partitions for table EVENT_LOGS with interval='NO'! This should never happen in expected behaviour. Please check this partitions for possible content and drop them if empty"
+            Rails.logger.error msg
+            raise msg
+          end
+
           current_interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) FROM User_Part_Tables WHERE Table_Name = 'EVENT_LOGS'"
           Rails.logger.debug "Current partition interval is #{current_interval} minutes"
           # create dummy record with following rollback to enforce creation of interval partition
-          split_partition_force_create_time = compare_time - (current_interval*60) -2   # smaller than expected high_value with 1 second rounding failure
-          Rails.logger.debug "Create empty partition whith created_at=#{split_partition_force_create_time}"
+          split_partition_force_create_time1 = compare_time - (current_interval*60) -2   # smaller than expected high_value with 1 second rounding failure
+          split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval*60)
+          Rails.logger.debug "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}"
           ActiveRecord::Base.transaction do
-            Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
-                             created_at: split_partition_force_create_time.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+            [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
+              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+                               created_at: created_at.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+            end
             raise ActiveRecord::Rollback
           end
-
           part2 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
+          part3 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 3"
           Rails.logger.debug "Partition created at position 2 with partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
-          raise "No second oldest partition found for table Event_Logs" if part2.nil?
-          part2_high_value = get_time_from_high_value.call(part2.high_value)
-          part2_prev_hv = part2_high_value - current_interval*60
-          Rails.logger.info "Changing HIGH_VALUE of oldest partition for table EVENT_LOGS from #{part1.high_value} to #{part2_prev_hv}"
-
-          # Try to execute at interval boundaries +/- 1 second
-          begin
-            Database.execute  build_split_sql.call(part2.partition_name, part2_prev_hv, 0)
-          rescue
-            begin
-              Database.execute  build_split_sql.call(part2.partition_name, part2_prev_hv, -1)
-            rescue
-              Database.execute  build_split_sql.call(part2.partition_name, part2_prev_hv, +1)
-            end
-          end
+          Rails.logger.debug "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}"
+          raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
+          Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
+          partm = Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
+          Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
           Database.execute "ALTER TABLE Event_Logs DROP   PARTITION #{part1.partition_name}"
-          Database.execute "ALTER TABLE Event_Logs RENAME PARTITION Split1 TO MIN"
-          Database.execute "ALTER TABLE Event_Logs DROP PARTITION Split2"
+          Database.execute "ALTER TABLE Event_Logs RENAME PARTITION #{partm.partition_name} TO MIN"
         end
       end
     end
