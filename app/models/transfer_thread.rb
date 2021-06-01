@@ -98,7 +98,7 @@ class TransferThread
   end # process
 
   def stop_thread                                                               # called from main thread / job
-    Rails.logger.info "TransferThread.stop_thread #{@worker_id}: stop request executed"
+    Rails.logger.info "TransferThread.stop_thread #{@worker_id}: stop request forced"
     @thread_mutex.synchronize { @stop_requested = true }
   end
 
