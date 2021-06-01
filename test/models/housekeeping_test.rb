@@ -32,7 +32,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             Trixx::Application.config.trixx_partition_interval = interval
             current_high_value_time = get_time_from_high_value.call
             if current_high_value_time >= high_value_time                 # high value should by adjusted to an older Time
-              Rails.logger.debug "high value should by adjusted to an older Time: current=#{high value should by adjusted to an older Time}, expected=#{high_value_time}"
+              Rails.logger.debug "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}"
               log_state.call                                                    # log partitions
               Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"         # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
               partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
