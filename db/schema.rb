@@ -76,6 +76,12 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
+  create_table "orderdetailgaattr", primary_key: ["id_orderdetail", "id_gaattr"], force: :cascade do |t|
+    t.decimal "id_orderdetail"
+    t.decimal "id_gaattr"
+    t.string "value", limit: 20
+  end
+
   create_table "schema_rights", force: :cascade do |t|
     t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
     t.integer "schema_id", limit: 19, precision: 19, null: false, comment: "Reference to schema"
@@ -84,7 +90,7 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.string "yn_deployment_granted", limit: 1, default: "N", null: false, comment: "Is the user allowed to deploy triggers for this schema?"
-    t.index ["schema_id"], name: "i_schema_rights_schema_id"
+    t.index ["schema_id"], name: "index_schema_rights_on_schema_id"
     t.index ["user_id", "schema_id"], name: "ix_schema_rights_logical_pkey", unique: true
     t.index ["user_id"], name: "index_schema_rights_on_user_id"
   end

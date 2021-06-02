@@ -92,7 +92,17 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").each do |p|
-          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p['partition_name']}"
+          begin
+            Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+          rescue Exception => e
+            Rails.logger.error "#{e.class}:#{e.message}: while trying to drop partition #{p.partition_name}! Current existing partitions follows:"
+            Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
+              msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
+              Rails.logger.debug msg
+              puts msg if console
+            end
+            raise
+          end
         end
       end
     end
