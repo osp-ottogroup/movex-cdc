@@ -99,7 +99,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
             Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
               msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
               Rails.logger.debug msg
-              puts msg if console
+              puts msg
             end
             raise
           end
