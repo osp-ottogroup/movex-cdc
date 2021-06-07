@@ -7,6 +7,9 @@ import HttpService from './HttpService';
 const { backendUrl } = Config;
 
 export default {
+  activityLog: {
+    get: BaseCRUDService('activity_logs').getAll,
+  },
   columns: {
     ...BaseCRUDService('columns'),
     selectAll: async (object) => (await HttpService.post(`${backendUrl}/columns/select_all_columns`, object)).data,

@@ -12,10 +12,20 @@
 
         <template v-slot="props">
           {{ props.row.name }}
-          <b-button v-show="selectedTable && selectedTable.id === props.row.id"
-                    icon-right="pencil"
-                    class="is-pulled-right is-small"
-                    @click="onEditClicked()" />
+          <b-field v-show="selectedTable && selectedTable.id === props.row.id"
+                   grouped
+                   class="is-pulled-right">
+            <div>
+              <b-button icon-right="pencil"
+                        class="is-small"
+                        @click="onEditClicked()" />
+            </div>
+            <div>
+              <b-tooltip label="Show activity log for this table">
+                <b-button icon-right="text-subject" size="is-small" class="ml-1" @click="showActivityLogModal(props.row)"/>
+              </b-tooltip>
+            </div>
+          </b-field>
           <div v-if="props.row.yn_deleted_in_db === 'Y'"
                :class="{'deleted-in-db--margin': selectedTable && selectedTable.id === props.row.id}"
                class="is-size-7 has-text-danger deleted-in-db">
@@ -35,19 +45,35 @@
         </div>
       </template>
     </b-table>
+
+    <template v-if="activityLogModal.show">
+      <ActivityLogModal
+        :filter="activityLogModal.filter"
+        @close="closeActivityLogModal">
+      </ActivityLogModal>
+    </template>
   </div>
 </template>
 
 <script>
+import ActivityLogModal from '@/components/ActivityLogModal.vue';
+
 export default {
   name: 'TableTable',
   props: {
     tables: { type: Array, default: () => [] },
     schema: { type: Object, default: () => {} },
   },
+  components: {
+    ActivityLogModal,
+  },
   data() {
     return {
       selectedTable: null,
+      activityLogModal: {
+        show: false,
+        filter: null,
+      },
     };
   },
   methods: {
@@ -56,6 +82,17 @@ export default {
     },
     onEditClicked() {
       this.$emit('edit-table', this.selectedTable);
+    },
+    showActivityLogModal(table) {
+      this.activityLogModal.filter = {
+        schemaName: this.schema.name,
+        tableName: table.name,
+      };
+      this.activityLogModal.show = true;
+    },
+    closeActivityLogModal() {
+      this.activityLogModal.filter = null;
+      this.activityLogModal.show = false;
     },
   },
   watch: {

@@ -11,6 +11,11 @@
         </template>
         <template v-slot="props">
           {{ props.row.name }}
+          <div class="is-pulled-right">
+            <b-tooltip label="Show activity log for this column">
+              <b-button icon-right="text-subject" size="is-small" class="ml-1" @click="showActivityLogModal(props.row)"/>
+            </b-tooltip>
+          </div>
           <div v-if="props.row.isDeleted" class="is-size-7 has-text-danger">
             This column doesn't exist in the database anymore. This will lead to errors when generating the triggers.
             <br>
@@ -85,15 +90,37 @@
         </template>
       </b-table-column>
     </b-table>
+
+    <template v-if="activityLogModal.show">
+      <ActivityLogModal
+        :filter="activityLogModal.filter"
+        @close="closeActivityLogModal">
+      </ActivityLogModal>
+    </template>
   </div>
 </template>
 
 <script>
+import ActivityLogModal from '@/components/ActivityLogModal.vue';
+
 export default {
   name: 'ColumnTable',
   props: {
+    schema: { type: Object, default: () => {} },
+    table: { type: Object, default: () => {} },
     columns: { type: Array, default: () => [] },
     activeConditionTypes: { type: Object, default: () => {} },
+  },
+  components: {
+    ActivityLogModal,
+  },
+  data() {
+    return {
+      activityLogModal: {
+        show: false,
+        filter: null,
+      },
+    };
   },
   computed: {
     showSelectButtons() {
@@ -121,6 +148,18 @@ export default {
     },
     onRemoveColumn(column) {
       this.$emit('remove-column', column);
+    },
+    showActivityLogModal(column) {
+      this.activityLogModal.filter = {
+        schemaName: this.schema.name,
+        tableName: this.table.name,
+        columnName: column.name,
+      };
+      this.activityLogModal.show = true;
+    },
+    closeActivityLogModal() {
+      this.activityLogModal.filter = null;
+      this.activityLogModal.show = false;
     },
   },
 };

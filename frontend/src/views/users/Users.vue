@@ -5,7 +5,7 @@
         <div class="level-left">
           <b-button
             type="is-primary"
-            @click="onCreateUserButtonClicked">
+            @click="showUserModal(null)">
             Create User
           </b-button>
         </div>
@@ -18,13 +18,11 @@
       </div>
 
       <b-table
-        id="users-table"
         :data="users"
         :loading="isLoading"
         default-sort="last_name"
         striped
-        hoverable
-        @click="onRowClicked">
+        hoverable>
           <b-table-column field="id" label="ID" numeric sortable :searchable="showSearchFields" v-slot="props">
             {{ props.row.id }}
           </b-table-column>
@@ -50,6 +48,16 @@
               </b-tooltip>
             </span>
           </b-table-column>
+          <b-table-column label="Actions" v-slot="props">
+            <b-field grouped>
+              <b-tooltip label="Edit the user">
+                <b-button icon-right="pencil" size="is-small" @click="showUserModal(props.row)"/>
+              </b-tooltip>
+              <b-tooltip label="Show user's activity log">
+                <b-button icon-right="text-subject" size="is-small" class="ml-1" @click="showActivityLogModal(props.row)"/>
+              </b-tooltip>
+            </b-field>
+          </b-table-column>
       </b-table>
     </div>
 
@@ -59,20 +67,29 @@
         @created="onCreated"
         @saved="onSaved"
         @deleted="onDeleted"
-        @close="closeModal">
+        @close="closeUserModal">
       </user-modal>
+    </template>
+
+    <template v-if="activityLogModal.show">
+      <ActivityLogModal
+        :filter="activityLogModal.filter"
+        @close="closeActivityLogModal">
+      </ActivityLogModal>
     </template>
   </div>
 </template>
 
 <script>
 import { getErrorMessageAsHtml } from '@/helpers';
+import ActivityLogModal from '@/components/ActivityLogModal.vue';
 import CRUDService from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
 
 export default {
   name: 'Users',
   components: {
+    ActivityLogModal,
     UserModal,
   },
   data() {
@@ -83,6 +100,10 @@ export default {
       modal: {
         show: false,
         userId: null,
+      },
+      activityLogModal: {
+        show: false,
+        filter: null,
       },
     };
   },
@@ -101,19 +122,21 @@ export default {
     }
   },
   methods: {
-    showModal(userId) {
-      this.modal.userId = userId;
+    showUserModal(user) {
+      this.modal.userId = user ? user.id : null;
       this.modal.show = true;
     },
-    closeModal() {
+    closeUserModal() {
       this.modal.userId = null;
       this.modal.show = false;
     },
-    onRowClicked(user) {
-      this.showModal(user.id);
+    showActivityLogModal(user) {
+      this.activityLogModal.filter = { userId: user.id };
+      this.activityLogModal.show = true;
     },
-    onCreateUserButtonClicked() {
-      this.showModal(null);
+    closeActivityLogModal() {
+      this.activityLogModal.filter = null;
+      this.activityLogModal.show = false;
     },
     onSearchButtonClicked() {
       this.showSearchFields = !this.showSearchFields;
@@ -121,26 +144,17 @@ export default {
     onSaved(savedUser) {
       const index = this.users.findIndex((user) => user.id === savedUser.id);
       this.$set(this.users, index, savedUser);
-      this.closeModal();
+      this.closeUserModal();
     },
     onDeleted(deletedUser) {
       const index = this.users.findIndex((user) => user.id === deletedUser.id);
       this.users.splice(index, 1);
-      this.closeModal();
+      this.closeUserModal();
     },
     onCreated(createdUser) {
       this.users.push(createdUser);
-      this.closeModal();
+      this.closeUserModal();
     },
   },
 };
 </script>
-
-<style lang="scss" scoped>
-  #users-table {
-    margin-top: 1rem;
-    ::v-deep tbody tr {
-      cursor: pointer;
-    }
-  }
-</style>

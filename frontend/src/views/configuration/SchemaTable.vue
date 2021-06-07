@@ -12,10 +12,20 @@
 
         <template v-slot="props">
           {{ props.row.name }}
-          <b-button v-show="selectedSchema && selectedSchema.id === props.row.id"
-                    icon-right="pencil"
-                    class="is-pulled-right is-small"
-                    @click="onEditClicked()" />
+          <b-field  v-show="selectedSchema && selectedSchema.id === props.row.id"
+                    grouped
+                    class="is-pulled-right">
+            <div>
+              <b-button icon-right="pencil"
+                        class="is-small"
+                        @click="onEditClicked()" />
+            </div>
+            <div>
+              <b-tooltip label="Show activity log for this schema">
+                <b-button icon-right="text-subject" size="is-small" class="ml-1" @click="showActivityLogModal(props.row)"/>
+              </b-tooltip>
+            </div>
+          </b-field>
         </template>
       </b-table-column>
 
@@ -27,18 +37,34 @@
         </div>
       </template>
     </b-table>
+
+    <template v-if="activityLogModal.show">
+      <ActivityLogModal
+        :filter="activityLogModal.filter"
+        @close="closeActivityLogModal">
+      </ActivityLogModal>
+    </template>
   </div>
 </template>
 
 <script>
+import ActivityLogModal from '@/components/ActivityLogModal.vue';
+
 export default {
   name: 'SchemaTable',
   props: {
     schemas: { type: Array, default: () => [] },
   },
+  components: {
+    ActivityLogModal,
+  },
   data() {
     return {
       selectedSchema: null,
+      activityLogModal: {
+        show: false,
+        filter: null,
+      },
     };
   },
   methods: {
@@ -47,6 +73,16 @@ export default {
     },
     onEditClicked() {
       this.$emit('edit-schema', this.selectedSchema);
+    },
+    showActivityLogModal(schema) {
+      this.activityLogModal.filter = {
+        schemaName: schema.name,
+      };
+      this.activityLogModal.show = true;
+    },
+    closeActivityLogModal() {
+      this.activityLogModal.filter = null;
+      this.activityLogModal.show = false;
     },
   },
   watch: {
