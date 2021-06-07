@@ -91,7 +91,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
-        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name != 'MIN' ").each do |p|
+        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES'").each do |p|
           begin
             Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
           rescue Exception => e
