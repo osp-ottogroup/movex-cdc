@@ -6,8 +6,9 @@ class DbTriggerGeneratorSqlite < Database
   ### class methods following
 
   # generate trigger name from short operation (I/U/D) and schema/table
-  def self.build_trigger_name(schema_id, table_id, operation)
-    "#{TRIGGER_NAME_PREFIX}#{operation}_#{schema_id}_#{table_id}"
+  def self.build_trigger_name(table, operation)
+    # Ensure trigger name remains unique even if schema or table IDs change (e.g. after export + reimport)
+    "#{TRIGGER_NAME_PREFIX}#{operation}_#{table.schema.id}_#{table.id}_#{table.schema.name.sum}_#{table.name.sum}"
   end
 
   # get ActiveRecord::Result with trigger records
@@ -19,16 +20,16 @@ class DbTriggerGeneratorSqlite < Database
     ")
   end
 
-  def self.find_all_by_table(schema_id, table_id, schema_name, table_name)
+  def self.find_all_by_table(table)
     result = []
     select_all("\
       SELECT *
       FROM   SQLite_Master
       WHERE  Type     = 'trigger'
       AND    tbl_name = :table_name
-    ", {table_name:   table_name}).each do |t|
+    ", {table_name:   table.name}).each do |t|
       ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
-      if t['name'] == build_trigger_name(schema_id, table_id, operation)
+      if t['name'] == build_trigger_name(table, operation)
         result << {
           operation:  operation,
           name:       t['name'],
@@ -139,7 +140,7 @@ class DbTriggerGeneratorSqlite < Database
         trigger_config  = table_config[operation]
         unless trigger_config.nil?                                              # there should be a trigger for table/operation
           columns         = trigger_config[:columns]
-          trigger_name    = build_trigger_name(table_id, operation)
+          trigger_name    = build_trigger_name(table, operation)
 
           # Find matching type and notnull for trigger columns
           Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
@@ -199,7 +200,7 @@ class DbTriggerGeneratorSqlite < Database
   def build_trigger_header(table, operation)
     table_config    = @expected_triggers[table.name]
     trigger_config  = table_config[operation]
-    trigger_name = build_trigger_name(table.id, operation)
+    trigger_name = build_trigger_name(table, operation)
 
     result = "CREATE TRIGGER #{trigger_name} #{long_operation_from_short(operation)}"
     result << " ON #{table.name} FOR EACH ROW"
@@ -363,8 +364,8 @@ FROM   main.#{table.name}
   end
 
   # generate trigger name, use public implementation
-  def build_trigger_name(table_id, operation)
-    DbTriggerGeneratorSqlite.build_trigger_name(@schema.id, table_id, operation)
+  def build_trigger_name(table, operation)
+    DbTriggerGeneratorSqlite.build_trigger_name(table, operation)
   end
 
   def long_operation_from_short(operation)

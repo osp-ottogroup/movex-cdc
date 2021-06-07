@@ -4,6 +4,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
     when 'ORACLE' then
       # Start MIN partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value
+      # Interval is initially set to 10 minutes but can be changed by
       EventLog.connection.execute("\
       CREATE TABLE Event_Logs (
         ID          NUMBER(18)    NOT NULL,
@@ -15,7 +16,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
         Created_At  TIMESTAMP(6)  NOT NULL
         )
         PCTFREE 0
-        INITRANS 16
+        INITRANS #{Trixx::Application.config.trixx_max_simultaneous_transactions}
         LOB(Payload) STORE AS (CACHE)
         #{"PARTITION BY RANGE (Created_At) INTERVAL( NUMTODSINTERVAL(10,'MINUTE'))
            ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{Time.now.strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if Trixx::Application.partitioning?}

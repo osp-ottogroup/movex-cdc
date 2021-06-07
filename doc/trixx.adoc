@@ -64,6 +64,7 @@ But this solutions also mean:
 * Covering outages of CDC target (Kafka) requires later processing of transaction log when CDC target systems become available again
 * Therefore you have to preserve the transaction log in space for the longest expected outage of the CDC target, if you expect to continue processing automatically after CDC target system outage
 * Including weekend, public holidays and some time for troubleshooting this regularly requires to preserve the DB transaction log in place for at least three days
+* Especially for Oracle you have to activate SUPPLEMENTAL LOGGING which significantly increases transaction log sizes
 * If you only need a small amount of change events from large transaction processing systems then the effort in dealing with transaction logs becomes complex and expensive compared to what you actually want.
 
 This is the case where TriXX comes into play. +
@@ -224,7 +225,13 @@ This amount of memory is per Thread so the maximum overall memory consumption fo
 If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|100
 |TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
 |TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
+|TRIXX_MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
+This value controls the setting for INI_TRANS for ORACLE.|16
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
+|TRIXX_PARTITION_INTERVAL|Interval in minutes between partition changes for table EVENT_LOGS. +
+Partition change is used to free already used storage after some minutes and keep the footprint of table EVENT_LOGS as small as possible. +
+Relevant only if EVENT_LOGS is used partitioned.
+|10 minutes
 |===
 
 

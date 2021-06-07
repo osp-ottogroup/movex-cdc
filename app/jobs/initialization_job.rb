@@ -29,6 +29,9 @@ class InitializationJob < ApplicationJob
     Rails.logger.info "Database version = #{Database.db_version}"
     Trixx::Application.log_attribute('Database version', Database.db_version)
 
+    EventLog.adjust_interval                                                    # Activate new Trixx::Application.config.trixx_partition_interval if necessary
+    EventLog.adjust_max_simultaneous_transactions                               # Activate new Trixx::Application.config.trixx_max_simultaneous_transactions if necessary
+
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
     HourlyJob.set(wait: 600.seconds).perform_later unless Rails.env.test?       # Job is tested separately, run first time after SystemValidationJob should have finished

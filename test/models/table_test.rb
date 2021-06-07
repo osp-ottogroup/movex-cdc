@@ -76,7 +76,7 @@ class TableTest < ActiveSupport::TestCase
   end
 
   test "oldest trigger change dates per operation" do
-    oldest_change_dates = victim1_table.youngest_trigger_change_dates_per_operation
+    oldest_change_dates = Table.find(victim1_table.id).youngest_trigger_change_dates_per_operation
     ['I', 'U', 'D'].each do |operation|
       oldest_change_date = oldest_change_dates[operation]
       if operation == 'I' && ['ORACLE'].include?(Trixx::Application.config.trixx_db_type)

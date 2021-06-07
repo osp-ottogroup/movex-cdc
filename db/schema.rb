@@ -63,7 +63,8 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
-  create_table "event_logs", id: { limit: 18, precision: 18 }, force: :cascade do |t|
+  create_table "event_logs", id: false, force: :cascade do |t|
+    t.integer "id", limit: 18, precision: 18, null: false
     t.integer "table_id", limit: 18, precision: 18, null: false
     t.string "operation", limit: 1, null: false
     t.string "dbuser", limit: 128, null: false
@@ -75,8 +76,10 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
-  create_table "hugo", id: false, force: :cascade do |t|
-    t.decimal "id"
+  create_table "orderdetailgaattr", primary_key: ["id_orderdetail", "id_gaattr"], force: :cascade do |t|
+    t.decimal "id_orderdetail"
+    t.decimal "id_gaattr"
+    t.string "value", limit: 20
   end
 
   create_table "schema_rights", force: :cascade do |t|

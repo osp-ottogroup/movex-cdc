@@ -6,8 +6,10 @@ class DbTriggerGeneratorOracle < Database
   ### class methods following
 
   # generate trigger name from short operation (I/U/D) and schema/table
-  def self.build_trigger_name(schema_id, table_id, operation)
-    "#{TRIGGER_NAME_PREFIX}#{operation}_#{schema_id}_#{table_id}"
+  def self.build_trigger_name(table, operation)
+    # Ensure trigger name remains unique even if schema or table IDs change (e.g. after export + reimport)
+    # but no longer than 30 chars
+    "#{TRIGGER_NAME_PREFIX}#{operation}_#{table.schema.id}_#{table.id}_#{table.schema.name.sum}_#{table.name.sum}"[0,30]
   end
 
   # get ActiveRecord::Result with trigger records
@@ -26,7 +28,7 @@ class DbTriggerGeneratorOracle < Database
   end
 
   # get Array of Hash with trigger info
-  def self.find_all_by_table(schema_id, table_id, schema_name, table_name)
+  def self.find_all_by_table(table)
     result = []
     select_all("\
       SELECT t.Trigger_name, o.Last_DDL_Time
@@ -37,11 +39,11 @@ class DbTriggerGeneratorOracle < Database
       AND    t.Table_Name   = :table_name
     ", {
       owner:        Trixx::Application.config.trixx_db_user,
-      table_owner:  schema_name,
-      table_name:   table_name
+      table_owner:  table.schema.name,
+      table_name:   table.name
     }).each do |t|
       ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
-      if t['trigger_name'] == build_trigger_name(schema_id, table_id, operation)
+      if t['trigger_name'] == build_trigger_name(table, operation)
         result << {
           operation:  operation,
           name:       t['trigger_name'],
@@ -214,7 +216,7 @@ class DbTriggerGeneratorOracle < Database
       t.table_name == table.name.upcase && t.triggering_event == long_operation_from_short(operation)
     }.each do |trigger|
       if trigger_expected?(table, operation) &&
-         build_trigger_name(table.id, operation) == trigger.trigger_name              # existing trigger for operation has the expected name
+         build_trigger_name(table, operation) == trigger.trigger_name           # existing trigger for operation has the expected name
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} should persist and will not be dropped.")
       else
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
@@ -234,7 +236,7 @@ class DbTriggerGeneratorOracle < Database
 
   # Check for existence, than compare and create
   def create_or_rebuild_trigger(table, operation)
-    trigger_name = build_trigger_name(table.id, operation)
+    trigger_name = build_trigger_name(table, operation)
     if trigger_expected?(table, operation)
       trigger_sql = generate_trigger_sql(table, operation)
       existing_trigger = @existing_triggers.select{|t| t.trigger_name == trigger_name}.first
@@ -254,7 +256,7 @@ class DbTriggerGeneratorOracle < Database
   # return trigger_sql
   def generate_trigger_sql(table, operation)
     columns = @expected_triggers[table.name][operation][:columns]
-    trigger_sql = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{build_trigger_name(table.id, operation)}"
+    trigger_sql = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{build_trigger_name(table, operation)}"
     trigger_sql << " FOR #{long_operation_from_short(operation)}"
 
     if operation == 'U'
@@ -302,7 +304,7 @@ BEGIN
   Flush;
 END AFTER STATEMENT;
 
-END #{build_trigger_name(table.id, operation)};
+END #{build_trigger_name(table, operation)};
 "
     body_sql
   end
@@ -536,8 +538,8 @@ END Flush;
   end
 
   # generate trigger name, use public implementation
-  def build_trigger_name(table_id, operation)
-    DbTriggerGeneratorOracle.build_trigger_name(@schema.id, table_id, operation)
+  def build_trigger_name(table, operation)
+    DbTriggerGeneratorOracle.build_trigger_name(table, operation)
   end
 
   def exec_trigger_sql(sql, trigger_name, table)
