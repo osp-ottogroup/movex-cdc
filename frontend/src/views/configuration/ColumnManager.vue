@@ -2,6 +2,8 @@
   <div class="is-relative">
     <b-loading :active="isLoading" :is-full-page="false"></b-loading>
     <column-table v-if="mergedColumns.length > 0"
+                  :schema="schema"
+                  :table="table"
                   :columns="mergedColumns"
                   :activeConditionTypes="activeConditionTypes"
                   @column-changed="onColumnChanged"
@@ -129,6 +131,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+        // do not show any columns if there is an error by switching to another table
+        this.mergedColumns = [];
       } finally {
         this.isLoading = false;
       }
