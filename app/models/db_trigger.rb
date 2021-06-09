@@ -1,7 +1,7 @@
 class DbTrigger < ApplicationRecord
 
   # delegate method calls to DB-specific implementation classes
-  @@METHODS_TO_DELEGATE = [
+  METHODS_TO_DELEGATE = [
       :build_trigger_name,
       :find_all_by_schema_id,
       :find_all_by_table,
@@ -9,7 +9,7 @@ class DbTrigger < ApplicationRecord
   ]
 
   def self.method_missing(method, *args, &block)
-    if @@METHODS_TO_DELEGATE.include?(method)
+    if METHODS_TO_DELEGATE.include?(method)
       target_class = case Trixx::Application.config.trixx_db_type
                      when 'ORACLE' then DbTriggerGeneratorOracle
                      when 'SQLITE' then DbTriggerGeneratorSqlite
@@ -23,7 +23,7 @@ class DbTrigger < ApplicationRecord
   end
 
   def self.respond_to?(method, include_private = false)
-    @@METHODS_TO_DELEGATE.include?(method) || super
+    METHODS_TO_DELEGATE.include?(method) || super
   end
 
   # Generate triggers

@@ -168,6 +168,7 @@ GEM
 
 PLATFORMS
   universal-java-15
+  universal-java-16
 
 DEPENDENCIES
   activerecord-jdbcsqlite3-adapter
