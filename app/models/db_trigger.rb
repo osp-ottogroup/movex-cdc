@@ -63,6 +63,20 @@ class DbTrigger < ApplicationRecord
         Rails.logger.debug "Schedule table data initialization for #{schema.name}.#{load[:table_name]}"
         TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql], user_options)
       end
+
+      # Log activities
+      schema.update!(last_trigger_deployment: Time.now) if generator.errors.count == 0  # Flag trigger generation successful
+      raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
+      raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
+      generator.successes.each do |success_trigger|
+        action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+      end
+      generator.errors.each do |error_trigger|
+        action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
+        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+      end
+
     end
 
     if Trixx::Application.config.trixx_db_type == 'SQLITE'
@@ -74,19 +88,6 @@ class DbTrigger < ApplicationRecord
         max_wait_for_job -= 1                                                   # avoid unlimited loop
         sleep 1
       end
-    end
-
-    # Log activities
-    schema.update!(last_trigger_deployment: Time.now) if generator.errors.count == 0  # Flag trigger generation successful
-    raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
-    raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
-    generator.successes.each do |success_trigger|
-      action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-      ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
-    end
-    generator.errors.each do |error_trigger|
-      action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-      ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
     end
 
     { successes: generator.successes, errors: generator.errors, load_sqls: generator.load_sqls}
