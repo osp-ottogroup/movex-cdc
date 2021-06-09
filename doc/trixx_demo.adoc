@@ -15,7 +15,7 @@ Last actualization: 2021-06-09
 == Preconditions ==
 - A running local Oracle database with an user to observe, in our case user="panorama_test"
 
-TIP: Use real physical IP-Adresses for Kafka, not 'localhost'.
+TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Because Kafka uses this addresses also from inside the container where 'localhost' has a different content.
 
 == Prepare Kafka ==
 === Set your local host IP address ===
