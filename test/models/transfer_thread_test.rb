@@ -76,7 +76,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     assert_statistics(expected: 4,  table_id: table_id, operation: 'D', column_name: :events_success)
     assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_delayed_errors)
     assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_final_errors)
-    assert_statistics(expected: 4,  table_id: table_id, operation: 'D', column_name: :events_d_and_c_retries)
+    assert_statistics(expected: 4,  table_id: table_id, operation: 'D', column_name: :events_d_and_c_retries, max_expected: 6)
     assert_statistics(expected: 0,  table_id: table_id, operation: 'D', column_name: :events_delayed_retries)
  end
 
