@@ -75,7 +75,12 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   def initialize(schema_id:, user_options:, dry_run:)
     super(schema_id: schema_id, user_options:user_options, dry_run: dry_run)
     @use_json_object  = Database.db_version >= '19.1'                           # Before 19.1 JSON_OBJECT is buggy
+  end
 
+
+  private
+
+  def build_existing_triggers_list
     @existing_triggers = Database.select_all(
       "SELECT t.Table_Name, t.Trigger_Name, t.Description, t.Trigger_Body, t.Triggering_Event, o.Status
          FROM   User_Triggers t
@@ -87,7 +92,11 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         table_owner:  @schema.name,
       }
     )
+  end
 
+  # Build structure:
+  # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
+  def build_expected_triggers_list
     expected_trigger_columns = Database.select_all(
       "SELECT c.Name Column_Name,
               c.YN_Log_Insert,
@@ -135,10 +144,10 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
     # Build structure:
     # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
-    @expected_triggers = {}
+    expected_triggers = {}
     expected_trigger_columns.each do |crec|
-      unless @expected_triggers.has_key?(crec.table_name)
-        @expected_triggers[crec.table_name] = {
+      unless expected_triggers.has_key?(crec.table_name)
+        expected_triggers[crec.table_name] = {
           table_name:         crec.table_name,
           yn_record_txid:     crec.yn_record_txid,
           kafka_key_handling: crec.kafka_key_handling,
@@ -147,12 +156,12 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       end
       ['I', 'U', 'D'].each do |operation|
         if (operation == 'I' && crec.yn_log_insert == 'Y') ||
-           (operation == 'U' && crec.yn_log_update == 'Y') ||
-           (operation == 'D' && crec.yn_log_delete == 'Y')
-          unless @expected_triggers[crec.table_name].has_key?(operation)
-            @expected_triggers[crec.table_name][operation] = { columns: [] }
+          (operation == 'U' && crec.yn_log_update == 'Y') ||
+          (operation == 'D' && crec.yn_log_delete == 'Y')
+          unless expected_triggers[crec.table_name].has_key?(operation)
+            expected_triggers[crec.table_name][operation] = { columns: [] }
           end
-          @expected_triggers[crec.table_name][operation][:columns] << {
+          expected_triggers[crec.table_name][operation][:columns] << {
             column_name: crec.column_name,
             data_type:   crec.data_type,
             nullable:    crec.nullable
@@ -163,44 +172,24 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
     # Add possible conditions at operation level
     expected_trigger_operation_filters.each do |cd|
-      if @expected_triggers[cd.table_name] && @expected_triggers[cd.table_name][cd.operation] # register filters only if operation has columns
-        @expected_triggers[cd.table_name][cd.operation][:condition] = cd.filter
+      if expected_triggers[cd.table_name] && expected_triggers[cd.table_name][cd.operation] # register filters only if operation has columns
+        expected_triggers[cd.table_name][cd.operation][:condition] = cd.filter
       end
     end
 
     # Add possible primary key columns
     existing_pk_columns.each do |pkc|
-      if @expected_triggers[pkc.table_name]                                     # table should have trigger
-        @expected_triggers[pkc.table_name][:pk_columns] = [] unless @expected_triggers[pkc.table_name][:pk_columns]
-        @expected_triggers[pkc.table_name][:pk_columns] << {
+      if expected_triggers[pkc.table_name]                                     # table should have trigger
+        expected_triggers[pkc.table_name][:pk_columns] = [] unless expected_triggers[pkc.table_name][:pk_columns]
+        expected_triggers[pkc.table_name][:pk_columns] << {
           column_name: pkc.column_name,
           data_type:   pkc.data_type
         }
       end
     end
+    expected_triggers
   end
-
-  # call subroutines defined in DB-specific classes
-  def generate_table_triggers(table_id:)
-    table = Table.find table_id
-    ['I', 'U', 'D'].each do |operation|
-      drop_obsolete_triggers(table, operation)
-      check_for_physical_column_existence(table, operation)
-      create_or_rebuild_trigger(table, operation)
-    end
-  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
-    ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
-    @errors << {
-      table_id:           table.id,
-      table_name:         table.name,
-      trigger_name:       '[not specified]',
-      exception_class:    e.class.name,
-      exception_message:  e.message,
-      sql:                '[not specified]'
-    }
-  end
-
-  private
+  
   def drop_obsolete_triggers(table, operation)
     @existing_triggers.select { |t|
       # filter existing triggers for considered table and operation
@@ -228,18 +217,15 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   # Check for existence, than compare and create
   def create_or_rebuild_trigger(table, operation)
     trigger_name = build_trigger_name(table, operation)
-    if trigger_expected?(table, operation)
-      trigger_sql = generate_trigger_sql(table, operation)
-      existing_trigger = @existing_triggers.select{|t| t.trigger_name == trigger_name}.first
-      # Compare possibly existing trigger with new one
-      if existing_trigger.nil? ||
-         trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" ||
-        existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
-        exec_trigger_sql(trigger_sql, trigger_name, table)
-      else
-        Rails.logger.debug "DbTriggerGeneratorOracle.create_or_rebuild_trigger: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
-      end
-      generate_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
+    trigger_sql = generate_trigger_sql(table, operation)
+    existing_trigger = @existing_triggers.select{|t| t.trigger_name == trigger_name}.first
+    # Compare possibly existing trigger with new one
+    if existing_trigger.nil? ||
+       trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" ||
+      existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
+      exec_trigger_sql(trigger_sql, trigger_name, table)
+    else
+      Rails.logger.debug "DbTriggerGeneratorOracle.create_or_rebuild_trigger: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
     end
   end
 
@@ -300,7 +286,7 @@ END #{build_trigger_name(table, operation)};
     body_sql
   end
 
-  def generate_load_sql(table, trigger_name)
+  def create_load_sql(table)
     # current SCN directly after creation of insert trigger
     scn = Database.select_one "SELECT current_scn FROM V$DATABASE"
     table_config    = @expected_triggers[table.name]
@@ -338,7 +324,7 @@ END;
       @errors << {
         table_id:           table.id,
         table_name:         table.name,
-        trigger_name:       trigger_name,
+        trigger_name:       self.build_trigger_name(table, 'I'),
         exception_class:    e.class.name,
         exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
         sql:                load_sql
@@ -520,12 +506,6 @@ END Flush;
   def position_from_operation(operation)
     return 'BEFORE' if operation == 'D'
     'AFTER'
-  end
-
-  # Should trigger exist here
-  def trigger_expected?(table, operation)
-    @expected_triggers[table.name] &&                                           # Table should have triggers
-      @expected_triggers[table.name][operation]                                 # Operation has columns to trigger
   end
 
   # generate trigger name, use public implementation

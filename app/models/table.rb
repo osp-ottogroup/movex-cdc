@@ -11,6 +11,7 @@ class Table < ApplicationRecord
   validate    :validate_yn_columns
   validate    :validate_unchanged_attributes
   validate    :validate_yn_initialization
+  validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
 
   # get all tables for schema where the current user has SELECT grant
@@ -76,6 +77,11 @@ class Table < ApplicationRecord
       rescue Exception => e
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka!\n#{e.class}:#{e.message}")
       end
+    end
+  end
+
+  def validate_yn_initialization_update
+    if yn_initialization == 'Y'
       if Column.where(table_id: self.id, yn_log_insert: 'Y').count == 0
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} should have at least one column registered for insert trigger to execute initialization!")
       end

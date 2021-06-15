@@ -45,8 +45,12 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
   def initialize(schema_id:, user_options:, dry_run:)
     super(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
+  end
 
-    @existing_triggers = Database.select_all(
+  private
+
+  def build_existing_triggers_list
+    Database.select_all(
       "SELECT Name trigger_name, Tbl_Name table_name, SQL,
                CASE
                WHEN INSTR(sql, 'INSERT ON') > 0 THEN 'I'
@@ -58,7 +62,9 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
          AND    Name LIKE '#{TRIGGER_NAME_PREFIX}%'
         "
     )
+  end
 
+  def build_expected_triggers_list
     expected_trigger_columns = Database.select_all(
       "SELECT c.Name column_name,
               c.YN_Log_Insert,
@@ -86,11 +92,11 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
     # Build structure:
     # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
-    @expected_triggers = {}
+    expected_triggers = {}
     expected_trigger_columns.each do |crec|
 
-      unless @expected_triggers.has_key?(crec.table_name)
-        @expected_triggers[crec.table_name] = {
+      unless expected_triggers.has_key?(crec.table_name)
+        expected_triggers[crec.table_name] = {
           table_name:         crec.table_name
         }
       end
@@ -98,10 +104,10 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
         if (operation == 'I' && crec.yn_log_insert == 'Y') ||
           (operation == 'U' && crec.yn_log_update == 'Y') ||
           (operation == 'D' && crec.yn_log_delete == 'Y')
-          unless @expected_triggers[crec.table_name].has_key?(operation)
-            @expected_triggers[crec.table_name][operation] = { columns: [] }
+          unless expected_triggers[crec.table_name].has_key?(operation)
+            expected_triggers[crec.table_name][operation] = { columns: [] }
           end
-          @expected_triggers[crec.table_name][operation][:columns] << {
+          expected_triggers[crec.table_name][operation][:columns] << {
             column_name: crec.column_name,
           }
         end
@@ -110,33 +116,12 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
     # Add possible conditions at operation level
     expected_trigger_operation_filters.each do |cd|
-      if @expected_triggers[cd.table_name] && @expected_triggers[cd.table_name][cd.operation]  # register filters only if operation has columns
-        @expected_triggers[cd.table_name][cd.operation][:condition] = cd.filter
+      if expected_triggers[cd.table_name] && expected_triggers[cd.table_name][cd.operation]  # register filters only if operation has columns
+        expected_triggers[cd.table_name][cd.operation][:condition] = cd.filter
       end
     end
+    expected_triggers
   end
-
-  def generate_table_triggers(table_id:)
-    table = Table.find table_id
-
-    ['I', 'U', 'D'].each do |operation|
-      drop_obsolete_triggers(table, operation)
-      check_for_physical_column_existence(table, operation)
-      create_or_rebuild_trigger(table, operation)
-    end
-  rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
-    ExceptionHelper.log_exception(e, "DbTriggerGeneratorSqlite.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
-    @errors << {
-      table_id:           table.id,
-      table_name:         table.name,
-      trigger_name:       '[not specified]',
-      exception_class:    e.class.name,
-      exception_message:  e.message,
-      sql:                '[not specified]'
-    }
-  end
-
-  private
 
   def drop_obsolete_triggers(table, operation)
     @existing_triggers.select{|t|
@@ -152,47 +137,35 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
   end
 
   def check_for_physical_column_existence(table, operation)
-    table_config    = @expected_triggers[table.name]
-    unless table_config.nil?                                                  # at least one trigger expected for table
-      trigger_config  = table_config[operation]
-      unless trigger_config.nil?                                              # there should be a trigger for table/operation
-        columns         = trigger_config[:columns]
-
-        # Find matching type and notnull for trigger columns
-        Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
-          columns.each do |trigger_column|
-            if table_column.name.upcase == trigger_column[:column_name].upcase
-              trigger_column[:type]     = table_column.type
-              trigger_column[:notnull]  = table_column.notnull
-            end
+    columns = @expected_triggers.fetch(table.name, nil)&.fetch(operation, nil)&.fetch(:columns, nil)
+    unless columns.nil?
+      # Find matching type and notnull for trigger columns
+      Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
+        columns.each do |trigger_column|
+          if table_column.name.upcase == trigger_column[:column_name].upcase
+            trigger_column[:type]     = table_column.type
+            trigger_column[:notnull]  = table_column.notnull
           end
         end
+      end
 
-        columns.each do |trigger_column|
-          raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
-        end
+      columns.each do |trigger_column|
+        raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
       end
     end
   end
 
   def create_or_rebuild_trigger(table, operation)
-    table_config    = @expected_triggers[table.name]
-    unless table_config.nil?                                                  # at least one trigger expected for table
-      trigger_config  = table_config[operation]
-      unless trigger_config.nil?                                              # there should be a trigger for table/operation
-        trigger_name    = build_trigger_name(table, operation)
-        create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
-        existing_trigger = @existing_triggers.select{|t| t.table_name == table.name && t.operation == operation }.first
-        if existing_trigger
-          if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
-            exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
-            exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
-          end
-        else
-          exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
-        end
-        create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
+    trigger_name    = build_trigger_name(table, operation)
+    create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
+    existing_trigger = @existing_triggers.select{|t| t.table_name == table.name && t.operation == operation }.first
+    if existing_trigger
+      if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
+        exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
+        exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
       end
+    else
+      exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
     end
   end
 
@@ -250,7 +223,7 @@ END;"
   end
 
   # called only if operation == 'I' and yn_initialization == 'Y'
-  def create_load_sql(table, trigger_name)
+  def create_load_sql(table)
     trigger_config    = @expected_triggers[table.name]['I']
 
     sql = "\
@@ -272,7 +245,7 @@ FROM   main.#{table.name}
       @errors << {
         table_id:           table.id,
         table_name:         table.name,
-        trigger_name:       trigger_name,
+        trigger_name:       self.build_trigger_name(table, 'I'),
         exception_class:    e.class.name,
         exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
         sql:                sql
