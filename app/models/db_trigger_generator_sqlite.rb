@@ -118,43 +118,11 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
   def generate_table_triggers(table_id:)
     table = Table.find table_id
-    table_config    = @expected_triggers[table.name]
 
     ['I', 'U', 'D'].each do |operation|
       drop_obsolete_triggers(table, operation)
-        unless table_config.nil?                                                  # at least one trigger expected for table
-        trigger_config  = table_config[operation]
-        unless trigger_config.nil?                                              # there should be a trigger for table/operation
-          columns         = trigger_config[:columns]
-          trigger_name    = build_trigger_name(table, operation)
-
-          # Find matching type and notnull for trigger columns
-          Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
-            columns.each do |trigger_column|
-              if table_column.name.upcase == trigger_column[:column_name].upcase
-                trigger_column[:type]     = table_column.type
-                trigger_column[:notnull]  = table_column.notnull
-              end
-            end
-          end
-
-          columns.each do |trigger_column|
-            raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
-          end
-
-          create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
-          existing_trigger = @existing_triggers.select{|t| t.table_name == table.name && t.operation == operation }.first
-          if existing_trigger
-            if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
-              exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
-              exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
-            end
-          else
-            exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
-          end
-          create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
-        end
-      end
+      check_for_physical_column_existence(table, operation)
+      create_or_rebuild_trigger(table, operation)
     end
   rescue Exception => e                                                         # Ensure other tables are processed if error occurs at one table
     ExceptionHelper.log_exception(e, "DbTriggerGeneratorSqlite.generate_table_triggers: schema='#{table.schema.name}', table='#{table.name}'")
@@ -179,6 +147,51 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
         exec_trigger_sql("DROP TRIGGER #{t.trigger_name}", t.trigger_name, table)       # Remove existing trigger
       else
         Rails.logger.debug("drop_obsolete_triggers: Existing trigger #{table.name}.#{t.trigger_name} expected in config, not dropped")
+      end
+    end
+  end
+
+  def check_for_physical_column_existence(table, operation)
+    table_config    = @expected_triggers[table.name]
+    unless table_config.nil?                                                  # at least one trigger expected for table
+      trigger_config  = table_config[operation]
+      unless trigger_config.nil?                                              # there should be a trigger for table/operation
+        columns         = trigger_config[:columns]
+
+        # Find matching type and notnull for trigger columns
+        Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
+          columns.each do |trigger_column|
+            if table_column.name.upcase == trigger_column[:column_name].upcase
+              trigger_column[:type]     = table_column.type
+              trigger_column[:notnull]  = table_column.notnull
+            end
+          end
+        end
+
+        columns.each do |trigger_column|
+          raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
+        end
+      end
+    end
+  end
+
+  def create_or_rebuild_trigger(table, operation)
+    table_config    = @expected_triggers[table.name]
+    unless table_config.nil?                                                  # at least one trigger expected for table
+      trigger_config  = table_config[operation]
+      unless trigger_config.nil?                                              # there should be a trigger for table/operation
+        trigger_name    = build_trigger_name(table, operation)
+        create_sql = "#{build_trigger_header(table, operation)}\n#{build_trigger_body(table, operation) }"
+        existing_trigger = @existing_triggers.select{|t| t.table_name == table.name && t.operation == operation }.first
+        if existing_trigger
+          if create_sql != "#{existing_trigger.sql};"                         # Trigger code has changed
+            exec_trigger_sql("DROP TRIGGER #{existing_trigger.trigger_name}", existing_trigger.trigger_name, table)       # Remove existing trigger
+            exec_trigger_sql(create_sql, trigger_name, table)                 # create trigger again
+          end
+        else
+          exec_trigger_sql(create_sql, trigger_name, table)                   # create new trigger
+        end
+        create_load_sql(table, trigger_name) if operation == 'I' && table.yn_initialization == 'Y' # init table if requested regardless of whether trigger code has changed or not
       end
     end
   end

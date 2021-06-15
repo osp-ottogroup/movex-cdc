@@ -180,6 +180,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     end
   end
 
+  # call subroutines defined in DB-specific classes
   def generate_table_triggers(table_id:)
     table = Table.find table_id
     ['I', 'U', 'D'].each do |operation|
