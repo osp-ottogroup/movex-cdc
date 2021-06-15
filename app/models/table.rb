@@ -111,7 +111,7 @@ class Table < ApplicationRecord
     end
     Database.select_one sql
   rescue Exception => e
-    msg = "#{e.class}:#{e.message} Table #{self.schema.name}.#{self.name} is not readable.\nSQL: #{sql}\n#{error_msg_add}"
+    msg = "#{e.class}:#{e.message} Table #{self.schema.name}.#{self.name} is not readable.\nSQL:\n#{sql}\n#{error_msg_add}"
     Rails.logger.error msg
     raise msg
   end

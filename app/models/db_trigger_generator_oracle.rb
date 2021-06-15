@@ -1,15 +1,10 @@
-class DbTriggerGeneratorOracle < Database
-  attr_reader :successes, :errors, :load_sqls
-
-  TRIGGER_NAME_PREFIX = "TRIXX_"                                                # owner of trigger is always trixx_db_user, must not be part of trigger name
+class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
   ### class methods following
 
   # generate trigger name from short operation (I/U/D) and schema/table
   def self.build_trigger_name(table, operation)
-    # Ensure trigger name remains unique even if schema or table IDs change (e.g. after export + reimport)
-    # but no longer than 30 chars
-    "#{TRIGGER_NAME_PREFIX}#{operation}_#{table.schema.id}_#{table.id}_#{table.schema.name.sum}_#{table.name.sum}"[0,30]
+    super(table, operation)[0,30]                                               # but no longer than 30 chars
   end
 
   # get ActiveRecord::Result with trigger records
@@ -78,12 +73,7 @@ class DbTriggerGeneratorOracle < Database
   ### instance methods following
 
   def initialize(schema_id:, user_options:, dry_run:)
-    @schema       = Schema.find schema_id
-    @user_options = user_options
-    @dry_run      = dry_run
-    @successes    = []                                                          # created triggers
-    @errors       = []                                                          # errors during trigger creation
-    @load_sqls    = []                                                          # PL/SQL snipped for initial load
+    super(schema_id: schema_id, user_options:user_options, dry_run: dry_run)
     @use_json_object  = Database.db_version >= '19.1'                           # Before 19.1 JSON_OBJECT is buggy
 
     @existing_triggers = Database.select_all(
