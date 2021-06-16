@@ -165,7 +165,8 @@ docker run --rm \
 |Grant|Description
 
 |SELECT ON <table>|Allows selection of table data for initial transfer to Kafka
-|FLASHBACK ON <table>|Allows selection of table data by flashback query limited to the existing records at the current SCN of trigger creation
+|FLASHBACK ON <table>|Allows selection of table data by flashback query limited to the existing records at the current SCN of trigger creation +
+Since the FLASHBACK grant alone does not allow the selection of data from a table without the SELECT grant, this requirement can also be satisfied by granting FLASHBACK ANY TABLE to the TriXX user.
 |===
 
 ==== Kafka configuration ====
