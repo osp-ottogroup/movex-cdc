@@ -3,7 +3,10 @@
     <b-loading :active="isLoading" :is-full-page="false"></b-loading>
     <form @submit.prevent="onSubmit">
       <header class="modal-card-head">
-        <p class="modal-card-title">Login</p>
+        <div class="modal-card-title is-flex is-justify-content-space-between">
+          <div>Login</div>
+          <OSPBranding></OSPBranding>
+        </div>
       </header>
       <section class="modal-card-body">
         <b-field label="User Name">
@@ -42,9 +45,13 @@
 
 <script>
 import { getErrorMessageAsHtml } from '@/helpers';
+import OSPBranding from '@/components/OspBranding.vue';
 import LoginService from '../services/LoginService';
 
 export default {
+  components: {
+    OSPBranding,
+  },
   data() {
     return {
       userName: null,

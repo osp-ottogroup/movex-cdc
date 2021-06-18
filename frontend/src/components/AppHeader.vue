@@ -4,8 +4,9 @@
 
       <template v-slot:brand>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
-          <span>OSP|</span>
-          <strong>TriXX</strong>
+          <div class="is-size-4">
+            <OSPBranding></OSPBranding>
+          </div>
         </b-navbar-item>
       </template>
 
@@ -75,9 +76,13 @@
 import Config from '@/config/config';
 import UserService from '@/services/UserService';
 import LoginService from '../services/LoginService';
+import OSPBranding from './OspBranding.vue';
 
 export default {
   name: 'AppHeader',
+  components: {
+    OSPBranding,
+  },
   data() {
     return {
       showAccountInfo: false,

@@ -3,10 +3,7 @@
     <div class="columns is-mobile">
       <div class="column"></div>
       <div class="column has-text-centered">
-        <p>
-          <span>OSP|</span>
-          <strong>TriXX</strong>
-        </p>
+        <OSPBranding></OSPBranding>
       </div>
       <div class="column is-size-7 has-text-right">
         <span v-if="releaseInfo !== null">
@@ -21,9 +18,13 @@
 <script>
 import HttpService from '@/services/HttpService';
 import Config from '@/config/config';
+import OSPBranding from './OspBranding.vue';
 
 export default {
   name: 'AppFooter',
+  components: {
+    OSPBranding,
+  },
   data() {
     return {
       releaseInfo: null,
