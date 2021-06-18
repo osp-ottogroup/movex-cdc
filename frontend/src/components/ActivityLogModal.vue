@@ -22,6 +22,7 @@
         <div v-if="!isLoading && activityLog.length === 0">No entries found</div>
         <div v-if="!isLoading && activityLog.length > 0">
           <b-table
+            ref="activityLogTable"
             :data="activityLog"
             default-sort="created_at"
             default-sort-direction="desc"
@@ -45,7 +46,11 @@
               {{ props.row.column_name }}
             </b-table-column>
             <b-table-column field="action" label="Action" cell-class="no-wrap" v-slot="props">
-              {{ props.row.action.substring(0, 40) }} ...
+              <div>{{ props.row.action.substring(0, 40) }} ...</div>
+              <div class="has-text-info-dark pointer"
+                   @click="props.toggleDetails(props.row)">
+                {{ $refs.activityLogTable.isVisibleDetailRow(props.row) ? 'less ...' : 'more ...'}}
+              </div>
             </b-table-column>
             <b-table-column field="created_at" label="Timestamp" sortable v-slot="props">
               {{ new Date(props.row.created_at).toLocaleString() }}
@@ -132,5 +137,8 @@ export default {
 }
 ::v-deep .no-wrap {
   white-space: nowrap;
+}
+.pointer {
+  cursor: pointer;
 }
 </style>
