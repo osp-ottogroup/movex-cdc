@@ -24,15 +24,15 @@ export const getErrorMessageAsHtml = (error, prependMessage = '') => {
   let errorMessage;
 
   if (error instanceof ServerError && error.errors.length > 0) {
-    errorMessage = `<div>${error.errors.map((e) => escape(e)).join('</div><div>')}</div>`;
+    errorMessage = `<div class="mt-2">${error.errors.map((e) => escape(e)).join('</div><div class="mt-2">')}</div>`;
   } else if (error.message) {
-    errorMessage = `<div>${escape(error.message)}</div>`;
+    errorMessage = `<div class="mt-2">${escape(error.message)}</div>`;
   } else {
-    errorMessage = '<div>An unknown error occurred!</div>';
+    errorMessage = '<div class="mt-2">An unknown error occurred!</div>';
   }
 
   if (prependMessage !== '') {
-    errorMessage = `<div><b>${escape(prependMessage)}</b></div>${errorMessage}`;
+    errorMessage = `<div class="mt-2"><b>${escape(prependMessage)}</b></div>${errorMessage}`;
   }
 
   return errorMessage;
