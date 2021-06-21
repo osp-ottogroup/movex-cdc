@@ -677,3 +677,21 @@ The owner of the TriXX-schema requires only a minimum set of rights on foreign o
 There might be a security gap if users may define trigger on tables where they don't have read rights.
 This way they could possibly read hidden table content via Kafka. +
 Therefore only tables are accessible for trigger definition at TriXX-GUI where the connected user has at least read rights.
+
+== Frequently asked questions ==
+.FAQ will be completed over time with all upcoming questions that are not answered befor
+[cols="~,~"]
+|===
+|Question|Answer
+
+|Do I have to redeploy triggers if I want to change the topic of a table|
+The target topic for a table is read from current configuration before transferring events to Kafka. +
+Therefore there is no need to redeploy the triggers in this case. +
+Each worker thread caches the topics of a table or schema for max. 60 seconds before refrehing it with the current configuation.
+If want to exactly define the timestamp of change, than: +
+- Set the worker count to 0 +
+- Wait until all worker threads have finished. You can check this by health check. +
+- change the topic in GUI +
+- set the worker count to > 0. Now the new topic is used for transfer to Kafka.
+
+|===
