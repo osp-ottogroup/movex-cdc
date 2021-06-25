@@ -76,19 +76,3 @@ export default {
   },
 };
 </script>
-
-<style lang="scss" scoped>
-@import "../../app.scss";
-
-.server-logs {
-  height: calc(100vh - #{$navbar-height} - 30px - 2rem);
-  display: flex;
-  flex-direction: column;
-}
-.logs {
-  white-space: pre;
-  position: relative;
-  overflow: auto;
-  flex-grow: 1;
-}
-</style>
