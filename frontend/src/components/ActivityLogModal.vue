@@ -57,7 +57,9 @@
             </b-table-column>
 
             <template #detail="props">
-              {{ props.row.action }}
+              <div class="action-detail">
+                {{ props.row.action }}
+              </div>
             </template>
           </b-table>
         </div>
@@ -140,5 +142,8 @@ export default {
 }
 .pointer {
   cursor: pointer;
+}
+.action-detail {
+  white-space: pre-wrap;
 }
 </style>
