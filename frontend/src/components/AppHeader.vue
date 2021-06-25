@@ -11,26 +11,32 @@
       </template>
 
       <template v-slot:start>
-        <b-navbar-item tag="router-link" :to="{ path: '/' }">
+        <b-navbar-item tag="router-link" :to="{ path: '/' }" :active="$route.path === '/'">
             Home
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/users' }">
+        <b-navbar-item tag="router-link" :to="{ path: '/users' }" :active="$route.path === '/users'" v-if="isAdminUser" >
             Users
         </b-navbar-item>
-        <b-navbar-item tag="router-link" :to="{ path: '/configuration' }">
+        <b-navbar-item tag="router-link" :to="{ path: '/configuration' }" :active="$route.path === '/configuration'">
           Configuration
         </b-navbar-item>
-        <b-navbar-item v-if="canDeploy" tag="router-link" :to="{ path: '/deployment' }">
+        <b-navbar-item tag="router-link" :to="{ path: '/deployment' }" :active="$route.path === '/deployment'" v-if="canDeploy">
           Deployment
         </b-navbar-item>
-        <b-navbar-item v-if="isAdminUser" tag="router-link" :to="{ path: '/information' }">
+        <b-navbar-item tag="router-link" :to="{ path: '/information' }" :active="$route.path === '/information'" v-if="isAdminUser">
           Info
         </b-navbar-item>
-        <b-navbar-dropdown v-if="isAdminUser" label="Administration">
-          <b-navbar-item tag="router-link" :to="{ path: '/administration/server-log-level' }">
+        <b-navbar-dropdown v-if="isAdminUser"
+                           label="Administration"
+                           :class="{'router-link-exact-active': $route.path.startsWith('/administration/')}">
+          <b-navbar-item tag="router-link"
+                         :to="{ path: '/administration/server-log-level' }"
+                         :active="$route.path === '/administration/server-log-level'">
             Set Server Log Level
           </b-navbar-item>
-          <b-navbar-item tag="router-link" :to="{ path: '/administration/server-log' }">
+          <b-navbar-item tag="router-link"
+                         :to="{ path: '/administration/server-log' }"
+                         :active="$route.path === '/administration/server-log'">
             Show Server Log
           </b-navbar-item>
         </b-navbar-dropdown>
@@ -132,5 +138,12 @@ export default {
   position: absolute;
   top: 1rem;
   right: 0.5rem;
+}
+
+.navbar-start .router-link-exact-active {
+  font-weight: 500;
+}
+.navbar-start .navbar-dropdown a:not(.router-link-exact-active) {
+  font-weight: initial;
 }
 </style>
