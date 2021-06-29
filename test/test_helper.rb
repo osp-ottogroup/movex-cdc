@@ -232,8 +232,12 @@ class ActiveSupport::TestCase
     end # COMMIT
 
     event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
-    assert_equal(event_logs_before+number_of_records, event_logs_after, "Number of event_logs should be increased by #{number_of_records}")
-
+    if event_logs_before+number_of_records != event_logs_after
+      msg = "Number of event_logs should be increased by #{number_of_records} but before are #{event_logs_before} records and after are #{event_logs_after} records"
+      Rails.logger.error msg
+      log_event_logs_content
+      raise msg
+    end
   end
 
   def log_event_logs_content(options = {})
