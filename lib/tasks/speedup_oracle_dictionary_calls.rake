@@ -3,7 +3,7 @@ namespace :ci_preparation do
 Access to dictionary views has massively slowed down in PDB environments while using PQ.
   "
 
-  task :disable_parallel_query do
+  task :speedup_oracle_dictionary_calls do
 
     def exec(conn, sql)
       puts "Execute: #{sql}"
@@ -25,7 +25,7 @@ Access to dictionary views has massively slowed down in PDB environments while u
       stmt.close rescue nil
     end
 
-    puts "Running ci_preparation:disable_parallel_query for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
+    puts "Running ci_preparation:speedup_oracle_dictionary_calls for trixx_db_type = #{Trixx::Application.config.trixx_db_type }"
     if Trixx::Application.config.trixx_db_type == 'ORACLE'
       raise "Value for TRIXX_DB_SYS_PASSWORD required to create users" if !Trixx::Application.config.respond_to?(:trixx_db_sys_password)
       properties = java.util.Properties.new
@@ -49,8 +49,13 @@ Access to dictionary views has massively slowed down in PDB environments while u
       if db_version_gt_12_1 == 1
         # Speed up execution in smaller test DBs
         # in 12.1: ORA-65040: operation not allowed from within a pluggable database
-        exec conn, "ALTER SYSTEM SET parallel_max_servers=0 SCOPE=BOTH"
+        #exec conn, "ALTER SYSTEM SET parallel_max_servers=0 SCOPE=BOTH"
       end
+
+      # exclude "X$COMVW$" from execution plan
+      # see also: Dictionary Queries Run Slowly in 12C Pluggable Databases (Doc ID 2033658.1)
+      # https://support.oracle.com/epmos/faces/DocumentDisplay?_afrLoop=471348295695682&parent=EXTERNAL_SEARCH&sourceId=PROBLEM&id=2033658.1&_afrWindowMode=0&_adf.ctrl-state=dywy3nphu_4
+      exec conn, 'ALTER SYSTEM SET "_common_data_view_enabled"=false SCOPE=BOTH'
 
       conn.close
     end

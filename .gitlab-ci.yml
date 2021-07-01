@@ -54,7 +54,7 @@ brakeman_analysis:
     # Wait max. 10 minutes for DB available
     - bundle exec rake "ci_preparation:wait_for_db_available[10]"
     # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
-    - bundle exec rake ci_preparation:disable_parallel_query
+    - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
     - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - >
@@ -209,7 +209,7 @@ trivy_scan:
       echo  "TRIXX_KAFKA_SEED_BROKER:  $TRIXX_KAFKA_SEED_BROKER " >> trixx_run.yml
     - cat trixx_run.yml
     - $PODMAN run --rm -v $PWD/trixx_run.yml:/trixx_run.yml -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
-    - $PODMAN run --rm -v $PWD/trixx_run.yml:/trixx_run.yml -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:disable_parallel_query
+    - $PODMAN run --rm -v $PWD/trixx_run.yml:/trixx_run.yml -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
     - $PODMAN run --rm -v $PWD/trixx_run.yml:/trixx_run.yml -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
     - $PODMAN run -d --rm --name=trixx -p8080:8080 -v $PWD/trixx_run.yml:/trixx_run.yml -e TRIXX_RUN_CONFIG=/trixx_run.yml $TEMP_DOCKER_IMAGE
     - sleep 5
