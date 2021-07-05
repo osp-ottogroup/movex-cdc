@@ -32,9 +32,9 @@ class TableInitializationThread
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}" ).save!
     raise
   ensure
+    @table.update!(yn_initialization: 'N')                                      # Mark initialization as finished no matter if succesful or not
     TableInitialization.get_instance.remove_from_thread_pool(self)              # unregister from threadpool
     TableInitialization.get_instance.check_for_next_processing                  # start next thread if there are still unprocessed requests
-    @table.update!(yn_initialization: 'N')                                      # Mark initialization as finished no matter if succesful or not
   end
 
   # get Hash with current state info for thread, used e.g. for health check
