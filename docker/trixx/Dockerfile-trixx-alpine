@@ -2,7 +2,7 @@
 # Sandro Preuß, Peter Ramm, 2020-04-01
 
 # Usage:
-# Build image:      > docker pull jruby:9.2.13.0
+# Build image:      > docker pull jruby:x.x.x.x
 #                   > docker build -f docker/trixx/Dockerfile-trixx --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t trixx .
 # Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx -e LOG_LEVEL=debug trixx
 # Store image at git.osp-dd.de:5005/main/trixx/trixx for deployment
@@ -37,7 +37,7 @@ MAINTAINER Peter.Ramm@ottogroup.com
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
 ENV RAILS_MAX_THREADS=300
-ENV JRUBY_VERSION=9.2.17.0
+ENV JRUBY_VERSION=9.2.19.0
 ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
 
 RUN  apk update && \
