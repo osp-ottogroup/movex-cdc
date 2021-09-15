@@ -24,7 +24,11 @@ RUN npm install
 COPY $FRONTEND_SRC_PATH .
 
 # Build VueJS frontend function
-RUN npm run build
+# npm run build uses latest version of dependencies according to SEMVER behaviour
+# RUN npm run build
+
+# npm run ci uses exact version according package-lock.json
+RUN npm run ci
 
 # Ensure no known vulnerabilities are in dependencies of frontend packages
 RUN npm audit --production
