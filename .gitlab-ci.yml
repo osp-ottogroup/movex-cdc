@@ -32,6 +32,12 @@ brakeman_analysis:
     - gem install --no-doc racc brakeman
     - brakeman -A
 
+test_frontend:
+  stage: code_analysis
+  script:
+    - npm install -g @vue/cli
+    - cd frontend && npm ci && npm run test:unit
+
 .tests:
   #  services:
   #    - name: git.osp-dd.de:5005/main/trixx/kafka-compact

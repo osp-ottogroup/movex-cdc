@@ -19,16 +19,15 @@ WORKDIR /app
 
 COPY $FRONTEND_SRC_PATH/package*.json ./
 
-RUN npm install
+# npm run install uses latest version of dependencies according to SEMVER behaviour
+# RUN npm install
+# npm run ci installs exact version according to package-lock.json in contrast to npm install
+RUN npm ci
 
 COPY $FRONTEND_SRC_PATH .
 
 # Build VueJS frontend function
-# npm run build uses latest version of dependencies according to SEMVER behaviour
-# RUN npm run build
-
-# npm run ci uses exact version according package-lock.json
-RUN npm run ci
+RUN npm run build
 
 # Ensure no known vulnerabilities are in dependencies of frontend packages
 RUN npm audit --production
