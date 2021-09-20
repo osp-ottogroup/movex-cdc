@@ -3,7 +3,7 @@ WORKDIR /app
 
 COPY Gemfile* ./
 
-RUN gem install bundler -v '2.2.17'
+RUN gem install bundler -v '2.2.26'
 
 RUN bundle install --jobs 4
 

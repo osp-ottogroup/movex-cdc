@@ -8,6 +8,7 @@ describe('App.vue', () => {
   });
 
   it('renders application if user is logged in', () => {
+    const onCreatedStub = jest.spyOn(App.methods, 'onCreated').mockImplementation(jest.fn());
     const wrapper = shallowMount(App, {
       data() {
         return {
@@ -15,10 +16,8 @@ describe('App.vue', () => {
           isLoginCheckPending: false,
         };
       },
-      methods: {
-        onCreated: jest.fn(),
-      },
     });
+    expect(onCreatedStub).toHaveBeenCalledWith();
     expect(wrapper.find('router-view-stub').exists()).toBeTruthy();
   });
 });
