@@ -3,8 +3,8 @@
 # Peter Ramm, 2020-03-09
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-compact -t git.osp-dd.de:5005/main/trixx/kafka-compact .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 git.osp-dd.de:5005/main/trixx/kafka-compact
+# Build image:      > docker build -f Dockerfile-kafka-compact -t git.osp-dd.de:5005/main/trixx/kafka-compact:3.0.0 .
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 git.osp-dd.de:5005/main/trixx/kafka-compact:3.0.0
 # Use
 
 
@@ -29,7 +29,7 @@ EXPOSE 2181/tcp 9092/tcp
 RUN apk add tar
 RUN apk add gzip
 
-RUN wget "http://us.mirrors.quenda.co/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+RUN wget "http://mirror.softaculous.com/apache/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 
 RUN ls -l /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
