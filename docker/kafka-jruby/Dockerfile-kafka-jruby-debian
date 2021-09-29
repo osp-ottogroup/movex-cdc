@@ -1,3 +1,4 @@
+# currently not used, see Dockerfile-kafka-jruby-oracle
 # Build Docker image based on jRuby with both zookeeper and kafka
 # for usage as default image for whole CI pipeline for TriXX
 # Peter Ramm, 2020-03-17
