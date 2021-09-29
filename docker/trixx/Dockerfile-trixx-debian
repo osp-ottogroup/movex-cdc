@@ -1,3 +1,4 @@
+# ----- curently not used, use Dockerfile-trixx-alpine
 # Build Docker image for TriXX application based on jRuby
 # Sandro Preuß, Peter Ramm, 2020-04-01
 

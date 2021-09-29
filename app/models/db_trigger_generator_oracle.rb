@@ -173,7 +173,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     # Add possible conditions at operation level
     expected_trigger_operation_filters.each do |cd|
       if expected_triggers[cd.table_name] && expected_triggers[cd.table_name][cd.operation] # register filters only if operation has columns
-        expected_triggers[cd.table_name][cd.operation][:condition] = cd.filter
+        expected_triggers[cd.table_name][cd.operation][:condition] = cd['filter']   # Caution: filter is a method of ActiveRecord::Result and returns an Enumerator
       end
     end
 

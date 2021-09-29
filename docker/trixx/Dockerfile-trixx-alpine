@@ -33,7 +33,8 @@ RUN npm run build
 RUN npm audit --production
 
 # STAGE 2: build trixx backend
-FROM adoptopenjdk/openjdk14:alpine-jre
+#FROM adoptopenjdk/openjdk14:alpine-jre
+FROM openjdk:17-jdk-alpine
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
