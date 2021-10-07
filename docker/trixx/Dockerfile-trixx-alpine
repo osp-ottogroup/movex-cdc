@@ -57,6 +57,7 @@ RUN  apk update && \
      echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
      ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake && \
      gem update --system --no-doc && \
+     gem uninstall -x -a ruby-maven ruby-maven-libs && \
      gem update --no-doc && \
      gem install --no-document bundler && \
      echo "gem: --no-rdoc --no-ri" > ~/.gemrc
