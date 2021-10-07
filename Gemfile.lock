@@ -81,7 +81,7 @@ GEM
     i18n (1.8.10)
       concurrent-ruby (~> 1.0)
     jdbc-sqlite3 (3.28.0)
-    jwt (2.2.3)
+    jwt (2.3.0)
     listen (3.1.5)
       rb-fsevent (~> 0.9, >= 0.9.4)
       rb-inotify (~> 0.9, >= 0.9.7)
@@ -159,7 +159,7 @@ GEM
     thor (1.1.0)
     tzinfo (2.0.4)
       concurrent-ruby (~> 1.0)
-    tzinfo-data (1.2021.2)
+    tzinfo-data (1.2021.3)
       tzinfo (>= 1.0.0)
     websocket-driver (0.7.5-java)
       websocket-extensions (>= 0.1.0)
@@ -167,7 +167,6 @@ GEM
     zeitwerk (2.4.2)
 
 PLATFORMS
-  universal-java-16
   universal-java-17
 
 DEPENDENCIES
