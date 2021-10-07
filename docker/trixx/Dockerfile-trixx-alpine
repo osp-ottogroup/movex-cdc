@@ -60,7 +60,8 @@ RUN  apk update && \
      gem uninstall -x -a ruby-maven ruby-maven-libs && \
      gem update --no-doc && \
      gem install --no-document bundler && \
-     echo "gem: --no-rdoc --no-ri" > ~/.gemrc
+     echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
+     gem cleanup && gem list
 
 WORKDIR /app
 
