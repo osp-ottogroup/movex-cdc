@@ -44,23 +44,37 @@ ENV RAILS_MAX_THREADS=300
 ENV JRUBY_VERSION=9.3.0.0
 ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
 
-RUN  apk update && \
+RUN  echo "### apk update" && \
+     apk update && \
+     echo "### apk upgrade" && \
      apk upgrade && \
+     echo "### apk add missing tools" && \
      apk add curl bash tar wget procps vim tzdata && \
+     echo "### get jRuby" && \
      cd /opt && wget https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
+     echo "### untar jRuby" && \
      cd /opt && tar -xvf jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
+     echo "### link ruby to jruby" && \
      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby && \
+     echo "### get ruby version info" && \
      ruby -v && \
+     echo "### set timezone" && \
      echo 'Europe/Berlin' > /etc/timezone && \
      ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
      date && \
      echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
      ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake && \
+     echo "### update installed system gems" && \
      gem update --system --no-doc && \
+     echo "### remove unnecessary gems" && \
      gem uninstall -x -a ruby-maven ruby-maven-libs && \
+     echo "### update system gems to fix trivy findings" && \
      gem update --no-doc rdoc && \
+     echo "### install bundler gems" && \
      gem install --no-document bundler && \
+     echo "### set .gemrc" && \
      echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
+     echo "### cleanup and list installed gems" && \
      gem cleanup && gem list
 
 WORKDIR /app
