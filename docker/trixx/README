@@ -1,0 +1,5 @@
+Docker-image trixx
+------------------------
+Productive image for TriXX
+
+2021-03-02: Switched to Oracle Alpine base image
