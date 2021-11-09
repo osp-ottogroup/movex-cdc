@@ -242,6 +242,8 @@ trivy_scan:
         echo retval = \$retval
         exit 1
       else
+        # Let the worker start before health check
+        sleep 1
         exit 0
       fi
       " | bash
