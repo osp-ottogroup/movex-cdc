@@ -10,6 +10,22 @@ class DbTriggerGeneratorBase < Database
     "#{TRIGGER_NAME_PREFIX}#{operation}_#{table.schema.id}_#{table.id}_#{table.schema.name.sum}_#{table.name.sum}"
   end
 
+  def self.short_operation_from_long(operation)
+    case operation
+    when 'INSERT' then 'I'
+    when 'UPDATE' then 'U'
+    when 'DELETE' then 'D'
+    end
+  end
+
+  def self.long_operation_from_short(operation)
+    case operation
+    when 'I' then 'INSERT'
+    when 'U' then 'UPDATE'
+    when 'D' then 'DELETE'
+    end
+  end
+
   ### instance methods following
 
   def initialize(schema_id:, user_options:, dry_run:)

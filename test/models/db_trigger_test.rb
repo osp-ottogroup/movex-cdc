@@ -15,7 +15,11 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "find_all_by_table" do
     triggers = DbTrigger.find_all_by_table(victim1_table)
-    assert_equal(1, triggers.count, 'Should find triggers for table with valid trixx trigger names')
+    assert_equal(2, triggers.count, 'Should find triggers for table with valid trixx trigger name prefix')
+
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    triggers = DbTrigger.find_all_by_table(victim1_table)
+    assert_equal(3, triggers.count, 'Should find triggers for table after trigger generation')
   end
 
   test "find_by_table_id_and_trigger_name" do

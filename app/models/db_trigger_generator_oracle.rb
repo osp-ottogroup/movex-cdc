@@ -26,26 +26,24 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   def self.find_all_by_table(table)
     result = []
     select_all("\
-      SELECT t.Trigger_name, o.Last_DDL_Time
+      SELECT t.Trigger_name, o.Last_DDL_Time, t.Triggering_Event
       FROM   All_Triggers t
       JOIN   All_Objects o ON o.Owner = t.Owner AND o.Object_Name = t.Trigger_Name AND o.Object_Type = 'TRIGGER'
       WHERE  t.Owner        = :owner
       AND    t.Table_Owner  = :table_owner
       AND    t.Table_Name   = :table_name
+      AND    t.Trigger_Name LIKE '#{DbTriggerGeneratorBase::TRIGGER_NAME_PREFIX}%'  /* Find triggers also if name convention in TriXX has changed */
+      AND    t.Triggering_Event IN ('INSERT', 'UPDATE', 'DELETE')
     ", {
       owner:        Trixx::Application.config.trixx_db_user,
       table_owner:  table.schema.name,
       table_name:   table.name
     }).each do |t|
-      ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
-      if t['trigger_name'] == build_trigger_name(table, operation)
-        result << {
-          operation:  operation,
-          name:       t['trigger_name'],
-          changed_at: t['last_ddl_time']
-        }
-      end
-      end
+      result << {
+        operation:  short_operation_from_long(t['triggering_event']),
+        name:       t['trigger_name'],
+        changed_at: t['last_ddl_time']
+      }
     end
     result
   end
@@ -68,7 +66,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     }
     )
   end
-
 
   ### instance methods following
 
@@ -193,7 +190,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   def drop_obsolete_triggers(table, operation)
     @existing_triggers.select { |t|
       # filter existing triggers for considered table and operation
-      t.table_name == table.name.upcase && t.triggering_event == long_operation_from_short(operation)
+      t.table_name == table.name.upcase && t.triggering_event == DbTriggerGeneratorBase.long_operation_from_short(operation)
     }.each do |trigger|
       if trigger_expected?(table, operation) &&
          build_trigger_name(table, operation) == trigger.trigger_name           # existing trigger for operation has the expected name
@@ -221,7 +218,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     existing_trigger = @existing_triggers.select{|t| t.trigger_name == trigger_name}.first
     # Compare possibly existing trigger with new one
     if existing_trigger.nil? ||
-       trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" ||
+       trigger_sql != "CREATE OR REPLACE TRIGGER #{existing_trigger.description.gsub("\n", '')}\n#{existing_trigger.trigger_body}" || # Compare full trigger SQL syntax
       existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
       exec_trigger_sql(trigger_sql, trigger_name, table)
     else
@@ -234,7 +231,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   def generate_trigger_sql(table, operation)
     columns = @expected_triggers[table.name][operation][:columns]
     trigger_sql = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{build_trigger_name(table, operation)}"
-    trigger_sql << " FOR #{long_operation_from_short(operation)}"
+    trigger_sql << " FOR #{DbTriggerGeneratorBase.long_operation_from_short(operation)}"
 
     if operation == 'U'
       # Fire update-trigger only if relevant columns have changed by UPDATE OF column_list
@@ -484,23 +481,6 @@ END Flush;
       .join("||','||")
     result << "||'}'"
     result
-  end
-
-
-  def long_operation_from_short(operation)
-    case operation
-    when 'I' then 'INSERT'
-    when 'U' then 'UPDATE'
-    when 'D' then 'DELETE'
-    end
-  end
-
-  def short_operation_from_long(operation)
-    case operation
-    when 'INSERT' then 'I'
-    when 'UPDATE' then 'U'
-    when 'DELETE' then 'D'
-    end
   end
 
   def position_from_operation(operation)

@@ -79,10 +79,10 @@ class TableTest < ActiveSupport::TestCase
     oldest_change_dates = Table.find(victim1_table.id).youngest_trigger_change_dates_per_operation
     ['I', 'U', 'D'].each do |operation|
       oldest_change_date = oldest_change_dates[operation]
-      if operation == 'I' && ['ORACLE'].include?(Trixx::Application.config.trixx_db_type)
+      if ['I', 'U'].include?(operation) && ['ORACLE'].include?(Trixx::Application.config.trixx_db_type)
         assert_not_nil(oldest_change_date, 'oldest change date should be known for existing insert trigger')
       else
-        assert_nil(oldest_change_date, 'no trigger should exists for operation or no change date available for DB')
+        assert_nil(oldest_change_date, "no trigger should exists for operation '#{operation}' or no change date available for DB")
       end
     end
   end

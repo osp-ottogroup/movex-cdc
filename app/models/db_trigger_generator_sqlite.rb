@@ -19,15 +19,12 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       WHERE  Type     = 'trigger'
       AND    tbl_name = :table_name
     ", {table_name:   table.name}).each do |t|
-      ['I', 'U', 'D'].each do |operation|                                       # check for I/U/D if trigger compares to TriXX trigger name
-      if t['name'] == build_trigger_name(table, operation)
-        result << {
-          operation:  operation,
-          name:       t['name'],
-          changed_at: nil
-        }
-      end
-      end
+      operation = t['sql'].split[3]                                             # CREATE TRIGGER TRIXX_I_784_3_421_509 INSERT ...
+      result << {
+        operation:  short_operation_from_long(operation),
+        name:       t['name'],
+        changed_at: nil
+      }
     end
     result
   end
@@ -174,7 +171,7 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
     trigger_config  = table_config[operation]
     trigger_name = build_trigger_name(table, operation)
 
-    result = "CREATE TRIGGER #{trigger_name} #{long_operation_from_short(operation)}"
+    result = "CREATE TRIGGER #{trigger_name} #{DbTriggerGeneratorBase.long_operation_from_short(operation)}"
     result << " ON #{table.name} FOR EACH ROW"
     result << " WHEN " if trigger_config[:condition] || operation == 'U'
     result << " (#{trigger_config[:condition]})" if trigger_config[:condition]
@@ -339,14 +336,5 @@ FROM   main.#{table.name}
   def build_trigger_name(table, operation)
     DbTriggerGeneratorSqlite.build_trigger_name(table, operation)
   end
-
-  def long_operation_from_short(operation)
-    case operation
-    when 'I' then 'INSERT'
-    when 'U' then 'UPDATE'
-    when 'D' then 'DELETE'
-    end
-  end
-
 
 end
