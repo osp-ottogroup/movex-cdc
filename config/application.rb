@@ -177,7 +177,7 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_simultaneous_table_initializations, default: 5, integer: true, minimum: 1)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_max_simultaneous_transactions, default: 16, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_partition_interval,                 default: 10, integer: true, minimum: 1, maximum: 100000)
+    Trixx::Application.set_and_log_attrib_from_env(:trixx_partition_interval,                 default: 60, integer: true, minimum: 1, maximum: 6000000)
     Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20, integer: true)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool

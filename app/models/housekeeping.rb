@@ -99,8 +99,8 @@ class Housekeeping
                               PARTITION Split2)"
         end
 
-        max_distance_minutes = (1024*1024-1) * Trixx::Application.config.trixx_partition_interval / 4 # 1/4 of allowed number of possible partitions
-        max_distance_minutes = 1440*365 if max_distance_minutes > 1440*365      # largest distance for oldest partition is one year
+        max_distance_seconds = (1024*1024-1) * Trixx::Application.config.trixx_partition_interval / 4 # 1/4 of allowed number of possible partitions
+        max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
         raise "No oldest partition found for table Event_Logs" if part1.nil?
@@ -112,10 +112,10 @@ class Housekeeping
           compare_time = part_time if part_time < compare_time                  # get oldest partition high value
         end
         Rails.logger.debug "High value of second oldest partition for Event_Logs is #{compare_time}"
-        if compare_time - Time.now > max_distance_minutes*60/2                  # Half of expected max. distance
+        if compare_time - Time.now > max_distance_seconds/2                     # Half of expected max. distance
           Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of MIN partition"
         end
-        if Time.now - min_time > max_distance_minutes*60                        # update of high_value of MIN partition should happen
+        if Time.now - min_time > max_distance_seconds                           # update of high_value of MIN partition should happen
           # Check if more than one range partition exists
           if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
             msg = "There are more than one range partitions for table EVENT_LOGS with interval='NO'! This should never happen in expected behaviour. Please check this partitions for possible content and drop them if empty"
@@ -123,11 +123,11 @@ class Housekeeping
             raise msg
           end
 
-          current_interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) FROM User_Part_Tables WHERE Table_Name = 'EVENT_LOGS'"
-          Rails.logger.debug "Current partition interval is #{current_interval} minutes"
+          current_interval = EventLog.current_interval_seconds
+          Rails.logger.debug "Current partition interval is #{current_interval} seconds"
           # create dummy record with following rollback to enforce creation of interval partition
-          split_partition_force_create_time1 = compare_time - (current_interval*60) -2   # smaller than expected high_value with 1 second rounding failure
-          split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval*60)
+          split_partition_force_create_time1 = compare_time - (current_interval) -2   # smaller than expected high_value with 1 second rounding failure
+          split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval)
           Rails.logger.debug "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}"
           ActiveRecord::Base.transaction do
             [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|

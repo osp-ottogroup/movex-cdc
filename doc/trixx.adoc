@@ -116,6 +116,14 @@ TriXX needs it's own database schema at the observed database. +
 This schema contains configuration tables which TriXX will create itself at first startup as well as the buffered (not yet transferred) events. +
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
 
+==== DB-specific preconditions for Oracle
+Your database should have activated the Partitioning Option in Enterprise or Express Edition to work proper. +
+TriXX also works for Standard Edition rsp. without partitioning,
+but this solution without using partitioning still has some disadvantages:
+
+- Claimed space in table Event_Logs is not freed after processing
+- Peak usage increases high water mark in table Event_Logs and this way full table scans become slower and reduce event throughput
+
 ==== Rights for owner of TriXX DB schema ====
 The owner of the TriXX schema requires some preconditions/grants at database.
 The existence of this grants is checked at application start.
@@ -228,12 +236,17 @@ If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BUL
 |TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
 |TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
 |TRIXX_MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
-This value controls the setting for INI_TRANS for ORACLE.|16
+This value controls the setting for INI_TRANS for ORACLE.
+Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of TriXX application.
+Otherwise error ORA-00054 is raised and application does not start.
+|16
 |TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
-|TRIXX_PARTITION_INTERVAL|Interval in minutes between partition changes for table EVENT_LOGS. +
-Partition change is used to free already used storage after some minutes and keep the footprint of table EVENT_LOGS as small as possible. +
-Relevant only if EVENT_LOGS is used partitioned.
-|10 minutes
+|TRIXX_PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
+Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
+Relevant only if EVENT_LOGS is used partitioned. +
+Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of TriXX application.
+Otherwise error ORA-00054 is raised and application does not start.
+|60 seconds
 |===
 
 

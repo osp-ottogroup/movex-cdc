@@ -30,12 +30,13 @@ class EventLogTest < ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
-        current_interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) FROM User_Part_Tables WHERE Table_Name = 'EVENT_LOGS'"
-        Trixx::Application.config.trixx_partition_interval = current_interval + 5
+        current_interval = EventLog.current_interval_seconds
+        CHANGE_DIFF = 300
+        Trixx::Application.config.trixx_partition_interval = current_interval + CHANGE_DIFF
         EventLog.adjust_interval
-        new_interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) FROM User_Part_Tables WHERE Table_Name = 'EVENT_LOGS'"
-        assert_equal current_interval + 5, new_interval, 'Interval should have been changed'
-        Trixx::Application.config.trixx_partition_interval = current_interval + 2000
+        new_interval = EventLog.current_interval_seconds
+        assert_equal current_interval + CHANGE_DIFF, new_interval, 'Interval should have been changed'
+        Trixx::Application.config.trixx_partition_interval = current_interval + 120000
         EventLog.adjust_interval                                                # Test a higher value
         Trixx::Application.config.trixx_partition_interval = current_interval
         EventLog.adjust_interval                                                # restore original state

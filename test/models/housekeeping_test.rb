@@ -60,23 +60,23 @@ class HousekeepingTest < ActiveSupport::TestCase
           end
 
           do_check = proc do |interval, prev_interval|
-            max_minutes_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
-            set_high_value.call(Time.now-max_minutes_for_interval_prev*60, prev_interval) # set old high_value to 1/2 of possible partition count and default interval
+            max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
+            set_high_value.call(Time.now-max_seconds_for_interval_prev, prev_interval) # set old high_value to 1/2 of possible partition count and default interval
             Housekeeping.get_instance.check_partition_interval
             log_state.call(false)                                               # log partitions
 
             current_hv = get_time_from_high_value.call
-            max_expected_minutes_for_interval = (1024*1024)/6*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
-            min_expected_hv = Time.now-max_expected_minutes_for_interval*60
-            assert current_hv > min_expected_hv, "high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} minutes (#{min_expected_hv})"
+            max_expected_seconds_for_interval = (1024*1024)*10*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
+            min_expected_hv = Time.now-max_expected_seconds_for_interval
+            assert current_hv > min_expected_hv, "high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} seconds (#{min_expected_hv})"
           end
 
           # take into account that Time cannot be before ca. 1729-02-15
-          do_check.call(1,    10)                                               # should change high_value and interval
-          do_check.call(10,   10)                                               # should change only high_value
-          do_check.call(2000, 10)                                               # should change high_value and interval
-          do_check.call(10,   2000)                                             # should change high_value and interval
-          do_check.call(2000, 200)                                              # should change only high_value
+          do_check.call(60,     600)                                            # should change high_value and interval
+          do_check.call(600,    600)                                            # should change only high_value
+          do_check.call(120000, 600)                                            # should change high_value and interval
+          do_check.call(600,    120000)                                         # should change high_value and interval
+          do_check.call(120000, 12000)                                          # should change only high_value
 
         rescue
           log_state.call(true)                                                  # log partitions
