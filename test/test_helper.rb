@@ -260,7 +260,7 @@ class ActiveSupport::TestCase
     Rails.logger.debug msg
 
     counter = 0
-    Database.select_all("SELECT * FROM Event_Logs").each do |e|
+    Database.select_all("SELECT * FROM Event_Logs ORDER BY ID").each do |e|
       counter += 1
       if counter <= 100
         clone = e.clone
