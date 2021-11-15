@@ -19,6 +19,7 @@ class ServerControlController < ApplicationController
   end
 
   # POST /server_control/set_worker_threads_count
+  @@set_worker_threads_count_active=nil
   def set_worker_threads_count
     if @current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
@@ -30,13 +31,20 @@ class ServerControlController < ApplicationController
       end
       raise "Number of worker threads (#{worker_threads_count}) should not be negative" if worker_threads_count < 0
 
+      raise "server_control/set_worker_threads_count: There's already a request processing and only one simultaneous request is accepted! #{@@set_worker_threads_count_active}" if !@@set_worker_threads_count_active.nil?
       Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
       else
-        ThreadHandling.get_instance.shutdown_processing
-        Trixx::Application.config.trixx_initial_worker_threads = worker_threads_count
-        ThreadHandling.get_instance.ensure_processing
+        begin
+          @@set_worker_threads_count_active = "Waiting for shutdown_processing. Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"
+          ThreadHandling.get_instance.shutdown_processing
+          Trixx::Application.config.trixx_initial_worker_threads = worker_threads_count
+          @@set_worker_threads_count_active = "Waiting for ensure_processing. Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"
+          ThreadHandling.get_instance.ensure_processing
+        ensure
+          @@set_worker_threads_count_active=nil
+        end
       end
     end
   end

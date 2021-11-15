@@ -32,10 +32,21 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_equal 5, ThreadHandling.get_instance.thread_count, 'There should run x threads now'
 
-    # reset level to DEBUG
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 2}, as: :json
     assert_response :success
     assert_equal 2, ThreadHandling.get_instance.thread_count, 'There should run x threads now'
+
+    # Value too large, should return error
+    post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 200000}, as: :json
+    assert_response :internal_server_error
+
+    Thread.new do                                                               # execute request in background, so the next request should fail
+      post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 6}, as: :json
+    end
+    sleep 1                                                                     # let thread start
+    post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 4}, as: :json
+    assert_response :internal_server_error
+    assert_equal 6, ThreadHandling.get_instance.thread_count, 'There should run 6 threads now because the async request was first'
 
     ThreadHandling.get_instance.shutdown_processing                             # Stop worker threads to restore normal test state
   end
