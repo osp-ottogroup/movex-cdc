@@ -15,7 +15,7 @@ class DailyJob < ApplicationJob
 
     begin
       Database.set_application_info('DailyJob/Housekeeping.check_partition_interval')
-      Housekeeping.get_instance.check_partition_interval                        # update high value of MIN partition if necessary
+      Housekeeping.get_instance.check_partition_interval                        # update high value of first partition if necessary
     rescue Exception => e
       ExceptionHelper.log_exception(e, "HourlyJob.perform: calling Housekeeping.check_partition_interval!")
     end

@@ -2,9 +2,9 @@ class CreateEventLogFinalErrors < ActiveRecord::Migration[6.0]
   def up
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      # Start MIN partition with current date to ensure less than 1 Mio. partitions within the next years
+      # Start first partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value
-      # high_value of MIN partition set back in history for tests
+      # high_value of first partition is set back in history for tests
       EventLog.connection.execute("\
       CREATE TABLE Event_Log_Final_Errors (
         ID          NUMBER(18)    NOT NULL,

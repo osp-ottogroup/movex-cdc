@@ -87,7 +87,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     Trixx::Application.config.trixx_kafka_max_bulk_count    = original_kafka_max_bulk_count   # Restore previous setting
     Trixx::Application.config.trixx_initial_worker_threads  = original_initial_worker_threads # Restore previous setting
 
-    # Drop all partitions from Event_Log after test to ensure next record with correct created_at will create new partition and not store records in MIN-partition
+    # Drop all partitions from Event_Log after test to ensure next record with correct created_at will create new partition and not store records in first partition
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?

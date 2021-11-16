@@ -36,7 +36,7 @@ class HousekeepingTest < ActiveSupport::TestCase
               log_state.call(false)                                             # log partitions
               Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"         # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
               partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
-              # Remove all range partitions except the MIN partition
+              # Remove all range partitions except the first partition
               Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position != 1").each do |p|
                 Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
               end
@@ -44,7 +44,6 @@ class HousekeepingTest < ActiveSupport::TestCase
               Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
-              Database.execute "ALTER TABLE Event_Logs RENAME PARTITION TestSplit1 TO MIN"
               Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
               log_state.call(false)                                             # log partitions
             end

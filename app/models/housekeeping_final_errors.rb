@@ -34,7 +34,7 @@ class HousekeepingFinalErrors
           SELECT Partition_Name, High_Value, Partition_Position
           FROM   User_Tab_Partitions
           WHERE  Table_Name = 'EVENT_LOG_FINAL_ERRORS'
-          AND Partition_Name != 'MIN'
+          AND Partition_Position > 1 /* Check all partitions without the first one (no interval) */
         "
         ).each do |part|
           # Get content of LONG datatype as real Time object

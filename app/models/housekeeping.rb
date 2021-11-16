@@ -15,7 +15,7 @@ class Housekeeping
     end
   end
 
-  # Ensure distance between MIN and current partition remains valid
+  # Ensure distance between first non-interval and current partition remains valid
   def check_partition_interval
     if @last_partition_interval_check_started.nil?
       Rails.logger.debug "Housekeeping.check_partition_interval: Start check"
@@ -43,7 +43,7 @@ class Housekeeping
         WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
                             FROM   User_Tab_Partitions
                             WHERE  Table_Name = 'EVENT_LOGS'
-                            AND Partition_Name != 'MIN'
+                            AND Partition_Position > 1 /* Do not check the first non-interval partition */
                            )
         SELECT Partition_Name, High_Value
         FROM   Partitions
@@ -79,7 +79,7 @@ class Housekeeping
   end
 
 
-  # check if high value of MIN partition must be lifted up because between MIN and last partition only 1024*1024-1 possible partitions are supported by Oracle
+  # check if high value of first non-interval partition must be lifted up because between first and last partition only 1024*1024-1 possible partitions are supported by Oracle
   def check_partition_interval_internal
     @last_partition_interval_check_started = Time.now
 
@@ -113,9 +113,9 @@ class Housekeeping
         end
         Rails.logger.debug "High value of second oldest partition for Event_Logs is #{compare_time}"
         if compare_time - Time.now > max_distance_seconds/2                     # Half of expected max. distance
-          Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of MIN partition"
+          Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of first non-interval partition"
         end
-        if Time.now - min_time > max_distance_seconds                           # update of high_value of MIN partition should happen
+        if Time.now - min_time > max_distance_seconds                           # update of high_value of first non-interval partition should happen
           # Check if more than one range partition exists
           if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
             msg = "There are more than one range partitions for table EVENT_LOGS with interval='NO'! This should never happen in expected behaviour. Please check this partitions for possible content and drop them if empty"
@@ -142,10 +142,8 @@ class Housekeeping
           Rails.logger.debug "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}"
           raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
           Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
-          partm = Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
           Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
           Database.execute "ALTER TABLE Event_Logs DROP   PARTITION #{part1.partition_name}"
-          Database.execute "ALTER TABLE Event_Logs RENAME PARTITION #{partm.partition_name} TO MIN"
         end
       end
     end
