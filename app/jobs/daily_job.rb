@@ -4,6 +4,7 @@ class DailyJob < ApplicationJob
 
   def perform(*args)
     DailyJob.set(wait: 86400.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
+    reset_job_warnings
 
     # do housekeeping activities
     begin
@@ -11,6 +12,7 @@ class DailyJob < ApplicationJob
       CompressStatistics.get_instance.do_compress
     rescue Exception => e
       ExceptionHelper.log_exception(e, "HourlyJob.perform: calling CompressStatistics.do_compress!")
+      add_execption_to_job_warning(e)
     end
 
     begin
@@ -18,6 +20,7 @@ class DailyJob < ApplicationJob
       Housekeeping.get_instance.check_partition_interval                        # update high value of first partition if necessary
     rescue Exception => e
       ExceptionHelper.log_exception(e, "HourlyJob.perform: calling Housekeeping.check_partition_interval!")
+      add_execption_to_job_warning(e)
     end
   end
 end

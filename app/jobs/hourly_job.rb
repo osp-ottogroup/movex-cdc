@@ -4,6 +4,7 @@ class HourlyJob < ApplicationJob
 
   def perform(*args)
     HourlyJob.set(wait: 3600.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
+    reset_job_warnings
 
     # do housekeeping activities
     begin
@@ -11,6 +12,7 @@ class HourlyJob < ApplicationJob
       HousekeepingFinalErrors.get_instance.do_housekeeping
     rescue Exception => e
       ExceptionHelper.log_exception(e, "HourlyJob.perform: calling HousekeepingFinalErrors.do_housekeeping!")
+      add_execption_to_job_warning(e)
     end
   end
 end

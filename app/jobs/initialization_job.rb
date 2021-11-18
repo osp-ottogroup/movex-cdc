@@ -40,7 +40,7 @@ class InitializationJob < ApplicationJob
     begin
       ExceptionHelper.log_exception e, 'Initialization failed, abort application now!'
     ensure
-      exit! 1
+      exit! 1                                                                   # Ensure application terminates if initialization fails
     end
   end
 

@@ -44,10 +44,11 @@ module ExceptionHelper
   # get Hash with details
   def self.memory_info_hash
     {
-        'Total Memory (GB)': gb_value_from_proc('MemTotal',   'hw.memsize',),
-        'Free Memory (GB)':  gb_value_from_proc('MemFree',    'page_free_count'),
-        'Total Swap (GB)':   gb_value_from_proc('SwapTotal',  'vm.swapusage'),
-        'Free Swap (GB)':    gb_value_from_proc('SwapFree',   'vm.swapusage')
+        'Total Memory (GB)':      gb_value_from_proc('MemTotal',      'hw.memsize'),
+        'Available Memory (GB)':  gb_value_from_proc('MemAvailable',  'page_free_count'),   # Real avail. mem. for application. Max-OS page_free_count does not really show the avail. mem. for application
+        'Free Memory (GB)':       gb_value_from_proc('MemFree',       'page_free_count'),   # free mem. may be much smaller than real avail. mem. for app.
+        'Total Swap (GB)':        gb_value_from_proc('SwapTotal',     'vm.swapusage'),
+        'Free Swap (GB)':         gb_value_from_proc('SwapFree',      'vm.swapusage')
     }
   end
 

@@ -20,7 +20,6 @@ class HealthCheckController < ApplicationController
         memory:                       ExceptionHelper.memory_info_hash,
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
-    @health_status = :ok
 
     begin
       @health_data[:build_version] = File.read(Rails.root.join('build_version'))
@@ -34,11 +33,9 @@ class HealthCheckController < ApplicationController
       @health_data[:current_number_of_worker_threads]  = current_thread_count
       if Trixx::Application.config.trixx_initial_worker_threads != current_thread_count
         @health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{Trixx::Application.config.trixx_initial_worker_threads}"
-        @health_status = :conflict
       end
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading current_number_of_worker_threads: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
 
     @health_data[:expected_number_of_worker_threads] = Trixx::Application.config.trixx_initial_worker_threads
@@ -48,7 +45,6 @@ class HealthCheckController < ApplicationController
       @health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
 
     connection_info = []
@@ -86,14 +82,12 @@ class HealthCheckController < ApplicationController
       @health_data[:current_number_of_table_initialization_requests]  = current_init_requests_count
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading current_number_of_table_initialization_requests: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
     begin
       Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.health_check_data_requests"
       @health_data[:table_initialization_requests] = TableInitialization.get_instance.health_check_data_requests
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading table_initialization_requests: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
 
     begin
@@ -102,20 +96,22 @@ class HealthCheckController < ApplicationController
       @health_data[:current_number_of_table_initialization_threads]  = current_init_thread_count
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading current_number_of_table_initialization_threads: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
     begin
       Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.health_check_data_threads"
       @health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads
     rescue Exception=>e
       @health_data[:warnings] << "\nError reading table_initialization_threads: #{e.class}:#{e.message}"
-      @health_status = :conflict
     end
 
+    # get health status of last job executions
+    @health_data[:warnings] << SystemValidationJob.last_job_warnings
+    @health_data[:warnings] << DailyJob.last_job_warnings
 
+    pretty_health_data = JSON.pretty_generate(@health_data)
+    Rails.logger.info(pretty_health_data)
 
-
-    render json: JSON.pretty_generate(@health_data), status: @health_status
+    render json: pretty_health_data, status: @health_data[:warnings] == '' ? :ok : :conflict
   end
 
   # GET /health_check/log_file
