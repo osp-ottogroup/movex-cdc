@@ -7,6 +7,7 @@
 image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.3.1.0-jdk17
 
 variables:
+  RAILS_MAX_THREADS: 100
   CI_DEBUG_SERVICES: trace
   TRIXX_KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
