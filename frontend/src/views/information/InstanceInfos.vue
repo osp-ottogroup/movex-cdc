@@ -1,18 +1,18 @@
 <template>
   <div class="container">
-    <b-tabs>
-      <b-tab-item label="Instance">
-        <p v-for="element in infoList" :key="element.name" class="columns">
+    <b-tabs @input="onTabChanged">
+      <b-tab-item label="Instance" :value="tabNames.INSTANCE">
+        <p v-for="element in instanceData" :key="element.name" class="columns">
           <span class="column">{{ element.name }}</span>
           <span class="column">{{ element.value }}</span>
         </p>
       </b-tab-item>
 
-      <b-tab-item label="Health">
+      <b-tab-item label="Health" :value="tabNames.HEALTH">
         <pre>{{ healthCheck }}</pre>
       </b-tab-item>
 
-      <b-tab-item label="Kafka Topics">
+      <b-tab-item label="Kafka Topics" :value="tabNames.KAFKA_TOPICS">
         <b-field>
           <b-select placeholder="Select a topic" @input="onTopicSelected" :loading="isLoading">
             <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
@@ -23,7 +23,7 @@
         </div>
       </b-tab-item>
 
-      <b-tab-item label="Kafka Groups">
+      <b-tab-item label="Kafka Groups" :value="tabNames.KAFKA_GROUPS">
         <b-field>
           <b-select placeholder="Select a group" @input="onGroupSelected" :loading="isLoading">
             <option v-for="group in groups" :key="group" :value="group">{{ group }}</option>
@@ -45,7 +45,13 @@ export default {
   name: 'InstanceInfos',
   data() {
     return {
-      infoList: [],
+      tabNames: {
+        INSTANCE: 'INSTANCE',
+        HEALTH: 'HEALTH',
+        KAFKA_TOPICS: 'KAFKA_TOPICS',
+        KAFKA_GROUPS: 'KAFKA_GROUPS',
+      },
+      instanceData: [],
       healthCheck: '',
       topics: [],
       groups: [],
@@ -56,10 +62,8 @@ export default {
   },
   async created() {
     try {
-      this.infoList = (await CRUDService.instance.info()).home_screen_info;
-      this.healthCheck = await CRUDService.healthCheck.check();
-      this.topics = (await CRUDService.kafka.topics.getAll()).topics;
-      this.groups = (await CRUDService.kafka.groups.getAll()).groups;
+      // load only the data of the first tab (which is instance information)
+      await this.loadInstanceData();
     } catch (e) {
       this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e, 'An error occurred while loading instance infos!'),
@@ -104,6 +108,48 @@ export default {
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading group details!'),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async loadHealthData() {
+      this.healthCheck = await CRUDService.healthCheck.check();
+    },
+    async loadInstanceData() {
+      this.instanceData = (await CRUDService.instance.info()).home_screen_info;
+    },
+    async loadKafkaTopicsData() {
+      this.topics = (await CRUDService.kafka.topics.getAll()).topics;
+    },
+    async loadKafkaGroupsData() {
+      this.groups = (await CRUDService.kafka.groups.getAll()).groups;
+    },
+    async onTabChanged(value) {
+      try {
+        this.isLoading = true;
+        switch (value) {
+          case this.tabNames.HEALTH:
+            await this.loadHealthData();
+            break;
+          case this.tabNames.INSTANCE:
+            await this.loadInstanceData();
+            break;
+          case this.tabNames.KAFKA_TOPICS:
+            await this.loadKafkaTopicsData();
+            break;
+          case this.tabNames.KAFKA_GROUPS:
+            await this.loadKafkaGroupsData();
+            break;
+          default:
+            throw new Error(`tab value ${value} is unknown`);
+        }
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e, 'An error occurred while loading tab data!'),
           type: 'is-danger',
           indefinite: true,
           position: 'is-top',
