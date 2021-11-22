@@ -8,7 +8,7 @@ class HealthCheckController < ApplicationController
     raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
     @@last_call_time = Time.now
 
-
+    memory_info_hash = ExceptionHelper.memory_info_hash
     @health_data = {
         health_check_timestamp:       Time.now,
         build_version:                'unknown',
@@ -17,7 +17,7 @@ class HealthCheckController < ApplicationController
         start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         warnings:                     '',
         log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
-        memory:                       ExceptionHelper.memory_info_hash,
+        memory:                       memory_info_hash,
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
 
@@ -25,6 +25,17 @@ class HealthCheckController < ApplicationController
       @health_data[:build_version] = File.read(Rails.root.join('build_version'))
     rescue Errno::ENOENT
       @health_data[:build_version] = 'File ./build_version does not exist'
+    end
+
+    begin
+      if memory_info_hash['Available Memory (GB)'] / memory_info_hash['Total Memory (GB)'] < 0.1
+        @health_data[:warnings] << "\nAvailable memory is less than 10% of total memory! Risk of getting out of memory exists."
+        @health_data[:warnings] << "\nIncrease the memory for container or reduce either:"
+        @health_data[:warnings] << "\n- the number of threads (TRIXX_INITIAL_WORKER_THREADS)"
+        @health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (TRIXX_MAX_TRANSACTION_SIZE) "
+      end
+    rescue Exception=>e
+      @health_data[:warnings] << "\nError calculating memory usage: #{e.class}:#{e.message}"
     end
 
     begin
