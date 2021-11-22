@@ -19,6 +19,7 @@ Rails.application.routes.draw do
   post '/db_triggers/generate',                       to: 'db_triggers#generate'
   post '/db_triggers/generate_all',                   to: 'db_triggers#generate_all'
   get  '/health_check',                               to: 'health_check#index'  # only one method for resource established
+  get  'health_check/config_info',                    to: 'health_check#config_info'
   get  '/health_check/log_file',                      to: 'health_check#log_file'
   get  '/import_export/:schema',                      to: 'import_export#export_schema'
   get  '/import_export',                              to: 'import_export#export'
@@ -30,7 +31,6 @@ Rails.application.routes.draw do
   get  '/kafka/topics',                               to: 'kafka#topics'
   post 'login/do_logon'
   get  'login/check_jwt'
-  get  'login/home_screen_info'
   get  'login/release_info'
   resources :schemas
   resources :schema_rights

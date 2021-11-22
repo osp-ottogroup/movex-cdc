@@ -39,7 +39,7 @@ class Housekeeping
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       # check all partitions for deletion except the youngest one
-      Database.select_all("\
+      partitions_to_check = Database.select_all "\
         WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
                             FROM   User_Tab_Partitions
                             WHERE  Table_Name = 'EVENT_LOGS'
@@ -48,8 +48,16 @@ class Housekeeping
         SELECT Partition_Name, High_Value
         FROM   Partitions
         WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions) /* do not check the youngest partition for deletion */
-        "
-      ).each do |part|
+        ORDER BY Partition_Position
+      "
+      if partitions_to_check.length > 0
+        Rails.logger.debug "All currently existing partitions"
+        Database.select_all("SELECT * FROM User_Tab_Partitions WHERE  Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
+          Rails.logger.debug "Pos=#{p.partition_position} #{p.partition_name} Interval=#{p.interval} HighValue=#{p.high_value}"
+        end
+      end
+
+      partitions_to_check.each do |part|
         Rails.logger.info "Housekeeping: Check partition #{part['partition_name']} with high value #{part['high_value']} for deletion"
         pending_transactions = Database.select_one("\
           SELECT COUNT(*)

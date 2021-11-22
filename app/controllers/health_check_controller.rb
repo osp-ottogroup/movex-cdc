@@ -17,7 +17,7 @@ class HealthCheckController < ApplicationController
         start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
         warnings:                     '',
         log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
-        memory:                       memory_info_hash,
+        memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
         trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
     }
 
@@ -28,7 +28,7 @@ class HealthCheckController < ApplicationController
     end
 
     begin
-      if memory_info_hash['Available Memory (GB)'] / memory_info_hash['Total Memory (GB)'] < 0.1
+      if memory_info_hash[:available_memory][:value] / memory_info_hash[:total_memory][:value] < 0.1
         @health_data[:warnings] << "\nAvailable memory is less than 10% of total memory! Risk of getting out of memory exists."
         @health_data[:warnings] << "\nIncrease the memory for container or reduce either:"
         @health_data[:warnings] << "\n- the number of threads (TRIXX_INITIAL_WORKER_THREADS)"
@@ -129,4 +129,38 @@ class HealthCheckController < ApplicationController
   def log_file
     send_file("#{Rails.root.join("log", Rails.env + ".log" )}", :filename => "#{Rails.env}.log")
   end
+
+
+  # GET /health_check/config_info
+  def config_info
+
+    # array with info-hashes to display at home screen { name: xxx, value: yyy }
+    info = []
+    info << { name: 'LOG_LEVEL: server side log level',                           value: KeyHelper.log_level_as_string}
+    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS']}
+    info << { name: 'TRIXX_DB_QUERY_TIMEOUT: Timeout for DB selections',          value: Trixx::Application.config.trixx_db_query_timeout}
+    info << { name: 'TRIXX_DB_TYPE: Database type',                               value: Trixx::Application.config.trixx_db_type}
+    info << { name: 'TRIXX_DB_URL: Database URL',                                 value: Trixx::Application.config.trixx_db_url}
+    info << { name: 'TRIXX_DB_USER: Database user for server operations',         value: Trixx::Application.config.trixx_db_user}
+    info << { name: 'TRIXX_ERROR_MAX_RETRIES: Max. retries after transfer error', value: Trixx::Application.config.trixx_error_max_retries}
+    info << { name: 'TRIXX_ERROR_RETRY_START_DELAY: Initial delay after error',   value: Trixx::Application.config.trixx_error_max_retries}
+    info << { name: 'TRIXX_FINAL_ERRORS_KEEP_HOURS: Time before erasing',         value: Trixx::Application.config.trixx_final_errors_keep_hours}
+    info << { name: 'TRIXX_INFO_CONTACT_PERSON',                                  value: Trixx::Application.config.trixx_info_contact_person }
+    info << { name: 'TRIXX_INITIAL_WORKER_THREADS: no. of workers for Kafka transfer', value: Trixx::Application.config.trixx_info_initial_worker_threads }
+    info << { name: 'TRIXX_KAFKA_COMPRESSION_CODEC',                              value: Trixx::Application.config.trixx_kafka_compression_codec}
+    info << { name: 'TRIXX_KAFKA_MAX_BULK_COUNT: max. messages in one call',      value: Trixx::Application.config.trixx_kafka_max_bulk_count}
+    info << { name: 'TRIXX_KAFKA_SSL_CA_CERT: path to CA certificate',            value: Trixx::Application.config.trixx_kafka_ssl_ca_cert}
+    info << { name: 'TRIXX_KAFKA_SSL_CLIENT_CERT: path to client certificate',    value: Trixx::Application.config.trixx_kafka_ssl_client_cert}
+    info << { name: 'TRIXX_KAFKA_SSL_CLIENT_CERT_KEY: path to client key',        value: Trixx::Application.config.trixx_kafka_ssl_client_cert_key}
+    info << { name: 'TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: max. buffer size per thread', value: Trixx::Application.config.trixx_kafka_total_buffer_size_mb}
+    info << { name: 'TRIXX_KAFKA_SEED_BROKER',                                    value: Trixx::Application.config.trixx_kafka_seed_broker}
+    info << { name: 'TRIXX_MAX_TRANSACTION_SIZE: max. messages in a transaction', value: Trixx::Application.config.trixx_max_transaction_size}
+    info << { name: 'TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS',               value: Trixx::Application.config.trixx_max_simultaneous_table_initializations}
+    info << { name: 'TRIXX_MAX_SIMULTANEOUS_TRANSACTIONS: for insert in EVENT_LOGS',  value: Trixx::Application.config.trixx_max_simultaneous_transactions}
+    info << { name: 'TRIXX_RUN_CONFIG: path to config file',                      value: Trixx::Application.config.trixx_run_config}
+    info << { name: 'TRIXX_PARTITION_INTERVAL: for table EVENT_LOGS',             value: Trixx::Application.config.trixx_partition_interval}
+
+    render json: { config_info: info  }, status: :ok
+  end
+
 end

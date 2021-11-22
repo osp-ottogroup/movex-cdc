@@ -15,9 +15,9 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     get "/health_check", as: :json
     Rails.logger.info @response.body
     if Trixx::Application.config.trixx_initial_worker_threads == ThreadHandling.get_instance.thread_count
-      assert_response :success, '200 (success) expected because all worker threads are active'
+      assert_response :success, "200 (success) expected because all worker threads are active, but is #{@response.response_code}"
     else
-      assert_response :conflict, '409 (conflict) expected because not all worker threads are active'
+      assert_response :conflict, "409 (conflict) expected because not all worker threads are active, but is #{@response.response_code}"
     end
 
     get "/health_check", as: :json                                              # warmup health check to ensure next response within one second
@@ -33,5 +33,9 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
 
     get "/health_check/log_file", headers: jwt_header, as: :json
     assert_response :success, 'should get log file with JWT'
+  end
+
+  test "should get config_info" do
+    get health_check_config_info_url, as: :json
   end
 end

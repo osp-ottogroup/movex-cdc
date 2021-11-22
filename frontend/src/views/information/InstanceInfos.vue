@@ -120,7 +120,7 @@ export default {
       this.healthCheck = await CRUDService.healthCheck.check();
     },
     async loadInstanceData() {
-      this.instanceData = (await CRUDService.instance.info()).home_screen_info;
+      this.instanceData = (await CRUDService.instance.info()).config_info;
     },
     async loadKafkaTopicsData() {
       this.topics = (await CRUDService.kafka.topics.getAll()).topics;

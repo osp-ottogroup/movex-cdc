@@ -36,7 +36,7 @@ module ExceptionHelper
   def self.memory_info_string
     output = ''
     memory_info_hash.each do |key, value|
-      output << "#{key} = #{value}, " unless value.nil?
+      output << "#{value[:name]} = #{value[:value]}, " unless value.nil?
     end
     output
   end
@@ -44,11 +44,11 @@ module ExceptionHelper
   # get Hash with details
   def self.memory_info_hash
     {
-        'Total Memory (GB)':      gb_value_from_proc('MemTotal',      'hw.memsize'),
-        'Available Memory (GB)':  gb_value_from_proc('MemAvailable',  'page_free_count'),   # Real avail. mem. for application. Max-OS page_free_count does not really show the avail. mem. for application
-        'Free Memory (GB)':       gb_value_from_proc('MemFree',       'page_free_count'),   # free mem. may be much smaller than real avail. mem. for app.
-        'Total Swap (GB)':        gb_value_from_proc('SwapTotal',     'vm.swapusage'),
-        'Free Swap (GB)':         gb_value_from_proc('SwapFree',      'vm.swapusage')
+      total_memory:       { name: 'Total Memory (GB)',      value: gb_value_from_proc('MemTotal',      'hw.memsize') },
+      available_memory:   { name: 'Available Memory (GB)',  value: gb_value_from_proc('MemAvailable',  'hw.memsize') },   # Real avail. mem. for application. Max-OS: phys. mem. used to ensure valid test becaus real mem avail is not available
+      free_memory:        { name: 'Free Memory (GB)',       value: gb_value_from_proc('MemFree',       'page_free_count') },   # free mem. may be much smaller than real avail. mem. for app.
+      total_swap:         { name: 'Total Swap (GB)',        value: gb_value_from_proc('SwapTotal',     'vm.swapusage') },
+      free_swap:          { name: 'Free Swap (GB)',         value: gb_value_from_proc('SwapFree',      'vm.swapusage') }
     }
   end
 

@@ -31,9 +31,9 @@ export default {
   async created() {
     try {
       this.isLoading = true;
-      const response = await HttpService.get(`${Config.backendUrl}/login/home_screen_info`);
-      const infoList = response.data.home_screen_info;
-      const found = infoList.find((element) => element.name === 'Contact person');
+      const response = await HttpService.get(`${Config.backendUrl}/health_check/config_info`);
+      const infoList = response.data.config_info;
+      const found = infoList.find((element) => element.name === 'TRIXX_INFO_CONTACT_PERSON');
       if (found !== undefined) {
         this.contactPerson = found.value;
       }

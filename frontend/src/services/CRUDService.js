@@ -53,6 +53,6 @@ export default {
     },
   },
   instance: {
-    info: async () => (await HttpService.get(`${Config.backendUrl}/login/home_screen_info`)).data,
+    info: async () => (await HttpService.get(`${Config.backendUrl}/health_check/config_info`)).data,
   },
 };
