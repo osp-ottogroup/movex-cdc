@@ -146,7 +146,7 @@ class HealthCheckController < ApplicationController
     info << { name: 'TRIXX_ERROR_RETRY_START_DELAY: Initial delay after error',   value: Trixx::Application.config.trixx_error_max_retries}
     info << { name: 'TRIXX_FINAL_ERRORS_KEEP_HOURS: Time before erasing',         value: Trixx::Application.config.trixx_final_errors_keep_hours}
     info << { name: 'TRIXX_INFO_CONTACT_PERSON',                                  value: Trixx::Application.config.trixx_info_contact_person }
-    info << { name: 'TRIXX_INITIAL_WORKER_THREADS: no. of workers for Kafka transfer', value: Trixx::Application.config.trixx_info_initial_worker_threads }
+    info << { name: 'TRIXX_INITIAL_WORKER_THREADS: no. of workers for Kafka transfer', value: Trixx::Application.config.trixx_initial_worker_threads }
     info << { name: 'TRIXX_KAFKA_COMPRESSION_CODEC',                              value: Trixx::Application.config.trixx_kafka_compression_codec}
     info << { name: 'TRIXX_KAFKA_MAX_BULK_COUNT: max. messages in one call',      value: Trixx::Application.config.trixx_kafka_max_bulk_count}
     info << { name: 'TRIXX_KAFKA_SSL_CA_CERT: path to CA certificate',            value: Trixx::Application.config.trixx_kafka_ssl_ca_cert}

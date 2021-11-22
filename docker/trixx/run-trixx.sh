@@ -15,7 +15,7 @@ echo "TriXX build version is `cat /app/build_version`"
 export RAILS_LOG_TO_STDOUT_AND_FILE=true
 export RAILS_SERVE_STATIC_FILES=true
 export RAILS_MIN_THREADS=10
-# Default for RAILS_MAX_THREADS is set as ENV in Dockerfile-trixx-alpine
+# Default for RAILS_MAX_THREADS is set as ENV in Dockerfile
 
 # "exec ..." ensures that rails server runs in the same process like shell script before
 # this ensures that TriXX application is gracefully shut down at docker stop

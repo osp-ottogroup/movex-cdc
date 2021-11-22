@@ -164,7 +164,7 @@ build_trixx:
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
     - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-alpine --destination $TEMP_DOCKER_IMAGE
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-oracle --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
   stage: post_build
