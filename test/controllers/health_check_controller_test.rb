@@ -24,7 +24,25 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     get "/health_check", as: :json
     assert_response :internal_server_error, 'second check should fail within same second'
 
+    sleep 2                                                                     # prevent from double call exception
+    begin
+      raise "This is a  problem with a job"
+    rescue Exception => e
+      SystemValidationJob.new.reset_job_warnings(60)
+      SystemValidationJob.new.add_execption_to_job_warning(e)
+    end
+    get "/health_check", as: :json
+    assert_response :conflict, 'should report job problem'
+
     ThreadHandling.get_instance.shutdown_processing
+  end
+
+  test "should get status" do
+    get "/health_check/status", as: :json
+    assert_response :unauthorized, 'No access without JWT'
+
+    get "/health_check/status", headers: jwt_header, as: :json
+    assert_response :success, 'should get status with JWT'
   end
 
   test "should get log_file" do

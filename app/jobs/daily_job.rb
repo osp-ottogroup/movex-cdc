@@ -1,10 +1,11 @@
 # This Job runs repeats itself permanent and runs once each day
 class DailyJob < ApplicationJob
   queue_as :default
+  CYCLE = 86400
 
   def perform(*args)
-    DailyJob.set(wait: 86400.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
-    reset_job_warnings
+    DailyJob.set(wait: CYCLE.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
+    reset_job_warnings(CYCLE)
 
     # do housekeeping activities
     begin

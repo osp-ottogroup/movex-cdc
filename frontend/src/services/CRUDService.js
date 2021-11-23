@@ -35,7 +35,7 @@ export default {
   },
   dbTables: { getAll: BaseCRUDService('db_tables').getAll },
   healthCheck: {
-    check: BaseCRUDService('/health_check').getAll,
+    check: BaseCRUDService('/health_check/status').getAll,
     getLogFile: BaseCRUDService('/health_check/log_file').getAll,
   },
   serverControl: {

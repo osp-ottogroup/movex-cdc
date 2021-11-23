@@ -21,6 +21,7 @@ Rails.application.routes.draw do
   get  '/health_check',                               to: 'health_check#index'  # only one method for resource established
   get  'health_check/config_info',                    to: 'health_check#config_info'
   get  '/health_check/log_file',                      to: 'health_check#log_file'
+  get  '/health_check/status',                        to: 'health_check#status'
   get  '/import_export/:schema',                      to: 'import_export#export_schema'
   get  '/import_export',                              to: 'import_export#export'
   post '/import_export',                              to: 'import_export#import'

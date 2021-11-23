@@ -1,10 +1,11 @@
 # This Job runs repeats itself permanent and runs once each hour
 class HourlyJob < ApplicationJob
   queue_as :default
+  CYCLE = 3600
 
   def perform(*args)
-    HourlyJob.set(wait: 3600.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
-    reset_job_warnings
+    HourlyJob.set(wait: CYCLE.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
+    reset_job_warnings(CYCLE)
 
     # do housekeeping activities
     begin
