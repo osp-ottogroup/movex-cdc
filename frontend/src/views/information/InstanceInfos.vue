@@ -1,6 +1,9 @@
 <template>
   <div class="container">
-    <b-tabs @input="onTabChanged">
+    <div class="is-flex is-justify-content-flex-end">
+      <b-button @click="refresh" icon-left="refresh" size="is-small" type="is-info">Refresh</b-button>
+    </div>
+    <b-tabs v-model="currentTab" @input="onTabChanged">
       <b-tab-item label="Instance" :value="tabNames.INSTANCE">
         <p v-for="element in instanceData" :key="element.name" class="columns">
           <span class="column">{{ element.name }}</span>
@@ -51,10 +54,13 @@ export default {
         KAFKA_TOPICS: 'KAFKA_TOPICS',
         KAFKA_GROUPS: 'KAFKA_GROUPS',
       },
+      currentTab: 'INSTANCE',
       instanceData: [],
       healthCheck: '',
       topics: [],
+      selectedTopic: null,
       groups: [],
+      selectedGroup: null,
       topicDetails: null,
       groupDetails: null,
       isLoading: true,
@@ -87,6 +93,7 @@ export default {
     async onTopicSelected(topic) {
       try {
         this.isLoading = true;
+        this.selectedTopic = topic;
         this.topicDetails = null;
         this.topicDetails = await CRUDService.kafka.topics.get({ topic });
       } catch (e) {
@@ -103,6 +110,7 @@ export default {
     async onGroupSelected(group) {
       try {
         this.isLoading = true;
+        this.selectedGroup = group;
         this.groupDetails = null;
         this.groupDetails = await CRUDService.kafka.groups.get({ group_id: group });
       } catch (e) {
@@ -128,10 +136,16 @@ export default {
     async loadKafkaGroupsData() {
       this.groups = (await CRUDService.kafka.groups.getAll()).groups;
     },
-    async onTabChanged(value) {
+    onTabChanged(value) {
+      this.loadTab(value);
+    },
+    refresh() {
+      this.loadTab(this.currentTab);
+    },
+    async loadTab(tabName) {
       try {
         this.isLoading = true;
-        switch (value) {
+        switch (tabName) {
           case this.tabNames.HEALTH:
             await this.loadHealthData();
             break;
@@ -140,12 +154,18 @@ export default {
             break;
           case this.tabNames.KAFKA_TOPICS:
             await this.loadKafkaTopicsData();
+            if (this.selectedTopic) {
+              await this.onTopicSelected(this.selectedTopic);
+            }
             break;
           case this.tabNames.KAFKA_GROUPS:
             await this.loadKafkaGroupsData();
+            if (this.selectedGroup) {
+              await this.onGroupSelected(this.selectedGroup);
+            }
             break;
           default:
-            throw new Error(`tab value ${value} is unknown`);
+            throw new Error(`tab value ${tabName} is unknown`);
         }
       } catch (e) {
         this.$buefy.notification.open({
