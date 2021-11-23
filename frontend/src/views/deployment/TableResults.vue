@@ -16,9 +16,9 @@
               </b-field>
             </b-field>
             <div>
-              <label class="label is-size-7">{{table.successfulTriggers.length}} Successful</label>
+              <label class="label is-size-7">{{table.successfulTriggers.length}} Successful triggers</label>
               <label class="label is-size-7" :class="{'has-text-danger': table.erroneousTriggers.length > 0}">
-                {{table.erroneousTriggers.length}} Erroneous
+                {{table.erroneousTriggers.length}} Erroneous triggers
               </label>
               <label class="label is-size-7">{{table.loadSql !== '' ? '1' : '0'}} Load SQL</label>
             </div>
