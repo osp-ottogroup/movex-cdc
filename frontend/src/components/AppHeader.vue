@@ -35,6 +35,11 @@
             Set Server Log Level
           </b-navbar-item>
           <b-navbar-item tag="router-link"
+                         :to="{ path: '/administration/worker-count' }"
+                         :active="$route.path === '/administration/worker-count'">
+            Set Worker Count
+          </b-navbar-item>
+          <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/server-log' }"
                          :active="$route.path === '/administration/server-log'">
             Show Server Log

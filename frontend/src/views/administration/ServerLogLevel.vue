@@ -52,6 +52,10 @@ export default {
         this.isLoading = true;
         await CRUDService.serverControl.setLogLevel({ log_level: logLevel });
         this.currentLogLevel = logLevel;
+        this.$buefy.toast.open({
+          message: `Server Log Level was set to '${logLevel}'!`,
+          type: 'is-success',
+        });
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
@@ -61,10 +65,6 @@ export default {
         });
       } finally {
         this.isLoading = false;
-        this.$buefy.toast.open({
-          message: `Server Log Level was set to '${logLevel}'!`,
-          type: 'is-success',
-        });
       }
     },
     buttonType(logLevel) {

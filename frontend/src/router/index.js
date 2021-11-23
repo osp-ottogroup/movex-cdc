@@ -34,6 +34,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogViewer.vue'),
   },
   {
+    path: '/administration/worker-count',
+    name: 'worker-count',
+    component: () => import(/* webpackChunkName: "about" */ '../views/administration/WorkerCount.vue'),
+  },
+  {
     path: '/administration/server-log-level',
     name: 'server-log-level',
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogLevel.vue'),

@@ -41,6 +41,7 @@ export default {
   serverControl: {
     getLogLevel: async (object) => (await HttpService.get(`${backendUrl}/server_control/get_log_level`, object)).data,
     setLogLevel: async (object) => (await HttpService.post(`${backendUrl}/server_control/set_log_level`, object)).data,
+    setWorkerCount: async (object) => (await HttpService.post(`${backendUrl}/server_control/set_worker_threads_count`, object)).data,
   },
   kafka: {
     topics: {
