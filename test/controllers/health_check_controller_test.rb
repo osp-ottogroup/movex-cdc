@@ -4,11 +4,12 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
 
     ThreadHandling.get_instance.ensure_processing
+    SystemValidationJob.new.reset_job_warnings(3600)                            # Suppress health status due to not running job within time
     loop_count = 0
-    while loop_count < 10 do                                                  # wait up to x seconds for processing of event_logs records
+    while loop_count < 10 do                                                    # wait up to x seconds for processing of event_logs records
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-      break if event_logs == 0                                                # All records processed, no need to wait anymore
+      break if event_logs == 0                                                  # All records processed, no need to wait anymore
       sleep 1
     end
 

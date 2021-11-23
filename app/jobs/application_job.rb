@@ -24,7 +24,7 @@ class ApplicationJob < ActiveJob::Base
 
     if job_info && Time.now > job_info[:last_execution] + job_info[:cycle_seconds]
       retval << "\n" if retval != ''
-      retval << "Last execution of Job (#{job_info[:last_execution]}) is older than now - #{job_info[:cycle_seconds]} seconds "
+      retval << "Last execution of Job #{job_class} (#{job_info[:last_execution]}) is older than now - #{job_info[:cycle_seconds]} seconds "
       retval << "(#{job_info[:cycle_seconds]/60} minutes, #{job_info[:cycle_seconds]/3600} hours, #{job_info[:cycle_seconds]/(3600*24)} days ), "
       retval << "but should occure every #{job_info[:cycle_seconds]} seconds"
     end
