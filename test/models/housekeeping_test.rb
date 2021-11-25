@@ -1,9 +1,26 @@
 require 'test_helper'
 
 class HousekeepingTest < ActiveSupport::TestCase
+  setup do
+    # Create victim tables and triggers
+    create_victim_structures
+    create_event_logs_for_test(11)                                              # ensure that at least one interval partition is created
+  end
+
+  # Ensure that last partition remains existing
+  def assure_last_partition
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      if Trixx::Application.partitioning?
+        assert 0 < Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES'"),
+               "There should remain at least one interval partition"
+      end
+    end
+  end
 
   test "do_housekeeping" do
     Housekeeping.get_instance.do_housekeeping
+    assure_last_partition
   end
 
   test "check_partition_interval" do
@@ -83,5 +100,6 @@ class HousekeepingTest < ActiveSupport::TestCase
         end
       end
     end
+    assure_last_partition
   end
 end

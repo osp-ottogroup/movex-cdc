@@ -148,7 +148,7 @@ class ActiveSupport::TestCase
 
   # create records in Event_Log by trigger on VICTIM1
   def create_event_logs_for_test(number_of_records)
-    raise "Should create at least 8 records" if number_of_records < 8
+    raise "Should create at least 11 records" if number_of_records < 11
     if ThreadHandling.get_instance.thread_count > 0
       msg = "There are already #{ThreadHandling.get_instance.thread_count} running worker threads! Created Event_Logs will be processed immediately!"
       Rails.logger.debug msg
@@ -185,6 +185,7 @@ class ActiveSupport::TestCase
     victim_max_id = 0 if victim_max_id.nil?
 
     ActiveRecord::Base.transaction do
+      # First 4 I events
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
       VALUES (#{victim_max_id+1}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
       )")
@@ -192,8 +193,10 @@ class ActiveSupport::TestCase
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+3}, 48.375,   'Record''3', #{date_val}, #{ts_val}, #{raw_val})")
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+4}, -23.475,  'Record''4', #{date_val}, #{ts_val}, #{raw_val})")
 
+      # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
+      # 2 D events
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
 

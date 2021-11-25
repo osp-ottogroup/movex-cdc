@@ -38,7 +38,7 @@ class Housekeeping
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      # check all partitions for deletion except the youngest one
+      # check all partitions for deletion except the youngest one, no matter if they are interval or nor
       partitions_to_check = Database.select_all "\
         WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
                             FROM   User_Tab_Partitions

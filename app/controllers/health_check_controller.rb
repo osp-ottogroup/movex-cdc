@@ -181,6 +181,13 @@ class HealthCheckController < ApplicationController
       health_data[:warnings] << "\nError reading job states: #{e.class}:#{e.message}"
     end
 
+    # get status of event queue
+    begin
+      health_data[:event_log_status] = EventLog.health_check_status
+    rescue Exception=>e
+      health_data[:warnings] << "\nError reading event queue states: #{e.class}:#{e.message}"
+    end
+
     pretty_health_data = JSON.pretty_generate(health_data)
 
     return pretty_health_data, health_data[:warnings] == '' ? :ok : :conflict

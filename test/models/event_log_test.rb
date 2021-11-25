@@ -44,4 +44,8 @@ class EventLogTest < ActiveSupport::TestCase
     end
   end
 
+  test "health_check_status" do
+    EventLog.health_check_status
+  end
+
 end

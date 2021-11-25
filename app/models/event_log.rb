@@ -41,4 +41,31 @@ class EventLog < ApplicationRecord
       end
     end
   end
+
+  # called by health_check controller
+  def self.health_check_status
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      if Trixx::Application.partitioning?
+        partitions = Database.select_all "SELECT Partition_Name, High_Value
+                                          FROM   User_Tab_Partitions
+                                          WHERE  Table_Name = 'EVENT_LOGS'
+                                          AND    Partition_Position > 1
+                                          ORDER BY Partition_Position"
+        min_high_value = 'X'
+        max_high_value = ''
+        partitions.each do |part|
+          min_high_value = part.high_value if part.high_value < min_high_value
+          max_high_value = part.high_value if part.high_value > max_high_value
+        end
+        retval = { used_partition_count: partitions.length }
+        retval[:min_partition_high_value] = min_high_value if partitions.length > 0
+        retval[:max_partition_high_value] = max_high_value if partitions.length > 0
+        retval
+      end
+    when 'SQLITE' then
+      { record_count: Database.select_one("SELECT COUNT(*) FROM Event_Logs")}
+    end
+  end
+
 end
