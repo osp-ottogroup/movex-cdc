@@ -12,8 +12,8 @@ class HousekeepingTest < ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
-        assert 0 < Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES'"),
-               "There should remain at least one interval partition"
+        assert 2 <= Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"),
+               "There should remain at least two partitions"
       end
     end
   end
