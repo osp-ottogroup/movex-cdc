@@ -68,4 +68,36 @@ class EventLog < ApplicationRecord
     end
   end
 
+  # Drop the partition if it is empty and no transactions are pending
+  def self.check_and_drop_partition(partition_name, partition_position, high_value, caller)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      Rails.logger.info "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
+      max_partition_position = Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+      if max_partition_position == partition_position
+        raise "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
+      end
+      pending_transactions = Database.select_one("\
+            SELECT COUNT(*)
+            FROM   gv$Lock l
+            JOIN   User_Objects o ON o.Object_ID = l.ID1
+            WHERE  o.Object_Name    = 'EVENT_LOGS'
+            AND    o.SubObject_Name = :partition_name
+            ", partition_name: partition_name
+      )
+      if pending_transactions > 0
+        Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} not possible because there are #{pending_transactions} pending transactions"
+      else
+        existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{partition_name})"
+        if existing_records > 0
+          Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} not possible because there are #{existing_records} records remaining"
+        else
+          Rails.logger.info "#{caller}: Execute drop partition #{partition_name} with high value #{high_value}"
+          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
+          Rails.logger.info "#{caller}: Successful dropped partition #{partition_name} with high value #{high_value}"
+        end
+      end
+    end
+  end
+
 end

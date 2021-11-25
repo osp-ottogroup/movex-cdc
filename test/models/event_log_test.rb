@@ -48,4 +48,10 @@ class EventLogTest < ActiveSupport::TestCase
     EventLog.health_check_status
   end
 
+  test "check_and_drop_partition" do
+    # Tested by housekeeping_test at first
+    # TODO: test for middle partition and last existing interval partitions
+  end
+
+
 end

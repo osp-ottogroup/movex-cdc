@@ -45,7 +45,7 @@ class Housekeeping
                             WHERE  Table_Name = 'EVENT_LOGS'
                             AND Partition_Position > 1 /* Do not check the first non-interval partition */
                            )
-        SELECT Partition_Name, High_Value
+        SELECT Partition_Name, High_Value, Partition_Position
         FROM   Partitions
         WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions) /* do not check the youngest partition for deletion */
         ORDER BY Partition_Position
@@ -58,27 +58,7 @@ class Housekeeping
       end
 
       partitions_to_check.each do |part|
-        Rails.logger.info "Housekeeping: Check partition #{part['partition_name']} with high value #{part['high_value']} for deletion"
-        pending_transactions = Database.select_one("\
-          SELECT COUNT(*)
-          FROM   gv$Lock l
-          JOIN   User_Objects o ON o.Object_ID = l.ID1
-          WHERE  o.Object_Name    = 'EVENT_LOGS'
-          AND    o.SubObject_Name = :partition_name
-          ", partition_name: part['partition_name']
-        )
-        if pending_transactions > 0
-          Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{pending_transactions} pending transactions"
-        else
-          existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{part['partition_name']})"
-          if existing_records > 0
-            Rails.logger.info "Housekeeping: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{existing_records} records remaining"
-          else
-            Rails.logger.info "Housekeeping: Execute drop partition #{part['partition_name']} with high value #{part['high_value']}"
-            Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{part['partition_name']}"
-            Rails.logger.info "Housekeeping: Successful dropped partition #{part['partition_name']} with high value #{part['high_value']}"
-          end
-        end
+        EventLog.check_and_drop_partition(part['partition_name'], part['partition_position'], part['high_value'], 'Housekeeping.do_housekeeping_internal')
       end
     end
 
@@ -110,7 +90,7 @@ class Housekeeping
         max_distance_seconds = (1024*1024-1) * Trixx::Application.config.trixx_partition_interval / 4 # 1/4 of allowed number of possible partitions
         max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
-        part1 = Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
+        part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
         raise "No oldest partition found for table Event_Logs" if part1.nil?
         min_time =  get_time_from_high_value.call(part1.high_value)
         Rails.logger.debug "High value of oldest partition for Event_Logs is #{min_time}"
@@ -126,32 +106,33 @@ class Housekeeping
         if Time.now - min_time > max_distance_seconds                           # update of high_value of first non-interval partition should happen
           # Check if more than one range partition exists
           if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
-            msg = "There are more than one range partitions for table EVENT_LOGS with interval='NO'! This should never happen in expected behaviour. Please check this partitions for possible content and drop them if empty"
-            Rails.logger.error msg
-            raise msg
-          end
-
-          current_interval = EventLog.current_interval_seconds
-          Rails.logger.debug "Current partition interval is #{current_interval} seconds"
-          # create dummy record with following rollback to enforce creation of interval partition
-          split_partition_force_create_time1 = compare_time - (current_interval) -2   # smaller than expected high_value with 1 second rounding failure
-          split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval)
-          Rails.logger.debug "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}"
-          ActiveRecord::Base.transaction do
-            [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
-              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
-                               created_at: created_at.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+            Rails.logger.info "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
+            partition = Database.select_first_row("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1")
+            EventLog.check_and_drop_partition(partition.partition_name, partition.partition_position, partition.high_value, 'Housekeeping.check_partition_interval_internal')
+          else
+            current_interval = EventLog.current_interval_seconds
+            Rails.logger.debug "Current partition interval is #{current_interval} seconds"
+            # create dummy record with following rollback to enforce creation of interval partition
+            split_partition_force_create_time1 = compare_time - (current_interval) -2   # smaller than expected high_value with 1 second rounding failure
+            split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval)
+            Rails.logger.debug "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}"
+            ActiveRecord::Base.transaction do
+              [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
+                Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+                                 created_at: created_at.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+              end
+              raise ActiveRecord::Rollback
             end
-            raise ActiveRecord::Rollback
+            part2 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
+            part3 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 3"
+            Rails.logger.debug "Partition created at position 2 with partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
+            Rails.logger.debug "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}"
+            raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
+            Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
+            Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
+            # Drop partition only if empty and without transactions
+            EventLog.check_and_drop_partition(part1.partition_name, part1.partition_position, part1.high_value, 'Housekeeping.check_partition_interval_internal')
           end
-          part2 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
-          part3 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 3"
-          Rails.logger.debug "Partition created at position 2 with partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
-          Rails.logger.debug "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}"
-          raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
-          Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
-          Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
-          Database.execute "ALTER TABLE Event_Logs DROP   PARTITION #{part1.partition_name}"
         end
       end
     end
