@@ -18,6 +18,11 @@ class ServerControlController < ApplicationController
     end
   end
 
+  # GET /server_control/get_worker_threads_count
+  def get_worker_threads_count
+    render json: { worker_threads_count:  Trixx::Application.config.trixx_initial_worker_threads}
+  end
+
   # POST /server_control/set_worker_threads_count
   @@set_worker_threads_count_active=nil
   def set_worker_threads_count

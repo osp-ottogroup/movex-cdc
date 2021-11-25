@@ -22,6 +22,13 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
 
   end
 
+  test "should get get_worker_threads_count" do
+    get "/server_control/get_worker_threads_count", headers: jwt_header, as: :json
+    assert_response :success
+
+    assert_equal @response.body, "{\"worker_threads_count\":#{Trixx::Application.config.trixx_initial_worker_threads}}"
+  end
+
   test "should post set_worker_threads_count" do
     ThreadHandling.get_instance.ensure_processing                               # Start worker threads, regularly not started for test
 

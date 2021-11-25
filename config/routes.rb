@@ -37,6 +37,7 @@ Rails.application.routes.draw do
   resources :schema_rights
   get  '/server_control/get_log_level',               to: 'server_control#get_log_level'
   post '/server_control/set_log_level',               to: 'server_control#set_log_level'
+  get  '/server_control/get_worker_threads_count',    to: 'server_control#get_worker_threads_count'
   post '/server_control/set_worker_threads_count',    to: 'server_control#set_worker_threads_count'
   post '/server_control/terminate',                   to: 'server_control#terminate'
 
