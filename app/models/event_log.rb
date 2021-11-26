@@ -75,7 +75,13 @@ class EventLog < ApplicationRecord
       Rails.logger.info "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
       max_partition_position = Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
       if max_partition_position == partition_position
-        raise "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
+        msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
+        Rails.logger.error msg
+        Rails.logger.error "Current existing partitions are:"
+        Database.select_all("SELECT Partition_Position, Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |part|
+          Rails.logger.error "Pos=#{part.partition_position}, name=#{part.partition_name}, high_value=#{part.high_value}, interval=#{part.interval}"
+        end
+        raise msg
       end
       pending_transactions = Database.select_one("\
             SELECT COUNT(*)
