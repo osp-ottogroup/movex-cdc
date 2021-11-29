@@ -42,18 +42,19 @@ class Housekeeping
       # check all partitions for deletion except the youngest one, no matter if they are interval or not
       if Trixx::Application.partitioning?
         partitions_to_check = Database.select_all "\
-          WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position, Interval
+          WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval
                               FROM   User_Tab_Partitions
                               WHERE  Table_Name = 'EVENT_LOGS'
                              )
-          SELECT Partition_Name, High_Value, Partition_Position, Interval
+          SELECT Partition_Name
           FROM   Partitions p
           /* do not check the youngest interval (should survive) and the youngest range partition (will raise ORA-14758) for deletion */
           WHERE  Partition_Position != (SELECT MAX(pi.Partition_Position) FROM Partitions pi WHERE pi.Interval = p.Interval)
+          AND    2 < (SELECT COUNT(*) FROM Partitions)  /* At least two partitions should remain no matter if interval or not */
           ORDER BY Partition_Position
         "
         partitions_to_check.each do |part|
-          EventLog.check_and_drop_partition(part['partition_name'], part['partition_position'], part['high_value'], 'Housekeeping.do_housekeeping_internal')
+          EventLog.check_and_drop_partition(part['partition_name'], 'Housekeeping.do_housekeeping_internal')
         end
       end
     end
@@ -105,7 +106,7 @@ class Housekeeping
           if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
             Rails.logger.info "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
             partition = Database.select_first_row("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1")
-            EventLog.check_and_drop_partition(partition.partition_name, partition.partition_position, partition.high_value, 'Housekeeping.check_partition_interval_internal')
+            EventLog.check_and_drop_partition(partition.partition_name, 'Housekeeping.check_partition_interval_internal')
           else
             current_interval = EventLog.current_interval_seconds
             Rails.logger.debug "Current partition interval is #{current_interval} seconds"
@@ -128,7 +129,7 @@ class Housekeeping
             Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
             Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
             # Drop partition only if empty and without transactions
-            EventLog.check_and_drop_partition(part1.partition_name, part1.partition_position, part1.high_value, 'Housekeeping.check_partition_interval_internal')
+            EventLog.check_and_drop_partition(part1.partition_name, 'Housekeeping.check_partition_interval_internal')
           end
         end
       end

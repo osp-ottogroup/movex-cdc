@@ -115,9 +115,7 @@ class DatabaseOracle
     end
 
     ActiveRecord::Base.connection.get_jdbc_connection.select_all_limit(stmt, binds,options)
-  rescue Exception => e
-    ExceptionHelper.log_exception(e, "DatabaseOracle.select_all_limit: Erroneous SQL:\n#{stmt}")
-    raise
+    # Do not log exception here because it is logged by caller
   end
 
   # Set context info at database session

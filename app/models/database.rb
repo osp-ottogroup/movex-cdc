@@ -35,6 +35,7 @@ class Database
     end
   end
 
+  # sample: Database.select_all "SELECT * FROM Table WHERE ID = :id", {id: 55}
   def self.select_all(sql, filter = {})
     raise "Hash expected as filter" if filter.class != Hash
 
