@@ -38,7 +38,7 @@ class InitializationJob < ApplicationJob
     DailyJob.set(wait: 1200.seconds).perform_later unless Rails.env.test?       # Job is tested separately, run first time after SystemValidationJob should have finished
   rescue Exception => e
     begin
-      ExceptionHelper.log_exception e, 'Initialization failed, abort application now!'
+      ExceptionHelper.log_exception e, "Initialization failed, abort application now!\n#{ExceptionHelper.memory_info_hash}"
     ensure
       exit! 1                                                                   # Ensure application terminates if initialization fails
     end

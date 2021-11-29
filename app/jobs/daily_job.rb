@@ -12,7 +12,7 @@ class DailyJob < ApplicationJob
       Database.set_application_info('DailyJob/CompressStatistics.do_compress')
       CompressStatistics.get_instance.do_compress
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "HourlyJob.perform: calling CompressStatistics.do_compress!")
+      ExceptionHelper.log_exception(e, "HourlyJob.perform: calling CompressStatistics.do_compress!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
     end
 
@@ -20,7 +20,7 @@ class DailyJob < ApplicationJob
       Database.set_application_info('DailyJob/Housekeeping.check_partition_interval')
       Housekeeping.get_instance.check_partition_interval                        # update high value of first partition if necessary
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "HourlyJob.perform: calling Housekeeping.check_partition_interval!")
+      ExceptionHelper.log_exception(e, "HourlyJob.perform: calling Housekeeping.check_partition_interval!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
     end
   end

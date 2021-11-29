@@ -12,7 +12,7 @@ class SystemValidationJob < ApplicationJob
       Database.set_application_info('SystemValidationJob/ensure_processing')
       ThreadHandling.get_instance.ensure_processing
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling ThreadHandling.ensure_processing! Proceeding with housekeeping.")
+      ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling ThreadHandling.ensure_processing! Proceeding with housekeeping.\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
     end
 
@@ -21,7 +21,7 @@ class SystemValidationJob < ApplicationJob
       Database.set_application_info('SystemValidationJob/do_housekeeping')
       Housekeeping.get_instance.do_housekeeping
     rescue Exception => e
-      ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling Housekeeping!")
+      ExceptionHelper.log_exception(e, "SystemValidationJob.perform: calling Housekeeping!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
     end
   end

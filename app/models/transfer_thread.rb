@@ -79,7 +79,6 @@ class TransferThread
     end
   rescue Exception => e
     log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
-    raise
   ensure
     begin
       @kafka_producer&.shutdown                                                 # free kafka connections before terminating Thread
@@ -579,7 +578,7 @@ class TransferThread
   end
 
   def log_exception(exception, message)
-    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state(without_stacktrace: true)}")
+    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state(without_stacktrace: true)}\n#{ExceptionHelper.memory_info_hash}")
   end
 
   def table_cache(table_id)
