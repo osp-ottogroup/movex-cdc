@@ -35,30 +35,26 @@ class Housekeeping
 
   def do_housekeeping_internal
     @last_housekeeping_started = Time.now
+    log_partitions                                                              # log all existing partitions
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-      # check all partitions for deletion except the youngest one, no matter if they are interval or nor
-      partitions_to_check = Database.select_all "\
-        WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position
-                            FROM   User_Tab_Partitions
-                            WHERE  Table_Name = 'EVENT_LOGS'
-                            AND Partition_Position > 1 /* Do not check the first non-interval partition */
-                           )
-        SELECT Partition_Name, High_Value, Partition_Position
-        FROM   Partitions
-        WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions) /* do not check the youngest partition for deletion */
-        ORDER BY Partition_Position
-      "
-      if partitions_to_check.length > 0
-        Rails.logger.debug "All currently existing partitions"
-        Database.select_all("SELECT * FROM User_Tab_Partitions WHERE  Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
-          Rails.logger.debug "Pos=#{p.partition_position} #{p.partition_name} Interval=#{p.interval} HighValue=#{p.high_value}"
+      # check all partitions for deletion except the youngest one, no matter if they are interval or not
+      if Trixx::Application.partitioning?
+        partitions_to_check = Database.select_all "\
+          WITH Partitions AS (SELECT Partition_Name, High_Value, Partition_Position, Interval
+                              FROM   User_Tab_Partitions
+                              WHERE  Table_Name = 'EVENT_LOGS'
+                             )
+          SELECT Partition_Name, High_Value, Partition_Position, Interval
+          FROM   Partitions p
+          /* do not check the youngest interval (should survive) and the youngest range partition (will raise ORA-14758) for deletion */
+          WHERE  Partition_Position != (SELECT MAX(pi.Partition_Position) FROM Partitions pi WHERE pi.Interval = p.Interval)
+          ORDER BY Partition_Position
+        "
+        partitions_to_check.each do |part|
+          EventLog.check_and_drop_partition(part['partition_name'], part['partition_position'], part['high_value'], 'Housekeeping.do_housekeeping_internal')
         end
-      end
-
-      partitions_to_check.each do |part|
-        EventLog.check_and_drop_partition(part['partition_name'], part['partition_position'], part['high_value'], 'Housekeeping.do_housekeeping_internal')
       end
     end
 
@@ -104,6 +100,7 @@ class Housekeeping
           Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of first non-interval partition"
         end
         if Time.now - min_time > max_distance_seconds                           # update of high_value of first non-interval partition should happen
+          log_partitions
           # Check if more than one range partition exists
           if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
             Rails.logger.info "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
@@ -141,4 +138,16 @@ class Housekeeping
     @last_partition_interval_check_started = nil
   end
 
+  private
+  def log_partitions
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      if Trixx::Application.partitioning?
+        Rails.logger.debug "Housekeeping.log_partitions: All currently existing partitions"
+        Database.select_all("SELECT * FROM User_Tab_Partitions WHERE  Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
+          Rails.logger.debug "Pos=#{p.partition_position} #{p.partition_name} Interval=#{p.interval} HighValue=#{p.high_value}"
+        end
+      end
+    end
+  end
 end
