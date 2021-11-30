@@ -58,7 +58,7 @@ class ActiveSupport::TestCase
   end
 =end
 
-  def test_user_options
+  def user_options_4_test
     { user_id: peter_user.id, client_ip_info: '0.0.0.0'}
   end
 
@@ -159,7 +159,7 @@ class ActiveSupport::TestCase
       raise msg
     end
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)

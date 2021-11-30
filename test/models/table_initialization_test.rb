@@ -24,7 +24,7 @@ FROM   main.#{victim1_table.name}
           end
 
     ti_instance = TableInitialization.get_instance
-    ti_instance.add_table_initialization(victim1_table.id, victim1_table.name, sql, test_user_options)
+    ti_instance.add_table_initialization(victim1_table.id, victim1_table.name, sql, user_options_4_test)
     assert_equal(0, ti_instance.init_requests_count(raise_exception_if_locked: false), 'Request should not be waiting')
     assert_equal(1, ti_instance.running_threads_count(raise_exception_if_locked: false), 'Request should be running now')
     sleep 1
