@@ -58,6 +58,10 @@ class ActiveSupport::TestCase
   end
 =end
 
+  def test_user_options
+    { user_id: peter_user.id, client_ip_info: '0.0.0.0'}
+  end
+
   def exec_victim_sql(sql)
     ActiveSupport::Notifications.instrumenter.instrument("sql.active_record", sql: sql, name: 'exec_victim_sql') do
       case Trixx::Application.config.trixx_db_type
@@ -155,7 +159,7 @@ class ActiveSupport::TestCase
       raise msg
     end
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: { user_id: peter_user.id, client_ip_info: '0.0.0.0'})
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)

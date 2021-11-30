@@ -18,19 +18,20 @@ class TableInitializationThread
     raise
   end
 
+  # Method process called in own thread
   def process
     Rails.logger.info('TableInitializationThread.process'){"New table initialization worker thread created with Table_ID=#{@table_id}, Thread-ID=#{Thread.current.object_id}"}
     Database.set_application_info("table init worker #{@table_id}/process")
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Start initial transfer of current table content. Filter = '#{@table.initialization_filter}'" ).save!
     @db_session_info = Database.db_session_info                                 # Session ID etc., get information from within separate thread
     Database.set_current_session_network_timeout(timeout_seconds: 86400)        # ensure hanging sessions are cancelled at least after one day
+    sleep 1                                                                     # prevent from ORA-01466 if @table.raise_if_table_not_readable_by_trixx is executed too quickly
     @table.raise_if_table_not_readable_by_trixx                                 # Check if flashback query is possible on table
     Database.execute @sql
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'" ).save!
   rescue Exception => e
-    log_exception(e, "TableInitializationThread.process #{@table_id}: Terminating thread due to exception")
+    ExceptionHelper.log_exception(e, "TableInitializationThread.process #{@table_id}: Terminating thread due to exception")
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}" ).save!
-    raise
   ensure
     @table.update!(yn_initialization: 'N')                                      # Mark initialization as finished no matter if succesful or not
     TableInitialization.get_instance.remove_from_thread_pool(self)              # unregister from threadpool

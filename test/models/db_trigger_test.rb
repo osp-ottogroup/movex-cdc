@@ -5,7 +5,6 @@ class DbTriggerTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
     create_victim_structures
-    @user_options = { user_id: peter_user.id, client_ip_info: '10.10.10.10'}
   end
 
   test "find_all_by_schema_id" do
@@ -17,7 +16,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     triggers = DbTrigger.find_all_by_table(victim1_table)
     assert_equal(2, triggers.count, 'Should find triggers for table with valid trixx trigger name prefix')
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
     triggers = DbTrigger.find_all_by_table(victim1_table)
     assert_equal(3, triggers.count, 'Should find triggers for table after trigger generation')
   end
@@ -49,7 +48,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}#{victim1_table.name}")  # Ensure record count starts at 0
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
 
       assert_instance_of(Hash, result, 'Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -89,7 +88,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_not_nil Schema.find(victim_schema.id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
 
       # second run of trigger generation should not touch the already existing triggers
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
       assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
       assert_equal 0, result[:errors].length,     '2nd run should not have errors'
 
@@ -116,7 +115,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "drop existing TRIXX trigger without table config" do
     Table.find(victim1_table.id).update!(yn_hidden: 'Y')                        # Ensure this table is not considered for trigger generation
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
     assert_equal 2, result[:successes].select{|s| s[:table_id] == victim1_table.id }.length,
                  'drop trigger should return only drop of existing triggers for victim1'
     assert_equal 0, result[:errors].length,     'drop trigger should not have errors'
@@ -131,7 +130,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     column = Column.new(table_id: table.id, name: 'Dummy', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
     column.save!
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
     assert_equal 1, result[:errors].length,     'Not existing column should lead to error for this table'
 
     column.delete                                                               # Remove temporary object
@@ -160,7 +159,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       existing_triggers_before = DbTrigger.find_all_by_schema_id(victim_schema.id)
 
-      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options, dry_run: true)
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options, dry_run: true)
 
       existing_triggers_after = DbTrigger.find_all_by_schema_id(victim_schema.id)
 
@@ -176,7 +175,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     condition = Condition.where(table_id: victim1_table.id, operation: 'I').first
     original_filter = condition.filter
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
     assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
     assert_not_nil result[:errors][0][:table_id],           ':table_id in error result should be set for trigger'
     assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
@@ -187,7 +186,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     Rails.logger.debug("Reset condition to '#{original_filter}'")
     condition.update!(filter: original_filter)                                  # reset valid entry
-    DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options) # Create trigger again to raise DDL that commits the update on condition
+    DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options) # Create trigger again to raise DDL that commits the update on condition
   end
 
   test "generate trigger with initialization" do
@@ -234,7 +233,7 @@ class DbTriggerTest < ActiveSupport::TestCase
         filtered_records_count += 1 unless init_filter.nil?
         filtered_records_count += 1 unless condition_filter.nil?
         event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: @user_options)
+        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: test_user_options)
         if result[:errors].length > 0
           result[:errors].each {|e| puts e}
           assert_equal 0, result[:errors].length, 'No errors should occur'
