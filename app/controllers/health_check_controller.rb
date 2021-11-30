@@ -34,29 +34,30 @@ class HealthCheckController < ApplicationController
 
     # array with info-hashes to display at home screen { name: xxx, value: yyy }
     info = []
-    info << { name: 'LOG_LEVEL: server side log level',                           value: KeyHelper.log_level_as_string}
-    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS']}
-    info << { name: 'TRIXX_DB_QUERY_TIMEOUT: Timeout for DB selections',          value: Trixx::Application.config.trixx_db_query_timeout}
-    info << { name: 'TRIXX_DB_TYPE: Database type',                               value: Trixx::Application.config.trixx_db_type}
-    info << { name: 'TRIXX_DB_URL: Database URL',                                 value: Trixx::Application.config.trixx_db_url}
-    info << { name: 'TRIXX_DB_USER: Database user for server operations',         value: Trixx::Application.config.trixx_db_user}
-    info << { name: 'TRIXX_ERROR_MAX_RETRIES: Max. retries after transfer error', value: Trixx::Application.config.trixx_error_max_retries}
-    info << { name: 'TRIXX_ERROR_RETRY_START_DELAY: Initial delay after error',   value: Trixx::Application.config.trixx_error_max_retries}
-    info << { name: 'TRIXX_FINAL_ERRORS_KEEP_HOURS: Time before erasing',         value: Trixx::Application.config.trixx_final_errors_keep_hours}
-    info << { name: 'TRIXX_INFO_CONTACT_PERSON',                                  value: Trixx::Application.config.trixx_info_contact_person }
-    info << { name: 'TRIXX_INITIAL_WORKER_THREADS: no. of workers for Kafka transfer', value: Trixx::Application.config.trixx_initial_worker_threads }
-    info << { name: 'TRIXX_KAFKA_COMPRESSION_CODEC',                              value: Trixx::Application.config.trixx_kafka_compression_codec}
-    info << { name: 'TRIXX_KAFKA_MAX_BULK_COUNT: max. messages in one call',      value: Trixx::Application.config.trixx_kafka_max_bulk_count}
-    info << { name: 'TRIXX_KAFKA_SSL_CA_CERT: path to CA certificate',            value: Trixx::Application.config.trixx_kafka_ssl_ca_cert}
-    info << { name: 'TRIXX_KAFKA_SSL_CLIENT_CERT: path to client certificate',    value: Trixx::Application.config.trixx_kafka_ssl_client_cert}
-    info << { name: 'TRIXX_KAFKA_SSL_CLIENT_CERT_KEY: path to client key',        value: Trixx::Application.config.trixx_kafka_ssl_client_cert_key}
-    info << { name: 'TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB: max. buffer size per thread', value: Trixx::Application.config.trixx_kafka_total_buffer_size_mb}
-    info << { name: 'TRIXX_KAFKA_SEED_BROKER',                                    value: Trixx::Application.config.trixx_kafka_seed_broker}
-    info << { name: 'TRIXX_MAX_TRANSACTION_SIZE: max. messages in a transaction', value: Trixx::Application.config.trixx_max_transaction_size}
-    info << { name: 'TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS',               value: Trixx::Application.config.trixx_max_simultaneous_table_initializations}
-    info << { name: 'TRIXX_MAX_SIMULTANEOUS_TRANSACTIONS: for insert in EVENT_LOGS',  value: Trixx::Application.config.trixx_max_simultaneous_transactions}
-    info << { name: 'TRIXX_RUN_CONFIG: path to config file',                      value: Trixx::Application.config.trixx_run_config}
-    info << { name: 'TRIXX_PARTITION_INTERVAL: for table EVENT_LOGS',             value: Trixx::Application.config.trixx_partition_interval}
+    # info << { name: 'LOG_LEVEL: ',            value: KeyHelper.log_level_as_string}
+    info << build_info_record(:log_level,                         'server side log level')
+    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS'], default_value: 300, startup_config_value: ENV['RAILS_MAX_THREADS']}  # Default is set in Dockerfile
+    info << build_info_record(:trixx_db_query_timeout,            'Timeout for DB selections')
+    info << build_info_record(:trixx_db_type,                     'Database type')
+    info << build_info_record(:trixx_db_url,                      'Database URL')
+    info << build_info_record(:trixx_db_user,                     'Database user for server operations')
+    info << build_info_record(:trixx_error_max_retries,           'Max. retries after transfer error')
+    info << build_info_record(:trixx_error_max_retry_start_delay, 'Initial delay after error')
+    info << build_info_record(:trixx_final_errors_keep_hours,     'Time before erasing')
+    info << build_info_record(:trixx_info_contact_person,         '')
+    info << build_info_record(:trixx_initial_worker_threads,      'no. of workers for Kafka transfer')
+    info << build_info_record(:trixx_kafka_compression_codec,     '')
+    info << build_info_record(:trixx_kafka_max_bulk_count,        'max. messages in one call')
+    info << build_info_record(:trixx_kafka_ssl_ca_cert,           'path to CA certificate')
+    info << build_info_record(:trixx_kafka_ssl_client_cert,       'path to client certificate')
+    info << build_info_record(:trixx_kafka_ssl_client_cert_key,   'path to client key')
+    info << build_info_record(:trixx_kafka_total_buffer_size_mb,  'max. buffer size per thread')
+    info << build_info_record(:trixx_kafka_seed_broker,           '')
+    info << build_info_record(:trixx_max_transaction_size,        'max. messages in a transaction')
+    info << build_info_record(:trixx_max_simultaneous_table_initializations, '')
+    info << build_info_record(:trixx_max_simultaneous_transactions, 'for insert in EVENT_LOGS')
+    info << build_info_record(:trixx_run_config,                  'path to config file')
+    info << build_info_record(:trixx_partition_interval,          'for table EVENT_LOGS')
 
     render json: { config_info: info  }, status: :ok
   end
@@ -194,5 +195,18 @@ class HealthCheckController < ApplicationController
     pretty_health_data = JSON.pretty_generate(health_data)
 
     return pretty_health_data, health_data[:warnings] == '' ? :ok : :conflict
+  end
+
+  # Build a record for config_info
+  # key should be lower case
+  def build_info_record(key, description)
+    info_record = { name: "#{key.upcase}: #{description}", value:nil, default_value: nil, startup_config_value: nil }
+    info_record[:value] = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
+    config_info = Trixx::Application.config_attributes(key)
+    if config_info
+      info_record[:default_value]         = config_info[:default_value]
+      info_record[:startup_config_value]  = config_info[:startup_config_value]
+    end
+    info_record
   end
 end

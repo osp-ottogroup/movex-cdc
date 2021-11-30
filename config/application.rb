@@ -56,6 +56,12 @@ module Trixx
       end
     end
 
+    # Hash with TriXX-configs config_name: { default_value:, startup_config_value:}
+    @@config_attributes = {}
+    def self.config_attributes(key)
+      @@config_attributes[key]
+    end
+
     def self.maximum_initial_worker_threads
       retval = nil                                                              # No limit as default
       retval = 1 if config.trixx_db_type == 'SQLITE'
@@ -79,7 +85,7 @@ module Trixx
     def self.set_attrib_from_env(key, options={})
       up_key = key.to_s.upcase
       value = options[:default]
-      value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
+      value = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key) # Value already set by config file
       value = ENV[up_key] if ENV[up_key]                                        # Environment over previous config value
       value = value.to_s.upcase   if options[:upcase]
       value = value.to_s.downcase if options[:downcase]
@@ -96,6 +102,9 @@ module Trixx
         end
       end
       Trixx::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
+      @@config_attributes[key] = {} unless @@config_attributes.has_key?(key)    # records from config file may already exist
+      @@config_attributes[key][:default_value]        = options[:default]
+      @@config_attributes[key][:startup_config_value] = value if ENV[up_key]    # remember startup config only if set explicitely by environment
 
       raise "Missing configuration value for '#{up_key}'! Aborting..." if !options[:accept_empty] && Trixx::Application.config.send(key).nil?
       log_value
@@ -116,11 +125,11 @@ module Trixx
     run_config = YAML.load_file(config.trixx_run_config)
     raise "Unable to load and parse file #{config.trixx_run_config}" unless run_config
     run_config.each do |key, value|
-      config.send "#{key.downcase}=", value                                     # copy file content to config
+      config.send "#{key.downcase}=", value                                     # copy file content to config at first
+      @@config_attributes[key.downcase.to_sym] = {default_value: nil, startup_config_value: value} # Default value is set later
     end
-    Trixx::Application.set_and_log_attrib_from_env(:log_level, downcase: true)
+    Trixx::Application.set_and_log_attrib_from_env(:log_level, downcase: true, default: (Rails.env.production? ? :info : :debug))
     config.log_level = config.log_level.to_sym if config.log_level && config.log_level.class == String
-    config.log_level = (Rails.env.production? ? :info : :debug) unless config.log_level                  # Default log level is already set to :debug at this point
 
     Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type, upcase: true)
 

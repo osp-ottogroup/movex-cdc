@@ -15,6 +15,7 @@ class ServerControlController < ApplicationController
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
       Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
       Rails.logger.level = "Logger::#{level}".constantize
+      Trixx::Application.config.log_level = level.downcase.to_sym
     end
   end
 
