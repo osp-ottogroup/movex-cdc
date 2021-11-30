@@ -253,9 +253,10 @@ trivy_scan:
     - |
       echo "
       sleep 3
-      curl -L http://localhost:8080/health_check/ | tee -a /dev/stderr | grep health_check_timestamp
+      curl -L http://localhost:8080/health_check/ | tee health_check_result.log | grep health_check_timestamp
       if [ \$? -ne 0 ]; then
-        echo healthcheck not complete, see stderr for details
+        echo healthcheck not complete! Details follow:
+        cat health_check_result.log
         exit 1
       fi
       " | bash

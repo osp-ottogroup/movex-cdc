@@ -73,39 +73,90 @@ class EventLog < ApplicationRecord
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       # partition_position must be read again for each partition because it changes if a previous partition is dropped
-      part = Database.select_first_row "SELECT Partition_Position, High_Value FROM User_Tab_Partitions WHERE Partition_Name = :partition_name", partition_name: partition_name
-      Rails.logger.info "#{caller}: Check partition #{partition_name} with high value #{part.high_value} for deletion"
-      max_partition_position = Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-      if max_partition_position == part.partition_position
-        msg = "Partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
-        Rails.logger.error msg
-        Rails.logger.error "Current existing partitions are:"
-        Database.select_all("SELECT Partition_Position, Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
-          Rails.logger.error "Pos=#{p.partition_position}, name=#{p.partition_name}, high_value=#{p.high_value}, interval=#{p.interval}"
-        end
-        raise msg
-      end
-      pending_transactions = Database.select_one("\
-            SELECT COUNT(*)
-            FROM   gv$Lock l
-            JOIN   User_Objects o ON o.Object_ID = l.ID1
-            WHERE  o.Object_Name    = 'EVENT_LOGS'
-            AND    o.SubObject_Name = :partition_name
-            ", partition_name: partition_name
-      )
-      if pending_transactions > 0
-        Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{part.high_value} not possible because there are #{pending_transactions} pending transactions"
+      part = Database.select_first_row "SELECT Partition_Position, High_Value
+                                        FROM   User_Tab_Partitions
+                                        WHERE  Table_Name = 'EVENT_LOGS'
+                                        AND    Partition_Name = :partition_name
+                                       ", partition_name: partition_name
+      if self.partition_allowed_for_drop?(partition_name, part.partition_position, part.high_value, caller)
+        Rails.logger.info "#{caller}: Execute drop partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}"
+        Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
+        Rails.logger.info "#{caller}: Successful dropped partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}"
+        true                                                                    # status relevant for test only
       else
-        existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{partition_name})"
-        if existing_records > 0
-          Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{part.high_value} not possible because there are #{existing_records} records remaining"
-        else
-          Rails.logger.info "#{caller}: Execute drop partition #{partition_name} with high value #{part.high_value}"
-          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
-          Rails.logger.info "#{caller}: Successful dropped partition #{partition_name} with high value #{part.high_value}"
-        end
+        false                                                                   # status relevant for test only
       end
     end
   end
 
+  def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller)
+    Rails.logger.debug "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
+
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+
+      max_partition_position = Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+      if max_partition_position == partition_position
+        msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
+        Rails.logger.error msg
+        self.error_log_partitions
+        return false
+      end
+
+      return false unless self.partition_empty?(partition_name, partition_position, high_value, caller)
+
+      if partition_position == 1                                                  # next partition must be empty because first partition is not scanned by workers
+        next_part = Database.select_first_row "SELECT Partition_Name, Partition_Position, High_Value
+                                               FROM   User_Tab_Partitions
+                                               WHERE  Table_Name = 'EVENT_LOGS'
+                                               AND    Partition_Position = 2
+                                              "
+        unless self.partition_empty?(next_part.partition_name, next_part.partition_position, next_part.high_value, caller)
+          Rails.logger.error "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because next partition #{next_part.partition_name} with high_value #{next_part.high_value} at position #{next_part.partition_position} is not empty!"
+          return false
+        end
+      end
+    end
+
+    true
+  end
+
+  # check if partition does not contain records or pending transactions
+  def self.partition_empty?(partition_name, partition_position, high_value, caller)
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      pending_transactions = Database.select_one("\
+              SELECT COUNT(*)
+              FROM   gv$Lock l
+              JOIN   User_Objects o ON o.Object_ID = l.ID1
+              WHERE  o.Object_Name    = 'EVENT_LOGS'
+              AND    o.SubObject_Name = :partition_name
+              ", partition_name: partition_name
+      )
+      if pending_transactions > 0
+        Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{pending_transactions} pending transactions"
+        return false
+      end
+
+      existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{partition_name})"
+      if existing_records > 0
+        Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{existing_records} records remaining"
+        return false
+      end
+    end
+
+    true
+  end
+
+  def self.error_log_partitions
+    Rails.logger.error "Current existing partitions are:"
+    case Trixx::Application.config.trixx_db_type
+    when 'ORACLE' then
+      if Trixx::Application.partitioning?
+        Database.select_all("SELECT Partition_Position, Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
+          Rails.logger.error "Pos=#{p.partition_position}, name=#{p.partition_name}, high_value=#{p.high_value}, interval=#{p.interval}"
+        end
+      end
+    end
+  end
 end
