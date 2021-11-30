@@ -2,6 +2,14 @@ require 'test_helper'
 
 class EventLogTest < ActiveSupport::TestCase
 
+  # create and rollback one record to provoke partition creation
+  def ensure_partition_exists
+    ActiveRecord::Base.transaction do
+      EventLog.new(id: 8732742944, table_id: 0, operation: 'I', dbuser: 'Hugo', payload: 'Dummy').save!
+      raise ActiveRecord::Rollback, "Record should not persist!"
+    end
+  end
+
   test "select event log" do
     event_logs = EventLog.all
   end
@@ -51,6 +59,7 @@ class EventLogTest < ActiveSupport::TestCase
   test "check_and_drop_partition" do
     # Tested by housekeeping_test at first
     # TODO: test for middle partition
+    ensure_partition_exists
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       max_partition_name = Database.select_one "SELECT MAX(Partition_Name) KEEP (DENSE_RANK LAST ORDER BY Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
@@ -59,6 +68,7 @@ class EventLogTest < ActiveSupport::TestCase
   end
 
   test "partition_allowed_for_drop" do
+    ensure_partition_exists
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       max_part = Database.select_first_row "WITH Parts AS (SELECT Partition_Name, Partition_Position, high_value
