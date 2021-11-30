@@ -215,7 +215,6 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than TRIXX_INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
 |SECRET_KEY_BASE|Server side key used for encryption and signing of the JWT that is used for authentication|
 |SECRET_KEY_BASE_FILE|Location of file with server side key used for encryption and signing of the JWT that is used for authentication|
-|TIMEZONE|Sets local timezone within Docker-container of TriXX-applikation. Must be directly set as environment of container, does not work from config file.|Europe/Berlin
 |TNS_ADMIN|Directory of config file tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
 |TRIXX_DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |TRIXX_DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by TriXX (ci_preparation:create_user)|
@@ -247,6 +246,7 @@ Relevant only if EVENT_LOGS is used partitioned. +
 Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of TriXX application.
 Otherwise error ORA-00054 is raised and application does not start.
 |60 seconds
+|TZ|Sets local timezone within the Docker-container of TriXX-applikation. Must be directly set as environment of container during 'docker run' like '-e TZ="Europe/London"', does not work from config file.|Europe/Berlin
 |===
 
 

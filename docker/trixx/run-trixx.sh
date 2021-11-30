@@ -2,13 +2,7 @@
 # start TriXX application inside a docker container
 # Peter Ramm, 2020-03-31
 
-# set timezone if requested like TIMEZONE="Europe/Berlin"
-if [ -n "$TIMEZONE" ]; then
-  echo "Setting timezone to $TIMEZONE"
-  echo $TIMEZONE > /etc/timezone
-  rm /etc/localtime && ln -s /usr/share/zoneinfo/$TIMEZONE /etc/localtime
-  dpkg-reconfigure -f noninteractive tzdata
-fi
+# timezone setting is done by "-e TZ="Europe/Berlin" etc in call of "docker run"
 
 echo "TriXX build version is `cat /app/build_version`"
 
