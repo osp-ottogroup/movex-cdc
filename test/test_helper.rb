@@ -253,9 +253,9 @@ class ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
-        Database.select_all("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
+        Database.select_all("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
-          msg = "Partition #{p['partition_name']}: high_value = '#{p['high_value']}', #{record_count} records"
+          msg = "Partition #{p['partition_name']}: position= #{p.partition_position} high_value = '#{p['high_value']}', #{record_count} records"
           puts msg if options[:console_output]
           Rails.logger.debug msg
         end

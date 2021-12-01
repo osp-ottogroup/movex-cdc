@@ -94,10 +94,17 @@ class EventLog < ApplicationRecord
 
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
-
-      max_partition_position = Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-      if max_partition_position == partition_position
+      part_stat = Database.select_first_row("SELECT MAX(Partition_Position) max_partition_position, COUNT(*) Partition_Count
+                                             FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+      if part_stat.max_partition_position == partition_position
         msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
+        Rails.logger.error msg
+        self.error_log_partitions
+        return false
+      end
+
+      if part_stat.partition_count < 3
+        msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is one of the last two partitions of table EVENT_LOGS and should not be dropped"
         Rails.logger.error msg
         self.error_log_partitions
         return false

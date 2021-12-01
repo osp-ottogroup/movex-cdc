@@ -24,6 +24,7 @@ export IP_ADDRESS=192.168.178.24
 ----
 
 === Run Kafka container ===
+In our case an own Docker image that combines Zookeeper and Kafka in one image
 ----
 docker run --rm \
   -p 2181:2181 \
@@ -107,7 +108,7 @@ SELECT id, schema, tablename, operation, timestamp, new->NAME,
 
 == Prepare TriXX application ==
 
-=== Create TriTrixx config as trixx_run.yml ===
+=== Create Trixx config as trixx_run.yml ===
 ----
 > cat <<EOF >trixx_run.yml
 ################################

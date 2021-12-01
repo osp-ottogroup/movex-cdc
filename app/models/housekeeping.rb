@@ -46,15 +46,20 @@ class Housekeeping
                               FROM   User_Tab_Partitions
                               WHERE  Table_Name = 'EVENT_LOGS'
                              )
-          SELECT Partition_Name
+          SELECT p.Partition_Name, p.Partition_Position, stats.Interval_Count, stats.Max_Partition_Position
           FROM   Partitions p
+          CROSS JOIN (SELECT SUM(DECODE(Interval, 'YES', 1, 0)) Interval_Count, MAX(Partition_Position) Max_Partition_Position
+                      FROM Partitions
+                     ) stats
           /* do not check the youngest interval (should survive) and the youngest range partition (will raise ORA-14758) for deletion */
           WHERE  Partition_Position != (SELECT MAX(pi.Partition_Position) FROM Partitions pi WHERE pi.Interval = p.Interval)
-          AND    2 < (SELECT COUNT(*) FROM Partitions)  /* At least two partitions should remain no matter if interval or not */
           ORDER BY Partition_Position
         "
         partitions_to_check.each do |part|
-          EventLog.check_and_drop_partition(part['partition_name'], 'Housekeeping.do_housekeeping_internal')
+          # if only range partitions exists (no interval) than preserve the youngest two range partitions (because the first partition is not scanned by worker)
+          if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
+            EventLog.check_and_drop_partition(part['partition_name'], 'Housekeeping.do_housekeeping_internal')
+          end
         end
       end
     end
@@ -76,12 +81,6 @@ class Housekeeping
           raise "Housekeeping.get_time_from_high_value: Parameter high_value should not be nil" if high_value.nil?
           hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
           Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
-        end
-
-        build_split_sql = proc do |partition_name, high_value, diff|
-          "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
-                              PARTITION Split1 VALUES LESS THAN (TO_DATE(' #{(high_value+diff).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
-                              PARTITION Split2)"
         end
 
         max_distance_seconds = (1024*1024-1) * Trixx::Application.config.trixx_partition_interval / 4 # 1/4 of allowed number of possible partitions
