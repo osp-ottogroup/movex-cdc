@@ -20,7 +20,7 @@ TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Be
 == Prepare Kafka ==
 === Set your local host IP address ===
 ----
-export IP_ADDRESS=192.168.178.24
+export IP_ADDRESS=192.168.178.34
 ----
 
 === Run Kafka container ===
@@ -44,6 +44,105 @@ run the command within in the just started Kafka Docker container ("docker exec 
 ----
 $KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_ADDRESS:9092 --isolation-level=read_committed
 ----
+
+
+== Prepare TriXX application ==
+
+=== Create Trixx config as trixx_run.yml ===
+----
+cat <<EOF >trixx_run.yml
+################################
+
+# Log level for application (debug, info, warn, error)
+LOG_LEVEL: debug
+
+# Type of used database (SQLITE, ORACLE)
+TRIXX_DB_TYPE: ORACLE
+
+# Username of TriXX schema in database
+TRIXX_DB_USER: trixx_demo
+
+# Password of TRIXX_DB_USER, also used as password of user 'admin' for GUI logon.
+TRIXX_DB_PASSWORD: trixx_demo
+
+# Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
+TRIXX_DB_URL: $IP_ADDRESS:1521/ORCLPDB1
+
+# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
+TRIXX_KAFKA_SEED_BROKER: $IP_ADDRESS:9092
+
+################################
+EOF
+----
+
+=== Create DB-User for Trixx ===
+----
+docker run --rm \
+  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
+  -e TRIXX_DB_SYS_PASSWORD=oracle \
+  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
+  git.osp-dd.de:5005/main/trixx:master bundle exec rake ci_preparation:create_user
+----
+
+=== Run TriXX Docker container ===
+----
+docker run --rm \
+  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
+  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
+  -p8080:8080 \
+  git.osp-dd.de:5005/main/trixx:master
+----
+
+== Prepare test case ==
+
+=== Create a table to observe for test user ===
+----
+echo "
+-- Remove possibly existing objects
+BEGIN
+  FOR Rec IN (SELECT 1 FROM User_Tables WHERE Table_Name = 'HUGO') LOOP
+    EXECUTE IMMEDIATE 'DROP TABLE HUGO';
+  END LOOP;
+  FOR Rec IN (SELECT 1 FROM User_Sequences WHERE Sequence_Name = 'HUGO_SEQ') LOOP
+    EXECUTE IMMEDIATE 'DROP SEQUENCE HUGO_SEQ';
+  END LOOP;
+END;
+/
+
+CREATE TABLE Panorama_Test.Hugo (
+       ID          NUMBER PRIMARY KEY,
+       Name        VARCHAR2(30),
+       Start_Date  DATE);
+CREATE SEQUENCE Hugo_Seq;
+GRANT SELECT ON Hugo TO Public;
+GRANT FLASHBACK ON Hugo TO Public;
+" | sqlplus panorama_test/panorama_test@$IP_ADDRESS:1521/ORCLPDB1
+----
+
+=== Generate permanent changes on panorama_test.Hugo ===
+----
+echo "
+  BEGIN
+    LOOP
+      INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.Currval, SYSDATE);
+      COMMIT;
+      DBMS_SESSION.SLEEP(1);
+    END LOOP;
+  END;
+/
+" | sqlplus panorama_test/panorama_test@localhost:1521/ORCLPDB1
+----
+
+
+=== Configure Trixx by GUI to catch changes on table panorama_test.Hugo ===
+- Open TriXX application in browser: http://localhost:8080
+- first login with user "admin" and passwort of DB-user for TriXX
+- create your own personal user, choose a DB-user for authentication
+- authenticate user for a schema including deployment grant
+- Logout as 'admin', connect with this personal user
+- Configure events for table panorama_test.Hugo
+- generate triggers
+- watch what happens in Kafka consumer and ksqlDB
 
 == Prepare ksqlDB ==
 === Run ksqlDB Docker containers ===
@@ -105,86 +204,5 @@ CREATE STREAM hugo_stream (msg_key VARCHAR KEY,
 SELECT id, schema, tablename, operation, timestamp, new->NAME,
   new->ID, new->Start_Date FROM hugo_stream EMIT CHANGES;
 ----
-
-== Prepare TriXX application ==
-
-=== Create Trixx config as trixx_run.yml ===
-----
-> cat <<EOF >trixx_run.yml
-################################
-# Log level for application (debug, info, warn, error)
-LOG_LEVEL: debug
-# Type of used database (SQLITE, ORACLE)
-TRIXX_DB_TYPE: ORACLE
-# Username of TriXX schema in database
-TRIXX_DB_USER: trixx_demo
-# Password of TRIXX_DB_USER, also used as password of user 'admin' for GUI logon.
-TRIXX_DB_PASSWORD: trixx_demo
-# Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
-TRIXX_DB_URL: $IP_ADDRESS:1521/ORCLPDB1
-# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
-TRIXX_KAFKA_SEED_BROKER: $IP_ADDRESS:9092
-################################
-EOF
-----
-
-=== Create DB-User for Trixx ===
-----
-docker run --rm \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -e TRIXX_DB_SYS_PASSWORD=oracle \
-  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
-  git.osp-dd.de:5005/main/trixx:master bundle exec rake ci_preparation:create_user
-----
-
-=== Run TriXX Docker container ===
-----
-docker run --rm \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
-  -p8080:8080 \
-  git.osp-dd.de:5005/main/trixx:master
-----
-
-== Prepare test case ==
-
-=== Create a table to observe for test user ===
-----
-echo "
-  CREATE TABLE Panorama_Test.Hugo (
-      ID          NUMBER PRIMARY KEY,
-      Name        VARCHAR2(30),
-      Start_Date  DATE);
-  CREATE SEQUENCE Hugo_Seq;
-  GRANT SELECT ON Hugo TO Public;
-  GRANT FLASHBACK ON Hugo TO Public;
-" | sqlplus panorama_test/panorama_test@$IP_ADDRESS:1521/ORCLPDB1
-----
-
-=== Generate permanent changes on panorama_test.Hugo ===
-----
-echo "
-  BEGIN
-    LOOP
-      INSERT INTO Hugo (ID, Name, Start_Date) VALUES (Hugo_Seq.NextVal, 'Name '||Hugo_Seq.Currval, SYSDATE);
-      COMMIT;
-      DBMS_SESSION.SLEEP(1);
-    END LOOP;
-  END;
-/
-" | sqlplus panorama_test/panorama_test@localhost:1521/ORCLPDB1
-----
-
-
-=== Configure Trixx by GUI to catch changes on table panorama_test.Hugo ===
-- Open TriXX application in browser: http://localhost:8080
-- first login with user "admin" and passwort of DB-user for TriXX
-- create your own personal user, choose a DB-user for authentication
-- authenticate user for a schema including deployment grant
-- Logout as 'admin', connect with this personal user
-- Configure events for table panorama_test.Hugo
-- generate triggers
-- watch what happens in Kafka consumer and ksqlDB
-
 
 

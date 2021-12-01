@@ -570,6 +570,8 @@ The following things are executed at startup of application / docker container i
 ** The GUI user "admin" acts as supervisor with the authorization to administrate further user accounts
 
 ==== Generation of database triggers ====
+
+===== Creating triggers based on configuration ====
 ===== Initial transfer of table content at first trigger generation =====
 If requested in table config, after generation of trigger a job will be created for transfer of the already existing records of a table to Kafka. +
 For each record in the table existing at the time of trigger creation an insert-event will be transferred to Kafka.

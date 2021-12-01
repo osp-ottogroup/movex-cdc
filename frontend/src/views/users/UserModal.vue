@@ -46,7 +46,7 @@
               </b-input>
             </b-field>
 
-            <b-field label="DB User">
+            <b-field label="DB User for authentication">
               <b-select v-model="user.db_user"
                         placeholder="Select a schema"
                         expanded

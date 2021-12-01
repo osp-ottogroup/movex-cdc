@@ -515,6 +515,7 @@ END Flush;
         sql:          sql
       }
     else
+      Database.execute "DROP TRIGGER #{trigger_name}"                           # Remove erroneous trigger to ensure proper DML on table
       errors.each do |error|
         @errors << {
           table_id:           table.id,
