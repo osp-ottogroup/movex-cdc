@@ -76,9 +76,10 @@ class HousekeepingTest < ActiveSupport::TestCase
 
           do_check = proc do |interval, prev_interval|
             # delete all partitions above 1 for test, no matter if they are interval or not
-            Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position > 1").each do |p|
+            Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES' AND Partition_Position > 1").each do |p|
               Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
             end
+            # possible need to remove the first partition if only range partitions exist
 
             max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
             set_high_value.call(Time.now-max_seconds_for_interval_prev, prev_interval) # set old high_value to 1/2 of possible partition count and default interval

@@ -652,6 +652,7 @@ API Responses are JSON objects.
 |GET|/health_check/log_file|no|current log file of application|Download log file of TriXX application. +
 Requires valid user JWT in request header.
 |POST|/server_control/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
+|POST|/server_control/set_max_transaction_size|max_transaction_size (1..infinity)|no|Set the number of events to process within on DB and Kafka transaction, requires valid admin JWT in request header
 |POST|/server_control/set_worker_threads_count|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
 |POST|/server_control/terminate|no|no|Terminate the current TriXX process by sending SIGTERM, requires valid admin JWT in request header
 |GET|/import_export|no|JSON object|Export complete configuration data (users, schemas, tables, columns, conditions ...) as JSON object

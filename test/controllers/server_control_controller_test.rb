@@ -58,4 +58,20 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     ThreadHandling.get_instance.shutdown_processing                             # Stop worker threads to restore normal test state
   end
 
+  test "should post set_max_transaction_size" do
+    ThreadHandling.get_instance.ensure_processing                               # Start worker threads, regularly not started for test
+
+    post "/server_control/set_max_transaction_size", headers: jwt_header, params: { max_transaction_size: 1000}, as: :json
+    assert_response :unauthorized
+
+    post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 1000}, as: :json
+    assert_response :success
+    assert_equal 1000, Trixx::Application.config.trixx_max_transaction_size, 'Should be set in config'
+
+    post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 5000}, as: :json
+    assert_response :success
+    assert_equal 5000, Trixx::Application.config.trixx_max_transaction_size, 'Should be set in config'
+
+  end
+
 end
