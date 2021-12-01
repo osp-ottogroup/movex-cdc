@@ -75,7 +75,8 @@ class HealthCheckController < ApplicationController
       warnings:                     '',
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
-      trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count
+      trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count,
+      trixx_max_transaction_size:   Trixx::Application.config.trixx_max_transaction_size
     }
 
     begin

@@ -47,6 +47,8 @@ class TransferThread
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
     @kafka_producer                 = nil                                       # initialized later
+    @last_read_events               = 0                                         # number of event_log records read at last read rom event_logs
+    @last_scanned_partitions        = 0                                         # number of partitions scanned at last read rom event_logs
   end
 
   # Do processing in a separate Thread
@@ -66,6 +68,7 @@ class TransferThread
     while !@thread_mutex.synchronize { @stop_requested }
       ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka
         event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
+        @last_read_events = event_logs.count                                    # remember for health check
         if event_logs.count > 0
           @last_active_time = Time.now
           idle_sleep_time = 0                                                   # Reset sleep time for next idle time
@@ -224,9 +227,13 @@ class TransferThread
                                           WHERE  Table_Name = 'EVENT_LOGS' AND Partition_Position > 1 /* Do not check the first non-interval partition */
                                          ").sort_by{|x| x['high_value']}
         Rails.logger.debug "TranferThread.read_event_logs_batch: Found #{partitions.count} partitions to scan"
+        @last_scanned_partitions = 0
         partitions.each_index do |i|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
-          event_logs.concat(read_event_logs_steps(remaining_records, partitions[i]['partition_name'], i == partitions.count-1)) if remaining_records > 0 # Skip next partitions if already read enough records
+          if remaining_records > 0 # Skip next partitions if already read enough records
+            event_logs.concat(read_event_logs_steps(remaining_records, partitions[i]['partition_name'], i == partitions.count-1))
+            @last_scanned_partitions += 1                                       # remember for health check
+          end
         end
         housekeep_max_sorted_id_distance(partitions.map {|p| p['partition_name']})
       else
