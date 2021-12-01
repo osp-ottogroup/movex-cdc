@@ -102,7 +102,8 @@ class Housekeeping
         if Time.now - min_time > max_distance_seconds                           # update of high_value of first non-interval partition should happen
           log_partitions
           # Check if more than one range partition exists
-          if Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO'") > 1
+          part_stats = Database.select_first_row "SELECT SUM(DECODE(Interval, 'NO', 1, 0)) Range_Partition_Count, COUNT(*) Partition_Count FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
+          if part_stats.range_partition_count > 1 && part_stats.partition_count > 2  # drop first of more range partitions only if at least two partitions remain
             Rails.logger.info "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
             partition = Database.select_first_row("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1")
             EventLog.check_and_drop_partition(partition.partition_name, 'Housekeeping.check_partition_interval_internal')

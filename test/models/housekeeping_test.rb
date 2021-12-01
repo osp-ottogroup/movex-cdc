@@ -27,7 +27,6 @@ class HousekeepingTest < ActiveSupport::TestCase
     case Trixx::Application.config.trixx_db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
-        Database.execute "DELETE FROM Event_Logs"                               # Ensure partitions are empty to allow houskeeping
         log_state = proc do |console|
           Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
             msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
@@ -55,30 +54,32 @@ class HousekeepingTest < ActiveSupport::TestCase
               partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
               # Remove all range partitions except the first partition
               Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO' AND Partition_Position > 1").each do |p|
-                EventLog.check_and_drop_partition(p.partition_name, "test check_partition_interval")
-                #Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+                Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
               end
 
               Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
-              EventLog.check_and_drop_partition('TESTSPLIT2', "test check_partition_interval")
-              # Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
+              Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
               log_state.call(false)                                             # log partitions
             end
             EventLog.adjust_interval                                            # adjust in DB according to Trixx::Application.config.trixx_partition_interval
 
             # ensure existence of at least one interval partition
             ActiveRecord::Base.transaction do
-              max_partition_position = Database.select_one "SELECT Max(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
               Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
-                                 created_at: (get_time_from_high_value.call(max_partition_position) + 2).strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+                               created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
               raise ActiveRecord::Rollback
             end
 
           end
 
           do_check = proc do |interval, prev_interval|
+            # delete all partitions above 1 for test, no matter if they are interval or not
+            Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position > 1").each do |p|
+              Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+            end
+
             max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
             set_high_value.call(Time.now-max_seconds_for_interval_prev, prev_interval) # set old high_value to 1/2 of possible partition count and default interval
             Housekeeping.get_instance.check_partition_interval
