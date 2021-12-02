@@ -1,4 +1,4 @@
-# TriXX: Change data capture for relational databases
+# MOVEX Change Data Capture: Change data capture for relational databases
 
 TriXX captures data change events (Insert/Update/Delete) in relational databases and immediately transfers the data changes to Kafka event hub.
 

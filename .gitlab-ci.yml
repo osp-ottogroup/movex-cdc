@@ -3,8 +3,8 @@
 #  - prebuilt database image
 #  - kafka-jruby image built from /docker/kafka-jruby
 
-# Dockerfile for image git.osp-dd.de:5005/main/trixx/kafka-jruby is located in trixx/docker/kafka-jruby
-image: git.osp-dd.de:5005/main/trixx/kafka-jruby:9.3.1.0-jdk17
+# Dockerfile for image is located in trixx/docker/kafka-jruby
+image: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.1.0-jdk17
 
 variables:
   RAILS_MAX_THREADS: 100
