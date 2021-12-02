@@ -3,7 +3,7 @@
 #  - prebuilt database image
 #  - kafka-jruby image built from /docker/kafka-jruby
 
-# Dockerfile for image is located in trixx/docker/kafka-jruby
+# Dockerfile for image is located in movex-cdc/docker/kafka-jruby
 image: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.1.0-jdk17
 
 variables:
@@ -102,7 +102,7 @@ test_oracle_12.1:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:12.1.0.2-ee
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-ee
       alias: oracle-db
   variables:
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -111,7 +111,7 @@ test_oracle_12.2:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:12.2.0.1-ee
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
   variables:
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -120,7 +120,7 @@ test_oracle_19.3:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:19.3.0.0-ee
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.3.0.0-ee
       alias: oracle-db
   variables:
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -129,7 +129,7 @@ test_oracle_19.10-SE2:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: git.osp-dd.de:5005/main/trixx/oracle/database_prebuilt:19.10.0.0-se2
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.10.0.0-se2
       alias: oracle-db
   variables:
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -155,7 +155,7 @@ build_trixx:
   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
     # name: gcr.io/kaniko-project/executor:debug
-    name: git.osp-dd.de:5005/main/trixx/kaniko-executor:debug
+    name: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kaniko-executor:debug
     entrypoint: [""]
 
   script:
@@ -164,7 +164,7 @@ build_trixx:
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
     - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/trixx/Dockerfile-trixx-oracle --destination $TEMP_DOCKER_IMAGE
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/movex-cdc/Dockerfile-trixx-oracle --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
   stage: post_build
