@@ -170,12 +170,10 @@ trivy_scan:
   stage: post_build
   script:
     # Download and install trivy
-    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
-    # Load image to prevent from trivy errors
-    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - $PODMAN pull $TEMP_DOCKER_IMAGE
+    # TODO: Reactivate trivy
+    #    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
     # Check vulnerabilities, evaluates exceptions in .trivyignore
-    - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
+    #    - ./trivy --exit-code 1 $TEMP_DOCKER_IMAGE
     - echo "TODO evaluate trivy results"
 
 #rapid7_scan:
