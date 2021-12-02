@@ -17,12 +17,18 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
+  - first
   - code_analysis
   - test
   - pre_build
   - build
   - post_build
   - deploy
+
+ramm:
+  stage: first
+  script:
+    - ls -R $CI_PROJECT_DI
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
