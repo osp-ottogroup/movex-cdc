@@ -138,18 +138,18 @@ generate_asciidoc:
   stage: pre_build
   script:
     - gem install --no-doc asciidoctor
-    - asciidoctor -o doc/trixx.html doc/trixx.adoc
+    - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
     - gem install --no-doc asciidoctor-pdf
-    - asciidoctor-pdf -o doc/trixx.pdf doc/trixx.adoc
+    - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
   artifacts:
     # artifacts are downloadable at https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/download?job=generate_asciidoc
     # direct access a'la https://git.osp-dd.de/main/trixx/-/jobs/artifacts/master/file/doc/trixx.html?job=generate_asciidoc
     paths:
-      - doc/trixx.html
+      - doc/movex-cdc.html
       - doc/images/
-      - doc/trixx.pdf
+      - doc/movex-cdc.pdf
 
-build_trixx:
+build_movex_cdc:
   stage: build
 
   image:
@@ -282,13 +282,13 @@ pages:
     refs:
       - master
   script:
-    - cp doc/trixx.html public/
+    - cp doc/movex-cdc.html public/
     - cp -r doc/images public/
-    - cp doc/trixx.pdf public/
+    - cp doc/movex-cdc.pdf public/
   artifacts:
     paths:
-      - public/trixx.pdf
-      - public/trixx.html
+      - public/movex-cdc.pdf
+      - public/movex-cdc.html
       - public/images/
 
 # Make the Docker image available for user after treating as clean
