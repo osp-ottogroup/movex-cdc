@@ -17,18 +17,12 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - first
   - code_analysis
   - test
   - pre_build
   - build
   - post_build
   - deploy
-
-ramm:
-  stage: first
-  script:
-    - ls -R $CI_PROJECT_DI
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
@@ -170,7 +164,7 @@ build_movex_cdc:
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
     - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DI/docker/movex-cdc/Dockerfile-trixx-oracle --destination $TEMP_DOCKER_IMAGE
+    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
   stage: post_build
