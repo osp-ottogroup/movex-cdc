@@ -165,7 +165,7 @@ docker run --rm \
   -e DB_PASSWORD=hugo
   -e DB_SYS_PASSWORD=oracle
   -e DB_URL=10.213.131.150:1521/ORCLPDB1
-  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master rake ci_preparation:create_user
+  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master bundle exec rake ci_preparation:create_user
 
 .Optional grants required to initially transfer table content in Oracle DB
 [cols="~,~"]

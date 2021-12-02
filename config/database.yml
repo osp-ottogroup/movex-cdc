@@ -14,7 +14,9 @@ default: &default
     end
   %>
   # Ensure connection pool is large enough for number of threads
-  pool: <%= Trixx::Application.config.initial_worker_threads + Trixx::Application.config.threads_for_api_requests  %>
+  #pool: <%= Trixx::Application.config.initial_worker_threads + Trixx::Application.config.threads_for_api_requests  %>
+  # ensure that after increasing Trixx::Application.config.initial_worker_threads at runtime the pool is still sufficient
+  pool: <%= ENV['RAILS_MAX_THREADS'] %>
 
   driver: <%=
     case Trixx::Application.config.db_type
