@@ -91,7 +91,7 @@ class TableTest < ActiveSupport::TestCase
     # Check if own table is maintainable (no exception)
     assert_nothing_raised do
       Table.check_table_allowed_for_db_user(current_user: peter_user,
-                                      schema_name: Trixx::Application.config.trixx_db_victim_user,
+                                      schema_name: Trixx::Application.config.db_victim_user,
                                       table_name:  'VICTIM1',
                                       allow_for_nonexisting_table: false
       )
@@ -99,7 +99,7 @@ class TableTest < ActiveSupport::TestCase
 
     assert_raise('Non-existing table should raise exception if allow_for_nonexisting_table=false') do
       Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                            schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                            schema_name:                  Trixx::Application.config.db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  false
       )
@@ -108,7 +108,7 @@ class TableTest < ActiveSupport::TestCase
     # Non-existing table should not raise exception if allow_for_nonexisting_table=true
     assert_nothing_raised do
       Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                            schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                            schema_name:                  Trixx::Application.config.db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  true
       )
@@ -127,7 +127,7 @@ class TableTest < ActiveSupport::TestCase
       # selectable table of other schema schould not raise exception
       assert_nothing_raised do
         Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                              schema_name:                  Trixx::Application.config.trixx_db_victim_user,
+                                              schema_name:                  Trixx::Application.config.db_victim_user,
                                               table_name:                   'VICTIM1',
                                               allow_for_nonexisting_table:  false
         )

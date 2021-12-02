@@ -29,6 +29,9 @@ stages:
 brakeman_analysis:
   stage: code_analysis
   script:
+    - echo $CI_REGISTRY_USER -p
+    - echo $CI_REGISTRY_PASSWORD
+    - echo $CI_REGISTRY
     # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
     - gem install --no-doc racc brakeman
     - brakeman -A

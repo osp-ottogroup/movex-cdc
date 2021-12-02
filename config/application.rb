@@ -138,7 +138,7 @@ module Trixx
 
     if Rails.env.test?
       Trixx::Application.set_attrib_from_env(:db_password, default: 'trixx')
-      Trixx::Application.set_attrib_from_env(:trixx_db_victim_password, default: 'trixx_victim')
+      Trixx::Application.set_attrib_from_env(:db_victim_password, default: 'trixx_victim')
     end
 
     case config.db_type
@@ -146,14 +146,14 @@ module Trixx
       Trixx::Application.set_and_log_attrib_from_env(:db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if Trixx::Application.config.respond_to?(:db_sys_password) || ENV['DB_SYS_PASSWORD']
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'trixx'}"
-        Trixx::Application.set_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim')
-        config.trixx_db_victim_user = config.trixx_db_victim_user.upcase
-        Trixx::Application.log_attribute(:trixx_db_victim_user.to_s.upcase, config.trixx_db_victim_user)
+        Trixx::Application.set_attrib_from_env(:db_victim_user, default: 'trixx_victim')
+        config.db_victim_user = config.db_victim_user.upcase
+        Trixx::Application.log_attribute(:db_victim_user.to_s.upcase, config.db_victim_user)
       end
     when 'SQLITE' then
       config.db_user                = 'main'
       if Rails.env.test?
-        config.trixx_db_victim_user       = 'main'
+        config.db_victim_user       = 'main'
       end
     else
       raise "unsupported DB type '#{config.db_type}'"

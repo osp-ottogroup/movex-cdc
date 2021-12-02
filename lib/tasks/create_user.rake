@@ -81,7 +81,7 @@ namespace :ci_preparation do
 
       ensure_user_existence(conn, Trixx::Application.config.db_user,        Trixx::Application.config.db_password)          # Schema for TriXX data structure
       if Rails.env.test?
-        ensure_user_existence(conn, Trixx::Application.config.trixx_db_victim_user, Trixx::Application.config.trixx_db_victim_password)   # Schema for tables observed by trixx
+        ensure_user_existence(conn, Trixx::Application.config.db_victim_user, Trixx::Application.config.db_victim_password)   # Schema for tables observed by trixx
       end
 
       conn.close

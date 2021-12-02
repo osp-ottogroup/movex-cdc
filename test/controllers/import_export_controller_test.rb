@@ -156,7 +156,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Sandro", sandro_user.first_name
     assert_equal "Preuß", sandro_user.last_name
     assert_equal "N", sandro_user.yn_admin
-    assert_equal Trixx::Application.config.trixx_db_victim_user, sandro_user.db_user
+    assert_equal Trixx::Application.config.db_victim_user, sandro_user.db_user
     assert_no_difference('User.count') do
       post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "Sandro.Preuss@ottogroup.com", db_user: Trixx::Application.config.db_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
                                                                              schemas: [generate_expected_schema(Trixx::Application.config.db_user)] # use dummy schema to fulfill requirements
@@ -176,7 +176,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
   # Test Goal: Ensure that a user can be created through import
   test "import_user_create" do
     assert_difference('User.count') do
-      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "new@user.hello", db_user: Trixx::Application.config.trixx_db_victim_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
+      post "/import_export", headers: jwt_header(@jwt_admin_token), params: {users: [{email: "new@user.hello", db_user: Trixx::Application.config.db_victim_user, first_name: "Grzgorz", last_name: "Pol", yn_admin: "Y"}],
                                                                              schemas: [generate_expected_schema(Trixx::Application.config.db_user)] # use dummy schema to fulfill requirements
       }
     end
@@ -186,7 +186,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_equal "Grzgorz", new_user['first_name']
     assert_equal "Pol", new_user['last_name']
     assert_equal "Y", new_user['yn_admin']
-    assert_equal Trixx::Application.config.trixx_db_victim_user, new_user['db_user']
+    assert_equal Trixx::Application.config.db_victim_user, new_user['db_user']
 
     GlobalFixtures.reinitialize                                                 # load original fixtures
   end

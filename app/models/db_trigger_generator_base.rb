@@ -1,6 +1,6 @@
 class DbTriggerGeneratorBase < Database
   attr_reader :successes, :errors, :load_sqls
-  TRIGGER_NAME_PREFIX = "TRIXX_"                                                # owner of trigger is always db_user, must not be part of trigger name
+  TRIGGER_NAME_PREFIX = "M_CDC_"                                                # owner of trigger is always db_user, must not be part of trigger name
 
   ### class methods following
 

@@ -15,7 +15,7 @@ module TestHelper
   # get schemaname if used for DB
   def victim_schema_prefix
     case Trixx::Application.config.db_type
-    when 'ORACLE' then "#{Trixx::Application.config.trixx_db_victim_user}."
+    when 'ORACLE' then "#{Trixx::Application.config.db_victim_user}."
     when 'SQLITE' then ''
     else
       raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
@@ -111,7 +111,7 @@ class ActiveSupport::TestCase
           BEGIN
             NULL;
           END BEFORE STATEMENT;
-        END TRIXX_Victim1_I;
+        END #{DbTrigger.build_trigger_name(victim1_table, 'I')};
       ")
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
@@ -120,7 +120,7 @@ class ActiveSupport::TestCase
           BEGIN
             NULL;
           END BEFORE STATEMENT;
-        END TRIXX_Victim1_U;
+        END #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}_TO_DROP;
       ")
 
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
@@ -137,7 +137,7 @@ class ActiveSupport::TestCase
         END;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER TRIXX_VICTIM1_TO_DROP UPDATE ON #{victim1_table.name}
+        CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}VICTIM1_TO_DROP UPDATE ON #{victim1_table.name}
         BEGIN
           INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
         END;
@@ -399,18 +399,18 @@ class GlobalFixtures
 
         # load admin from DB each time because ID may change
         User.new(email: 'admin',                        db_user: Trixx::Application.config.db_user,         first_name: 'Admin',  last_name: 'from fixture', yn_admin: 'Y').save!
-        @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com',     db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Peter',  last_name: 'Ramm')
+        @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com',     db_user: Trixx::Application.config.db_victim_user,  first_name: 'Peter',  last_name: 'Ramm')
         @@peter_user.save!
-        @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com',  db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Sandro', last_name: 'Preuß')
+        @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com',  db_user: Trixx::Application.config.db_victim_user,  first_name: 'Sandro', last_name: 'Preuß')
         @@sandro_user.save!
-        @@no_schema_user = User.new(email: 'no_schema_right@xy.com',       db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'No',     last_name: 'Schema')
+        @@no_schema_user = User.new(email: 'no_schema_right@xy.com',       db_user: Trixx::Application.config.db_victim_user,  first_name: 'No',     last_name: 'Schema')
         @@no_schema_user.save!
 
         @@user_schema = Schema.new(name: Trixx::Application.config.db_user, topic: KafkaHelper.existing_topic_for_test)
         @@user_schema.save!
 
         if Trixx::Application.config.db_type != 'SQLITE'
-          @@victim_schema = Schema.new(name: Trixx::Application.config.trixx_db_victim_user, topic: KafkaHelper.existing_topic_for_test)
+          @@victim_schema = Schema.new(name: Trixx::Application.config.db_victim_user, topic: KafkaHelper.existing_topic_for_test)
           @@victim_schema.save!
           Schema.new(name: 'WITHOUT_TOPIC').save!
         else
@@ -486,8 +486,8 @@ class GlobalFixtures
       @@victim_connection = case Trixx::Application.config.db_type
                             when 'ORACLE' then
                               db_config = Rails.configuration.database_configuration[Rails.env].clone
-                              db_config['username'] = Trixx::Application.config.trixx_db_victim_user
-                              db_config['password'] = Trixx::Application.config.trixx_db_victim_password
+                              db_config['username'] = Trixx::Application.config.db_victim_user
+                              db_config['password'] = Trixx::Application.config.db_victim_password
                               db_config.symbolize_keys!
                               Rails.logger.debug "create_victim_connection: creating JDBCConnection"
                               ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)

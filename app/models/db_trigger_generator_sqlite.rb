@@ -19,7 +19,7 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       WHERE  Type     = 'trigger'
       AND    tbl_name = :table_name
     ", {table_name:   table.name}).each do |t|
-      operation = t['sql'].split[3]                                             # CREATE TRIGGER TRIXX_I_784_3_421_509 INSERT ...
+      operation = t['sql'].split[3]                                             # CREATE TRIGGER M_CDC_I_784_3_421_509 INSERT ...
       result << {
         operation:  short_operation_from_long(operation),
         name:       t['name'],

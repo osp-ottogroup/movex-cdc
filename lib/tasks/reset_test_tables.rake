@@ -47,7 +47,7 @@ namespace :ci_preparation do
     # create JDBC-connection related to DB-Type
     conn = case Trixx::Application.config.db_type
            when 'ORACLE' then
-             java.sql.DriverManager.getConnection("jdbc:oracle:thin:#{Trixx::Application.config.trixx_db_victim_user}/#{Trixx::Application.config.trixx_db_victim_password}@#{Trixx::Application.config.db_url}")
+             java.sql.DriverManager.getConnection("jdbc:oracle:thin:#{Trixx::Application.config.db_victim_user}/#{Trixx::Application.config.db_victim_password}@#{Trixx::Application.config.db_url}")
            end
 
     reset_table(conn, 'Test_Table1', [

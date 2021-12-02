@@ -9,14 +9,14 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # login existing user with email downcase
-    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.downcase, password: Trixx::Application.config.trixx_db_victim_password }
+    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.downcase, password: Trixx::Application.config.db_victim_password }
     case Trixx::Application.config.db_type
     when 'ORACLE' then assert_response :success, 'Login with email in downcase should be possible'
     when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
     end
 
     # login existing user with email upcase
-    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: Trixx::Application.config.trixx_db_victim_password }
+    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: Trixx::Application.config.db_victim_password }
     case Trixx::Application.config.db_type
     when 'ORACLE' then assert_response :success, 'Login with email in upcase should be possible'
     when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
@@ -34,8 +34,8 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
       case Trixx::Application.config.db_type
       when 'ORACLE' then
         db_config = Rails.configuration.database_configuration[Rails.env].clone
-        db_config['username'] = Trixx::Application.config.trixx_db_victim_user
-        db_config['password'] = Trixx::Application.config.trixx_db_victim_password
+        db_config['username'] = Trixx::Application.config.db_victim_user
+        db_config['password'] = Trixx::Application.config.db_victim_password
         db_config.symbolize_keys!
         Rails.logger.debug "LoginControllerTest.should post do_logon: creating JDBCConnection with right credentials"
         ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
@@ -43,7 +43,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     end
 
     # login existing user with email upcase, account should be locked now
-    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: Trixx::Application.config.trixx_db_victim_password }
+    post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: Trixx::Application.config.db_victim_password }
     case Trixx::Application.config.db_type
     when 'ORACLE' then assert_response :unauthorized, 'Login with email in upcase should not be possible because account is locked now'
     when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'

@@ -83,7 +83,9 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
          FROM   User_Triggers t
          JOIN   User_Objects o ON o.Object_Name = t.Trigger_Name AND o.Object_Type = 'TRIGGER'
          WHERE  t.Table_Owner = :table_owner
-         AND    t.Trigger_Name LIKE '#{TRIGGER_NAME_PREFIX}%'
+         AND    (   t.Trigger_Name LIKE '#{TRIGGER_NAME_PREFIX}%'
+                 OR t.Trigger_Name LIKE 'TRIXX_%' /* replace former triggers from the TRIXX era by M_CDC. Remove in 2022 */
+                )
         ",
       {
         table_owner:  @schema.name,
