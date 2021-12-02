@@ -37,7 +37,7 @@ class Housekeeping
     @last_housekeeping_started = Time.now
     log_partitions                                                              # log all existing partitions
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       # check all partitions for deletion except the youngest one, no matter if they are interval or not
       if Trixx::Application.partitioning?
@@ -73,7 +73,7 @@ class Housekeeping
   def check_partition_interval_internal
     @last_partition_interval_check_started = Time.now
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
 
@@ -83,7 +83,7 @@ class Housekeeping
           Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
         end
 
-        max_distance_seconds = (1024*1024-1) * Trixx::Application.config.trixx_partition_interval / 4 # 1/4 of allowed number of possible partitions
+        max_distance_seconds = (1024*1024-1) * Trixx::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
         max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
@@ -141,7 +141,7 @@ class Housekeeping
 
   private
   def log_partitions
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         Rails.logger.debug "Housekeeping.log_partitions: All currently existing partitions"

@@ -9,7 +9,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     result = response.parsed_body
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'SQLITE' then
       assert_equal(1, result.count, 'Should return schema main only')
     else
@@ -42,7 +42,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy schema" do
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       @deletable = Schema.new(name: 'Deletable', lock_version: 1)
       @deletable.save!

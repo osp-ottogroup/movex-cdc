@@ -15,7 +15,7 @@ class TableInitialization
 
   # Check if tread pool size allows processing of next request, triggered at new reauests and if running requests finish
   def check_for_next_processing
-    if init_requests_count > 0 && running_threads_count < Trixx::Application.config.trixx_max_simultaneous_table_initializations
+    if init_requests_count > 0 && running_threads_count < Trixx::Application.config.max_simultaneous_table_initializations
       begin
         request = @init_requests_mutex.synchronize { @init_requests.delete_at(0) }  # remove next request from queue
         @thread_pool_mutex.synchronize { @thread_pool << TableInitializationThread.start_worker_thread(request) }

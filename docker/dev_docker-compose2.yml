@@ -20,10 +20,10 @@ services:
     ports:
       - "3000:3000"
     environment:
-      TRIXX_DB_USER: TRIXX
-      TRIXX_DB_PASSWORD: pass
-      TRIXX_DB_TYPE: ORACLE
-      TRIXX_DB_URL: oracle:1521/ORCLPDB1
+      DB_USER: TRIXX
+      DB_PASSWORD: pass
+      DB_TYPE: ORACLE
+      DB_URL: oracle:1521/ORCLPDB1
 
 networks:
   default:

@@ -11,11 +11,11 @@ class Database
 
   def self.method_missing(method, *args, &block)
     if @@METHODS_TO_DELEGATE.include?(method)
-      target_class = case Trixx::Application.config.trixx_db_type
+      target_class = case Trixx::Application.config.db_type
                      when 'ORACLE' then DatabaseOracle
                      when 'SQLITE' then DatabaseSqlite
                      else
-                       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+                       raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
                      end
       target_class.send(method, *args, &block)                                         # Call method with same name in target class
     else
@@ -28,7 +28,7 @@ class Database
   end
 
   def self.initialize_connection
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'SQLITE' then
       journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
       Rails.logger.info "SQLITE journal mode = #{journal_mode}"
@@ -85,11 +85,11 @@ class Database
 
   # get SQL expression for current system timestamp from DB
   def self.systimestamp
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then "SYSTIMESTAMP"
     when 'SQLITE' then "DATETIME('now')"
     else
-      raise "Database.systimestamp: missing value for '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Database.systimestamp: missing value for '#{Trixx::Application.config.db_type}'"
     end
   end
 
@@ -97,17 +97,17 @@ class Database
   # @param [String] bind_variable_name
   # @param [Object] sole_filter is there already a WHERE clause in SQL (false) or is limit expression the only filter (true)
   def self.result_limit_expression(bind_variable_name, sole_filter: false)
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then " #{sole_filter ? " WHERE" : " AND"} RowNum <= :#{bind_variable_name}"
     when 'SQLITE' then " LIMIT :#{bind_variable_name}"
     else
-      raise "Database.result_limit_expression: missing value for '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Database.result_limit_expression: missing value for '#{Trixx::Application.config.db_type}'"
     end
   end
 
   # set TCP timeout to ensure canceling of session also if SQL timeout is not working
   def self.set_current_session_network_timeout(timeout_seconds:)
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       raw_conn = ActiveRecord::Base.connection.raw_connection
       # Ensure that hanging SQL executions are cancelled after timeout
@@ -116,7 +116,7 @@ class Database
   end
 
   def self.db_session_info
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       Database.select_one "SELECT SID||','||Serial# FROM v$Session WHERE SID=SYS_CONTEXT('USERENV', 'SID')"
     else '< not implemented >'

@@ -9,7 +9,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
   # Ensure that last partition remains existing
   def assure_last_partition
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         assert 2 <= Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"),
@@ -24,7 +24,7 @@ class HousekeepingTest < ActiveSupport::TestCase
   end
 
   test "check_partition_interval" do
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         log_state = proc do |console|
@@ -45,7 +45,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
           # Adjust high value of first partition to an older date
           set_high_value = proc do |high_value_time, interval|
-            Trixx::Application.config.trixx_partition_interval = interval
+            Trixx::Application.config.partition_interval = interval
             current_high_value_time = get_time_from_high_value.call(1)
             if current_high_value_time >= high_value_time                 # high value should by adjusted to an older Time
               Rails.logger.debug "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}"
@@ -63,7 +63,7 @@ class HousekeepingTest < ActiveSupport::TestCase
               Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
               log_state.call(false)                                             # log partitions
             end
-            EventLog.adjust_interval                                            # adjust in DB according to Trixx::Application.config.trixx_partition_interval
+            EventLog.adjust_interval                                            # adjust in DB according to Trixx::Application.config.partition_interval
 
             # ensure existence of at least one interval partition
             ActiveRecord::Base.transaction do

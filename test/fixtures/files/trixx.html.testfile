@@ -832,12 +832,12 @@ The existence of this grants is checked at application start.</p>
 <div class="listingblock">
 <div class="content">
 <pre class="highlight"><code>docker run --rm \
-  -e TRIXX_KAFKA_SEED_BROKER=/dev/null
-  -e TRIXX_DB_TYPE=ORACLE
-  -e TRIXX_DB_USER=hugo
-  -e TRIXX_DB_PASSWORD=hugo
-  -e TRIXX_DB_SYS_PASSWORD=oracle
-  -e TRIXX_DB_URL=10.213.131.150:1521/ORCLPDB1
+  -e KAFKA_SEED_BROKER=/dev/null
+  -e DB_TYPE=ORACLE
+  -e DB_USER=hugo
+  -e DB_PASSWORD=hugo
+  -e DB_SYS_PASSWORD=oracle
+  -e DB_URL=10.213.131.150:1521/ORCLPDB1
   git.osp-dd.de:5005/main/trixx:master rake ci_preparation:create_user</code></pre>
 </div>
 </div>
@@ -872,7 +872,7 @@ The existence of this grants is checked at application start.</p>
 <div class="sect2">
 <h3 id="_configuring_trixx">2.2. Configuring TriXX</h3>
 <div class="paragraph">
-<p>You can configure TriXX either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file to TriXX via TRIXX_RUN_CONFIG.</p>
+<p>You can configure TriXX either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file to TriXX via RUN_CONFIG.</p>
 </div>
 <div class="paragraph">
 <p>Environment variables overrides values from configuration file.</p>
@@ -891,24 +891,24 @@ The existence of this grants is checked at application start.</p>
 </thead>
 <tbody>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_PASSWORD</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Password of TRIXX_DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_PASSWORD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Password of DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_TYPE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_TYPE</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Defines the typ of observed database. Valid values: SQLITE, ORACLE</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_URL</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_URL</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Database-URL for JDBC Connect:
 Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_USER</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_USER</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Username of TriXX-Schema in observed database</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_SEED_BROKER</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_SEED_BROKER</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
 "/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).</p></td>
 </tr>
@@ -936,7 +936,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"</p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock">RAILS_MAX_THREADS</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">Maximum number of threads for the underlying Puma application server, should be set to greater than TRIXX_INITIAL_WORKER_THREADS + 30 if default is not sufficient</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">Maximum number of threads for the underlying Puma application server, should be set to greater than INITIAL_WORKER_THREADS + 30 if default is not sufficient</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">300</p></td>
 </tr>
 <tr>
@@ -960,86 +960,86 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_QUERY_TIMEOUT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_QUERY_TIMEOUT</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">600</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_DB_SYS_PASSWORD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">DB_SYS_PASSWORD</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by TriXX (ci_preparation:create_user)</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_ERROR_MAX_RETRIES</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ERROR_MAX_RETRIES</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Maximum number of retries after error during transfer to Kafka</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">5</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_ERROR_RETRY_START_DELAY</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">ERROR_RETRY_START_DELAY</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Number of seconds after error before first retry starts. This delay is tripled for each next retry.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">20</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_FINAL_ERRORS_KEEP_HOURS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">FINAL_ERRORS_KEEP_HOURS</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">240</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_INFO_CONTACT_PERSON</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INFO_CONTACT_PERSON</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Name and email of contact person for display at GUI home screen</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_INITIAL_WORKER_THREADS</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">INITIAL_WORKER_THREADS</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Initial number of worker threads. Each worker threads has it&#8217;s own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">3</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_COMPRESSION_CODEC</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_COMPRESSION_CODEC</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not supported by TriXX.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">gzip</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_MAX_BULK_COUNT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_MAX_BULK_COUNT</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">1000</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_SSL_CA_CERT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_SSL_CA_CERT</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Path to CA certificate file in pem format</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_SSL_CLIENT_CERT</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_SSL_CLIENT_CERT</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Path to client certifikate file in pem format</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_SSL_CLIENT_CERT_KEY</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_SSL_CLIENT_CERT_KEY</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Path to client key in pem format</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Password for client key</p></td>
 <td class="tableblock halign-left valign-top"></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">KAFKA_TOTAL_BUFFER_SIZE_MB</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery.<br>
-This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB * TRIXX_INITIAL_WORKER_THREADS.<br>
-If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.</p></td>
+This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS.<br>
+If the amount is not sufficient at runtime than the value of KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">100</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_MAX_TRANSACTION_SIZE</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">MAX_TRANSACTION_SIZE</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">10000</p></td>
 </tr>
 <tr>
-<td class="tableblock halign-left valign-top"><p class="tableblock">TRIXX_RUN_CONFIG</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">RUN_CONFIG</p></td>
 <td class="tableblock halign-left valign-top"><p class="tableblock">Path and name of configuration file in YML format as alternative to configuration by environment variables</p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock">APP_ROOT/config/trixx_run.yml</p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock">APP_ROOT/config/run_config.yml</p></td>
 </tr>
 </tbody>
 </table>
@@ -1148,8 +1148,8 @@ and optionally the GUI-tool "Keystore Explorer" (<a href="https://keystore-explo
 <div class="content">
 <pre class="highlight"><code>docker run -p 8080:8080 \
   --stop-timeout=120 \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -v /my_local_dir/trixx_run.yml:/etc/trixx_run.yml \
+  -e RUN_CONFIG=/etc/run_config.yml \
+  -v /my_local_dir/run_config.yml:/etc/run_config.yml \
   git.osp-dd.de:5005/main/trixx</code></pre>
 </div>
 </div>
@@ -1356,7 +1356,7 @@ Prevent from sending 'tombstone events' without key in this case.</p></td>
 <div class="ulist">
 <ul>
 <li>
-<p>If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)</p>
+<p>If TNS alias is used for DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)</p>
 </li>
 <li>
 <p>Oracle&#8217;s number format for values between -1 and 1 is not JSON-compatible (0,123 = .123).
@@ -1578,14 +1578,14 @@ Depending on table configuration Kafka messages may contain an additional key va
 <div class="ulist">
 <ul>
 <li>
-<p>The needed data structures in TriXX-schema (TRIXX_DB_USER) are created or updated</p>
+<p>The needed data structures in TriXX-schema (DB_USER) are created or updated</p>
 </li>
 <li>
-<p>The initial TriXX-user "admin" is created for GUI with link to the TRIXX_DB_USER</p>
+<p>The initial TriXX-user "admin" is created for GUI with link to the DB_USER</p>
 <div class="ulist">
 <ul>
 <li>
-<p>For initial GUI logon with user "admin" the password is the DB-passwort of Trixx DB-user (TRIXX_DB_PASSWORD)</p>
+<p>For initial GUI logon with user "admin" the password is the DB-passwort of Trixx DB-user (DB_PASSWORD)</p>
 </li>
 <li>
 <p>The GUI user "admin" acts as supervisor with the authorization to administrate further user accounts</p>
@@ -1630,14 +1630,14 @@ That means, events without a key can be transferred by every thread, events with
 <div class="paragraph">
 <p>Transferring is done with bulk operations against database and Kafka.
 If the transfer operation fails the bulk size would be reduced (divide &amp; conquer) until a single event is processed in it&#8217;s own transaction.<br>
-If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by TRIXX_ERROR_RETRY_START_DELAY.
-After a number of not successful retries (defined by TRIXX_ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.</p>
+If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by ERROR_RETRY_START_DELAY.
+After a number of not successful retries (defined by ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.</p>
 </div>
 <div class="paragraph">
 <p>Events moved to final error table can be rescheduled by API function: <em>TODO: mark API function</em></p>
 </div>
 <div class="paragraph">
-<p>If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after TRIXX_FINAL_ERRORS_KEEP_HOURS.</p>
+<p>If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after FINAL_ERRORS_KEEP_HOURS.</p>
 </div>
 <div class="paragraph">
 <p>Reasons for transfer errors can be for example:</p>

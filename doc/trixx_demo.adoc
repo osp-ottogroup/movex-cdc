@@ -48,28 +48,28 @@ $KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_AD
 
 == Prepare TriXX application ==
 
-=== Create Trixx config as trixx_run.yml ===
+=== Create config file run_config.yml ===
 ----
-cat <<EOF >trixx_run.yml
+cat <<EOF >run_config.yml
 ################################
 
 # Log level for application (debug, info, warn, error)
 LOG_LEVEL: debug
 
 # Type of used database (SQLITE, ORACLE)
-TRIXX_DB_TYPE: ORACLE
+DB_TYPE: ORACLE
 
 # Username of TriXX schema in database
-TRIXX_DB_USER: trixx_demo
+DB_USER: trixx_demo
 
-# Password of TRIXX_DB_USER, also used as password of user 'admin' for GUI logon.
-TRIXX_DB_PASSWORD: trixx_demo
+# Password of DB_USER, also used as password of user 'admin' for GUI logon.
+DB_PASSWORD: trixx_demo
 
 # Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
-TRIXX_DB_URL: $IP_ADDRESS:1521/ORCLPDB1
+DB_URL: $IP_ADDRESS:1521/ORCLPDB1
 
 # Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
-TRIXX_KAFKA_SEED_BROKER: $IP_ADDRESS:9092
+KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 
 ################################
 EOF
@@ -78,17 +78,17 @@ EOF
 === Create DB-User for Trixx ===
 ----
 docker run --rm \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -e TRIXX_DB_SYS_PASSWORD=oracle \
-  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
+  -e RUN_CONFIG=/etc/run_config.yml \
+  -e DB_SYS_PASSWORD=oracle \
+  -v $PWD/run_config.yml:/etc/run_config.yml \
   git.osp-dd.de:5005/main/trixx:master bundle exec rake ci_preparation:create_user
 ----
 
 === Run TriXX Docker container ===
 ----
 docker run --rm \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -v $PWD/trixx_run.yml:/etc/trixx_run.yml \
+  -e RUN_CONFIG=/etc/run_config.yml \
+  -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
   git.osp-dd.de:5005/main/trixx:master
 ----

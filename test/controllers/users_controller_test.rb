@@ -13,8 +13,8 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   test "should create user" do
     assert_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
-          email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-          schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
+          email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+          schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response 201
@@ -28,16 +28,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   test "should not create user with already existing email" do
     assert_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
-        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
+        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response 201
 
     assert_no_difference('User.count') do
       post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
-        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.trixx_db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
-        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.trixx_db_user}, yn_deployment_granted: 'N' }]
+        email: 'Hans.Dampf@ottogroup.com', db_user: Trixx::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
+        schema_rights: [ {info: 'Info for right', schema: { name: Trixx::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response :unprocessable_entity
@@ -61,7 +61,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
                                                                                     schema_rights: [
                                                                                         {
                                                                                             info: 'Info for right',
-                                                                                            schema: { name: Trixx::Application.config.trixx_db_user},
+                                                                                            schema: { name: Trixx::Application.config.db_user},
                                                                                             lock_version: schema_right&.lock_version,
                                                                                             yn_deployment_granted: 'N'
                                                                                         }
@@ -77,7 +77,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should destroy user" do
-    user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: Trixx::Application.config.trixx_db_user, first_name: 'hans', last_name: 'dampf2')
+    user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: Trixx::Application.config.db_user, first_name: 'hans', last_name: 'dampf2')
     user_to_delete.save!
 
     assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do

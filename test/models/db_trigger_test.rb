@@ -195,7 +195,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{victim1_table.name}" # requires select-Grant
     max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name}"
     second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != :max_id", max_id: max_victim_id
-    insert_condition = case Trixx::Application.config.trixx_db_type
+    insert_condition = case Trixx::Application.config.db_type
                        when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
                        end

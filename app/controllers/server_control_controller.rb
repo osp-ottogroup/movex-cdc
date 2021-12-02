@@ -22,7 +22,7 @@ class ServerControlController < ApplicationController
 
   # GET /server_control/get_worker_threads_count
   def get_worker_threads_count
-    render json: { worker_threads_count:  Trixx::Application.config.trixx_initial_worker_threads}
+    render json: { worker_threads_count:  Trixx::Application.config.initial_worker_threads}
   end
 
   # POST /server_control/set_worker_threads_count
@@ -33,17 +33,17 @@ class ServerControlController < ApplicationController
     else
       worker_threads_count = params.permit(:worker_threads_count)[:worker_threads_count].to_i
 
-      if ENV['RAILS_MAX_THREADS'] && ENV['RAILS_MAX_THREADS'].to_i < worker_threads_count + Trixx::Application.config.trixx_threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit
-        raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low for the requested number of threads! Should be set to greater than the expected number of threads (#{worker_threads_count}) + #{Trixx::Application.config.trixx_threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit}!"
+      if ENV['RAILS_MAX_THREADS'] && ENV['RAILS_MAX_THREADS'].to_i < worker_threads_count + Trixx::Application.config.threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit
+        raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low for the requested number of threads! Should be set to greater than the expected number of threads (#{worker_threads_count}) + #{Trixx::Application.config.threads_for_api_requests + Trixx::Application.config.puma_internal_thread_limit}!"
       end
       raise "Number of worker threads (#{worker_threads_count}) should not be negative" if worker_threads_count < 0
 
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{Trixx::Application.config.trixx_initial_worker_threads} to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{Trixx::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
       else
-        Trixx::Application.config.trixx_initial_worker_threads = worker_threads_count
+        Trixx::Application.config.initial_worker_threads = worker_threads_count
         restart_worker_threads "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"
       end
     end
@@ -51,7 +51,7 @@ class ServerControlController < ApplicationController
 
   # GET /server_control/get_max_transaction_size
   def get_max_transaction_size
-    render json: { max_transaction_size:  Trixx::Application.config.trixx_max_transaction_size}
+    render json: { max_transaction_size:  Trixx::Application.config.max_transaction_size}
   end
 
   # POST /server_control/set_max_transaction_size
@@ -63,12 +63,12 @@ class ServerControlController < ApplicationController
       max_transaction_size = params.permit(:max_transaction_size)[:max_transaction_size].to_i
       raise "Max. transaction size (#{max_transaction_size}) should not greater than 0 " if max_transaction_size < 1
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_max_transaction_size: setting max. transaction size from #{Trixx::Application.config.trixx_max_transaction_size} to #{max_transaction_size}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
-      if max_transaction_size == Trixx::Application.config.trixx_max_transaction_size
+      Rails.logger.warn "ServerControl.set_max_transaction_size: setting max. transaction size from #{Trixx::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      if max_transaction_size == Trixx::Application.config.max_transaction_size
         Rails.logger.info "ServerControl.set_max_transaction_size: Nothing to do because max. transaction size = #{max_transaction_size} is still active"
       else
-        context = "max. transaction size: current=#{Trixx::Application.config.trixx_max_transaction_size}, new=#{max_transaction_size}"
-        Trixx::Application.config.trixx_max_transaction_size = max_transaction_size
+        context = "max. transaction size: current=#{Trixx::Application.config.max_transaction_size}, new=#{max_transaction_size}"
+        Trixx::Application.config.max_transaction_size = max_transaction_size
         restart_worker_threads context
       end
     end

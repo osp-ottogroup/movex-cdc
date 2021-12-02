@@ -26,7 +26,7 @@ class HousekeepingFinalErrors
   def do_housekeeping_internal
     @last_housekeeping_started = Time.now
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         # check all partitions for deletion if older than limit
@@ -40,7 +40,7 @@ class HousekeepingFinalErrors
           # Get content of LONG datatype as real Time object
           high_value = Database.select_one "SELECT TO_DATE(:high_value, '\"TIMESTAMP'' \"YYYY-MM-DD HH24:MI:SS\"''\"') FROM DUAL", { high_value: part['high_value']}
           to_remove = Database.select_one "SELECT CASE WHEN TO_DATE(:high_value, '\"TIMESTAMP'' \"YYYY-MM-DD HH24:MI:SS\"''\"') < SYSDATE - :keep_hours / 24 THEN 1 ELSE 0 END FROM DUAL",
-                                          { high_value: part['high_value'], keep_hours: Trixx::Application.config.trixx_final_errors_keep_hours}
+                                          { high_value: part['high_value'], keep_hours: Trixx::Application.config.final_errors_keep_hours}
           if to_remove == 1
             Rails.logger.info "HousekeepingFinalErrors: Check partition #{part['partition_name']} with high value #{part['high_value']} of table EVENT_LOG_FINAL_ERRORS for drop"
 
@@ -67,7 +67,7 @@ class HousekeepingFinalErrors
         begin
           ActiveRecord::Base.transaction do
             deleted = Database.execute "DELETE FROM Event_Log_Final_Errors
-                                        WHERE  Error_Time < SYSDATE - #{Trixx::Application.config.trixx_final_errors_keep_hours} / 24
+                                        WHERE  Error_Time < SYSDATE - #{Trixx::Application.config.final_errors_keep_hours} / 24
                                         AND    RowNum <= 1000000 /* limit transaction size to  */
                                        "
             Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
@@ -77,7 +77,7 @@ class HousekeepingFinalErrors
       end
     when 'SQLITE' then
       ActiveRecord::Base.transaction do
-        deleted = Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{Trixx::Application.config.trixx_final_errors_keep_hours} hours')"
+        deleted = Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{Trixx::Application.config.final_errors_keep_hours} hours')"
         Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
       end
     end

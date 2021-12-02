@@ -15,7 +15,7 @@ class EventLogTest < ActiveSupport::TestCase
   end
 
   test "adjust_max_simultaneous_transactions" do
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       get_ini_trans = proc do
         if Trixx::Application.partitioning?
@@ -25,28 +25,28 @@ class EventLogTest < ActiveSupport::TestCase
         end
       end
       current_value = get_ini_trans.call
-      Trixx::Application.config.trixx_max_simultaneous_transactions = current_value + 5
+      Trixx::Application.config.max_simultaneous_transactions = current_value + 5
       EventLog.adjust_max_simultaneous_transactions
       changed_value = get_ini_trans.call
       assert_equal current_value + 5, changed_value, 'INI_TRANS should have been changed'
-      Trixx::Application.config.trixx_max_simultaneous_transactions = current_value
+      Trixx::Application.config.max_simultaneous_transactions = current_value
       EventLog.adjust_max_simultaneous_transactions                               # Restore original state
     end
   end
 
   test "adjust interval" do
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         current_interval = EventLog.current_interval_seconds
         CHANGE_DIFF = 300
-        Trixx::Application.config.trixx_partition_interval = current_interval + CHANGE_DIFF
+        Trixx::Application.config.partition_interval = current_interval + CHANGE_DIFF
         EventLog.adjust_interval
         new_interval = EventLog.current_interval_seconds
         assert_equal current_interval + CHANGE_DIFF, new_interval, 'Interval should have been changed'
-        Trixx::Application.config.trixx_partition_interval = current_interval + 120000
+        Trixx::Application.config.partition_interval = current_interval + 120000
         EventLog.adjust_interval                                                # Test a higher value
-        Trixx::Application.config.trixx_partition_interval = current_interval
+        Trixx::Application.config.partition_interval = current_interval
         EventLog.adjust_interval                                                # restore original state
       end
     end
@@ -60,7 +60,7 @@ class EventLogTest < ActiveSupport::TestCase
     # Tested by housekeeping_test at first
     # TODO: test for middle partition
     ensure_partition_exists
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         max_partition_name = Database.select_one "SELECT MAX(Partition_Name) KEEP (DENSE_RANK LAST ORDER BY Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
@@ -71,7 +71,7 @@ class EventLogTest < ActiveSupport::TestCase
 
   test "partition_allowed_for_drop" do
     ensure_partition_exists
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         max_part = Database.select_first_row "WITH Parts AS (SELECT Partition_Name, Partition_Position, high_value

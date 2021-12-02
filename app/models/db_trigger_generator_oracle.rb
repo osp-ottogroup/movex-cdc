@@ -16,7 +16,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       WHERE  Owner        = :owner
       AND    Table_Owner  = :table_owner
     ", {
-      owner:        Trixx::Application.config.trixx_db_user,
+      owner:        Trixx::Application.config.db_user,
       table_owner:  schema.name
     }
     )
@@ -35,7 +35,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       AND    t.Trigger_Name LIKE '#{DbTriggerGeneratorBase::TRIGGER_NAME_PREFIX}%'  /* Find triggers also if name convention in TriXX has changed */
       AND    t.Triggering_Event IN ('INSERT', 'UPDATE', 'DELETE')
     ", {
-      owner:        Trixx::Application.config.trixx_db_user,
+      owner:        Trixx::Application.config.db_user,
       table_owner:  table.schema.name,
       table_name:   table.name
     }).each do |t|
@@ -59,7 +59,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       AND    Table_Name   = :table_name
       AND    Trigger_Name = :trigger_name
     ", {
-      owner:          Trixx::Application.config.trixx_db_user,
+      owner:          Trixx::Application.config.db_user,
       table_owner:    schema.name,
       table_name:     table.name,
       trigger_name:   trigger_name
@@ -197,7 +197,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} should persist and will not be dropped.")
       else
         Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
-        exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.trixx_db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
+        exec_trigger_sql("DROP TRIGGER #{Trixx::Application.config.db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
       end
     end
   end
@@ -230,7 +230,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   # return trigger_sql
   def generate_trigger_sql(table, operation)
     columns = @expected_triggers[table.name][operation][:columns]
-    trigger_sql = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.trixx_db_user}.#{build_trigger_name(table, operation)}"
+    trigger_sql = "CREATE OR REPLACE TRIGGER #{Trixx::Application.config.db_user}.#{build_trigger_name(table, operation)}"
     trigger_sql << " FOR #{DbTriggerGeneratorBase.long_operation_from_short(operation)}"
 
     if operation == 'U'
@@ -346,7 +346,7 @@ transaction_id  VARCHAR2(100) := NULL;
 PROCEDURE Flush IS
 BEGIN
   FORALL i IN 1..payload_tab.COUNT
-    INSERT INTO #{Trixx::Application.config.trixx_db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key, Transaction_ID)
+    INSERT INTO #{Trixx::Application.config.db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key, Transaction_ID)
     VALUES (Event_Logs_Seq.NextVal,
             #{table.id},
             '#{operation}',
@@ -502,7 +502,7 @@ END Flush;
       errors = Database.select_all(
         "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
         {
-          owner:  Trixx::Application.config.trixx_db_user,
+          owner:  Trixx::Application.config.db_user,
           name:   trigger_name
         }
       )

@@ -1,6 +1,6 @@
 class CreateEventLogFinalErrors < ActiveRecord::Migration[6.0]
   def up
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       # Start first partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value

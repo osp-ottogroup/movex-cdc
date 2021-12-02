@@ -104,7 +104,7 @@ class Table < ApplicationRecord
   def raise_if_table_not_readable_by_trixx
     error_msg_add = ''
     sql           = ''
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
       Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
@@ -160,7 +160,7 @@ class Table < ApplicationRecord
 
     return if allow_for_nonexisting_table && !table_exists                      # Allow action for non existing table without further check if requested
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       # Check for public selectable tables
       return if Database.select_one("SELECT COUNT(*)
@@ -209,7 +209,7 @@ class Table < ApplicationRecord
       return if Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
                                     owner: schema_name, table_name: table_name) > 0 # Table should exist
     else
-      raise "Table.check_table_allowed_for_db_user: Declaration missing for #{Trixx::Application.config.trixx_db_type}"
+      raise "Table.check_table_allowed_for_db_user: Declaration missing for #{Trixx::Application.config.db_type}"
     end
     # Raise exception if none of previous checks has returned from method
     raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{current_user.db_user}"

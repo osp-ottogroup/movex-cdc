@@ -64,7 +64,7 @@ module Trixx
 
     def self.maximum_initial_worker_threads
       retval = nil                                                              # No limit as default
-      retval = 1 if config.trixx_db_type == 'SQLITE'
+      retval = 1 if config.db_type == 'SQLITE'
       retval
     end
 
@@ -120,10 +120,10 @@ module Trixx
     Trixx::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
     # Load configuration file, should always exist, at leastwith default values
-    config.trixx_run_config = ENV['TRIXX_RUN_CONFIG'] || "#{Rails.root}/config/trixx_run.yml"
-    Trixx::Application.log_attribute('TRIXX_RUN_CONFIG', config.trixx_run_config)
-    run_config = YAML.load_file(config.trixx_run_config)
-    raise "Unable to load and parse file #{config.trixx_run_config}" unless run_config
+    config.run_config = ENV['RUN_CONFIG'] || "#{Rails.root}/config/run_config.yml"
+    Trixx::Application.log_attribute('RUN_CONFIG', config.run_config)
+    run_config = YAML.load_file(config.run_config)
+    raise "Unable to load and parse file #{config.run_config}" unless run_config
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config at first
       @@config_attributes[key.downcase.to_sym] = {default_value: nil, startup_config_value: value} # Default value is set later
@@ -131,92 +131,92 @@ module Trixx
     Trixx::Application.set_and_log_attrib_from_env(:log_level, downcase: true, default: (Rails.env.production? ? :info : :debug))
     config.log_level = config.log_level.to_sym if config.log_level && config.log_level.class == String
 
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_type, upcase: true)
+    Trixx::Application.set_and_log_attrib_from_env(:db_type, upcase: true)
 
     supported_db_types = ['ORACLE', 'SQLITE']
-    raise "Unsupported value '#{config.trixx_db_type}' for configuration attribute 'TRIXX_DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.trixx_db_type)
+    raise "Unsupported value '#{config.db_type}' for configuration attribute 'DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.db_type)
 
     if Rails.env.test?
-      Trixx::Application.set_attrib_from_env(:trixx_db_password, default: 'trixx')
+      Trixx::Application.set_attrib_from_env(:db_password, default: 'trixx')
       Trixx::Application.set_attrib_from_env(:trixx_db_victim_password, default: 'trixx_victim')
     end
 
-    case config.trixx_db_type
+    case config.db_type
     when 'ORACLE' then
-      Trixx::Application.set_and_log_attrib_from_env(:trixx_db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if Trixx::Application.config.respond_to?(:trixx_db_sys_password) || ENV['TRIXX_DB_SYS_PASSWORD']
+      Trixx::Application.set_and_log_attrib_from_env(:db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if Trixx::Application.config.respond_to?(:db_sys_password) || ENV['DB_SYS_PASSWORD']
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
-        config.trixx_db_user            = "test_#{config.respond_to?(:trixx_db_user) ? config.trixx_db_user : 'trixx'}"
+        config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'trixx'}"
         Trixx::Application.set_attrib_from_env(:trixx_db_victim_user, default: 'trixx_victim')
         config.trixx_db_victim_user = config.trixx_db_victim_user.upcase
         Trixx::Application.log_attribute(:trixx_db_victim_user.to_s.upcase, config.trixx_db_victim_user)
       end
     when 'SQLITE' then
-      config.trixx_db_user                = 'main'
+      config.db_user                = 'main'
       if Rails.env.test?
         config.trixx_db_victim_user       = 'main'
       end
     else
-      raise "unsupported DB type '#{config.trixx_db_type}'"
+      raise "unsupported DB type '#{config.db_type}'"
     end
 
 
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_password)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_query_timeout,                   default: 600, integer: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_db_url,                             accept_empty: config.trixx_db_type == 'SQLITE')
+    Trixx::Application.set_and_log_attrib_from_env(:db_password)
+    Trixx::Application.set_and_log_attrib_from_env(:db_query_timeout,                   default: 600, integer: true)
+    Trixx::Application.set_and_log_attrib_from_env(:db_url,                                   accept_empty: config.db_type == 'SQLITE')
 
-    Trixx::Application.set_attrib_from_env(:trixx_db_user)
-    config.trixx_db_user = config.trixx_db_user.upcase if config.trixx_db_type == 'ORACLE'
-    Trixx::Application.log_attribute(:trixx_db_user.to_s.upcase, config.trixx_db_user)
+    Trixx::Application.set_attrib_from_env(:db_user)
+    config.db_user = config.db_user.upcase if config.db_type == 'ORACLE'
+    Trixx::Application.log_attribute(:db_user.to_s.upcase, config.db_user)
 
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_error_max_retries,                  default: 5, integer: true, minimum: 1, maximum: 9999)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_error_retry_start_delay,            default: 20, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_final_errors_keep_hours,            default: 240, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_info_contact_person,                accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_initial_worker_threads,             default: 3, maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_compression_codec,            default: 'gzip')
+    Trixx::Application.set_and_log_attrib_from_env(:error_max_retries,                        default: 5, integer: true, minimum: 1, maximum: 9999)
+    Trixx::Application.set_and_log_attrib_from_env(:error_retry_start_delay,                  default: 20, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:final_errors_keep_hours,                  default: 240, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:info_contact_person,                accept_empty: true)
+          Trixx::Application.set_and_log_attrib_from_env(:initial_worker_threads,             default: 3, maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_compression_codec,                  default: 'gzip')
     supported_compression_codecs = ['none', 'snappy', 'gzip']
-    raise "TRIXX_KAFKA_COMPRESSION_CODEC=#{config.trixx_kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.trixx_kafka_compression_codec
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_max_bulk_count,               default: 1000, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_seed_broker,                  default: '/dev/null')
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_ca_cert,                  accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert,              accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key,          accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_ssl_client_cert_key_password, accept_empty: true)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_kafka_total_buffer_size_mb,         default: 100,   integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_transaction_size,               default: 10000, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_simultaneous_table_initializations, default: 5, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_max_simultaneous_transactions, default: 16, integer: true, minimum: 1)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_partition_interval,                 default: 60, integer: true, minimum: 1, maximum: 6000000)
-    Trixx::Application.set_and_log_attrib_from_env(:trixx_threads_for_api_requests,           default: 20, integer: true)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
+    raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count,                     default: 1000, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_seed_broker,                        default: '/dev/null')
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert,                        accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert,                    accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key,                accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password,       accept_empty: true)
+    Trixx::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb,               default: 100,   integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:max_transaction_size,                     default: 10000, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:max_simultaneous_table_initializations,   default: 5, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:max_simultaneous_transactions,            default: 16, integer: true, minimum: 1)
+    Trixx::Application.set_and_log_attrib_from_env(:partition_interval,                       default: 60, integer: true, minimum: 1, maximum: 6000000)
+    Trixx::Application.set_and_log_attrib_from_env(:threads_for_api_requests,                 default: 20, integer: true)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool
     config.puma_internal_thread_limit = 10                                      # Number of threads to calculate for puma
-    rails_max_thread_msg = "Should be set to greater than TRIXX_INITIAL_WORKER_THREADS (#{config.trixx_initial_worker_threads}) + #{config.trixx_threads_for_api_requests + config.puma_internal_thread_limit}!"
+    rails_max_thread_msg = "Should be set to greater than INITIAL_WORKER_THREADS (#{config.initial_worker_threads}) + #{config.threads_for_api_requests + config.puma_internal_thread_limit}!"
     raise "RAILS_MAX_THREADS not set! #{rails_max_thread_msg}" if ENV['RAILS_MAX_THREADS'].nil? && !Rails.env.test?
-    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < (config.trixx_initial_worker_threads + config.trixx_threads_for_api_requests + config.puma_internal_thread_limit)
+    if ENV['RAILS_MAX_THREADS'] && !Rails.env.test? && ENV['RAILS_MAX_THREADS'].to_i < (config.initial_worker_threads + config.threads_for_api_requests + config.puma_internal_thread_limit)
       raise "Environment variable RAILS_MAX_THREADS (#{ENV['RAILS_MAX_THREADS']}) is too low! #{rails_max_thread_msg}"
     end
 
-    case config.trixx_db_type
+    case config.db_type
     when 'ORACLE' then
       Trixx::Application.set_and_log_attrib_from_env(:tns_admin, accept_empty: true)
       if config.tns_admin
         System.setProperty("oracle.net.tns_admin", config.tns_admin)
       else
-        raise "TNS_ADMIN must be set if TRIXX_DB_URL ('#{config.trixx_db_url}') is not a valid JDBC thin URL (host:port:sid or host:port/service_name) and is treated as TNS-alias" unless config.trixx_db_url[':']
+        raise "TNS_ADMIN must be set if DB_URL ('#{config.db_url}') is not a valid JDBC thin URL (host:port:sid or host:port/service_name) and is treated as TNS-alias" unless config.db_url[':']
       end
     end
 
     # check if database supports partitioning (possible and licensed)
     def partitioning?
       if !defined? @trixx_db_partitioning
-        @trixx_db_partitioning = case config.trixx_db_type
+        @trixx_db_partitioning = case config.db_type
                                  when 'ORACLE' then
                                    Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
                                  else
                                    false
                                  end
-        Rails.logger.info "Partitioning = #{@trixx_db_partitioning} for this #{config.trixx_db_type} database"
+        Rails.logger.info "Partitioning = #{@trixx_db_partitioning} for this #{config.db_type} database"
       end
       @trixx_db_partitioning
     end

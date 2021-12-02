@@ -33,7 +33,7 @@ export default {
       this.isLoading = true;
       const response = await HttpService.get(`${Config.backendUrl}/health_check/config_info`);
       const infoList = response.data.config_info;
-      const found = infoList.find((element) => element.name === 'TRIXX_INFO_CONTACT_PERSON');
+      const found = infoList.find((element) => element.name === 'INFO_CONTACT_PERSON');
       if (found !== undefined) {
         this.contactPerson = found.value;
       }

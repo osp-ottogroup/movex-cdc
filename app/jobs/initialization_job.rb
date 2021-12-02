@@ -29,8 +29,8 @@ class InitializationJob < ApplicationJob
     Rails.logger.info "Database version = #{Database.db_version}"
     Trixx::Application.log_attribute('Database version', Database.db_version)
 
-    EventLog.adjust_interval                                                    # Activate new Trixx::Application.config.trixx_partition_interval if necessary
-    EventLog.adjust_max_simultaneous_transactions                               # Activate new Trixx::Application.config.trixx_max_simultaneous_transactions if necessary
+    EventLog.adjust_interval                                                    # Activate new Trixx::Application.config.partition_interval if necessary
+    EventLog.adjust_max_simultaneous_transactions                               # Activate new Trixx::Application.config.max_simultaneous_transactions if necessary
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
@@ -51,10 +51,10 @@ class InitializationJob < ApplicationJob
     unless admin
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do
-        db_user = case Trixx::Application.config.trixx_db_type
-                  when 'ORACLE' then Trixx::Application.config.trixx_db_user   # all schemas/users are handled in upper case
+        db_user = case Trixx::Application.config.db_type
+                  when 'ORACLE' then Trixx::Application.config.db_user   # all schemas/users are handled in upper case
                   else
-                    Trixx::Application.config.trixx_db_user
+                    Trixx::Application.config.db_user
                   end
         user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: db_user, yn_admin: 'Y')
         user.save!
@@ -64,7 +64,7 @@ class InitializationJob < ApplicationJob
 
   # ensure required rights and grants
   def ensure_required_rights
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       check_readable 'DBA_Constraints'
       check_readable 'DBA_Cons_Columns'
@@ -84,7 +84,7 @@ class InitializationJob < ApplicationJob
 
   # check if read/select is possible on object
   def check_readable(object_name)
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       begin
         Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
@@ -117,7 +117,7 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
 
   # check if create view is possible
   def check_create_view
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       Database.execute "CREATE OR REPLACE View Trixx_View_Test AS SELECT * FROM DUAL"
       Database.execute "DROP View Trixx_View_Test"

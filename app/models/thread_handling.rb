@@ -19,7 +19,7 @@ class ThreadHandling
     current_thread_pool_size = @thread_pool_mutex.synchronize { @thread_pool.count }
 
     # calculate required number of worker threads
-    required_number_of_threads = Trixx::Application.config.trixx_initial_worker_threads
+    required_number_of_threads = Trixx::Application.config.initial_worker_threads
     Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
     unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
@@ -34,9 +34,9 @@ class ThreadHandling
         current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
           Rails.logger.debug "ThreadHandling.ensure_processing: starting worker thread because there are not enough"
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
-              max_transaction_size:     Trixx::Application.config.trixx_max_transaction_size,
-              max_message_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count,
-              max_buffer_bytesize:      Trixx::Application.config.trixx_kafka_total_buffer_size_mb * 1024 * 1024
+              max_transaction_size:     Trixx::Application.config.max_transaction_size,
+              max_message_bulk_count:   Trixx::Application.config.kafka_max_bulk_count,
+              max_buffer_bytesize:      Trixx::Application.config.kafka_total_buffer_size_mb * 1024 * 1024
           }
           )  # add worker to pool
           sleep 2                                                               # don't start all workers at once

@@ -26,7 +26,7 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     get "/server_control/get_worker_threads_count", headers: jwt_header, as: :json
     assert_response :success
 
-    assert_equal @response.body, "{\"worker_threads_count\":#{Trixx::Application.config.trixx_initial_worker_threads}}"
+    assert_equal @response.body, "{\"worker_threads_count\":#{Trixx::Application.config.initial_worker_threads}}"
   end
 
   test "should post set_worker_threads_count" do
@@ -66,11 +66,11 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
 
     post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 1000}, as: :json
     assert_response :success
-    assert_equal 1000, Trixx::Application.config.trixx_max_transaction_size, 'Should be set in config'
+    assert_equal 1000, Trixx::Application.config.max_transaction_size, 'Should be set in config'
 
     post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 5000}, as: :json
     assert_response :success
-    assert_equal 5000, Trixx::Application.config.trixx_max_transaction_size, 'Should be set in config'
+    assert_equal 5000, Trixx::Application.config.max_transaction_size, 'Should be set in config'
 
   end
 

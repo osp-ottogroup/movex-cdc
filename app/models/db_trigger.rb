@@ -10,11 +10,11 @@ class DbTrigger < ApplicationRecord
 
   def self.method_missing(method, *args, &block)
     if METHODS_TO_DELEGATE.include?(method)
-      target_class = case Trixx::Application.config.trixx_db_type
+      target_class = case Trixx::Application.config.db_type
                      when 'ORACLE' then DbTriggerGeneratorOracle
                      when 'SQLITE' then DbTriggerGeneratorSqlite
                      else
-                       raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+                       raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
                      end
       target_class.send(method, *args, &block)                                         # Call method with same name in target class
     else
@@ -38,11 +38,11 @@ class DbTrigger < ApplicationRecord
   #   }
   def self.generate_schema_triggers(schema_id:, user_options:, dry_run: false, table_id_list: nil)
     schema = Schema.find schema_id
-    generator = case Trixx::Application.config.trixx_db_type
+    generator = case Trixx::Application.config.db_type
                 when 'ORACLE' then DbTriggerGeneratorOracle.new(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
                 when 'SQLITE' then DbTriggerGeneratorSqlite.new(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
                 else
-                  raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+                  raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
                 end
 
     Table.where(schema_id: schema_id).each do |table|
@@ -64,7 +64,7 @@ class DbTrigger < ApplicationRecord
         TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql], user_options)
       end
 
-      if Trixx::Application.config.trixx_db_type == 'SQLITE'
+      if Trixx::Application.config.db_type == 'SQLITE'
         # defer next processing until asynchronous processing of load_sqls has finished, to avoid connection concurrency
         max_wait_for_job = 100
         while (TableInitialization.get_instance.init_requests_count > 0 ||

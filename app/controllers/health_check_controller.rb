@@ -37,27 +37,27 @@ class HealthCheckController < ApplicationController
     # info << { name: 'LOG_LEVEL: ',            value: KeyHelper.log_level_as_string}
     info << build_info_record(:log_level,                         'server side log level')
     info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS'], default_value: 300, startup_config_value: ENV['RAILS_MAX_THREADS']}  # Default is set in Dockerfile
-    info << build_info_record(:trixx_db_query_timeout,            'Timeout for DB selections')
-    info << build_info_record(:trixx_db_type,                     'Database type')
-    info << build_info_record(:trixx_db_url,                      'Database URL')
-    info << build_info_record(:trixx_db_user,                     'Database user for server operations')
-    info << build_info_record(:trixx_error_max_retries,           'Max. retries after transfer error')
+    info << build_info_record(:db_query_timeout,                  'Timeout for DB selections')
+    info << build_info_record(:db_type,                           'Database type')
+    info << build_info_record(:db_url,                            'Database URL')
+    info << build_info_record(:db_user,                           'Database user for server operations')
+    info << build_info_record(:error_max_retries,                 'Max. retries after transfer error')
     info << build_info_record(:trixx_error_max_retry_start_delay, 'Initial delay after error')
-    info << build_info_record(:trixx_final_errors_keep_hours,     'Time before erasing')
-    info << build_info_record(:trixx_info_contact_person,         '')
-    info << build_info_record(:trixx_initial_worker_threads,      'no. of workers for Kafka transfer')
-    info << build_info_record(:trixx_kafka_compression_codec,     '')
-    info << build_info_record(:trixx_kafka_max_bulk_count,        'max. messages in one call')
-    info << build_info_record(:trixx_kafka_ssl_ca_cert,           'path to CA certificate')
-    info << build_info_record(:trixx_kafka_ssl_client_cert,       'path to client certificate')
-    info << build_info_record(:trixx_kafka_ssl_client_cert_key,   'path to client key')
-    info << build_info_record(:trixx_kafka_total_buffer_size_mb,  'max. buffer size per thread')
-    info << build_info_record(:trixx_kafka_seed_broker,           '')
-    info << build_info_record(:trixx_max_transaction_size,        'max. messages in a transaction')
-    info << build_info_record(:trixx_max_simultaneous_table_initializations, '')
-    info << build_info_record(:trixx_max_simultaneous_transactions, 'for insert in EVENT_LOGS')
-    info << build_info_record(:trixx_run_config,                  'path to config file')
-    info << build_info_record(:trixx_partition_interval,          'for table EVENT_LOGS')
+    info << build_info_record(:final_errors_keep_hours,           'Time before erasing')
+    info << build_info_record(:info_contact_person,               '')
+    info << build_info_record(:initial_worker_threads,            'no. of workers for Kafka transfer')
+    info << build_info_record(:kafka_compression_codec,           '')
+    info << build_info_record(:kafka_max_bulk_count,              'max. messages in one call')
+    info << build_info_record(:kafka_ssl_ca_cert,                 'path to CA certificate')
+    info << build_info_record(:kafka_ssl_client_cert,             'path to client certificate')
+    info << build_info_record(:kafka_ssl_client_cert_key,         'path to client key')
+    info << build_info_record(:kafka_total_buffer_size_mb,        'max. buffer size per thread')
+    info << build_info_record(:kafka_seed_broker,                 '')
+    info << build_info_record(:max_transaction_size,              'max. messages in a transaction')
+    info << build_info_record(:max_simultaneous_table_initializations, '')
+    info << build_info_record(:max_simultaneous_transactions,     'for insert in EVENT_LOGS')
+    info << build_info_record(:run_config,                        'path to config file')
+    info << build_info_record(:partition_interval,                'for table EVENT_LOGS')
 
     render json: { config_info: info  }, status: :ok
   end
@@ -69,14 +69,14 @@ class HealthCheckController < ApplicationController
     health_data = {
       health_check_timestamp:       Time.now,
       build_version:                'unknown',
-      database_url:                 Trixx::Application.config.trixx_db_url,
-      kafka_seed_broker:            Trixx::Application.config.trixx_kafka_seed_broker,
+      database_url:                 Trixx::Application.config.db_url,
+      kafka_seed_broker:            Trixx::Application.config.kafka_seed_broker,
       start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
       warnings:                     '',
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
-      trixx_kafka_max_bulk_count:   Trixx::Application.config.trixx_kafka_max_bulk_count,
-      trixx_max_transaction_size:   Trixx::Application.config.trixx_max_transaction_size
+      kafka_max_bulk_count:         Trixx::Application.config.kafka_max_bulk_count,
+      max_transaction_size:   Trixx::Application.config.max_transaction_size
     }
 
     begin
@@ -89,8 +89,8 @@ class HealthCheckController < ApplicationController
       if memory_info_hash[:available_memory][:value] / memory_info_hash[:total_memory][:value] < 0.1
         health_data[:warnings] << "\nAvailable memory is less than 10% of total memory! Risk of getting out of memory exists."
         health_data[:warnings] << "\nIncrease the memory for container or reduce either:"
-        health_data[:warnings] << "\n- the number of threads (TRIXX_INITIAL_WORKER_THREADS)"
-        health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (TRIXX_MAX_TRANSACTION_SIZE) "
+        health_data[:warnings] << "\n- the number of threads (INITIAL_WORKER_THREADS)"
+        health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (MAX_TRANSACTION_SIZE) "
       end
     rescue Exception=>e
       health_data[:warnings] << "\nError calculating memory usage: #{e.class}:#{e.message}"
@@ -100,14 +100,14 @@ class HealthCheckController < ApplicationController
       Rails.logger.debug "HealthCheckController.index: Start getting current thread count"
       current_thread_count = ThreadHandling.get_instance.thread_count(raise_exception_if_locked: true)
       health_data[:current_number_of_worker_threads]  = current_thread_count
-      if Trixx::Application.config.trixx_initial_worker_threads != current_thread_count
-        health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{Trixx::Application.config.trixx_initial_worker_threads}"
+      if Trixx::Application.config.initial_worker_threads != current_thread_count
+        health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{Trixx::Application.config.initial_worker_threads}"
       end
     rescue Exception=>e
       health_data[:warnings] << "\nError reading current_number_of_worker_threads: #{e.class}:#{e.message}"
     end
 
-    health_data[:expected_number_of_worker_threads] = Trixx::Application.config.trixx_initial_worker_threads
+    health_data[:expected_number_of_worker_threads] = Trixx::Application.config.initial_worker_threads
 
     begin
       Rails.logger.debug "HealthCheckController.index: Start getting ThreadHandling.health_check_data"

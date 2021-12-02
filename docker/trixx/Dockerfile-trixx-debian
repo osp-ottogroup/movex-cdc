@@ -5,7 +5,7 @@
 # Usage:
 # Build image:      > docker pull jruby:9.2.13.0
 #                   > docker build -f docker/trixx/Dockerfile-trixx-alpine-trixx --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t trixx .
-# Run container:    > docker run -p 8080:8080 -e TRIXX_DB_PASSWORD=trixx -e TRIXX_DB_USER=trixx -e LOG_LEVEL=debug trixx
+# Run container:    > docker run -p 8080:8080 -e DB_PASSWORD=trixx -e DB_USER=trixx -e LOG_LEVEL=debug trixx
 # Store image at git.osp-dd.de:5005/main/trixx/trixx for deployment
 
 # STAGE 1: build trixx frontend

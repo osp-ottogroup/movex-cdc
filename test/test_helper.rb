@@ -14,11 +14,11 @@ module TestHelper
 
   # get schemaname if used for DB
   def victim_schema_prefix
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then "#{Trixx::Application.config.trixx_db_victim_user}."
     when 'SQLITE' then ''
     else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
     end
   end
 end
@@ -49,11 +49,11 @@ class ActiveSupport::TestCase
 
 =begin
   def logoff_victim_connection(connection)
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then connection.logoff
     when 'SQLITE' then                                                          # SQLite uses default AR connection
     else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
     end
   end
 =end
@@ -64,11 +64,11 @@ class ActiveSupport::TestCase
 
   def exec_victim_sql(sql)
     ActiveSupport::Notifications.instrumenter.instrument("sql.active_record", sql: sql, name: 'exec_victim_sql') do
-      case Trixx::Application.config.trixx_db_type
+      case Trixx::Application.config.db_type
       when 'ORACLE' then GlobalFixtures.victim_connection.exec sql
       when 'SQLITE' then GlobalFixtures.victim_connection.execute sql           # standard method for AR.connection
       else
-        raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+        raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
       end
     end
     #Rails.logger.debug "Event_Logs = #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"}"
@@ -98,12 +98,12 @@ class ActiveSupport::TestCase
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
-      exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.trixx_db_user}") # needed for table initialization
+      exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{Trixx::Application.config.db_user}") # needed for table initialization
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
@@ -124,7 +124,7 @@ class ActiveSupport::TestCase
       ")
 
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
-      exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{Trixx::Application.config.trixx_db_user}")
+      exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{Trixx::Application.config.db_user}")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
     when 'SQLITE' then
@@ -146,7 +146,7 @@ class ActiveSupport::TestCase
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
     else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
     end
   end
 
@@ -165,7 +165,7 @@ class ActiveSupport::TestCase
     result.assert_valid_keys(:successes, :errors, :load_sqls)
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       date_val  = "SYSDATE"
       ts_val    = "LOCALTIMESTAMP"
@@ -179,7 +179,7 @@ class ActiveSupport::TestCase
       tstz_val  = "'2020-02-01T12:20:22.999999+01:00'"
       rownum    = 'row_number() over ()'
     else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
     end
 
     # create exactly 8 records in Event_Logs for Victim1
@@ -211,7 +211,7 @@ class ActiveSupport::TestCase
       victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
       victim2_max_id = 0 if victim2_max_id.nil?
 
-      case Trixx::Application.config.trixx_db_type
+      case Trixx::Application.config.db_type
       when 'ORACLE'
         # create content > 4K in CLOB column
         exec_victim_sql("
@@ -250,7 +250,7 @@ class ActiveSupport::TestCase
   def log_event_logs_content(options = {})
     puts options[:caption] if options[:caption] && options[:console_output]
     Rails.logger.debug options[:caption] if options[:caption]
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       if Trixx::Application.partitioning?
         Database.select_all("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
@@ -284,8 +284,8 @@ class ActiveSupport::TestCase
     options[:max_wait_time]               = 20 unless options[:max_wait_time]
     options[:expected_remaining_records]  = 0  unless options[:expected_remaining_records]
 
-    original_worker_threads = Trixx::Application.config.trixx_initial_worker_threads
-    Trixx::Application.config.trixx_initial_worker_threads = 1                # Ensure that all keys are matching to this worker thread by MOD
+    original_worker_threads = Trixx::Application.config.initial_worker_threads
+    Trixx::Application.config.initial_worker_threads = 1                        # Ensure that all keys are matching to this worker thread by MOD
 
     log_event_logs_content(console_output: false, caption: "#{options[:title]}: Event_Logs records before processing")
 
@@ -310,7 +310,7 @@ class ActiveSupport::TestCase
     remaining_event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
     log_event_logs_content(console_output: true, caption: "#{options[:title]}: #{remaining_event_log_count} Event_Logs records after processing") if remaining_event_log_count > options[:expected_remaining_records]   # List remaining events from table
 
-    Trixx::Application.config.trixx_initial_worker_threads = original_worker_threads  # Restore possibly differing value
+    Trixx::Application.config.initial_worker_threads = original_worker_threads  # Restore possibly differing value
     remaining_event_log_count
   end
 
@@ -368,7 +368,7 @@ class JdbcInfo
   @@jdbc_driver_logged = false
   def self.log_version
     unless @@jdbc_driver_logged
-      case Trixx::Application.config.trixx_db_type
+      case Trixx::Application.config.db_type
       when 'ORACLE' then puts "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
       else puts "No JDBC version checked"
       end
@@ -398,7 +398,7 @@ class GlobalFixtures
         Schema.delete_all
 
         # load admin from DB each time because ID may change
-        User.new(email: 'admin',                        db_user: Trixx::Application.config.trixx_db_user,         first_name: 'Admin',  last_name: 'from fixture', yn_admin: 'Y').save!
+        User.new(email: 'admin',                        db_user: Trixx::Application.config.db_user,         first_name: 'Admin',  last_name: 'from fixture', yn_admin: 'Y').save!
         @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com',     db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Peter',  last_name: 'Ramm')
         @@peter_user.save!
         @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com',  db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'Sandro', last_name: 'Preuß')
@@ -406,10 +406,10 @@ class GlobalFixtures
         @@no_schema_user = User.new(email: 'no_schema_right@xy.com',       db_user: Trixx::Application.config.trixx_db_victim_user,  first_name: 'No',     last_name: 'Schema')
         @@no_schema_user.save!
 
-        @@user_schema = Schema.new(name: Trixx::Application.config.trixx_db_user, topic: KafkaHelper.existing_topic_for_test)
+        @@user_schema = Schema.new(name: Trixx::Application.config.db_user, topic: KafkaHelper.existing_topic_for_test)
         @@user_schema.save!
 
-        if Trixx::Application.config.trixx_db_type != 'SQLITE'
+        if Trixx::Application.config.db_type != 'SQLITE'
           @@victim_schema = Schema.new(name: Trixx::Application.config.trixx_db_victim_user, topic: KafkaHelper.existing_topic_for_test)
           @@victim_schema.save!
           Schema.new(name: 'WITHOUT_TOPIC').save!
@@ -467,13 +467,13 @@ class GlobalFixtures
         Column.new(table_id: @@victim1_table.id, name: 'ROWID_VAL', info: 'RowID test',     yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
         Column.new(table_id: @@victim1_table.id, name: 'NUM_VAL',   info: 'NumVal test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
         Condition.new(table_id: @@victim1_table.id, operation: 'I',
-                      filter: case Trixx::Application.config.trixx_db_type
+                      filter: case Trixx::Application.config.db_type
                               when 'ORACLE' then ":new.Name != 'EXCLUDE FILTER'"
                               when 'SQLITE' then "new.Name != 'EXCLUDE FILTER'"
                               end
         ).save!
         Condition.new(table_id: @@victim1_table.id, operation: 'D',
-                      filter: case Trixx::Application.config.trixx_db_type
+                      filter: case Trixx::Application.config.db_type
                               when 'ORACLE' then ":old.ID IS NOT NULL"
                               when 'SQLITE' then "old.ID IS NOT NULL"
                               end
@@ -483,7 +483,7 @@ class GlobalFixtures
         Column.new(table_id: @@victim2_table.id, name: 'LARGE_TEXT',  info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
       end
 
-      @@victim_connection = case Trixx::Application.config.trixx_db_type
+      @@victim_connection = case Trixx::Application.config.db_type
                             when 'ORACLE' then
                               db_config = Rails.configuration.database_configuration[Rails.env].clone
                               db_config['username'] = Trixx::Application.config.trixx_db_victim_user
@@ -509,7 +509,7 @@ class GlobalFixtures
       schema_right.update!(yn_deployment_granted: 'Y')
     end
 
-    if Trixx::Application.config.trixx_db_type != 'SQLITE'
+    if Trixx::Application.config.db_type != 'SQLITE'
       schema_right = SchemaRight.where(user_id: peter_user.id, schema_id: @@victim_schema.id).first
       if schema_right.nil?
         SchemaRight.new(user_id:    peter_user.id,
@@ -533,7 +533,7 @@ class GlobalFixtures
   def self.victim2_table;     @@victim2_table;      end
 
   def self.victim_connection
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then @@victim_connection
     when 'SQLITE' then ActiveRecord::Base.connection                            # use currently active connection
     end

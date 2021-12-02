@@ -1,4 +1,4 @@
-= image:osp.png[float="left" width=200 ] TriXX: Change Data Capture based on DB-Triggers  =
+= image:osp.png[float="left" width=200 ] MOVEX Change Data Capture  =
 Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :Author Initials: PR
 :toc:
@@ -15,18 +15,18 @@ TIP: This page is not yet completed and still under construction.
 == Introduction ==
 === Purpose ===
 **********************************************************************
-TriXX captures data change events (Insert/Update/Delete) in relational databases and immediately transfers the data changes to Kafka event hub.
+Captures data change events (Insert/Update/Delete) in relational databases and immediately transfers the data changes to Kafka event hub.
 **********************************************************************
 
 
-TriXX allows a system-wide identical and redundancy-free catching of change events on database tables. +
-The Kafka-Cluster , which is supplied with events by TriXX, is responsible for the provision and distribution of events to any consumers (Publish & Subscribe).
+MOVEX CDC allows a system-wide identical and redundancy-free capture of change events on database tables. +
+The Kafka-Cluster , which is supplied with events by MOVEX CDC, is responsible for the provision and distribution of events to any consumers (Publish & Subscribe).
 
 === Concept ===
 **********************************************************************
 * Database triggers are used to capture change events.
-* The configuration for the tables and columns to observe by triggers is stored local in the database in TriXX' schema.
-* This configuration can be maintained manually by TriXX' web-GUI but can also be loaded as JSON file
+* The configuration for the tables and columns to observe by triggers is stored local in the database in MOVEX CDC's schema.
+* This configuration can be maintained manually by the application's web-GUI but can also be loaded as JSON file
 (configuration as code in revision control). +
 * The database triggers are generated based on this configuration data via web-GUI or API call.
 **********************************************************************
@@ -46,7 +46,7 @@ For Kafka consumers the original sequence of messages is guaranteed only for mes
 Therefore you must place messages within the same partition of a topic if you want to consume them in original order. +
 Kafka has the concept of message keys for that. Kafka ensures that messages with the same key value are placed in the same partition and this way are consumed in original sequence.
 
-TriXX supports four kinds of message keys for Kafka that can be defined by GUI at table level:
+MOVEX CDC supports four kinds of message keys for Kafka that can be defined by GUI at table level:
 
 * No message key: Messages are placed randomly in partitions
 * Fixed value: All change events of a table are placed in the same partition (makes sense only if events of multiple tables are produced to the same Kafka topic)
@@ -67,7 +67,7 @@ But this solutions also mean:
 * Especially for Oracle you have to activate SUPPLEMENTAL LOGGING which significantly increases transaction log sizes
 * If you only need a small amount of change events from large transaction processing systems then the effort in dealing with transaction logs becomes complex and expensive compared to what you actually want.
 
-This is the case where TriXX comes into play. +
+This is the case where MOVEX CDC comes into play. +
 Accepting the synchroneous overhead of triggers in business transactions the solution is sized for the expected amount of observed change events independent from the total transaction throughput of the entire database.
 
 .Other common existing solutions for change data capturing and transfer to Kafka
@@ -97,7 +97,7 @@ NOTE: Enterprise Edition with Partitioning Option in Release >= 11.2 is needed u
 Solution for Standard Edition without partitioning is in progress
 
 ==== SQLite ====
-SQLite is used as development database for TriXX. There might be no useful production use case but it works.
+SQLite is used as development database for MOVEX CDC. There might be no useful production use case but it works.
 
 ==== Microsoft SQL Server ====
 Support for MS SQL Server is planned in the future.
@@ -107,39 +107,39 @@ Support for PostgreSQL is planned in the future.
 
 == Operation ==
 === Preconditions for usage ===
-==== Sizing of TriXX server instance ====
-TriXX runs on one CPU and 4 GB of memory with it's default settings.
+==== Sizing of server instance for MOVEX Change Data Cature ====
+The application runs on one CPU and 4 GB of memory with it's default settings.
 But for higher number of worker threads and/or larger memory buffer size you should increase the number or CPUs and memory according.
 
-==== Database schema for TriXX tables ====
-TriXX needs it's own database schema at the observed database. +
-This schema contains configuration tables which TriXX will create itself at first startup as well as the buffered (not yet transferred) events. +
+==== Database schema for MOVEX Change Data Cature  ====
+The application needs it's own database schema at the observed database. +
+This schema contains configuration tables which the application will create itself at first startup as well as the buffered (not yet transferred) events. +
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
 
 ==== DB-specific preconditions for Oracle
 Your database should have activated the Partitioning Option in Enterprise or Express Edition to work proper. +
-TriXX also works for Standard Edition rsp. without partitioning,
+MOVEX CDC also works for Standard Edition rsp. without partitioning,
 but this solution without using partitioning still has some disadvantages:
 
 - Claimed space in table Event_Logs is not freed after processing
 - Peak usage increases high water mark in table Event_Logs and this way full table scans become slower and reduce event throughput
 
-==== Rights for owner of TriXX DB schema ====
-The owner of the TriXX schema requires some preconditions/grants at database.
+==== Rights for the owner of MOVEX CDC's DB schema ====
+The owner of the schema requires some preconditions/grants at database.
 The existence of this grants is checked at application start.
 
-To ensure sufficient user rights the TriXX schema owner can also be created by TriXX itself with given DB admin credentials.
+To ensure sufficient user rights the schema owner for MOVEX CDC can also be created by the application itself with given DB admin credentials.
 
-===== Rights for owner of TriXX DB schema: Oracle =====
+===== Rights for the owner of MOVEX CDC's DB schema: Oracle =====
 
-.Minimum grants required to operate TriXX with Oracle DB
+.Minimum grants required to operate MOVEX CDC with Oracle DB
 [cols="~,~"]
 |===
 |Grant|Description
 
 |CONNECT|Allows establishing session
 |CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
-|CREATE VIEW|Allows creation of views in TriXX schema
+|CREATE VIEW|Allows creation of views in MOVEX CDC's DB schema
 |RESOURCE|Allows creation of tables in own schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
@@ -154,19 +154,18 @@ To ensure sufficient user rights the TriXX schema owner can also be created by T
 |SELECT ON sys.v_$Session|Allows DB session info in health check.
 
 |===
-If suitable an alternative for the detailed single grants may also be to grant 'SELECT ANY DICTIONARY' to the TriXX DB-user.
+If suitable an alternative for the detailed single grants may also be to grant 'SELECT ANY DICTIONARY' to MOVEX CDC's DB-user.
 
-Create TriXX schema owner for Oracle with all required grants by issuing:
+Create MOVEX CDC's schema owner for Oracle with all required grants by issuing:
 [source]
 docker run --rm \
-  -e TRIXX_KAFKA_SEED_BROKER=/dev/null
-  -e TRIXX_DB_TYPE=ORACLE
-  -e TRIXX_DB_USER=hugo
-  -e TRIXX_DB_PASSWORD=hugo
-  -e TRIXX_DB_SYS_PASSWORD=oracle
-  -e TRIXX_DB_URL=10.213.131.150:1521/ORCLPDB1
-  git.osp-dd.de:5005/main/trixx:master rake ci_preparation:create_user
-
+  -e KAFKA_SEED_BROKER=/dev/null
+  -e DB_TYPE=ORACLE
+  -e DB_USER=hugo
+  -e DB_PASSWORD=hugo
+  -e DB_SYS_PASSWORD=oracle
+  -e DB_URL=10.213.131.150:1521/ORCLPDB1
+  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master rake ci_preparation:create_user
 
 .Optional grants required to initially transfer table content in Oracle DB
 [cols="~,~"]
@@ -175,7 +174,7 @@ docker run --rm \
 
 |SELECT ON <table>|Allows selection of table data for initial transfer to Kafka
 |FLASHBACK ON <table>|Allows selection of table data by flashback query limited to the existing records at the current SCN of trigger creation +
-Since the FLASHBACK grant alone does not allow the selection of data from a table without the SELECT grant, this requirement can also be satisfied by granting FLASHBACK ANY TABLE to the TriXX user.
+Since the FLASHBACK grant alone does not allow the selection of data from a table without the SELECT grant, this requirement can also be satisfied by granting FLASHBACK ANY TABLE to MOVEX CDC's DB user.
 |===
 
 ==== Kafka configuration ====
@@ -184,11 +183,11 @@ Since the FLASHBACK grant alone does not allow the selection of data from a tabl
 |===
 |Option|Value|Description
 
-|isolation-level|read_comitted|If not set to read_comitted the consumer will early read/consume messages of pending transactions that are possibly rolled back later from TriXX. Later successful processing of messages by TriXX may lead to duplicate occurrence of messages in consumer's stream.
+|isolation-level|read_comitted|If not set to read_comitted the consumer will early read/consume messages of pending transactions that are possibly rolled back later by MOVEX CDC. Later successful processing of messages by MOVEX CDC may lead to duplicate occurrence of messages in consumer's stream.
 |===
 
-=== Configuring TriXX ===
-You can configure TriXX either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file to TriXX via TRIXX_RUN_CONFIG.
+=== Configuring MOVEX Change Data Capture ===
+You can configure the application either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file via RUN_CONFIG.
 
 Environment variables overrides values from configuration file.
 
@@ -197,12 +196,12 @@ Environment variables overrides values from configuration file.
 |===
 |Variable|Description
 
-|TRIXX_DB_PASSWORD|Password of TRIXX_DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.
-|TRIXX_DB_TYPE|Defines the typ of observed database. Valid values: SQLITE, ORACLE
-|TRIXX_DB_URL|Database-URL for JDBC Connect:
+|DB_PASSWORD|Password of DB_USER, aims also as password of user 'admin' for GUI-logon. Therefore also required for database without access control like SQLite.
+|DB_TYPE|Defines the typ of observed database. Valid values: SQLITE, ORACLE
+|DB_URL|Database-URL for JDBC Connect:
 Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
-|TRIXX_DB_USER|Username of TriXX-Schema in observed database
-|TRIXX_KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
+|DB_USER|Username of MOVEX CDC's DB schema in the observed database
+|KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
 "/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).
 |===
 
@@ -211,53 +210,53 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |===
 |Variable|Description|Default value
 
+|DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
+|DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user)|
+|ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
+|ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
+|FINAL_ERRORS_KEEP_HOURS|Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping|240
+|INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
+|INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
+|KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not yet supported by MOVEX CDC.|gzip
+|KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
+|KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
+|KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|
+|KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
+|KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
+|KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
+This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
+If the amount is not sufficient at runtime than the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
-|RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than TRIXX_INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
+|MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
+|MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
+|MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
+This value controls the setting for INI_TRANS for ORACLE.
+Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of the application container.
+Otherwise error ORA-00054 is raised and application does not start.
+|16
+|PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
+Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
+Relevant only if EVENT_LOGS is used partitioned. +
+Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of the application container.
+Otherwise error ORA-00054 is raised and application does not start.
+|60 seconds
+|RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
+|RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/run_config.yml
 |SECRET_KEY_BASE|Server side key used for encryption and signing of the JWT that is used for authentication|
 |SECRET_KEY_BASE_FILE|Location of file with server side key used for encryption and signing of the JWT that is used for authentication|
 |TNS_ADMIN|Directory of config file tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
-|TRIXX_DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
-|TRIXX_DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by TriXX (ci_preparation:create_user)|
-|TRIXX_ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
-|TRIXX_ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
-|TRIXX_FINAL_ERRORS_KEEP_HOURS|Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping|240
-|TRIXX_INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
-|TRIXX_INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
-|TRIXX_KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not supported by TriXX.|gzip
-|TRIXX_KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
-|TRIXX_KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
-|TRIXX_KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|
-|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
-|TRIXX_KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
-|TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
-This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is TRIXX_KAFKA_TOTAL_BUFFER_SIZE_MB * TRIXX_INITIAL_WORKER_THREADS. +
-If the amount is not sufficient at runtime than the value of TRIXX_KAFKA_MAX_BULK_COUNT is automatically decreased by TriXX until it is according to the available memory.|100
-|TRIXX_MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
-|TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
-|TRIXX_MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
-This value controls the setting for INI_TRANS for ORACLE.
-Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of TriXX application.
-Otherwise error ORA-00054 is raised and application does not start.
-|16
-|TRIXX_RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/trixx_run.yml
-|TRIXX_PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
-Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
-Relevant only if EVENT_LOGS is used partitioned. +
-Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of TriXX application.
-Otherwise error ORA-00054 is raised and application does not start.
-|60 seconds
-|TZ|Sets local timezone within the Docker-container of TriXX-applikation. Must be directly set as environment of container during 'docker run' like '-e TZ="Europe/London"', does not work from config file.|Europe/Berlin
+|TZ|Sets local timezone within the Docker-container of the applikation. Must be directly set as environment of container during 'docker run' like '-e TZ="Europe/London"', does not work from config file.|Europe/Berlin
 |===
 
 
 ==== Setup SSL-connection to Kafka ====
 Kafka supports encryption and authentication via SSL.
 The required setup of Kafka for SSL is described at http://kafka.apache.org/documentation.html#security_ssl.
-However, the certificates generated for Kafka are in JKS format, which the underlying library 'ruby-kafka' of TriXX does not support.
+However, the certificates generated for Kafka are in JKS format, which the underlying library 'ruby-kafka' of MOVEX CDC does not support.
 Luckily, it is possible to convert the generated files into X509 format.
 A guide how to do conversion is here: https://github.com/zendesk/ruby-kafka/wiki/Creating-X509-certificates-from-JKS-format.
 
-===== Steps to convert the keystore content generated by Kafka into the formats needed for TriXX =====
+===== Steps to convert the keystore content generated by Kafka into the formats needed for MOVEX CDC =====
 Preconditions for the next steps are the openssl command line tools "keytool", "openssl"
 and optionally the GUI-tool "Keystore Explorer" (https://keystore-explorer.org)
 
@@ -298,66 +297,66 @@ After generation open the file 'client_cert_key.pem' in an editor and remove all
 [source]
 keytool -noprompt -keystore $KAFKA_CERT_DIR/kafka.client.keystore.jks -exportcert -alias CARoot -rfc -file ca_cert.pem -storepass $SSL_KEYSTORE_PASSWORD
 
-Now you are prepared with the four values needed to configure SSL connection in TriXX.
+Now you are prepared with the four values needed to configure SSL connection in MOVEX CDC.
 
-=== Running TriXX ===
-The TriXX application is provided as Docker-Image by:
+=== Running MOVEX Change Data Capture ===
+The application is provided as Docker-Image by:
 [source]
-docker pull git.osp-dd.de:5005/main/trixx
+docker pull registry.gitlab.com/otto-group-solution-provider/movex_cdc:master
 
 ==== Start Docker container ====
 You can run the this image like:
 [source]
 docker run -p 8080:8080 \
   --stop-timeout=120 \
-  -e TRIXX_RUN_CONFIG=/etc/trixx_run.yml \
-  -v /my_local_dir/trixx_run.yml:/etc/trixx_run.yml \
-  git.osp-dd.de:5005/main/trixx
+  -e RUN_CONFIG=/etc/run_config.yml \
+  -v /my_local_dir/run_config.yml:/etc/run_config.yml \
+  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master
 
 The web-GUI would be available by http://localhost:8080 in this case.
 It is recommended to place an own reverse proxy nearby for SSL encryption.
 
 ==== Stop Docker container ====
-To stop the Docker container you should provide a timeout (at "docker run" or with "docker stop") that allows TriXX to gracefully shutdown all worker threads before Docker terminates hard with "kill -9".
+To stop the Docker container you should provide a timeout (at "docker run" or with "docker stop") that allows MOVEX CDC to gracefully shutdown all worker threads before Docker terminates hard with "kill -9".
 
- docker stop -t 120 trixx
+ docker stop -t 120 <container name/id>
 
-==== Uniqueness of TriXX instances ====
-Depending on the database type you may run multiple TriXX instances at one database or not.
+==== Uniqueness of container instances ====
+Depending on the database type you may run multiple MOVEX CDC container instances at one database or not.
 
-.Multiple instances allowed for TriXX
+.Multiple instances allowed for MOVEX CDC
 [cols="~,~,~"]
 |===
-|DB type|Multiple instances with same configuration (same TriXX schema)|Multiple instances with different configuration (different TriXX schemas, different Kafka targets)
+|DB type|Multiple instances with same configuration (same DB schema for MOVEX CDC)|Multiple instances with different configuration (different MOVEX CDC schemas, different Kafka targets)
 
 |SQLite
 |Not allowed: No synchronization between multiple instances exist
 |Not allowed: No config-specific trigger names are used
 |ORACLE
 |Possible: Messages to transfer to Kafka are selected with FOR UPDATE.
-|Possible: Trigger names contain numeric hash value of TriXX' owner schema. +
-Therefore multiple triggers from several independent TriXX configurations at one table are possible.
+|Possible: Trigger names contain numeric hash value of MOVEX CDC's owner schema. +
+Therefore multiple triggers from several independent MOVEX CDC configurations at one table are possible.
 |===
 
-WARNING: But be aware if running multiple TriXX-instances on the same database schema (same configuration) simultaneously: +
-TriXX cannot guarantee the exact order of messages with key for transfer to Kafka in this case!
+WARNING: But be aware if running multiple container instances of MOVEX CDC on the same database schema (same configuration) simultaneously: +
+MOVEX CDC cannot guarantee the exact order of messages with key for transfer to Kafka in this case!
 
 
-=== Configuration of capturing with TriXX-GUI ===
+=== Configuration of capturing with GUI ===
 TODO: Describe GUI workflow
 
 ==== Managing users, schemas and rights ====
-Menu "Users" shows the already created named users for TriXX. Initially there is always a predefined user 'admin'. +
+Menu "Users" shows the already created named users. Initially there is always a predefined user 'admin'. +
 Users are identified by E-Mail.
-For authentification at logon one DB-User is associated to each TriXX user, the password of this DB-user is used for logon.
+For authentification at logon one DB-User is associated to each application user of MOVEX CDC, the password of this DB-user is used for logon.
 
-The TriXX-user is authorized for certain schemas for which tables can be tagged for event capturing.
+The application user is authorized for certain schemas for which tables can be tagged for event capturing.
 This schemas can be picked from the list of schemas where the user has select grants at at least one table of this schema.
 
 ==== Configuring events to capture at column level ====
 This dialog shows:
 
-* schemas for which the user has the right to configure (via TriXX user configuration)
+* schemas for which the application user has the right to configure (set in user configuration)
 * already configured tables of a schema (limited to tables where the user has SELECT grants for)
 * columns of a configured table with marks for Insert/Update/Delete-trigger
 
@@ -385,24 +384,24 @@ List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#p
 
 |Kafka::UnknownError: Unknown error with code 53
 |TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
-The transactional id used by TriXX is not authorized to produce messages
+The transactional id used by MOVEX CDC is not authorized to produce messages
 |Explicite authorization of transactional id is required, optional as wildcard: +
 kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf
 --add --transactional-id * --allow-principal User:* --operation write
 |Kafka::UnknownError: Unknown error with code 87
 |INVALID_RECORD +
 This record has failed the validation on broker and hence will be rejected.
-|Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by TriXX without key. +
+|Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by MOVEX CDC without key. +
 Prevent from sending 'tombstone events' without key in this case.
 |===
 
 ===== Oracle-DB =====
-* If TNS alias is used for TRIXX_DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
+* If TNS alias is used for DB_URL but no tnsnames.ora available at TNS_ADMIN then the JDBC driver treats the TNS alias as host:port:sid with several possible error messages (host does not exist etc.)
 * Oracle's number format for values between -1 and 1 is not JSON-compatible (0,123 = .123).
 Up to Rel. 12.2 the patch https://support.oracle.com/epmos/faces/PatchResultsNDetails?_adf.ctrl-state=19z17iq454_4&releaseId=600000000018520&requestId=21922926&patchId=27486853&languageId=0&platformId=226&searchdata=%3Ccontext+type%3D%22BASIC%22+search%3D%22%26lt%3BSearch%26gt%3B%26lt%3BFilter+name%3D%26quot%3Bpatch_number%26quot%3B+op%3D%26quot%3Bis%26quot%3B+value%3D%26quot%3B27486853%26quot%3B%2F%26gt%3B%26lt%3B%2FSearch%26gt%3B%22%2F%3E&_afrLoop=164497543848765[27486853] is needed to generate valid JSON in this case.
 
 ===== Docker / Kubernetes =====
-The TriXX container produces a continous log output which can become quite large over time.
+The Docker container of MOVEX CDC produces a continous log output which can become quite large over time.
 You should ensure that logfile size of the Docker container is not unlimited because this may end up in full filesystem. +
 For Docker you can configure this behaviour in /etc/docker/daemon.json like this:
 
@@ -418,7 +417,7 @@ For Docker you can configure this behaviour in /etc/docker/daemon.json like this
 
 
 === Statistics ===
-Throughput values ot TriXX are cumulated in the database table "Statistics".
+Throughput values of the application are cumulated in the database table "Statistics".
 For table, operation and time period several values are recorded.
 
 .throughput parameters recorded in Statistics
@@ -438,11 +437,11 @@ At first this values are cumulated for each minute. Later on statistics data wil
 * After 14 days values per minute are compressed to values per hour
 * After 3 months values per hour are compressed to values per day
 
-Compression is executed once a day as background job in TriXX application.
+Compression is executed once a day as background job in the application.
 
 == Technical implementation ==
 === Structure of Kafka messages ===
-TriXX creates Kafka messages with JSON-formatted content. +
+MOVEX CDC creates Kafka messages with JSON-formatted content. +
 Depending on table configuration Kafka messages may contain an additional key value which drives the assignment of messages to partitions (messages with same key are stored in the same partition).
 
 .Value conversion from database column to JSON value
@@ -564,9 +563,9 @@ image:trixx_module_overview.svg[format=svg,opts=inline]
 
 The following things are executed at startup of application / docker container if necessary:
 
-* The needed data structures in TriXX-schema (TRIXX_DB_USER) are created or updated
-* The initial TriXX-user "admin" is created for GUI with link to the TRIXX_DB_USER
-** For initial GUI logon with user "admin" the password is the DB-passwort of Trixx DB-user (TRIXX_DB_PASSWORD)
+* The needed data structures in MOVEX CDC's DB schema (defined by DB_USER) are created or updated
+* The initial application user "admin" is created for GUI logon with link to the DB_USER for authentication
+** For initial GUI logon with user "admin" the password is the DB-passwort of MOVEC CDC's DB-user (DB_PASSWORD)
 ** The GUI user "admin" acts as supervisor with the authorization to administrate further user accounts
 
 ==== Generation of database triggers ====
@@ -577,9 +576,9 @@ If requested in table config, after generation of trigger a job will be created 
 For each record in the table existing at the time of trigger creation an insert-event will be transferred to Kafka.
 The table's filter condition for insert operation as well as the filter condition for initialization are considered. +
 This jobs are queued and processed deferred asynchronously.
-The maximum number of simultaneously processed table initialization jobs is limited by the environment setting TRIXX_MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
+The maximum number of simultaneously processed table initialization jobs is limited by the environment setting MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
 
-Precondition for initial transfer of table data is that TriXX-user is allowed to read this table by SELECT, because initial transfer is done directly by selecting from table, not bei trigger execution.
+Precondition for initial transfer of table data is that MOVEX CDC's DB user is allowed to read this table by SELECT, because initial transfer is done directly by selecting from table, not by trigger execution.
 
 .Techniques used to determine rows for initial transfer
 [cols="~,~"]
@@ -601,21 +600,21 @@ This ID allows the reconstruction of the original order of messages in Kafka eve
 
 NOTE: For Oracle-DB: If using RAC this ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
 
-Message creation in Kafka is done by TriXX with multiple concurrent threads. +
+Message creation in Kafka is done by the application with multiple concurrent threads. +
 Each transfer thread has it's own connection to source database as well as to Kafka. +
 To guarantee the original creation order of events also during transfer to Kafka,
-exactly one of TriXX' transfer threads is responsible for transfer of all events with the same key. +
+exactly one of MOVEX CDC's transfer threads is responsible for transfer of all events with the same key. +
 That means, events without a key can be transferred by every thread, events with a key are transferred by one particular thread determined by a hash value of the key and a modulo operation.
 
 ===== Error handling during transfer =====
 Transferring is done with bulk operations against database and Kafka.
 If the transfer operation fails the bulk size would be reduced (divide & conquer) until a single event is processed in it's own transaction. +
-If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by TRIXX_ERROR_RETRY_START_DELAY.
-After a number of not successful retries (defined by TRIXX_ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
+If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by ERROR_RETRY_START_DELAY.
+After a number of not successful retries (defined by ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
 
 Events moved to final error table can be rescheduled by API function: _TODO: mark API function_
 
-If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after TRIXX_FINAL_ERRORS_KEEP_HOURS.
+If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after FINAL_ERRORS_KEEP_HOURS.
 
 Reasons for transfer errors can be for example:
 
@@ -629,7 +628,7 @@ Reasons for transfer errors can be for example:
 ==== Health check ====
 The healthcheck service is available at:
 
- http://<TriXX-URL>/health_check
+ http://<MOVEX CDC URL>/health_check
 
 It can be called maximum once a second.
 The http-response contains a JSON-object with detailled informations.
@@ -641,25 +640,25 @@ The response status code contains the health status of the running instance:
 - 500 (internal server error): Technical problem during processing of health check request or called too frequently (further details in response body)
 
 === API endpoints ===
-Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside TriXX. +
+Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside the application. +
 API Responses are JSON objects.
 
-.API endpoints for additional usage from outside TriXX application
+.API endpoints for additional usage from outside the application
 [cols="~,~,~,~,~"]
 |===
 |Verb|URL|Parameter|Response|Description
 
 |POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
-|GET|/health_check/log_file|no|current log file of application|Download log file of TriXX application. +
+|GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
 |POST|/server_control/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
 |POST|/server_control/set_max_transaction_size|max_transaction_size (1..infinity)|no|Set the number of events to process within on DB and Kafka transaction, requires valid admin JWT in request header
 |POST|/server_control/set_worker_threads_count|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
-|POST|/server_control/terminate|no|no|Terminate the current TriXX process by sending SIGTERM, requires valid admin JWT in request header
+|POST|/server_control/terminate|no|no|Graceful shut down the current container instance of MOVEX CDC by sending SIGTERM to the application, requires valid admin JWT in request header
 |GET|/import_export|no|JSON object|Export complete configuration data (users, schemas, tables, columns, conditions ...) as JSON object
 |GET|/import_export/<Schemaname>|no|JSON object|Export configuration data of a particular schema as JSON object
-|POST|/import_export|JSON object|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in TriXX' config tables
+|POST|/import_export|JSON object|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in the applications config tables
 |===
 
 ==== Using API endpoints from command line ====
@@ -674,7 +673,7 @@ Steps are:
 
 [source]
 curl -X POST -H "Authorization: \
-`curl -d "email=admin&password=trixx" http://localhost:8080/login/do_logon | \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \
 http://localhost:8080/server_control/set_log_level
@@ -701,15 +700,15 @@ Unlocking a locked account is possible via GUI for admin users.
 * Email/password check at /login/do_logon is delayed for up to 5 seconds if subsequent logon requests occur within 5 seconds
 * Subsequent calls to /health_check are rejected within the same second
 
-==== Isolation between production schemas at database and TriXX ====
-The TriXX application requires an own schema on database for TriXX. This schema must not contain any foreign structures.
-All database changes made by TriXX are isolated to this schema.
-The owner of the TriXX-schema requires only a minimum set of rights on foreign objects, especially no right to read the full table content.
+==== Isolation between the production schemas of the DB and MOVEX CDC's schema ====
+MOVEX CDC requires an own schema at the database. This schema must not contain any foreign structures.
+All database changes made by MOVEX CDC are isolated to this schema (including te generated triggers).
+The owner of MOVEX CDC's DB schema requires only a minimum set of rights on foreign objects, especially no right to read the full table content (except if initialization is requested).
 
 ==== Restricted definition of triggers ====
 There might be a security gap if users may define trigger on tables where they don't have read rights.
 This way they could possibly read hidden table content via Kafka. +
-Therefore only tables are accessible for trigger definition at TriXX-GUI where the connected user has at least read rights.
+Therefore only tables are accessible for trigger definition in the GUI where the DB user associated with the application user has at least read rights.
 
 == Frequently asked questions ==
 .FAQ will be completed over time with all upcoming questions that are not answered befor

@@ -6,31 +6,31 @@
 #
 default: &default
   adapter: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
       when 'ORACLE' then 'oracle_enhanced'
       when 'SQLITE' then 'sqlite3'
     else
-      raise "Unsupported value for Trixx::Application.config.trixx_db_type: '#{Trixx::Application.config.trixx_db_type}'"
+      raise "Unsupported value for Trixx::Application.config.db_type: '#{Trixx::Application.config.db_type}'"
     end
   %>
   # Ensure connection pool is large enough for number of threads
-  pool: <%= Trixx::Application.config.trixx_initial_worker_threads + Trixx::Application.config.trixx_threads_for_api_requests  %>
+  pool: <%= Trixx::Application.config.initial_worker_threads + Trixx::Application.config.threads_for_api_requests  %>
 
   driver: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then 'oracle.jdbc.driver.OracleDriver'
     end
   %>
-  username: <%= Trixx::Application.config.trixx_db_user %>
-  password: <%= Trixx::Application.config.trixx_db_password %>
+  username: <%= Trixx::Application.config.db_user %>
+  password: <%= Trixx::Application.config.db_password %>
   url: <%=
-    case Trixx::Application.config.trixx_db_type
-    when 'ORACLE' then "jdbc:oracle:thin:@#{Trixx::Application.config.trixx_db_url }"
+    case Trixx::Application.config.db_type
+    when 'ORACLE' then "jdbc:oracle:thin:@#{Trixx::Application.config.db_url }"
     end
   %>
 
   cursor_sharing: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then 'exact'
     end
   %>
@@ -39,7 +39,7 @@ development:
   <<: *default
 
   database: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'SQLITE' then 'db/development.sqlite3'
     end
   %>
@@ -50,7 +50,7 @@ development:
 test:
   <<: *default
   database: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'SQLITE' then 'db/test.sqlite3'
     end
   %>
@@ -58,7 +58,7 @@ test:
 production:
   <<: *default
   database: <%=
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'SQLITE' then 'db/production.sqlite3'
     end
   %>

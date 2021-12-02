@@ -1,6 +1,6 @@
 class CreateAllDbTables < ActiveRecord::Migration[6.0]
   def up
-    case Trixx::Application.config.trixx_db_type
+    case Trixx::Application.config.db_type
     when 'ORACLE' then
       EventLog.connection.execute "\
         CREATE OR REPLACE View All_DB_Tables AS
@@ -12,7 +12,7 @@ class CreateAllDbTables < ActiveRecord::Migration[6.0]
       ActiveRecord::Base.connection.execute "DROP VIEW All_DB_Tables" if view_exists? 'All_DB_Tables'
       ActiveRecord::Base.connection.execute "CREATE VIEW All_DB_Tables AS SELECT 'main' Owner, Name Table_Name FROM SQLite_Master WHERE type='table'"
     else
-      raise "Declaration for view All_DB_Tables missing for #{Trixx::Application.config.trixx_db_type}"
+      raise "Declaration for view All_DB_Tables missing for #{Trixx::Application.config.db_type}"
     end
   end
 

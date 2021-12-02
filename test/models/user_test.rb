@@ -23,7 +23,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "destroy user" do
-    user_to_delete = User.new(email: 'hans.dampf@hugo.de', db_user: Trixx::Application.config.trixx_db_user, first_name: 'hans', last_name: 'dampf', yn_account_locked: 'N')
+    user_to_delete = User.new(email: 'hans.dampf@hugo.de', db_user: Trixx::Application.config.db_user, first_name: 'hans', last_name: 'dampf', yn_account_locked: 'N')
     user_to_delete.save!
 
     ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
