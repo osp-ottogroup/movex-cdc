@@ -3,8 +3,8 @@
 # Peter Ramm, 2020-03-09
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-compact -t git.osp-dd.de:5005/main/trixx/kafka-compact:3.0.0 .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 git.osp-dd.de:5005/main/trixx/kafka-compact:3.0.0
+# Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-compact:3.0.0 .
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-compact:3.0.0
 # Use
 
 

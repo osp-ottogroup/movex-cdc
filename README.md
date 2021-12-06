@@ -7,7 +7,7 @@ The full documentation of this product you may find here:
 - PDF: https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.pdf
 
 ## Supported database systems
-- <b>Oracle</b> First productive usage for Enterprise Edition with Partitioning Option (Rel. 11.2. ++ )
+- <b>Oracle</b> First productive usage for Enterprise Edition with Partitioning Option (Rel. 12.1. ++ )
 - <b>SQLite</b> The aditional implementation for SQLite ensures that the product remains database independent.
 
 
@@ -20,6 +20,7 @@ The latest build of master branch is available by:<br/>
 Production ready releases are tagged like 'prod_x.xx' and can be pulled by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:prod_x.xx`
 
+A quick start demo you may find here: https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html
 
 ## Support
 If you have bug reports or questions please file an issue inside the product or mail to Peter.Ramm@ottogroup.com.

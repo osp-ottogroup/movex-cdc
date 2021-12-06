@@ -10,43 +10,51 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
 
-Last actualization: 2021-06-09
+Last actualization: 2021-12-06
 
 == Preconditions ==
-- A running local Oracle database with an user to observe, in our case user="panorama_test"
+- A running local Oracle database with an existing user to observe
 
 TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Because Kafka uses this addresses also from inside the container where 'localhost' has a different content.
 
-== Prepare Kafka ==
-=== Set your local host IP address ===
+== Prepare your local host valid IP address, DB URL and user credentials ==
 ----
 export IP_ADDRESS=192.168.178.34
+export DB_URL=$IP_ADDRESS:1521/ORCLPDB1
+export MOVEX_DB_USER=movex
+export MOVEX_DB_PASSWORD=movex
+export DB_SYS_PASSWORD=oracle
+export SOURCE_DB_USER=panorama_test
+export SOURCE_DB_PASSWORD=panorama_test
 ----
 
+
+
+== Prepare Kafka ==
+
 === Run Kafka container ===
-In our case an own Docker image that combines Zookeeper and Kafka in one image
+We use an own Docker image that combines Zookeeper and Kafka in one image
 ----
 docker run --rm \
   -p 2181:2181 \
   -p 9092:9092 \
   -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://$IP_ADDRESS:9092,LISTENER_INT://localhost:9093 \
-  git.osp-dd.de:5005/main/trixx/kafka-compact
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-compact:3.0.0
 ----
 
-=== Create topic ===
-run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
+=== Create the Kafka topic ===
+Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
 ----
-$KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --zookeeper localhost:2181 --replication-factor 1
+$KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server $IP_ADDRESS:9092 --replication-factor 1
 ----
 
-=== Create Consumer for topic ===
-run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
+=== Create a consumer process for the topic ===
+Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
 ----
 $KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_ADDRESS:9092 --isolation-level=read_committed
 ----
 
-
-== Prepare TriXX application ==
+== Prepare the MOVEX Change Data Capture application ==
 
 === Create config file run_config.yml ===
 ----
@@ -60,13 +68,13 @@ LOG_LEVEL: debug
 DB_TYPE: ORACLE
 
 # Username of TriXX schema in database
-DB_USER: trixx_demo
+DB_USER: $MOVEX_DB_USER
 
 # Password of DB_USER, also used as password of user 'admin' for GUI logon.
-DB_PASSWORD: trixx_demo
+DB_PASSWORD: $MOVEX_DB_PASSWORD
 
 # Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
-DB_URL: $IP_ADDRESS:1521/ORCLPDB1
+DB_URL: $DB_URL
 
 # Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
 KAFKA_SEED_BROKER: $IP_ADDRESS:9092
@@ -79,7 +87,7 @@ EOF
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
-  -e DB_SYS_PASSWORD=oracle \
+  -e DB_SYS_PASSWORD=$DB_SYS_PASSWORD \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
 ----
@@ -109,17 +117,17 @@ BEGIN
 END;
 /
 
-CREATE TABLE Panorama_Test.Hugo (
+CREATE TABLE Hugo (
        ID          NUMBER PRIMARY KEY,
        Name        VARCHAR2(30),
        Start_Date  DATE);
 CREATE SEQUENCE Hugo_Seq;
-GRANT SELECT ON Hugo TO Public;
-GRANT FLASHBACK ON Hugo TO Public;
-" | sqlplus panorama_test/panorama_test@$IP_ADDRESS:1521/ORCLPDB1
+GRANT SELECT ON Hugo TO $MOVEX_DB_USER;
+GRANT FLASHBACK ON Hugo TO $MOVEX_DB_USER;
+" | sqlplus $SOURCE_DB_USER/$SOURCE_DB_PASSWORD@$DB_URL
 ----
 
-=== Generate permanent changes on panorama_test.Hugo ===
+=== Generate permanent changes on the table to observe ===
 ----
 echo "
   BEGIN
@@ -130,19 +138,19 @@ echo "
     END LOOP;
   END;
 /
-" | sqlplus panorama_test/panorama_test@localhost:1521/ORCLPDB1
+" | sqlplus $SOURCE_DB_USER/$SOURCE_DB_PASSWORD@$DB_URL
 ----
 
 
 === Configure MOVEX CDC by GUI to catch changes on table panorama_test.Hugo ===
-- Open TriXX application in browser: http://localhost:8080
-- first login with user "admin" and passwort of DB-user for TriXX
-- create your own personal user, choose a DB-user for authentication
+- Open application in browser: `http://localhost:8080`
+- first login with user "admin" and passwort of the MOVEX DB user
+- create your own personal application user, choose an existing DB-user for authentication
 - authenticate user for a schema including deployment grant
 - Logout as 'admin', connect with this personal user
-- Configure events for table panorama_test.Hugo
-- generate triggers
-- watch what happens in Kafka consumer and ksqlDB
+- Configure events to observe for a table
+- deploy the generated triggers
+- watch what happens in Kafka consumer
 
 == Prepare ksqlDB ==
 === Run ksqlDB Docker containers ===
