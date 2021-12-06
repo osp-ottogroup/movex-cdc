@@ -63,8 +63,6 @@ first_ci_test:
     - docker-runner
 
 
-
-
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
 brakeman_analysis:
