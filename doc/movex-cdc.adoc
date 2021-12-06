@@ -679,7 +679,7 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 http://localhost:8080/server_control/set_log_level
 
 === Entity relationship model ===
-image:trixx_er_model.svg.drawio[format=svg,opts=inline]
+image:trixx_er_model.svg[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Access authentication for GUI ====
