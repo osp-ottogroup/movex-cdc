@@ -139,6 +139,7 @@ generate_asciidoc:
   script:
     - gem install --no-doc asciidoctor
     - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
+    - asciidoctor -o doc/movex-cdc_demo.html doc/movex-cdc_demo.adoc
     - gem install --no-doc asciidoctor-pdf
     - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
   artifacts:
@@ -310,6 +311,7 @@ pages:
     - cp doc/movex-cdc.html public/
     - cp -r doc/images public/
     - cp doc/movex-cdc.pdf public/
+    - cp doc/movex-cdc_demo.html public/
   artifacts:
     paths:
       - public/movex-cdc.pdf
