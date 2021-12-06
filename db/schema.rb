@@ -71,15 +71,9 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.text "payload", null: false
     t.string "msg_key", limit: 4000
     t.datetime "created_at", precision: 6, null: false
-    t.datetime "last_error_time", precision: 6
-    t.integer "retry_count", precision: 38, default: 0, null: false
-    t.string "transaction_id", limit: 100
-  end
-
-  create_table "orderdetailgaattr", primary_key: ["id_orderdetail", "id_gaattr"], force: :cascade do |t|
-    t.decimal "id_orderdetail"
-    t.decimal "id_gaattr"
-    t.string "value", limit: 20
+    t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
+    t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
+    t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
   create_table "schema_rights", force: :cascade do |t|
