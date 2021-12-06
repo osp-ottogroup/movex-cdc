@@ -17,12 +17,19 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
+  - first_ci_test
   - code_analysis
   - test
   - pre_build
   - build
   - post_build
   - deploy
+
+first_ci_test:
+  stage: first_ci_test
+  script:
+    - curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/master/contrib/install.sh | sh -s -- -b .
+    - ./trivy --exit-code 1 $FINAL_DOCKER_IMAGE
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
