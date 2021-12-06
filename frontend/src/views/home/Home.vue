@@ -5,7 +5,7 @@
       <div class="container has-text-centered">
         <transition name="fade">
           <div v-if="isLoading === false">
-            <h1 class="has-text-light">TriXX</h1>
+            <h1 class="has-text-light">MOVEX<br/>Change Data Capture</h1>
             <contact-person :contact-person="contactPerson"></contact-person>
           </div>
         </transition>
@@ -48,7 +48,7 @@ export default {
 
 <style lang="scss" scoped>
 h1 {
-  font-size: 15rem;
+  font-size: 16vmin;
 }
 
 .fade-enter-active, .fade-leave-active {

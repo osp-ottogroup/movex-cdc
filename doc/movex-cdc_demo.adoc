@@ -1,4 +1,4 @@
-= image:osp.png[float="left" width=200 ] TriXX: Step by step demo how to run including Kafka and kSqlDB =
+= image:osp.png[float="left" width=200 ] MOVEX Change Data Capture: Step by step demo how to run including Kafka and kSqlDB =
 Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :Author Initials: PR
 :toc:
@@ -75,22 +75,22 @@ KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 EOF
 ----
 
-=== Create DB-User for Trixx ===
+=== Create DB-User for background services of MOVEX CDC ===
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
   -e DB_SYS_PASSWORD=oracle \
   -v $PWD/run_config.yml:/etc/run_config.yml \
-  git.osp-dd.de:5005/main/trixx:master bundle exec rake ci_preparation:create_user
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
 ----
 
-=== Run TriXX Docker container ===
+=== Run MOVEX CDC Docker container ===
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
-  git.osp-dd.de:5005/main/trixx:master
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
 ----
 
 == Prepare test case ==
@@ -134,7 +134,7 @@ echo "
 ----
 
 
-=== Configure Trixx by GUI to catch changes on table panorama_test.Hugo ===
+=== Configure MOVEX CDC by GUI to catch changes on table panorama_test.Hugo ===
 - Open TriXX application in browser: http://localhost:8080
 - first login with user "admin" and passwort of DB-user for TriXX
 - create your own personal user, choose a DB-user for authentication

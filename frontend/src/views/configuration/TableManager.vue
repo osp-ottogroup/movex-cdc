@@ -57,7 +57,7 @@ export default {
   },
   computed: {
     selectableTables() {
-      // filter all tables out of db tables, that are not included in trixx tables
+      // filter all tables out of db tables, that are not included in MOVEX CDC tables
       return this.dbTables.filter((dbTable) => !this.tables.some((table) => dbTable.name === table.name));
     },
     showTableModal() {

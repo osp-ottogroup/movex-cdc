@@ -64,7 +64,7 @@
                    rows="1"
                    v-model="internalTable.info"
                    required
-                   validation-message="Add an info text why this table is used in TriXX"/>
+                   validation-message="Add an info text why this table is used in MOVEX Change Data Capture"/>
         </b-field>
 
         <b-field label="Initialize data">

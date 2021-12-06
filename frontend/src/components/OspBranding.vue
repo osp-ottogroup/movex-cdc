@@ -3,7 +3,7 @@
     <span class="osp-red has-text-weight-medium">O</span>
     <span class="osp-gray has-text-weight-medium">SP</span>
     <span class="osp-gray osp-stroke has-text-weight-light">|</span>
-    <span class="osp-gray ml-1">TriXX</span>
+    <span class="osp-gray ml-1">MOVEX</span>
   </div>
 </template>
 

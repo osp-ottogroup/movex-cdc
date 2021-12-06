@@ -9,7 +9,7 @@ class DbTablesController < ApplicationController
   end
 
   # GET /db_tables/remaining with parameter schema_id
-  # list table names of schema not already observed by Trixx
+  # list table names of schema not already observed by MOVEX CDC
 =begin
   def remaining
     schema_id = params.require(:schema_id)

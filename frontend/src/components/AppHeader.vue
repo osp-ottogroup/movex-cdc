@@ -49,11 +49,11 @@
 
       <template v-slot:end>
         <b-navbar-dropdown label="Help">
-          <b-navbar-item tag="a" :href="`${backendUrl}/trixx.html`" target="_blank" rel="noreferrer noopener">
-            TriXX Docs (html)
+          <b-navbar-item tag="a" :href="`${backendUrl}/movex-cdc.html`" target="_blank" rel="noreferrer noopener">
+            Documentation (html)
           </b-navbar-item>
-          <b-navbar-item tag="a" :href="`${backendUrl}/trixx.pdf`" target="_blank" rel="noreferrer noopener">
-            TriXX Docs (pdf)
+          <b-navbar-item tag="a" :href="`${backendUrl}/movex-cdc.pdf`" target="_blank" rel="noreferrer noopener">
+            Documentation (pdf)
           </b-navbar-item>
         </b-navbar-dropdown>
         <b-navbar-item tag="div" @click="showAccountInfo=!showAccountInfo" class="is-relative">

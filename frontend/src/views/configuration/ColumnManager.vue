@@ -64,7 +64,7 @@ export default {
         };
         dbColumnsMap.set(column.name, { ...column, ...fields });
       });
-      // enrich/merge the map column values with currently existing trixx column data
+      // enrich/merge the map column values with currently existing column data
       this.columns.forEach((column) => {
         if (dbColumnsMap.has(column.name)) {
           const current = dbColumnsMap.get(column.name);
@@ -110,7 +110,7 @@ export default {
       try {
         this.isLoading = true;
 
-        // load db and trixx columns and merge them in one object
+        // load db and MOVEX CDC columns and merge them in one object
         this.dbColumns = await CRUDService.dbColumns.getAll({
           table_name: table.name,
           schema_name: this.schema.name,
