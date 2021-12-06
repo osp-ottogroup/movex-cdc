@@ -59,8 +59,6 @@ first_ci_test:
     when:                          always
     reports:
       container_scanning:          gl-container-scanning-report.json
-  tags:
-    - docker-runner
 
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
