@@ -36,8 +36,8 @@ do
     echo "SCALA_VERSION = $SCALA_VERSION"
     echo "Creating topics and consumer groups"
     echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
-    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --zookeeper localhost:2181 --replication-factor 1
-    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --zookeeper localhost:2181 --replication-factor 1
+    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --bootstrap-server localhost:9092 --replication-factor 1
+    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --bootstrap-server localhost:9092 --replication-factor 1
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group1 --timeout-ms 10000
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group2 --timeout-ms 10000
     $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=localhost:9092 --list
