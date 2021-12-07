@@ -355,21 +355,13 @@ class TransferThread
       case Trixx::Application.config.db_type
       when 'ORACLE' then
         # each error retry enlarges the delay before next retry by factor 3
-        begin
-          DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
-                                                                  FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
-                                                                  WHERE  #{filter}
-                                                                  AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.error_retry_start_delay} * POWER(3, Retry_Count-1))/86400 < CAST(SYSTIMESTAMP AS TIMESTAMP)) /* Compare last_error_time without timezone impact */
-                                                                  FOR UPDATE SKIP LOCKED",
-                                          params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.db_query_timeout
-          )
-        rescue Exception => e
-          if e.message['ORA-02149']                                             # empty partition has been dropped by housekeeping in the meantime
-            []                                                                  # return empty list for non existing partition
-          else
-            raise                                                               # force exception other than ORA-02149
-          end
-        end
+        DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
+                                                                FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
+                                                                WHERE  #{filter}
+                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.error_retry_start_delay} * POWER(3, Retry_Count-1))/86400 < CAST(SYSTIMESTAMP AS TIMESTAMP)) /* Compare last_error_time without timezone impact */
+                                                                FOR UPDATE SKIP LOCKED",
+                                        params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.db_query_timeout
+        )
       when 'SQLITE' then
         Database.select_all("SELECT *
                              FROM   Event_Logs

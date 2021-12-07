@@ -120,7 +120,8 @@ module Trixx
     Trixx::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
     # Load configuration file, should always exist, at leastwith default values
-    config.run_config = ENV['RUN_CONFIG'] || "#{Rails.root}/config/run_config.yml"
+    config.run_config = "#{Rails.root}/config/run_config.yml"                   # Default
+    config.run_config = ENV['RUN_CONFIG'] if ENV['RUN_CONFIG'] && ENV['RUN_CONFIG'] != ''
     Trixx::Application.log_attribute('RUN_CONFIG', config.run_config)
     run_config = YAML.load_file(config.run_config)
     raise "Unable to load and parse file #{config.run_config}" unless run_config

@@ -116,6 +116,16 @@ class DatabaseOracle
 
     ActiveRecord::Base.connection.get_jdbc_connection.select_all_limit(stmt, binds,options)
     # Do not log exception here because it is logged by caller
+  rescue Exception => e
+    if e.message['ORA-02149'] ||                                                # Specified partition does not exist
+      e.message['ORA-80103']  ||                                                # Object No Longer Exists
+      e.message['ORA-14766']                                                    # Unable To Obtain A Stable Metadata Snapshot
+      Rails.logger.info "DatabaseOracle.select_all_limit: Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}"
+      []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
+    else
+      ExceptionHelper.log_exception(e, "DatabaseOracle.select_all_limit: Erroneous SQL:\n#{stmt}") # force exception other than ORA-xxx
+      raise
+    end
   end
 
   # Set context info at database session

@@ -25,13 +25,13 @@
 # KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
 
 # Initial number of worker threads
-INITIAL_WORKER_THREADS: 3
+# INITIAL_WORKER_THREADS: 3
 
 # Max. size of Kafka message buffer per thread
-KAFKA_TOTAL_BUFFER_SIZE_MB: 10
+# KAFKA_TOTAL_BUFFER_SIZE_MB: 100
 
 # Number of messages to process within one transaction
-MAX_TRANSACTION_SIZE: 10000
+# MAX_TRANSACTION_SIZE: 10000
 
 # Number of messages to process within one bulk operation to kafka
-KAFKA_MAX_BULK_COUNT: 1000
+# KAFKA_MAX_BULK_COUNT: 1000
