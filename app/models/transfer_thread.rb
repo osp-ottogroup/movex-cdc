@@ -90,7 +90,7 @@ class TransferThread
     end
     @statistic_counter.flush                                                    # Write remaining cumulated statistics to disk
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
-    Rails.logger.info thread_state(without_stacktrace: true)
+    Rails.logger.info JSON.pretty_generate(thread_state(without_stacktrace: true))
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
 
     # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
@@ -579,7 +579,9 @@ class TransferThread
   end
 
   def log_exception(exception, message)
-    ExceptionHelper.log_exception(exception, "#{message}\n#{thread_state(without_stacktrace: true)}\n#{ExceptionHelper.memory_info_hash}")
+    ExceptionHelper.log_exception(exception, "#{message}
+#{JSON.pretty_generate(thread_state(without_stacktrace: true))}
+#{JSON.pretty_generate(ExceptionHelper.memory_info_hash)}")
   end
 
   def table_cache(table_id)
