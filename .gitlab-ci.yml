@@ -317,6 +317,7 @@ pages:
     paths:
       - public/movex-cdc.pdf
       - public/movex-cdc.html
+      - public/movex-cdc_demo.html
       - public/images/
 
 # Make the Docker image available for user after treating as clean
