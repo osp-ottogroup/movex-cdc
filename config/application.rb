@@ -124,7 +124,8 @@ module Trixx
     config.run_config = ENV['RUN_CONFIG'] if ENV['RUN_CONFIG'] && ENV['RUN_CONFIG'] != ''
     Trixx::Application.log_attribute('RUN_CONFIG', config.run_config)
     run_config = YAML.load_file(config.run_config)
-    raise "Unable to load and parse file #{config.run_config}" unless run_config
+    run_config = {} unless run_config                                           # returns false for a file without content
+    raise "Unable to load and parse file #{config.run_config}! Content of class #{run_config.class}:\n#{run_config}" if run_config.class != Hash
     run_config.each do |key, value|
       config.send "#{key.downcase}=", value                                     # copy file content to config at first
       @@config_attributes[key.downcase.to_sym] = {default_value: nil, startup_config_value: value} # Default value is set later
