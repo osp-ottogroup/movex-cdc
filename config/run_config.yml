@@ -1,5 +1,5 @@
-# Runtime configuration for TriXX application
-# Tell the location of configfile for trixx by environment variable RUN_CONFIG
+# Runtime configuration for MOVEX Change Data Capture application
+# Tell the location of configfile for MovexCdc by environment variable RUN_CONFIG
 
 # Parameters to define: comment or uncomment for usage
 
@@ -9,7 +9,7 @@
 # Type of used database (SQLITE, ORACLE)
 # DB_TYPE: ORACLE
 
-# Username of TriXX schema in database
+# Username of MovexCdc schema in database
 # DB_USER: MyUser
 
 # Password of DB_USER, also used as password of user 'admin' for GUI logon.

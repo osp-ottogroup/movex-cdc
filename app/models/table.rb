@@ -3,7 +3,7 @@ class Table < ApplicationRecord
   has_many    :columns
   has_many    :conditions
 
-  # Tables that do not exist in database no more but are configured for TriXX
+  # Tables that do not exist in database no more but are configured for MOVEX CDC
   attribute   :yn_deleted_in_db, :string, limit: 1, default: 'N'
 
   validate    :topic_in_table_or_schema
@@ -73,7 +73,7 @@ class Table < ApplicationRecord
   def validate_yn_initialization
     if yn_initialization_changed? && yn_initialization == 'Y'
       begin
-        raise_if_table_not_readable_by_trixx
+        raise_if_table_not_readable_by_movex_cdc
       rescue Exception => e
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} must be readable for initial transfer to Kafka!\n#{e.class}:#{e.message}")
       end
@@ -100,11 +100,11 @@ class Table < ApplicationRecord
     end
   end
 
-  # check if table is readable by TriXX DB user and raise exception if not
-  def raise_if_table_not_readable_by_trixx
+  # check if table is readable by MOVEX CDC's DB user and raise exception if not
+  def raise_if_table_not_readable_by_movex_cdc
     error_msg_add = ''
     sql           = ''
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
       Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
@@ -112,7 +112,7 @@ class Table < ApplicationRecord
       scn = Database.select_one "SELECT current_scn FROM V$DATABASE"            # Check if read and flashback is possible
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
       Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
-      error_msg_add = "FLASHBACK grant on table #{self.schema.name}.#{self.name} or FLASHBACK ANY TABLE is needed for TriXX DB user!"
+      error_msg_add = "FLASHBACK grant on table #{self.schema.name}.#{self.name} or FLASHBACK ANY TABLE is needed for MOVEX CDC's DB user!"
     when 'SQLITE' then
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} LIMIT 1"
     end
@@ -160,7 +160,7 @@ class Table < ApplicationRecord
 
     return if allow_for_nonexisting_table && !table_exists                      # Allow action for non existing table without further check if requested
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       # Check for public selectable tables
       return if Database.select_one("SELECT COUNT(*)
@@ -209,7 +209,7 @@ class Table < ApplicationRecord
       return if Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
                                     owner: schema_name, table_name: table_name) > 0 # Table should exist
     else
-      raise "Table.check_table_allowed_for_db_user: Declaration missing for #{Trixx::Application.config.db_type}"
+      raise "Table.check_table_allowed_for_db_user: Declaration missing for #{MovexCdc::Application.config.db_type}"
     end
     # Raise exception if none of previous checks has returned from method
     raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{current_user.db_user}"

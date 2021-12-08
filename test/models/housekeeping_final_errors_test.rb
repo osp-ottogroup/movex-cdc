@@ -12,7 +12,7 @@ class HousekeepingFinalErrorsTest < ActiveSupport::TestCase
                    ", {created_at: 100.day.ago, error_time: 2.day.ago}
 
     # Ensure the previous Inserts are really commited in test environment! ActiveRecord::Base.transaction does not do this in test environment.
-    Database.execute "COMMIT" if Trixx::Application.config.db_type == 'ORACLE'
+    Database.execute "COMMIT" if MovexCdc::Application.config.db_type == 'ORACLE'
 
     retval = HousekeepingFinalErrors.get_instance.do_housekeeping
     assert(retval, 'Should not return false')

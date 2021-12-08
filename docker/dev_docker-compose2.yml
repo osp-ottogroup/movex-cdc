@@ -1,6 +1,6 @@
 version: '3'
 services:
-  trixx-frontend:
+  movex-cdc-frontend:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile.dev
@@ -11,7 +11,7 @@ services:
     environment:
       VUE_APP_BACKEND_URL: http://localhost:3000
 
-  trixx-backend:
+  movex-cdc-backend:
     build:
       context: ..
       dockerfile: ./docker/backend/Dockerfile.dev
@@ -20,7 +20,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DB_USER: TRIXX
+      DB_USER: movex
       DB_PASSWORD: pass
       DB_TYPE: ORACLE
       DB_URL: oracle:1521/ORCLPDB1

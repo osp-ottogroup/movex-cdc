@@ -1,6 +1,6 @@
 class CreateEventLogFinalErrors < ActiveRecord::Migration[6.0]
   def up
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       # Start first partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value
@@ -20,7 +20,7 @@ class CreateEventLogFinalErrors < ActiveRecord::Migration[6.0]
         PCTFREE 0
         INITRANS 16
         #{"PARTITION BY RANGE (Error_Time) INTERVAL( NUMTODSINTERVAL(1,'HOUR'))
-           ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{200.days.ago.strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if Trixx::Application.partitioning?}
+           ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{200.days.ago.strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if MovexCdc::Application.partitioning?}
                                   ")
     else
       create_table :event_log_final_errors do |t|

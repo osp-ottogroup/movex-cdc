@@ -30,7 +30,7 @@ class DbTriggersController < ApplicationController
     schema_name = params.require :schema_name
 
     schema = Schema.where(name: schema_name).first
-    raise "Schema '#{schema_name}' is not configured for TriXX" if schema.nil?
+    raise "Schema '#{schema_name}' is not configured for MOVEX Change Data Capture" if schema.nil?
     schema_right = @current_user.check_user_for_valid_schema_right(schema.id)
     raise "Current user '#{@current_user.email}' has no deployment right for schema '#{schema_name}" unless schema_right.yn_deployment_granted == 'Y'
 

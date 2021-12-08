@@ -37,10 +37,10 @@ class Housekeeping
     @last_housekeeping_started = Time.now
     log_partitions                                                              # log all existing partitions
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       # check all partitions for deletion except the youngest one, no matter if they are interval or not
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         partitions_to_check = Database.select_all "\
           WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval
                               FROM   User_Tab_Partitions
@@ -73,9 +73,9 @@ class Housekeeping
   def check_partition_interval_internal
     @last_partition_interval_check_started = Time.now
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
 
         get_time_from_high_value = proc do |high_value|
           raise "Housekeeping.get_time_from_high_value: Parameter high_value should not be nil" if high_value.nil?
@@ -83,7 +83,7 @@ class Housekeeping
           Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
         end
 
-        max_distance_seconds = (1024*1024-1) * Trixx::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
+        max_distance_seconds = (1024*1024-1) * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
         max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
@@ -141,9 +141,9 @@ class Housekeeping
 
   private
   def log_partitions
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         Rails.logger.debug "Housekeeping.log_partitions: All currently existing partitions"
         Database.select_all("SELECT * FROM User_Tab_Partitions WHERE  Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
           Rails.logger.debug "Pos=#{p.partition_position} #{p.partition_name} Interval=#{p.interval} HighValue=#{p.high_value}"

@@ -7,18 +7,18 @@ class ThreadHandlingTest < ActiveSupport::TestCase
   end
 
   test "process" do
-    original_max_transaction_size   = Trixx::Application.config.max_transaction_size # Remember previous setting
-    original_kafka_max_bulk_count   = Trixx::Application.config.kafka_max_bulk_count
-    original_initial_worker_threads = Trixx::Application.config.initial_worker_threads
+    original_max_transaction_size   = MovexCdc::Application.config.max_transaction_size # Remember previous setting
+    original_kafka_max_bulk_count   = MovexCdc::Application.config.kafka_max_bulk_count
+    original_initial_worker_threads = MovexCdc::Application.config.initial_worker_threads
 
     Database.execute "DELETE FROM Event_Logs"                                   # Ensure table is empty before testing with super-large sequences
 
     Rails.logger.debug "ThreadHandlingTest.process: Create Event_Log_Records"
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      Trixx::Application.config.max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      Trixx::Application.config.kafka_max_bulk_count   = 100
-      Trixx::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
+      MovexCdc::Application.config.max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
+      MovexCdc::Application.config.kafka_max_bulk_count   = 100
+      MovexCdc::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
 
       # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
       # MaxValue for sequence is 999999999999999999
@@ -39,9 +39,9 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       "
       end
     else
-      Trixx::Application.config.max_transaction_size = 100                # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      Trixx::Application.config.kafka_max_bulk_count = 10
-      Trixx::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
+      MovexCdc::Application.config.max_transaction_size = 100                # Ensure that two pass access is done in TransferThread.read_event_logs_batch
+      MovexCdc::Application.config.kafka_max_bulk_count = 10
+      MovexCdc::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
       create_event_logs_for_test(1000)
     end
 
@@ -49,7 +49,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     Rails.logger.debug "ThreadHandlingTest.process: #{messages_to_process} Event_Logs records before processing"
     log_event_logs_content(console_output: false)
     ThreadHandling.get_instance.ensure_processing
-    assert_equal(Trixx::Application.config.initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
+    assert_equal(MovexCdc::Application.config.initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
 
     Rails.logger.debug "ThreadHandlingTest.process: wait for processing finished"
     loop_count = 0
@@ -83,14 +83,14 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal(0, ThreadHandling.get_instance.thread_count, 'No threads should run after shutdown')
     assert_equal(0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All event_logs should be processed after shutdown')
 
-    Trixx::Application.config.max_transaction_size    = original_max_transaction_size   # Restore previous setting
-    Trixx::Application.config.kafka_max_bulk_count    = original_kafka_max_bulk_count   # Restore previous setting
-    Trixx::Application.config.initial_worker_threads  = original_initial_worker_threads # Restore previous setting
+    MovexCdc::Application.config.max_transaction_size    = original_max_transaction_size   # Restore previous setting
+    MovexCdc::Application.config.kafka_max_bulk_count    = original_kafka_max_bulk_count   # Restore previous setting
+    MovexCdc::Application.config.initial_worker_threads  = original_initial_worker_threads # Restore previous setting
 
     # Drop all partitions from Event_Log after test to ensure next record with correct created_at will create new partition and not store records in first partition
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES'").each do |p|
           begin
             Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"

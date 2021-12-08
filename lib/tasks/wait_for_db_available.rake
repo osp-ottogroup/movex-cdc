@@ -2,13 +2,13 @@ namespace :ci_preparation do
   desc "Wait for DB to become available in CI pipeline"
 
   task :wait_for_db_available, [:max_wait_minutes] do |_, args|
-    puts "Running ci_preparation:wait_for_db_available for db_type = #{Trixx::Application.config.db_type }"
+    puts "Running ci_preparation:wait_for_db_available for db_type = #{MovexCdc::Application.config.db_type }"
     max_wait_minutes = args[:max_wait_minutes].to_i
     raise "Parameter wait time in minutes expected" if args.count == 0 || max_wait_minutes == 0
     puts "Waiting max. #{max_wait_minutes} minutes for database to become available"
     start_time = Time.now
 
-    if Trixx::Application.config.db_type == 'ORACLE'
+    if MovexCdc::Application.config.db_type == 'ORACLE'
       exception_text = nil
       loop do
         raise "DB not available after waiting #{max_wait_minutes} minutes! Aborting!\nReason: #{exception_text}\n" if Time.now > start_time + max_wait_minutes.minutes
@@ -16,9 +16,9 @@ namespace :ci_preparation do
         begin
           properties = java.util.Properties.new
           properties.put("user", 'sys')
-          properties.put("password", Trixx::Application.config.db_sys_password)
+          properties.put("password", MovexCdc::Application.config.db_sys_password)
           properties.put("internal_logon", "SYSDBA")
-          url = "jdbc:oracle:thin:@#{Trixx::Application.config.db_url}"
+          url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
           begin
             conn = java.sql.DriverManager.getConnection(url, properties)
           rescue

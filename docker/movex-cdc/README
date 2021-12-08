@@ -1,5 +1,5 @@
-Docker-image trixx
+Docker-image
 ------------------------
-Productive image for TriXX
+Productive image for MOVEX Change Data Capture
 
-2021-03-02: Switched to Oracle Alpine base image
+2021-03-02: Switched to Oracle Linux base image

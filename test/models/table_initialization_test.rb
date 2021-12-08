@@ -12,7 +12,7 @@ class TableInitializationTest < ActiveSupport::TestCase
   end
 
   test "add_table_initialization" do
-    sql = case Trixx::Application.config.db_type
+    sql = case MovexCdc::Application.config.db_type
           when 'ORACLE' then
             "BEGIN\nNULL;\nEND;"
           when 'SQLITE' then

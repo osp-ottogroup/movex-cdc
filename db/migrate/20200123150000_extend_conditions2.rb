@@ -2,7 +2,7 @@ class ExtendConditions2 < ActiveRecord::Migration[6.0]
 
   # create primary key constraint for test, otherwise loading fixtures will result in error
   def up
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       EventLog.connection.execute("ALTER TABLE Conditions ADD Constraint CK_Conditions_Operation CHECK (Operation IN ('I', 'U', 'D'))")
     end

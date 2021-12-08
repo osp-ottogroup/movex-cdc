@@ -42,12 +42,12 @@ namespace :ci_preparation do
       exec(connection, sql)
     end
 
-    puts "Running ci_preparation:create_user for db_type = #{Trixx::Application.config.db_type }"
+    puts "Running ci_preparation:create_user for db_type = #{MovexCdc::Application.config.db_type }"
 
     # create JDBC-connection related to DB-Type
-    conn = case Trixx::Application.config.db_type
+    conn = case MovexCdc::Application.config.db_type
            when 'ORACLE' then
-             java.sql.DriverManager.getConnection("jdbc:oracle:thin:#{Trixx::Application.config.db_victim_user}/#{Trixx::Application.config.db_victim_password}@#{Trixx::Application.config.db_url}")
+             java.sql.DriverManager.getConnection("jdbc:oracle:thin:#{MovexCdc::Application.config.db_victim_user}/#{MovexCdc::Application.config.db_victim_password}@#{MovexCdc::Application.config.db_url}")
            end
 
     reset_table(conn, 'Test_Table1', [

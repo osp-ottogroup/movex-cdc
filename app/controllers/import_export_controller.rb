@@ -175,7 +175,7 @@ class ImportExportController < ApplicationController
         if columns.include?(key)
           ar_object.send("#{key}=", value)
         else
-          Rails.logger.warn "ImportExportController.set_object_attribs_from_hash: Column #{key} of class #{ar_object.class} does not exists in TriXX model any more"
+          Rails.logger.warn "ImportExportController.set_object_attribs_from_hash: Column #{key} of class #{ar_object.class} does not exists in MOVEX CDC model any more"
         end
       end
     end

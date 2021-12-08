@@ -38,7 +38,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     StatisticCounterConcentrator.get_instance.flush_to_db                       # ensure pending Statistics records from memory are flushed to DB
     Database.execute "DELETE FROM Statistics"                                   # Remove previous existing value to ensure valid assertions
 
-    Trixx::Application.config.error_retry_start_delay = 1000              # ensure no retry processing takes place
+    MovexCdc::Application.config.error_retry_start_delay = 1000              # ensure no retry processing takes place
     create_event_logs_for_test(20)
     huge_payload = "\"payload\": \""
     1.upto(1024*105){ huge_payload << "0123456789"}  # more than 1 MB
@@ -48,8 +48,8 @@ class TransferThreadTest < ActiveSupport::TestCase
     remaining_event_log_count = process_eventlogs(max_wait_time: 30, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
     assert_equal 1, remaining_event_log_count, 'One event_Log record with huge payload should cause processing error'
 
-    Trixx::Application.config.error_retry_start_delay = 1                 # ensure retry processing takes place now
-    Trixx::Application.config.error_max_retries = 3                 # ensure retry processing takes place now
+    MovexCdc::Application.config.error_retry_start_delay = 1                 # ensure retry processing takes place now
+    MovexCdc::Application.config.error_max_retries = 3                 # ensure retry processing takes place now
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Process remaining erroneous record')
     assert_equal 0, remaining_event_log_count, 'The remaining erroneous record should be moved to final error now'
     assert_equal 1, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors"), 'The remaining erroneous record should exist in final errors now'

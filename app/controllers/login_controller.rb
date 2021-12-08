@@ -94,7 +94,7 @@ class LoginController < ApplicationController
   # do authenticate against database, return nil for success or error message
   def authenticate(user, password)
     raise "Account is locked for '#{user.email}'" if user.yn_account_locked == 'Y'
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       db_config = Rails.configuration.database_configuration[Rails.env].clone
       db_config['username'] = user.db_user
@@ -106,7 +106,7 @@ class LoginController < ApplicationController
       connection.logoff
     when 'SQLITE' then
       raise "Wrong user/email #{user.email}"  if user.email != 'admin'
-      raise 'wrong password'            if password != Trixx::Application.config.db_password
+      raise 'wrong password'            if password != MovexCdc::Application.config.db_password
     end
     nil                                                                         # Indicator for successful connection
   rescue Exception => e

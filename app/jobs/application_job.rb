@@ -27,7 +27,7 @@ class ApplicationJob < ActiveJob::Base
       retval << "\n" if retval != ''
       retval << "Last execution of Job #{job_class} (#{job_info[:last_execution]}) is older than now - #{job_info[:cycle_seconds]} seconds "
       retval << "(#{job_info[:cycle_seconds]/60} minutes, #{job_info[:cycle_seconds]/3600} hours, #{job_info[:cycle_seconds]/(3600*24)} days ), "
-      retval << "but should occure every #{job_info[:cycle_seconds]} seconds! Please check for sufficient memory and restart Trixx to fix the issue."
+      retval << "but should occure every #{job_info[:cycle_seconds]} seconds! Please check for sufficient memory and restart MOVEX CDC to fix the issue."
     end
     retval
   end

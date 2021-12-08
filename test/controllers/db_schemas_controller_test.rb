@@ -16,7 +16,7 @@ class DbSchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "validate_user_name" do
-    get "/db_schemas/validate_user_name?user_name=#{Trixx::Application.config.db_user}", headers: jwt_header, as: :json
+    get "/db_schemas/validate_user_name?user_name=#{MovexCdc::Application.config.db_user}", headers: jwt_header, as: :json
     assert_response :success
 
     get "/db_schemas/validate_user_name?user_name=quatsch", headers: jwt_header, as: :json

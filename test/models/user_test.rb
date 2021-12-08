@@ -3,15 +3,15 @@ require 'test_helper'
 class UserTest < ActiveSupport::TestCase
   test "create user" do
     assert_difference('User.count') do
-      User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.db_victim_user).save!
+      User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: MovexCdc::Application.config.db_victim_user).save!
     end
 
     # Second user
     assert_difference('User.count') do
-      User.new(email: 'Hans.Dampf2@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.db_victim_user).save!
+      User.new(email: 'Hans.Dampf2@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: MovexCdc::Application.config.db_victim_user).save!
     end
 
-    assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: Trixx::Application.config.db_victim_user).save! }
+    assert_raise(Exception, 'Duplicate should raise unique index violation') { User.new(email: 'Hans.Dampf@web.de', first_name: 'Hans', last_name: 'Dampf', db_user: MovexCdc::Application.config.db_victim_user).save! }
 
     User.where(email: 'Hans.Dampf@web.de').first.destroy                        # cleanup user table
     User.where(email: 'Hans.Dampf2@web.de').first.destroy                       # cleanup user table
@@ -23,7 +23,7 @@ class UserTest < ActiveSupport::TestCase
   end
 
   test "destroy user" do
-    user_to_delete = User.new(email: 'hans.dampf@hugo.de', db_user: Trixx::Application.config.db_user, first_name: 'hans', last_name: 'dampf', yn_account_locked: 'N')
+    user_to_delete = User.new(email: 'hans.dampf@hugo.de', db_user: MovexCdc::Application.config.db_user, first_name: 'hans', last_name: 'dampf', yn_account_locked: 'N')
     user_to_delete.save!
 
     ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!

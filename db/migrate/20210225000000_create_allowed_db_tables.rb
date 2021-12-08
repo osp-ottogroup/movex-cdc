@@ -1,6 +1,6 @@
 class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
   def up
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       EventLog.connection.execute "\
         CREATE OR REPLACE View Allowed_DB_Tables AS
@@ -50,7 +50,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
       end
       ActiveRecord::Base.connection.execute "CREATE VIEW Allowed_DB_Tables AS SELECT 'main' Owner, 'main' Grantee, Name Table_Name FROM SQLite_Master WHERE type='table'"
     else
-      raise "Declaration for view Allowed_DB_Tables missing for #{Trixx::Application.config.db_type}"
+      raise "Declaration for view Allowed_DB_Tables missing for #{MovexCdc::Application.config.db_type}"
     end
   end
 

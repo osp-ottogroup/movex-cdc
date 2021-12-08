@@ -1,6 +1,6 @@
 version: '3'
 services:
-  trixx-frontend:
+  movex-cdc-frontend:
     build:
       context: ../frontend
       dockerfile: ../docker/frontend/Dockerfile.dev
@@ -11,7 +11,7 @@ services:
     environment:
       VUE_APP_BACKEND_URL: http://localhost:3000
 
-  trixx-backend:
+  movex-cdc-backend:
     build:
       context: ..
       dockerfile: ./docker/backend/Dockerfile.dev
@@ -23,7 +23,7 @@ services:
       DB_PASSWORD: test
       DB_TYPE: SQLITE
       RAILS_MAX_THREADS: 50
-      INFO_CONTACT_PERSON: Max Mustermann (max.mustermann@osp-trixx.de)
+      INFO_CONTACT_PERSON: Max Mustermann (max.mustermann@osp-movex-cdc.de)
 
 networks:
   default:

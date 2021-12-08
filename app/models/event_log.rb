@@ -3,10 +3,10 @@ class EventLog < ApplicationRecord
   self.sequence_name  = :event_logs_seq
 
   def self.adjust_max_simultaneous_transactions
-    expected_value = Trixx::Application.config.max_simultaneous_transactions
-    case Trixx::Application.config.db_type
+    expected_value = MovexCdc::Application.config.max_simultaneous_transactions
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      current_value =  if Trixx::Application.partitioning?
+      current_value =  if MovexCdc::Application.partitioning?
                          Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
                        else
                          Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
@@ -28,10 +28,10 @@ class EventLog < ApplicationRecord
 
   # Adjust interval
   def self.adjust_interval
-    expected_interval = Trixx::Application.config.partition_interval
-    case Trixx::Application.config.db_type
+    expected_interval = MovexCdc::Application.config.partition_interval
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         current_interval = current_interval_seconds
         if current_interval.nil? || current_interval != expected_interval
           Rails.logger.info "EventLog.adjust_interval: Change partition interval from #{current_interval} to #{expected_interval} seconds "
@@ -44,9 +44,9 @@ class EventLog < ApplicationRecord
 
   # called by health_check controller
   def self.health_check_status
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         partitions = Database.select_all "SELECT Partition_Name, High_Value
                                           FROM   User_Tab_Partitions
                                           WHERE  Table_Name = 'EVENT_LOGS'
@@ -70,7 +70,7 @@ class EventLog < ApplicationRecord
 
   # Drop the partition if it is empty and no transactions are pending
   def self.check_and_drop_partition(partition_name, caller)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       # partition_position must be read again for each partition because it changes if a previous partition is dropped
       part = Database.select_first_row "SELECT Partition_Position, High_Value
@@ -92,7 +92,7 @@ class EventLog < ApplicationRecord
   def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller)
     Rails.logger.debug "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       part_stat = Database.select_first_row("SELECT MAX(Partition_Position) max_partition_position, COUNT(*) Partition_Count
                                              FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
@@ -130,7 +130,7 @@ class EventLog < ApplicationRecord
 
   # check if partition does not contain records or pending transactions
   def self.partition_empty?(partition_name, partition_position, high_value, caller)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       pending_transactions = Database.select_one("\
               SELECT COUNT(*)
@@ -157,9 +157,9 @@ class EventLog < ApplicationRecord
 
   def self.error_log_partitions
     Rails.logger.error "Current existing partitions are:"
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         Database.select_all("SELECT Partition_Position, Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
           Rails.logger.error "Pos=#{p.partition_position}, name=#{p.partition_name}, high_value=#{p.high_value}, interval=#{p.interval}"
         end

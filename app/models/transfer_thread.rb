@@ -42,7 +42,7 @@ class TransferThread
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
     @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
     @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
-    @transactional_id               = "TRIXX-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
+    @transactional_id               = "MOVEX-CDC-#{Socket.gethostname}-#{@worker_id}" # Kafka transactional ID, must be unique per thread / Kafka connection
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
@@ -57,7 +57,7 @@ class TransferThread
     Rails.logger.info('TransferThread.process'){"New worker thread created with ID=#{@worker_id}, Thread-ID=#{Thread.current.object_id}"}
     Database.set_application_info("worker #{@worker_id}/process")
     @db_session_info = Database.db_session_info                                          # Session ID etc., get information from within separate thread
-    Database.set_current_session_network_timeout(timeout_seconds: Trixx::Application.config.db_query_timeout * 2) # ensure hanging sessions are cancelled sometimes
+    Database.set_current_session_network_timeout(timeout_seconds: MovexCdc::Application.config.db_query_timeout * 2) # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
     @kafka_producer = create_kafka_producer                                     # Initial creation
@@ -145,10 +145,10 @@ class TransferThread
             max_buffer_bytesize:  @max_buffer_bytesize,
             transactional:        true,
             transactional_id:     @transactional_id,
-            max_retries: 0                                                      # ensure producer does not sleep between retries, setting > 0 will reduce TriXX' throughput
+            max_retries: 0                                                      # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
         }
 
-        producer_options[:compression_codec]             = Trixx::Application.config.kafka_compression_codec.to_sym        if Trixx::Application.config.kafka_compression_codec != 'none'
+        producer_options[:compression_codec]             = MovexCdc::Application.config.kafka_compression_codec.to_sym        if MovexCdc::Application.config.kafka_compression_codec != 'none'
 
         kafka_producer = kafka.producer(producer_options)
 
@@ -219,9 +219,9 @@ class TransferThread
     # only half of @max_transaction_size is processed with newer IDs than last execution
     # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
     event_logs = []
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if Trixx::Application.partitioning?
+      if MovexCdc::Application.partitioning?
         # Iterate over partitions starting with oldest up to @max_transaction_size records
         Rails.logger.debug "TransferThread.read_event_logs_batch: Start iterating over partitions"
         partitions = Database.select_all("SELECT Partition_Name, High_Value
@@ -248,7 +248,7 @@ class TransferThread
     when 'SQLITE' then
       event_logs.concat(read_event_logs_steps(@max_transaction_size))
     else
-      raise "Unsupported DB type '#{Trixx::Application.config.db_type}'"
+      raise "Unsupported DB type '#{MovexCdc::Application.config.db_type}'"
     end
     event_logs.sort_by! {|e| e['id']}                                           # ensure original order of event creation
     event_logs.each do |e|
@@ -266,9 +266,9 @@ class TransferThread
     result = []
     # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
     # Condition to identify events with msg_key for which this worker instance is reponsible for processing
-    msg_key_filter_condition = case Trixx::Application.config.db_type
-                               when 'ORACLE' then "Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), #{Trixx::Application.config.initial_worker_threads}) = :worker_id"
-                               when 'SQLITE' then "Msg_Key IS NOT NULL AND LENGTH(Msg_Key) % #{Trixx::Application.config.initial_worker_threads} = :worker_id" # LENGTH as workaround for not existing hash function
+    msg_key_filter_condition = case MovexCdc::Application.config.db_type
+                               when 'ORACLE' then "Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), #{MovexCdc::Application.config.initial_worker_threads}) = :worker_id"
+                               when 'SQLITE' then "Msg_Key IS NOT NULL AND LENGTH(Msg_Key) % #{MovexCdc::Application.config.initial_worker_threads} = :worker_id" # LENGTH as workaround for not existing hash function
                                end
 
 
@@ -352,22 +352,22 @@ class TransferThread
   # Do SQL select for given conditions
   def read_event_logs_single(fetch_limit, filter, params, partition_name)
     if fetch_limit > 0
-      case Trixx::Application.config.db_type
+      case MovexCdc::Application.config.db_type
       when 'ORACLE' then
         # each error retry enlarges the delay before next retry by factor 3
         DatabaseOracle.select_all_limit("SELECT e.*, CAST(RowID AS VARCHAR2(30)) Row_ID
                                                                 FROM   Event_Logs#{" PARTITION (#{partition_name})" if partition_name} e
                                                                 WHERE  #{filter}
-                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{Trixx::Application.config.error_retry_start_delay} * POWER(3, Retry_Count-1))/86400 < CAST(SYSTIMESTAMP AS TIMESTAMP)) /* Compare last_error_time without timezone impact */
+                                                                AND    (Retry_Count = 0 OR Last_Error_Time + (#{MovexCdc::Application.config.error_retry_start_delay} * POWER(3, Retry_Count-1))/86400 < CAST(SYSTIMESTAMP AS TIMESTAMP)) /* Compare last_error_time without timezone impact */
                                                                 FOR UPDATE SKIP LOCKED",
-                                        params, fetch_limit: fetch_limit, query_timeout: Trixx::Application.config.db_query_timeout
+                                        params, fetch_limit: fetch_limit, query_timeout: MovexCdc::Application.config.db_query_timeout
         )
       when 'SQLITE' then
         Database.select_all("SELECT *
                              FROM   Event_Logs
                              WHERE #{filter}
                              /* Time-value with ' UTC' is not accepted for DATETIME(xx, '+ 5 seconds') */
-                             AND   (Retry_Count = 0 OR  DATETIME(REPLACE(Last_Error_Time, ' UTC', ''), '+'||CAST(#{Trixx::Application.config.error_retry_start_delay}*Retry_Count*Retry_Count AS VARCHAR)||' seconds') < DATETIME('now'))
+                             AND   (Retry_Count = 0 OR  DATETIME(REPLACE(Last_Error_Time, ' UTC', ''), '+'||CAST(#{MovexCdc::Application.config.error_retry_start_delay}*Retry_Count*Retry_Count AS VARCHAR)||' seconds') < DATETIME('now'))
                              LIMIT  #{fetch_limit}", params)
       end
     else
@@ -423,7 +423,7 @@ class TransferThread
 
   # get min id for event_logs with msg_key where this worker instance is responsible for
   def get_min_key_id(msg_key_filter_condition, params, partition_name)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       Database.select_one("SELECT MIN(ID) FROM Event_Logs#{" PARTITION (#{partition_name})" if partition_name} WHERE #{msg_key_filter_condition}", params)
     when 'SQLITE' then
@@ -432,14 +432,14 @@ class TransferThread
   end
 
   def delete_event_logs_batch(event_logs)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       begin
         sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)"
         jdbc_conn = ActiveRecord::Base.connection.raw_connection
         cursor = jdbc_conn.prepareStatement sql
         ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
-          array = jdbc_conn.createARRAY("#{Trixx::Application.config.db_user}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
+          array = jdbc_conn.createARRAY("#{MovexCdc::Application.config.db_user}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
           cursor.setArray(1, array)
           result = cursor.executeUpdate
           if result != event_logs.length
@@ -464,12 +464,12 @@ class TransferThread
   def process_single_erroneous_event_log(event_log, exception)
     @messages_processed_with_error +=  1
 
-    case Trixx::Application.config.db_type                                # How to access Event_Logs record for several databases
+    case MovexCdc::Application.config.db_type                                # How to access Event_Logs record for several databases
     when 'ORACLE' then filter_sql = "RowID = :row_id"; filter_value = { row_id: event_log['row_id'] }
     when 'SQLITE' then filter_sql = "ID = :id";        filter_value = { id:    event_log['id'] }
     end
 
-    if event_log['retry_count'] < Trixx::Application.config.error_max_retries
+    if event_log['retry_count'] < MovexCdc::Application.config.error_max_retries
       # increase number of retries and last error time
       @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_delayed_errors)
       Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Increase Retry_Count for Event_Logs.ID = #{event_log['id']}"}
@@ -606,7 +606,7 @@ class TransferThread
 
   # get maxium used ID, preferred from sequence
   def get_max_event_logs_id_from_sequence
-    max_event_logs_id_from_sequence = case Trixx::Application.config.db_type
+    max_event_logs_id_from_sequence = case MovexCdc::Application.config.db_type
                                       when 'ORACLE' then Database.select_one "SELECT Last_Number FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"
                                       when 'SQLITE' then Database.select_one "SELECT seq FROM SQLITE_SEQUENCE WHERE Name = 'event_logs'"
                                       end
@@ -632,7 +632,7 @@ class TransferThread
 
   def check_max_sorted_id_distance_for_init(external_key)
     key = external_key ? external_key : 'default'
-    @max_sorted_id_distances[key] = @max_transaction_size * Trixx::Application.config.initial_worker_threads unless @max_sorted_id_distances.has_key? key # Initialization
+    @max_sorted_id_distances[key] = @max_transaction_size * MovexCdc::Application.config.initial_worker_threads unless @max_sorted_id_distances.has_key? key # Initialization
     key
   end
 
@@ -684,7 +684,7 @@ class TransferThread
       reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
       if @max_message_bulk_count > reduce_step + 1
         @max_message_bulk_count -= reduce_step
-        Trixx::Application.config.kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
+        MovexCdc::Application.config.kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
         Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
       end
     end

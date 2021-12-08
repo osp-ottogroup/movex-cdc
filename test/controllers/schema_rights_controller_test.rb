@@ -58,7 +58,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 204
 
-    if Trixx::Application.config.db_type != 'SQLITE'
+    if MovexCdc::Application.config.db_type != 'SQLITE'
       assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
         delete schema_right_url(SchemaRight.where(user_id: peter_user.id, schema_id: user_schema.id).first), headers: jwt_header(@jwt_admin_token), params: { schema_right: {lock_version: 42}}, as: :json
       end

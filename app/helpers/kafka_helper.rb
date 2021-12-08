@@ -2,17 +2,17 @@ module KafkaHelper
 
   # create connection to Kafka and return instance of class Kafka
   def self.connect_kafka
-    kafka_class = Trixx::Application.config.kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
-    seed_brokers = Trixx::Application.config.kafka_seed_broker.split(',').map{|b| b.strip}
+    kafka_class = MovexCdc::Application.config.kafka_seed_broker == '/dev/null' ? KafkaMock : Kafka
+    seed_brokers = MovexCdc::Application.config.kafka_seed_broker.split(',').map{|b| b.strip}
 
     kafka_options = {
-        client_id: "TriXX: TRIXX-#{Socket.gethostname}",
+        client_id: "MOVEX-CDC-#{Socket.gethostname}",
         logger: Rails.logger
     }
-    kafka_options[:ssl_ca_cert]                   = File.read(Trixx::Application.config.kafka_ssl_ca_cert)          if Trixx::Application.config.kafka_ssl_ca_cert
-    kafka_options[:ssl_client_cert]               = File.read(Trixx::Application.config.kafka_ssl_client_cert)      if Trixx::Application.config.kafka_ssl_client_cert
-    kafka_options[:ssl_client_cert_key]           = File.read(Trixx::Application.config.kafka_ssl_client_cert_key)  if Trixx::Application.config.kafka_ssl_client_cert_key
-    kafka_options[:ssl_client_cert_key_password]  = Trixx::Application.config.kafka_ssl_client_cert_key_password    if Trixx::Application.config.kafka_ssl_client_cert_key_password
+    kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)          if MovexCdc::Application.config.kafka_ssl_ca_cert
+    kafka_options[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)      if MovexCdc::Application.config.kafka_ssl_client_cert
+    kafka_options[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)  if MovexCdc::Application.config.kafka_ssl_client_cert_key
+    kafka_options[:ssl_client_cert_key_password]  = MovexCdc::Application.config.kafka_ssl_client_cert_key_password    if MovexCdc::Application.config.kafka_ssl_client_cert_key_password
 
     kafka_class.new(seed_brokers, kafka_options)                                # return instance of Kafka
   end

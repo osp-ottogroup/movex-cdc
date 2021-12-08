@@ -15,7 +15,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
 
     get "/health_check", as: :json
     Rails.logger.info @response.body
-    if Trixx::Application.config.initial_worker_threads == ThreadHandling.get_instance.thread_count
+    if MovexCdc::Application.config.initial_worker_threads == ThreadHandling.get_instance.thread_count
       assert_response :success, "200 (success) expected because all worker threads are active, but is #{@response.response_code}"
     else
       assert_response :conflict, "409 (conflict) expected because not all worker threads are active, but is #{@response.response_code}"

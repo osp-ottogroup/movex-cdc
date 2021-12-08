@@ -28,13 +28,13 @@ class TableTest < ActiveSupport::TestCase
   test "all_allowed_tables_for_schema" do
     non_existing_table = Table.new(schema_id: user_schema.id, name: 'NON_EXISTING')
     non_existing_table.save!
-    tables = Table.all_allowed_tables_for_schema(user_schema.id, Trixx::Application.config.db_user)
+    tables = Table.all_allowed_tables_for_schema(user_schema.id, MovexCdc::Application.config.db_user)
     assert(tables.count >= 3, 'Should return at least 3 tables of schema 1')
     assert(tables.select{ |t| t.name == 'TABLES'}.count > 0, 'Result should contain physically existing table with name = TABLES')
     assert(tables.select{ |t| t.name == 'COLUMNS'}.count > 0, 'Result should contain physically existing table with name=TABLES')
     assert(tables.select{ |t| t.name == 'NON_EXISTING'}.count > 0, 'Result should contain non existing table with name=NON_EXISTING')
 
-    db_tables = DbTable.all_by_schema(user_schema.name, Trixx::Application.config.db_user)
+    db_tables = DbTable.all_by_schema(user_schema.name, MovexCdc::Application.config.db_user)
     assert(db_tables.select{ |t| t['name'].upcase == non_existing_table.name.upcase}.count == 0, 'Table with name=NON_EXISTING should not exist physically for this test')
     non_existing_table.destroy!
   end
@@ -79,7 +79,7 @@ class TableTest < ActiveSupport::TestCase
     oldest_change_dates = Table.find(victim1_table.id).youngest_trigger_change_dates_per_operation
     ['I', 'U', 'D'].each do |operation|
       oldest_change_date = oldest_change_dates[operation]
-      if ['I', 'U'].include?(operation) && ['ORACLE'].include?(Trixx::Application.config.db_type)
+      if ['I', 'U'].include?(operation) && ['ORACLE'].include?(MovexCdc::Application.config.db_type)
         assert_not_nil(oldest_change_date, 'oldest change date should be known for existing insert trigger')
       else
         assert_nil(oldest_change_date, "no trigger should exists for operation '#{operation}' or no change date available for DB")
@@ -91,7 +91,7 @@ class TableTest < ActiveSupport::TestCase
     # Check if own table is maintainable (no exception)
     assert_nothing_raised do
       Table.check_table_allowed_for_db_user(current_user: peter_user,
-                                      schema_name: Trixx::Application.config.db_victim_user,
+                                      schema_name: MovexCdc::Application.config.db_victim_user,
                                       table_name:  'VICTIM1',
                                       allow_for_nonexisting_table: false
       )
@@ -99,7 +99,7 @@ class TableTest < ActiveSupport::TestCase
 
     assert_raise('Non-existing table should raise exception if allow_for_nonexisting_table=false') do
       Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                            schema_name:                  Trixx::Application.config.db_victim_user,
+                                            schema_name:                  MovexCdc::Application.config.db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  false
       )
@@ -108,17 +108,17 @@ class TableTest < ActiveSupport::TestCase
     # Non-existing table should not raise exception if allow_for_nonexisting_table=true
     assert_nothing_raised do
       Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                            schema_name:                  Trixx::Application.config.db_victim_user,
+                                            schema_name:                  MovexCdc::Application.config.db_victim_user,
                                             table_name:                   'Non_Existing',
                                             allow_for_nonexisting_table:  true
       )
     end
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       assert_raise('Non-selectable table should raise exception') do
         Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                              schema_name:                  Trixx::Application.config.db_user,
+                                              schema_name:                  MovexCdc::Application.config.db_user,
                                               table_name:                   'TABLES',
                                               allow_for_nonexisting_table:  false
         )
@@ -127,7 +127,7 @@ class TableTest < ActiveSupport::TestCase
       # selectable table of other schema schould not raise exception
       assert_nothing_raised do
         Table.check_table_allowed_for_db_user(current_user:                 peter_user,
-                                              schema_name:                  Trixx::Application.config.db_victim_user,
+                                              schema_name:                  MovexCdc::Application.config.db_victim_user,
                                               table_name:                   'VICTIM1',
                                               allow_for_nonexisting_table:  false
         )

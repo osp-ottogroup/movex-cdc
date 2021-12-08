@@ -1,10 +1,10 @@
 #!/bin/bash
-# start TriXX application inside a docker container
+# start MOVEX CDC application inside a docker container
 # Peter Ramm, 2020-03-31
 
 # timezone setting is done by "-e TZ="Europe/Berlin" etc in call of "docker run"
 
-echo "TriXX build version is `cat /app/build_version`"
+echo "MOVEX CDC build version is `cat /app/build_version`"
 
 export RAILS_LOG_TO_STDOUT_AND_FILE=true
 export RAILS_SERVE_STATIC_FILES=true
@@ -12,5 +12,5 @@ export RAILS_MIN_THREADS=10
 # Default for RAILS_MAX_THREADS is set as ENV in Dockerfile
 
 # "exec ..." ensures that rails server runs in the same process like shell script before
-# this ensures that TriXX application is gracefully shut down at docker stop
+# this ensures that MOVEX CDC application is gracefully shut down at docker stop
 exec bundle exec rails server --port 8080 --environment production

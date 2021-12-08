@@ -14,7 +14,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "find_all_by_table" do
     triggers = DbTrigger.find_all_by_table(victim1_table)
-    assert_equal(2, triggers.count, 'Should find triggers for table with valid trixx trigger name prefix')
+    assert_equal(2, triggers.count, 'Should find triggers for table with valid MOVEX CDC trigger name prefix')
 
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
     triggers = DbTrigger.find_all_by_table(victim1_table)
@@ -113,7 +113,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
-  test "drop existing TRIXX trigger without table config" do
+  test "drop existing MOVEX CDC trigger without table config" do
     Table.find(victim1_table.id).update!(yn_hidden: 'Y')                        # Ensure this table is not considered for trigger generation
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
     assert_equal 2, result[:successes].select{|s| s[:table_id] == victim1_table.id }.length,
@@ -195,7 +195,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{victim1_table.name}" # requires select-Grant
     max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name}"
     second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != :max_id", max_id: max_victim_id
-    insert_condition = case Trixx::Application.config.db_type
+    insert_condition = case MovexCdc::Application.config.db_type
                        when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                        when 'SQLITE' then "new.ID != #{second_max_victim_id}"
                        end

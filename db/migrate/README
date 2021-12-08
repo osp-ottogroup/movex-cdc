@@ -1,5 +1,5 @@
-Rules for migrations in TriXX
-=============================
+Rules for migrations in MOVEX CDC
+=================================
 
 - One migration file should contain only one atomic operation, not more. Because Oracle doesn't have transactional DDL.
 - foreign key names should always be lower case

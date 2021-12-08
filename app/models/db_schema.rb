@@ -3,7 +3,7 @@ class DbSchema
 
   # get all existings users/schemas
   def self.all
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       ActiveRecord::Base.connection.exec_query("SELECT UserName name FROM All_Users ORDER BY UserName")
     when 'SQLITE' then
@@ -20,7 +20,7 @@ class DbSchema
 
     db_user = user&.db_user if db_user.nil?                                     # one of both should be set with real values, user users db_user as alternative
 
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       Database.select_all("\
         SELECT Name
@@ -51,7 +51,7 @@ class DbSchema
   # Check schema name for existence, case independent
   def self.valid_schema_name?(schema_name)
     return false if schema_name.nil?
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       Database.select_one("SELECT COUNT(*) FROM All_Users WHERE UserName = :schema_name", {schema_name: schema_name}) > 0
     when 'SQLITE' then

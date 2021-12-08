@@ -34,7 +34,7 @@ The Kafka-Cluster , which is supplied with events by MOVEX CDC, is responsible f
 Synchronous processing and storage of the trigger events is initially performed locally in the database, without further dependencies on external systems.
 The further transmission of the events to Kafka is asynchronous to the trigger processing.
 
-image:trixx_event_flow.svg[format=svg,opts=inline]
+image:event_flow.svg[format=svg,opts=inline]
 
 The focus is on resource-conserving yet stable and high-performance processing,
 low complexity in the operation of the solution and minimal intervention in the operation of the database.
@@ -557,7 +557,7 @@ Depending on table configuration Kafka messages may contain an additional key va
 
 
 === Module overview ===
-image:trixx_module_overview.svg[format=svg,opts=inline]
+image:module_overview.svg[format=svg,opts=inline]
 
 ==== Activities at application startup ====
 
@@ -679,7 +679,7 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 http://localhost:8080/server_control/set_log_level
 
 === Entity relationship model ===
-image:trixx_er_model.svg[format=svg,opts=inline]
+image:er_model.svg[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Access authentication for GUI ====

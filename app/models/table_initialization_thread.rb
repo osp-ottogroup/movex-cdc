@@ -25,8 +25,8 @@ class TableInitializationThread
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Start initial transfer of current table content. Filter = '#{@table.initialization_filter}'" ).save!
     @db_session_info = Database.db_session_info                                 # Session ID etc., get information from within separate thread
     Database.set_current_session_network_timeout(timeout_seconds: 86400)        # ensure hanging sessions are cancelled at least after one day
-    sleep 1                                                                     # prevent from ORA-01466 if @table.raise_if_table_not_readable_by_trixx is executed too quickly
-    @table.raise_if_table_not_readable_by_trixx                                 # Check if flashback query is possible on table
+    sleep 1                                                                     # prevent from ORA-01466 if @table.raise_if_table_not_readable_by_movex_cdc is executed too quickly
+    @table.raise_if_table_not_readable_by_movex_cdc                                 # Check if flashback query is possible on table
     Database.execute @sql
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'" ).save!
   rescue Exception => e

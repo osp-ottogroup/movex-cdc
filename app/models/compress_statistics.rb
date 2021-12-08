@@ -84,7 +84,7 @@ class CompressStatistics
 
   # get database specific expression for time grouping
   def time_group_expression(min_age)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       case min_age
       when 3.months                                                             # group by day
@@ -101,7 +101,7 @@ class CompressStatistics
         "strftime('%Y-%m-%d %H', REPLACE(End_Timestamp, ' UTC', ''))"
       end
     else
-      raise "CompressStatistics.time_group_expression: Missing value for '#{Trixx::Application.config.db_type}'"
+      raise "CompressStatistics.time_group_expression: Missing value for '#{MovexCdc::Application.config.db_type}'"
     end
   end
 end

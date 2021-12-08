@@ -1,5 +1,5 @@
 # Build Docker image based on jRuby with both zookeeper and kafka
-# for usage as default image for whole CI pipeline for TriXX
+# for usage as default image for whole CI pipeline for MOVEX CDC
 # Peter Ramm, 2021-03-02
 
 # Usage:

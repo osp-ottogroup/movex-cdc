@@ -59,14 +59,14 @@ namespace :ci_preparation do
       exec(conn, "CREATE OR REPLACE SYNONYM #{username}.All_Synonyms FOR #{username}.Dummy")
     end
 
-    puts "Running ci_preparation:create_user for db_type = #{Trixx::Application.config.db_type }"
-    if Trixx::Application.config.db_type == 'ORACLE'
-      raise "Value for DB_SYS_PASSWORD required to create users" if !Trixx::Application.config.respond_to?(:db_sys_password)
+    puts "Running ci_preparation:create_user for db_type = #{MovexCdc::Application.config.db_type }"
+    if MovexCdc::Application.config.db_type == 'ORACLE'
+      raise "Value for DB_SYS_PASSWORD required to create users" if !MovexCdc::Application.config.respond_to?(:db_sys_password)
       properties = java.util.Properties.new
       properties.put("user", 'sys')
-      properties.put("password", Trixx::Application.config.db_sys_password)
+      properties.put("password", MovexCdc::Application.config.db_sys_password)
       properties.put("internal_logon", "SYSDBA")
-      url = "jdbc:oracle:thin:@#{Trixx::Application.config.db_url}"
+      url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
       begin
         conn = java.sql.DriverManager.getConnection(url, properties)
       rescue
@@ -79,9 +79,9 @@ namespace :ci_preparation do
         conn = ORACLE_DRIVER.connect(url, properties)
       end
 
-      ensure_user_existence(conn, Trixx::Application.config.db_user,        Trixx::Application.config.db_password)          # Schema for TriXX data structure
+      ensure_user_existence(conn, MovexCdc::Application.config.db_user, MovexCdc::Application.config.db_password)          # Schema for MOVEX CDC data structure
       if Rails.env.test?
-        ensure_user_existence(conn, Trixx::Application.config.db_victim_user, Trixx::Application.config.db_victim_password)   # Schema for tables observed by trixx
+        ensure_user_existence(conn, MovexCdc::Application.config.db_victim_user, MovexCdc::Application.config.db_victim_password)   # Schema for tables observed by MOVEX CDC
       end
 
       conn.close

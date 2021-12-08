@@ -13,7 +13,7 @@ class DbSchemaTest < ActiveSupport::TestCase
 
   test "get authorizable_schemas" do
     db_schemas = DbSchema.authorizable_schemas('quark', nil)                    # non existing user name
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       assert_equal 0, db_schemas.count, 'Non existing email should not find any schema'
     when 'SQLITE' then
@@ -40,7 +40,7 @@ class DbSchemaTest < ActiveSupport::TestCase
 
   test "valid_schema_name" do
     assert !DbSchema.valid_schema_name?('quark'), 'Schema quark should not exist'
-    assert DbSchema.valid_schema_name?(Trixx::Application.config.db_user), 'Schema of DB_USER should not exist'
+    assert DbSchema.valid_schema_name?(MovexCdc::Application.config.db_user), 'Schema of DB_USER should not exist'
   end
 
 end

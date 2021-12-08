@@ -11,7 +11,7 @@ class InitializationJob < ApplicationJob
     ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
     Rails.logger.info "Start db:migrate to ensure up to date data structures"
-    Trixx::Application.load_tasks                                               # precondition for invoke of db:migrate
+    MovexCdc::Application.load_tasks                                               # precondition for invoke of db:migrate
     if ENV['SUPPRESS_MIGRATION_AT_STARTUP']
       Rails.logger.info "Migration suppressed because SUPPRESS_MIGRATION_AT_STARTUP is set in environment"
     else
@@ -25,12 +25,12 @@ class InitializationJob < ApplicationJob
 
     # LOG Datase and JDBC driver version
     Rails.logger.info "JDBC driver version = #{Database.jdbc_driver_version}"
-    Trixx::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
+    MovexCdc::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
     Rails.logger.info "Database version = #{Database.db_version}"
-    Trixx::Application.log_attribute('Database version', Database.db_version)
+    MovexCdc::Application.log_attribute('Database version', Database.db_version)
 
-    EventLog.adjust_interval                                                    # Activate new Trixx::Application.config.partition_interval if necessary
-    EventLog.adjust_max_simultaneous_transactions                               # Activate new Trixx::Application.config.max_simultaneous_transactions if necessary
+    EventLog.adjust_interval                                                    # Activate new MovexCdc::Application.config.partition_interval if necessary
+    EventLog.adjust_max_simultaneous_transactions                               # Activate new MovexCdc::Application.config.max_simultaneous_transactions if necessary
 
     # After initialization regular operation can start
     SystemValidationJob.set(wait: 1.seconds).perform_later unless Rails.env.test? # Job is tested separately
@@ -51,10 +51,10 @@ class InitializationJob < ApplicationJob
     unless admin
       # create admin user if not yet exists
       ActiveRecord::Base.transaction do
-        db_user = case Trixx::Application.config.db_type
-                  when 'ORACLE' then Trixx::Application.config.db_user   # all schemas/users are handled in upper case
+        db_user = case MovexCdc::Application.config.db_type
+                  when 'ORACLE' then MovexCdc::Application.config.db_user   # all schemas/users are handled in upper case
                   else
-                    Trixx::Application.config.db_user
+                    MovexCdc::Application.config.db_user
                   end
         user = User.new(email: 'admin', first_name: 'Admin', last_name: 'as Supervisor', db_user: db_user, yn_admin: 'Y')
         user.save!
@@ -64,7 +64,7 @@ class InitializationJob < ApplicationJob
 
   # ensure required rights and grants
   def ensure_required_rights
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       check_readable 'DBA_Constraints'
       check_readable 'DBA_Cons_Columns'
@@ -84,7 +84,7 @@ class InitializationJob < ApplicationJob
 
   # check if read/select is possible on object
   def check_readable(object_name)
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       begin
         Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
@@ -93,9 +93,9 @@ class InitializationJob < ApplicationJob
       end
 
       begin
-        csql = "CREATE OR REPLACE View Trixx_View_Select_Test AS SELECT * FROM #{object_name}"
+        csql = "CREATE OR REPLACE View MOVEX_CDC_View_Select_Test AS SELECT * FROM #{object_name}"
         Database.execute csql
-        Database.execute "DROP View Trixx_View_Select_Test"
+        Database.execute "DROP View MOVEX_CDC_View_Select_Test"
       rescue Exception => e
         raise "Missing database right!!!\n#{csql}; is not possible!\n#{e.class}: #{e.message}
 You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to select from table in view"
@@ -106,21 +106,21 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
   # check if create table is possible
   def check_create_table
     begin
-      Database.execute "DROP TABLE Trixx_Table_Test", {}, no_exception_logging: true  # drop possibly existing table
+      Database.execute "DROP TABLE MOVEX_CDC_Table_Test", {}, no_exception_logging: true  # drop possibly existing table
     rescue
     end
-    Database.execute "CREATE  TABLE Trixx_Table_Test (ID NUMBER)"
-    Database.execute "DROP TABLE Trixx_Table_Test"
+    Database.execute "CREATE  TABLE MOVEX_CDC_Table_Test (ID NUMBER)"
+    Database.execute "DROP TABLE MOVEX_CDC_Table_Test"
   rescue Exception => e
     raise "Missing database right!!! CREATE TABLE is not possible!\n#{e.class}: #{e.message}"
   end
 
   # check if create view is possible
   def check_create_view
-    case Trixx::Application.config.db_type
+    case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      Database.execute "CREATE OR REPLACE View Trixx_View_Test AS SELECT * FROM DUAL"
-      Database.execute "DROP View Trixx_View_Test"
+      Database.execute "CREATE OR REPLACE View MOVEX_CDC_View_Test AS SELECT * FROM DUAL"
+      Database.execute "DROP View MOVEX_CDC_View_Test"
     end
   rescue Exception => e
     raise "Missing database right!!! CREATE VIEW is not possible!\n#{e.class}: #{e.message}"

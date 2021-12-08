@@ -42,7 +42,6 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:db_url,                            'Database URL')
     info << build_info_record(:db_user,                           'Database user for server operations')
     info << build_info_record(:error_max_retries,                 'Max. retries after transfer error')
-    info << build_info_record(:trixx_error_max_retry_start_delay, 'Initial delay after error')
     info << build_info_record(:final_errors_keep_hours,           'Time before erasing')
     info << build_info_record(:info_contact_person,               '')
     info << build_info_record(:initial_worker_threads,            'no. of workers for Kafka transfer')
@@ -69,14 +68,14 @@ class HealthCheckController < ApplicationController
     health_data = {
       health_check_timestamp:       Time.now,
       build_version:                'unknown',
-      database_url:                 Trixx::Application.config.db_url,
-      kafka_seed_broker:            Trixx::Application.config.kafka_seed_broker,
+      database_url:                 MovexCdc::Application.config.db_url,
+      kafka_seed_broker:            MovexCdc::Application.config.kafka_seed_broker,
       start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
       warnings:                     '',
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
-      kafka_max_bulk_count:         Trixx::Application.config.kafka_max_bulk_count,
-      max_transaction_size:   Trixx::Application.config.max_transaction_size
+      kafka_max_bulk_count:         MovexCdc::Application.config.kafka_max_bulk_count,
+      max_transaction_size:   MovexCdc::Application.config.max_transaction_size
     }
 
     begin
@@ -100,14 +99,14 @@ class HealthCheckController < ApplicationController
       Rails.logger.debug "HealthCheckController.index: Start getting current thread count"
       current_thread_count = ThreadHandling.get_instance.thread_count(raise_exception_if_locked: true)
       health_data[:current_number_of_worker_threads]  = current_thread_count
-      if Trixx::Application.config.initial_worker_threads != current_thread_count
-        health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{Trixx::Application.config.initial_worker_threads}"
+      if MovexCdc::Application.config.initial_worker_threads != current_thread_count
+        health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{MovexCdc::Application.config.initial_worker_threads}"
       end
     rescue Exception=>e
       health_data[:warnings] << "\nError reading current_number_of_worker_threads: #{e.class}:#{e.message}"
     end
 
-    health_data[:expected_number_of_worker_threads] = Trixx::Application.config.initial_worker_threads
+    health_data[:expected_number_of_worker_threads] = MovexCdc::Application.config.initial_worker_threads
 
     begin
       Rails.logger.debug "HealthCheckController.index: Start getting ThreadHandling.health_check_data"
@@ -202,8 +201,8 @@ class HealthCheckController < ApplicationController
   # key should be lower case
   def build_info_record(key, description)
     info_record = { name: "#{key.upcase}: #{description}", value:nil, default_value: nil, startup_config_value: nil }
-    info_record[:value] = Trixx::Application.config.send(key) if Trixx::Application.config.respond_to?(key)
-    config_info = Trixx::Application.config_attributes(key)
+    info_record[:value] = MovexCdc::Application.config.send(key) if MovexCdc::Application.config.respond_to?(key)
+    config_info = MovexCdc::Application.config_attributes(key)
     if config_info
       info_record[:default_value]         = config_info[:default_value]
       info_record[:startup_config_value]  = config_info[:startup_config_value]

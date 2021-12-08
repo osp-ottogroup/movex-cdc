@@ -28,7 +28,7 @@ class Column < ApplicationRecord
   def self.tag_operation_for_all_columns(table_id, operation, tag)
     ActiveRecord::Base.transaction do
       # for tag == 'N' it is not necessary to have existing records in COLUMN because default is 'N'
-      # Important because dropping a not marked column in real table leaves no remaining artifacts in TriXX this way
+      # Important because dropping a not marked column in real table leaves no remaining artifacts in MOVEX CDC this way
       if tag == 'Y'
         # Ensure all real table columns exist in table COLUMNS
         table = Table.find(table_id)

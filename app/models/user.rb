@@ -10,7 +10,7 @@ class User < ApplicationRecord
     validate_yn_column :yn_account_locked
     validate_yn_column :yn_hidden
 
-    self.db_user = db_user.upcase if Trixx::Application.config.db_type == 'ORACLE' && !db_user.nil?
+    self.db_user = db_user.upcase if MovexCdc::Application.config.db_type == 'ORACLE' && !db_user.nil?
     unless DbSchema.valid_schema_name?(db_user)
       errors.add(:db_user, "User '#{db_user}' does not exists in database")
     end

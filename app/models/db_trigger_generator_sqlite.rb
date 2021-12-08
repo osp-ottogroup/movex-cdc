@@ -237,14 +237,14 @@ FROM   main.#{table.name}
     @load_sqls << { table_id: table.id, table_name: table.name, sql: sql }
 
     begin                                                                       # Check if table is readable
-      table.raise_if_table_not_readable_by_trixx
+      table.raise_if_table_not_readable_by_movex_cdc
     rescue Exception => e
       @errors << {
         table_id:           table.id,
         table_name:         table.name,
         trigger_name:       self.build_trigger_name(table, 'I'),
         exception_class:    e.class.name,
-        exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by TriXX DB user! No initial data transfer executed! #{e.message}",
+        exception_message:  "Table #{table.schema.name}.#{table.name} is not readable by MOVEX CDC DB user! No initial data transfer executed! #{e.message}",
         sql:                sql
       }
     end
