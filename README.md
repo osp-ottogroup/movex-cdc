@@ -35,7 +35,7 @@ Further planned implementations are:
 - MS SQL-Server
 
 ## License
-This product can be used under the terms and conditions of GPL 3.
+This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/otto-group-solution-provider/movex-cdc/-/blob/master/LICENSE).
 
 ## Project status
 It is already used in production with Oracle databases.
