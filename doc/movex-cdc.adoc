@@ -568,10 +568,10 @@ The following things are executed at startup of application / docker container i
 ** For initial GUI logon with user "admin" the password is the DB-passwort of MOVEC CDC's DB-user (DB_PASSWORD)
 ** The GUI user "admin" acts as supervisor with the authorization to administrate further user accounts
 
-==== Generation of database triggers ====
+==== Generation of database triggers
 
-===== Creating triggers based on configuration ====
-===== Initial transfer of table content at first trigger generation =====
+===== Creating triggers based on configuration
+===== Initial transfer of table content at first trigger generation
 If requested in table config, after generation of trigger a job will be created for transfer of the already existing records of a table to Kafka. +
 For each record in the table existing at the time of trigger creation an insert-event will be transferred to Kafka.
 The table's filter condition for insert operation as well as the filter condition for initialization are considered. +

@@ -40,3 +40,7 @@ This product can be used under the terms and conditions of GPL 3.
 ## Project status
 It is already used in production with Oracle databases.
 Further development takes place.
+
+## Release history of Docker images
+* Last nightly build based on master branch: 
+  `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`

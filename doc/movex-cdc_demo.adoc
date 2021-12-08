@@ -12,12 +12,12 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 
 Implement change data tracking on an existing Oracle DB within 10 minutes
 
-== Preconditions ==
+== Preconditions
 - A running local Oracle database with an existing user to observe
 
 TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Because Kafka uses this addresses also from inside the container where 'localhost' has a different content.
 
-== Prepare Environment ==
+== Prepare Environment
 Please adjust the values according to your setup.
 ----
 # Physical IP address of the Docker host running Kafka and MOVEX Change Data Capture
@@ -40,9 +40,9 @@ export SOURCE_DB_PASSWORD=my_observed_schema_pw
 
 
 
-== Prepare Kafka ==
+== Prepare Kafka
 
-=== Run Kafka container ===
+=== Run Kafka container
 We use an own Docker image that combines Zookeeper and Kafka in one image
 ----
 docker run --rm \
@@ -52,21 +52,21 @@ docker run --rm \
   registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-compact:3.0.0
 ----
 
-=== Create the Kafka topic ===
+=== Create the Kafka topic
 Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
 ----
 $KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server $IP_ADDRESS:9092 --replication-factor 1
 ----
 
-=== Create a consumer process for the topic ===
+=== Create a consumer process for the topic
 Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
 ----
 $KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_ADDRESS:9092 --isolation-level=read_committed
 ----
 
-== Prepare the MOVEX Change Data Capture application ==
+== Prepare the MOVEX Change Data Capture application
 
-=== Create config file run_config.yml ===
+=== Create config file run_config.yml
 ----
 cat <<EOF >run_config.yml
 ################################
@@ -77,7 +77,7 @@ LOG_LEVEL: debug
 # Type of used database (SQLITE, ORACLE)
 DB_TYPE: ORACLE
 
-# Username of TriXX schema in database
+# Username of MOVEX CDC's schema in database
 DB_USER: $MOVEX_DB_USER
 
 # Password of DB_USER, also used as password of user 'admin' for GUI logon.
@@ -93,7 +93,7 @@ KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 EOF
 ----
 
-=== Create DB-User for MOVEX CDC ===
+=== Create DB-User for MOVEX CDC
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
@@ -102,7 +102,7 @@ docker run --rm \
   registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
 ----
 
-=== Run MOVEX CDC Docker container ===
+=== Run MOVEX CDC Docker container
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
@@ -111,9 +111,9 @@ docker run --rm \
   registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
 ----
 
-== Prepare test case ==
+== Prepare test case
 
-=== Create a table to observe for test user ===
+=== Create a table to observe for test user
 ----
 echo "
 -- Remove possibly existing objects
@@ -137,7 +137,7 @@ GRANT FLASHBACK ON Hugo TO $MOVEX_DB_USER;
 " | sqlplus $SOURCE_DB_USER/$SOURCE_DB_PASSWORD@$DB_URL
 ----
 
-=== Generate permanent changes on the table to observe ===
+=== Generate permanent changes on the table to observe
 ----
 echo "
   BEGIN
@@ -152,7 +152,7 @@ echo "
 ----
 
 
-== Start capture in MOVEX CDC's GUI ==
+== Start capture in MOVEX CDC's GUI
 Open the application in browser: `http://localhost:8080` and login with the predefined user "admin" and the passwort of the MOVEX DB user.
 
 image:login_admin.png[format=png, width=500]
@@ -190,7 +190,7 @@ Select a table from the list and set the Kafka topic to use, than:
  * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
  ** Optionally place a filter condition to the initialization
 
-image:add_table.png[format=png, width=800]
+image:add_table.png[format=png, width=600]
 
 Now tap on the table to mark it as current, than configuration of columns appear.
 Check the columns you want transfer to Kafka for the particular operation.
@@ -215,7 +215,7 @@ Check the "Deploy" switch for the tables you want to deploy and hit "Deploy"
 
 image:deploy_trigger.png[format=png, width=800]
 
-Now the triggers are activated. If requested the inialization tasks are starting in background. +
+Now the triggers are activated in the DB  . If requested the inialization tasks are starting in background. +
 After no more than one minute the MOVEX Change Data Capture will stop sleeping idle and recognize the existence of events to transfer to Kafka. +
 You can evaluate the incoming events in Kafka at your already waiting consumer session.
 
@@ -224,11 +224,11 @@ That's it, enjoy the success (hopefully).
 The full story and documentation of MOVEX Change Data Capture you may find here: +
 https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html
 
-== Add ksqlDB  ==
+== Add ksqlDB
 This is an additional task that's not really necessary for this showcase itself. +
 If you want it shows how to handle the event stream using SQL-like syntax.
 
-=== create docker-compose.yml ===
+=== create docker-compose.yml
 ----
 cat <<EOF >docker-compose.yml
 ---
@@ -257,17 +257,17 @@ services:
 EOF
 ----
 
-=== Start ksqlDB ===
+=== Start ksqlDB
 ----
 docker-compose up
 ----
 
-=== Connect to ksqlDB CLI ===
+=== Connect to ksqlDB CLI
 ----
 docker exec -it ksqldb-cli ksql http://ksqldb-server:8088
 ----
 
-=== Create stream from topic in ksqlDB CLI ===
+=== Create stream from topic in ksqlDB CLI
 ----
 CREATE STREAM hugo_stream (msg_key VARCHAR KEY,
                            id INTEGER,
@@ -279,7 +279,7 @@ CREATE STREAM hugo_stream (msg_key VARCHAR KEY,
   WITH (kafka_topic='hugo', value_format='JSON');
 ----
 
-=== Select from stream in ksqlDB CLI ===
+=== Select from stream in ksqlDB CLI
 ----
 SELECT id, schema, tablename, operation, timestamp, new->NAME,
   new->ID, new->Start_Date FROM hugo_stream EMIT CHANGES;
