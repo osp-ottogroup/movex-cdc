@@ -221,6 +221,9 @@ You can evaluate the incoming events in Kafka at your already waiting consumer s
 
 That's it, enjoy the success (hopefully).
 
+The full story and documentation of MOVEX Change Data Capture you may find here: +
+https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html
+
 == Add ksqlDB  ==
 This is an additional task that's not really necessary for this showcase itself. +
 If you want it shows how to handle the event stream using SQL-like syntax.
