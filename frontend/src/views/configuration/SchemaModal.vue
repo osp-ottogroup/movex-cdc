@@ -17,7 +17,7 @@
       </header>
       <section class="modal-card-body">
         <b-field label="Kafka-Topic">
-          <b-input placeholder="Enter Kafka-Topic"
+          <b-input placeholder="Enter default Kafka topic for schema"
                    v-model="internalSchema.topic"/>
         </b-field>
       </section>

@@ -1,6 +1,6 @@
 <template>
   <div class="columns is-centered">
-    <div class="column is-half">
+    <div class="column is-narrow">
       <div class="level">
         <div class="level-left">
           <b-button

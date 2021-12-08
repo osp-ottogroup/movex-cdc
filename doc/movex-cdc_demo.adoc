@@ -1,7 +1,7 @@
-= image:osp.png[float="left" width=200 ] MOVEX Change Data Capture: Step by step demo how to run including Kafka and kSqlDB =
+= image:osp.png[float="left" width=200 ] MOVEX Change Data Capture: Quick start demo =
 Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :Author Initials: PR
-:toc:
+:toc: preamble
 :toclevels: 4
 :icons:
 :imagesdir: ./images
@@ -10,22 +10,32 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
 
-Last actualization: 2021-12-06
+Implement change data tracking on an existing Oracle DB within 10 minutes
 
 == Preconditions ==
 - A running local Oracle database with an existing user to observe
 
 TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Because Kafka uses this addresses also from inside the container where 'localhost' has a different content.
 
-== Prepare your local host valid IP address, DB URL and user credentials ==
+== Prepare Environment ==
+Please adjust the values according to your setup.
 ----
+# Physical IP address of the Docker host running Kafka and MOVEX Change Data Capture
 export IP_ADDRESS=192.168.178.34
+
+# URL of existing ORACLE DB
 export DB_URL=$IP_ADDRESS:1521/ORCLPDB1
+
+# Schema owner and password for MOVEX' internal data structures
 export MOVEX_DB_USER=movex
 export MOVEX_DB_PASSWORD=movex
+
+# SYS password of Oracle instance if MOVEX schema owner should be crated by MOVEX itself
 export DB_SYS_PASSWORD=oracle
-export SOURCE_DB_USER=panorama_test
-export SOURCE_DB_PASSWORD=panorama_test
+
+# User and password of the schema to observe
+export SOURCE_DB_USER=my_observed_schema
+export SOURCE_DB_PASSWORD=my_observed_schema_pw
 ----
 
 
@@ -83,7 +93,7 @@ KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 EOF
 ----
 
-=== Create DB-User for background services of MOVEX CDC ===
+=== Create DB-User for MOVEX CDC ===
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
@@ -142,21 +152,80 @@ echo "
 ----
 
 
-=== Configure MOVEX CDC by GUI to catch changes on table panorama_test.Hugo ===
-- Open application in browser: `http://localhost:8080`
-- first login with user "admin" and passwort of the MOVEX DB user
-- create your own personal application user, choose an existing DB-user for authentication
-- authenticate user for a schema including deployment grant
-- Logout as 'admin', connect with this personal user
-- Configure events to observe for a table
-- deploy the generated triggers
-- watch what happens in Kafka consumer
+== Start capture in MOVEX CDC's GUI ==
+Open the application in browser: `http://localhost:8080` and login with the predefined user "admin" and the passwort of the MOVEX DB user.
 
-== Prepare ksqlDB ==
-=== Run ksqlDB Docker containers ===
+image:login_admin.png[format=png, width=500]
 
+Create your own personal application user: click "Create User"
 
-==== create docker-compose.yml ====
+image:users_initial.png[format=png, width=800]
+
+In the "Create User" dialog:
+
+* Add name and email,
+* choose an existing DB-user for authentication with it's password
+* check "Admin User" to allow this user administrative tasks
+* Add authorized schemas where this user is enabled to configure change tracking
+  ** Select a schema from the list of schemas
+  ** Check "Deployment granted" to allow creation of triggers for this user
+  ** Click "Add" to add this schema to the list of enabled schemas
+* Click "Create "
+
+image:create_user.png[format=png, width=800]
+
+Logout as 'admin'
+
+image:logout.png[format=png, width=800]
+
+Reconnect with the just created personal user using email and the password of the associated Oracle user. +
+Than choose the menu "Configuration", select the schema to observe and click "Add table to observe".
+
+image:config_select_schema.png[format=png, width=700]
+
+Select a table from the list and set the Kafka topic to use, than:
+
+ * Decide wether to include the Oracle transaction ID into the event or not
+ * Choose the kind of message key handling
+ * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
+ ** Optionally place a filter condition to the initialization
+
+image:add_table.png[format=png, width=800]
+
+Now tap on the table to mark it as current, than configuration of columns appear.
+Check the columns you want transfer to Kafka for the particular operation.
+
+image:config_columns.png[format=png, width=800]
+
+If you want to add filter conditions to the three operations,
+than click at the filter icon for the operation and add the filter condition. +
+Be aware that these conditions are executed within a trigger, so refer to columns of the table by qualifier ":new.column" or ":old.column".
+
+image:add_filter.png[format=png, width=800]
+
+Now all of configuration is done and the tracking can be activated. +
+Head over to menu "Deployment", select one or all schemas and click "Generate for schema". +
+At first only a dry run of trigger creation is executed.
+All tables with difference between configured and really active triggers are shown. +
+By clicking the most right triangle you may list the new trigger syntax according to the configuration as well as the optional initialization code.
+
+image:deploy_dry.png[format=png, width=800]
+
+Check the "Deploy" switch for the tables you want to deploy and hit "Deploy"
+
+image:deploy_trigger.png[format=png, width=800]
+
+Now the triggers are activated. If requested the inialization tasks are starting in background. +
+After no more than one minute the MOVEX Change Data Capture will stop sleeping idle and recognize the existence of events to transfer to Kafka. +
+You can evaluate the incoming events in Kafka at your already waiting consumer session.
+
+That's it, enjoy the success (hopefully).
+
+== Add ksqlDB  ==
+This is an additional task that's not really necessary for this showcase itself. +
+If you want it shows how to handle the event stream using SQL-like syntax.
+
+=== create docker-compose.yml ===
 ----
 cat <<EOF >docker-compose.yml
 ---
@@ -185,7 +254,7 @@ services:
 EOF
 ----
 
-==== Start ksqlDB ====
+=== Start ksqlDB ===
 ----
 docker-compose up
 ----
