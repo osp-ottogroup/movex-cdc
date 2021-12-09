@@ -23,7 +23,7 @@ Production ready releases are tagged like 'prod_x.xx' and can be pulled by:<br/>
 A quick start demo you may find here: https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html
 
 ## Support
-If you have bug reports or questions please file an issue inside the product or mail to Peter.Ramm@ottogroup.com.
+If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
 
 ## Roadmap
 The tool has been developed independently of a particular database system.
