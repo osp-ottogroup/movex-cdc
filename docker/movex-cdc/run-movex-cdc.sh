@@ -6,6 +6,9 @@
 
 echo "MOVEX CDC build version is `cat /app/build_version`"
 
+# remove possible remaining PID-File from last run if container did not graceful stop (stop timeout too short)
+rm -f tmp/pids/server.pid
+
 export RAILS_LOG_TO_STDOUT_AND_FILE=true
 export RAILS_SERVE_STATIC_FILES=true
 export RAILS_MIN_THREADS=10
