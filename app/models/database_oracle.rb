@@ -118,7 +118,7 @@ class DatabaseOracle
     # Do not log exception here because it is logged by caller
   rescue Exception => e
     if e.message['ORA-02149'] ||                                                # Specified partition does not exist
-      e.message['ORA-80103']  ||                                                # Object No Longer Exists
+      e.message['ORA-08103']  ||                                                # Object No Longer Exists
       e.message['ORA-14766']                                                    # Unable To Obtain A Stable Metadata Snapshot
       Rails.logger.info "DatabaseOracle.select_all_limit: Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}"
       []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
