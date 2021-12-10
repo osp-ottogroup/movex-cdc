@@ -6,7 +6,8 @@ class InitializationJob < ApplicationJob
   queue_as :default
 
   def perform(*args)
-    puts "Initialization at startup"
+    puts "Initialization at startup\n"
+    log_memory_state
     Database.initialize_connection                                              # do some init actions for DB connection before use
     ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
@@ -133,5 +134,19 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
       ar_class.first                                                            # Load one record to provoke loading of dictionary info
     end
     Rails.logger.debug "Warmup dictionary info for DB objects finished"
+  end
+
+  def log_memory_state
+    puts "Memory resources at startup:"
+    ExceptionHelper.memory_info_hash.each do |key, value|
+      puts "#{value[:name].ljust(25)}: #{value[:value]}"
+    end
+    puts ''
+
+    Rails.logger.warn "Memory resources at startup:"
+    ExceptionHelper.memory_info_hash.each do |key, value|
+      Rails.logger.warn "#{value[:name].ljust(25)}: #{value[:value]}"
+    end
+
   end
 end

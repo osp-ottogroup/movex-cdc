@@ -114,8 +114,9 @@ module MovexCdc
       MovexCdc::Application.log_attribute(key.to_s.upcase, set_attrib_from_env(key, options))
     end
 
+    puts "\nStarting MOVEX Change Data Capture application at #{Time.now}\n"
 
-    puts "\nStarting MOVEX Change Data Capture application at #{Time.now}:"
+    puts "Configuration attributes:"
     MovexCdc::Application.log_attribute('RAILS_ENV', Rails.env)
     MovexCdc::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
@@ -222,5 +223,6 @@ module MovexCdc
       end
       @db_partitioning
     end
+
   end
 end
