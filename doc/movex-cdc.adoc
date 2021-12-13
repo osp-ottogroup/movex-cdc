@@ -217,6 +217,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |FINAL_ERRORS_KEEP_HOURS|Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping|240
 |INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
 |INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
+|JAVA_OPTS|Set Java options for jRuby runtime of the application. For example set to '-Xmx8192m' to allow MOVEX CDC to use up to 8GB of memory for Java heap memory.|'-Xmx<n>m' where n is 75% of the available memory
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy' and 'gzip'. The other compression codecs for Kafka 'lz4' and 'tzstd' are not yet supported by MOVEX CDC.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
 |KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
