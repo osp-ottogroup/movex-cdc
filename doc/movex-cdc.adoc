@@ -225,7 +225,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
 |KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
-If the amount is not sufficient at runtime than the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
+If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
 |MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
 |MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
@@ -609,12 +609,12 @@ That means, events without a key can be transferred by every thread, events with
 ===== Error handling during transfer =====
 Transferring is done with bulk operations against database and Kafka.
 If the transfer operation fails the bulk size would be reduced (divide & conquer) until a single event is processed in it's own transaction. +
-If this single processing still fails than the event is marked in Table Event_Logs and suspended for processing for the time defined by ERROR_RETRY_START_DELAY.
+If this single processing still fails then the event is marked in Table Event_Logs and suspended for processing for the time defined by ERROR_RETRY_START_DELAY.
 After a number of not successful retries (defined by ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
 
 Events moved to final error table can be rescheduled by API function: _TODO: mark API function_
 
-If no further action happens than this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after FINAL_ERRORS_KEEP_HOURS.
+If no further action happens then this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after FINAL_ERRORS_KEEP_HOURS.
 
 Reasons for transfer errors can be for example:
 
@@ -720,7 +720,7 @@ Therefore only tables are accessible for trigger definition in the GUI where the
 The target topic for a table is read from current configuration before transferring events to Kafka. +
 Therefore there is no need to redeploy the triggers in this case. +
 Each worker thread caches the topics of a table or schema for max. 60 seconds before refreshing it with the current configuation.
-If want to exactly define the timestamp of change, than: +
+If want to exactly define the timestamp of change, then: +
 - Set the worker count to 0 +
 - Wait until all worker threads have finished. You can check this by health check. +
 - change the topic in GUI +

@@ -15,12 +15,12 @@ Implement change data tracking on an existing Oracle DB within 10 minutes
 == Preconditions
 - A running local Oracle database with an existing user to observe
 
-TIP: Use real physical IP-addresses for Kafka configuration, not 'localhost'. Because Kafka uses this addresses also from inside the container where 'localhost' has a different content.
-
 == Prepare Environment
 Please adjust the values according to your setup.
 ----
 # Physical IP address of the Docker host running Kafka and MOVEX Change Data Capture
+# Use real physical IP-addresses for Kafka configuration, not 'localhost'
+# Because Kafka uses this addresses also from inside the container where 'localhost' has a different content
 export IP_ADDRESS=192.168.178.34
 
 # URL of existing ORACLE DB
@@ -30,7 +30,7 @@ export DB_URL=$IP_ADDRESS:1521/ORCLPDB1
 export MOVEX_DB_USER=movex
 export MOVEX_DB_PASSWORD=movex
 
-# SYS password of Oracle instance if MOVEX schema owner should be crated by MOVEX itself
+# SYS password of Oracle instance if MOVEX schema owner should be created by MOVEX itself
 export DB_SYS_PASSWORD=oracle
 
 # User and password of the schema to observe
@@ -43,23 +43,26 @@ export SOURCE_DB_PASSWORD=my_observed_schema_pw
 == Prepare Kafka
 
 === Run Kafka container
-We use an own Docker image that combines Zookeeper and Kafka in one image
+We use an own Docker image that combines Zookeeper and Kafka in one image.
+The command will log the Kafka console output and block until termination by Ctrl-C.
 ----
 docker run --rm \
   -p 2181:2181 \
   -p 9092:9092 \
+  -e IP_ADDRESS=$IP_ADDRESS \
   -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://$IP_ADDRESS:9092,LISTENER_INT://localhost:9093 \
   registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-compact:3.0.0
 ----
 
 === Create the Kafka topic
-Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
+Run the command within the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
 ----
 $KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server $IP_ADDRESS:9092 --replication-factor 1
 ----
 
 === Create a consumer process for the topic
-Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
+Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash").
+The command will log each new message of the topic and block until termination by Ctrl-C.
 ----
 $KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_ADDRESS:9092 --isolation-level=read_committed
 ----
@@ -155,7 +158,7 @@ echo "
 == Start capture in MOVEX CDC's GUI
 Open the application in browser: `http://localhost:8080` and login with the predefined user "admin" and the passwort of the MOVEX DB user.
 
-image:login_admin.png[format=png, width=500]
+image:login_admin.png[format=png, width=300]
 
 Create your own personal application user: click "Create User"
 
@@ -164,8 +167,9 @@ image:users_initial.png[format=png, width=800]
 In the "Create User" dialog:
 
 * Add name and email,
-* choose an existing DB-user for authentication with it's password
-* check "Admin User" to allow this user administrative tasks
+* Choose an existing DB-user for authentication with it's password. +
+This can be every DB user including the MOVEX CDC schema owner.
+* Check "Admin User" to allow this user administrative tasks
 * Add authorized schemas where this user is enabled to configure change tracking
   ** Select a schema from the list of schemas
   ** Check "Deployment granted" to allow creation of triggers for this user
@@ -179,26 +183,27 @@ Logout as 'admin'
 image:logout.png[format=png, width=800]
 
 Reconnect with the just created personal user using email and the password of the associated Oracle user. +
-Than choose the menu "Configuration", select the schema to observe and click "Add table to observe".
+Then choose the menu "Configuration", select the schema to observe and click "Add table to observe".
 
 image:config_select_schema.png[format=png, width=700]
 
-Select a table from the list and set the Kafka topic to use, than:
+Select a table from the list, then:
 
+ * Set the name of the previously created Kafka topic 'hugo'
  * Decide wether to include the Oracle transaction ID into the event or not
- * Choose the kind of message key handling
+ * Choose the kind of message key handling https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html#_using_kafka_keys_to_ensure_sequential_order_of_messages[(See documentation for details)]
  * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
  ** Optionally place a filter condition to the initialization
 
 image:add_table.png[format=png, width=600]
 
-Now tap on the table to mark it as current, than configuration of columns appear.
+Now tap on the table to mark it as current, then configuration of columns appear.
 Check the columns you want transfer to Kafka for the particular operation.
 
 image:config_columns.png[format=png, width=800]
 
 If you want to add filter conditions to the three operations,
-than click at the filter icon for the operation and add the filter condition. +
+then click at the filter icon for the operation and add the filter condition. +
 Be aware that these conditions are executed within a trigger, so refer to columns of the table by qualifier ":new.column" or ":old.column".
 
 image:add_filter.png[format=png, width=800]
@@ -206,8 +211,8 @@ image:add_filter.png[format=png, width=800]
 Now all of configuration is done and the tracking can be activated. +
 Head over to menu "Deployment", select one or all schemas and click "Generate for schema". +
 At first only a dry run of trigger creation is executed.
-All tables with difference between configured and really active triggers are shown. +
-By clicking the most right triangle you may list the new trigger syntax according to the configuration as well as the optional initialization code.
+All tables with differences between configured and active triggers are shown. +
+By clicking the rightmost triangle you may list the new trigger syntax according to the configuration as well as the optional initialization code.
 
 image:deploy_dry.png[format=png, width=800]
 
