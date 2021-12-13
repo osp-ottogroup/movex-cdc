@@ -51,7 +51,7 @@
             <b-tooltip label="Select all columns of table for update">
               <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('U')"></b-button>
             </b-tooltip>
-            <b-tooltip label="Select all columns of table for update">
+            <b-tooltip label="Deselect all columns of table for update">
               <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('U')"></b-button>
             </b-tooltip>
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
@@ -73,7 +73,7 @@
             <b-tooltip label="Select all columns of table for delete">
               <b-button size="is-small" icon-left="checkbox-multiple-marked-circle-outline" @click="onSelectAll('D')"></b-button>
             </b-tooltip>
-            <b-tooltip label="Select all columns of table for delete">
+            <b-tooltip label="Deselect all columns of table for delete">
               <b-button size="is-small" icon-left="checkbox-multiple-blank-circle-outline" @click="onDeselectAll('D')"></b-button>
             </b-tooltip>
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
