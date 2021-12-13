@@ -137,12 +137,6 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
   end
 
   def log_memory_state
-    puts "Memory resources at startup:"
-    ExceptionHelper.memory_info_hash.each do |key, value|
-      puts "#{value[:name].ljust(25)}: #{value[:value]}"
-    end
-    puts ''
-
     Rails.logger.warn "Memory resources at startup:"
     ExceptionHelper.memory_info_hash.each do |key, value|
       Rails.logger.warn "#{value[:name].ljust(25)}: #{value[:value]}"

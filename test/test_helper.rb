@@ -71,7 +71,6 @@ class ActiveSupport::TestCase
         raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
       end
     end
-    #Rails.logger.debug "Event_Logs = #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"}"
   rescue Exception => e
     msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
     Rails.logger.error(msg)
@@ -184,6 +183,7 @@ class ActiveSupport::TestCase
 
     # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+    Rails.logger.debug "#{event_logs_before} records exist in table Event_Logs"
 
     victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM1"
     victim_max_id = 0 if victim_max_id.nil?
@@ -239,6 +239,7 @@ class ActiveSupport::TestCase
     end # COMMIT
 
     event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+    Rails.logger.debug "#{event_logs_after} records exist in table Event_Logs"
     if event_logs_before+number_of_records != event_logs_after
       msg = "Number of event_logs should be increased by #{number_of_records} but before are #{event_logs_before} records and after are #{event_logs_after} records"
       Rails.logger.error msg
