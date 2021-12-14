@@ -279,6 +279,7 @@ trivy_scan:
       if [ \$? -ne 0 ]; then
         echo healthcheck not complete! Details follow:
         cat health_check_result.log
+        $PODMAN logs movex-cdc
         exit 1
       fi
       " | bash
