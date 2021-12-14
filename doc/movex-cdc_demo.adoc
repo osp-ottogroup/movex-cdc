@@ -10,7 +10,7 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
 
-Implement change data tracking on an existing Oracle DB within 10 minutes
+Implement change data tracking on an existing Oracle DB including event transfer to Kafka within 10 minutes
 
 == Preconditions
 - A running local Oracle database with an existing user to observe
