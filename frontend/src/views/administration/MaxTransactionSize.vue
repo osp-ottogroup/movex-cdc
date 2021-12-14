@@ -1,8 +1,8 @@
 <template>
   <div class="mx-6">
-    <b-field label="Set Worker Count (corresponding to init. parameter INITIAL_WORKER_THREADS)" grouped group-multiline>
-      <b-input type="number" min="0" max="200" v-model="workerCount"></b-input>
-      <b-button @click="setWorkerCount" type="is-light" :disabled="!isInputValid">Set</b-button>
+    <b-field label="Set max. transaction size (corresponding to init. parameter MAX_TRANSACTION_SIZE)" grouped group-multiline>
+      <b-input type="number" min="0" max="100000000" v-model="maxTransactionSize"></b-input>
+      <b-button @click="setMaxTransactionSize" type="is-light" :disabled="!isInputValid">Set</b-button>
     </b-field>
   </div>
 </template>
@@ -12,22 +12,22 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 
 export default {
-  name: 'WorkerCount',
+  name: 'MaxTransactionSize',
   data() {
     return {
-      workerCount: undefined,
+      maxTransactionSize: undefined,
       isLoading: true,
     };
   },
   computed: {
     isInputValid() {
-      return !Number.isNaN(parseInt(this.workerCount, 10));
+      return !Number.isNaN(parseInt(this.maxTransactionSize, 10));
     },
   },
   async created() {
     try {
       this.isLoading = true;
-      this.workerCount = (await CRUDService.serverControl.getWorkerCount()).worker_threads_count;
+      this.maxTransactionSize = (await CRUDService.serverControl.getMaxTransactionSize()).max_transaction_size;
     } catch (e) {
       this.$buefy.notification.open({
         message: getErrorMessageAsHtml(e),
@@ -40,17 +40,17 @@ export default {
     }
   },
   methods: {
-    async setWorkerCount() {
+    async setMaxTransactionSize() {
       try {
         this.isLoading = true;
-        await CRUDService.serverControl.setWorkerCount({ worker_threads_count: this.workerCount });
+        await CRUDService.serverControl.setMaxTransactionSize({ max_transaction_size: this.maxTransactionSize });
         this.$buefy.toast.open({
-          message: `Worker count was set to '${this.workerCount}'!`,
+          message: `Max. transaction size was set to '${this.maxTransactionSize}'!`,
           type: 'is-success',
         });
       } catch (e) {
         this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e, 'Error while setting worker count'),
+          message: getErrorMessageAsHtml(e, 'Error while setting max. transaction size'),
           type: 'is-danger',
           indefinite: true,
           position: 'is-top',

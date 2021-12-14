@@ -39,7 +39,7 @@ class ThreadHandling
               max_buffer_bytesize:      MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024
           }
           )  # add worker to pool
-          sleep 2                                                               # don't start all workers at once
+          sleep 1                                                               # don't start all workers at once
         end
       end
     end

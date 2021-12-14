@@ -32,12 +32,17 @@
           <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/server-log-level' }"
                          :active="$route.path === '/administration/server-log-level'">
-            Set Server Log Level
+            Set server log level (LOG_LEVEL)
           </b-navbar-item>
           <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/worker-count' }"
                          :active="$route.path === '/administration/worker-count'">
-            Set Worker Count
+            Set worker count (INITIAL_WORKER_THREADS)
+          </b-navbar-item>
+          <b-navbar-item tag="router-link"
+                         :to="{ path: '/administration/max-transaction-size' }"
+                         :active="$route.path === '/administration/max-transaction-size'">
+            Set max. transaction size (MAX_TRANSACTION_SIZE)
           </b-navbar-item>
           <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/server-log' }"

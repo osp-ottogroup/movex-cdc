@@ -193,19 +193,28 @@ class ActiveSupport::TestCase
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
       VALUES (#{victim_max_id+1}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
       )")
+      log_event_logs_count
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+2}, 0.456,    'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
+      log_event_logs_count
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+3}, 48.375,   'Record''3', #{date_val}, #{ts_val}, #{raw_val})")
+      log_event_logs_count
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+4}, -23.475,  'Record''4', #{date_val}, #{ts_val}, #{raw_val})")
+      log_event_logs_count
 
       # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
+      log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
+      log_event_logs_count
       # 2 D events
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
+      log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
+      log_event_logs_count
 
       # Next record should not generate record in Event_Logs due to excluding condition
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+5}, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
+      log_event_logs_count
 
       # create exactly 3 records in Event_Logs for Victim2
       victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
@@ -227,14 +236,18 @@ class ActiveSupport::TestCase
       when 'SQLITE'
         exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM2 (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
       end
+      log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM2  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
+      log_event_logs_count
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM2 WHERE ID = #{victim2_max_id+1}")
+      log_event_logs_count
 
       # create the reamining records in Event_Log
       (number_of_records-(8+3)).downto(1).each do |i|
         exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
-      VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
-      )")
+        VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
+        )")
+        log_event_logs_count
       end
     end # COMMIT
 
@@ -246,6 +259,10 @@ class ActiveSupport::TestCase
       log_event_logs_content
       raise msg
     end
+  end
+
+  def log_event_logs_count
+    Rails.logger.debug "Table Event_Logs now contains #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"} records"
   end
 
   def log_event_logs_content(options = {})

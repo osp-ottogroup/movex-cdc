@@ -35,8 +35,6 @@ class HealthCheckController < ApplicationController
     # array with info-hashes to display at home screen { name: xxx, value: yyy }
     info = []
     # info << { name: 'LOG_LEVEL: ',            value: KeyHelper.log_level_as_string}
-    info << build_info_record(:log_level,                         'server side log level')
-    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS'], default_value: 300, startup_config_value: ENV['RAILS_MAX_THREADS']}  # Default is set in Dockerfile
     info << build_info_record(:db_query_timeout,                  'Timeout for DB selections')
     info << build_info_record(:db_type,                           'Database type')
     info << build_info_record(:db_url,                            'Database URL')
@@ -52,9 +50,11 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:kafka_ssl_client_cert_key,         'path to client key')
     info << build_info_record(:kafka_total_buffer_size_mb,        'max. buffer size per thread')
     info << build_info_record(:kafka_seed_broker,                 '')
+    info << build_info_record(:log_level,                         'server side log level')
     info << build_info_record(:max_transaction_size,              'max. messages in a transaction')
     info << build_info_record(:max_simultaneous_table_initializations, '')
     info << build_info_record(:max_simultaneous_transactions,     'for insert in EVENT_LOGS')
+    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS'], default_value: 300, startup_config_value: ENV['RAILS_MAX_THREADS']}  # Default is set in Dockerfile
     info << build_info_record(:run_config,                        'path to config file')
     info << build_info_record(:partition_interval,                'for table EVENT_LOGS')
 
