@@ -14,7 +14,11 @@ class StatisticCounterConcentrator
   # called from different threads
   # counter_type = :events_success | :events_failure
   def cumulate(values_hash)
-    ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.cumulate: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?
+    start_wait = nil
+    if @values_mutex.locked?
+      start_wait = Time.now
+      ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.cumulate: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed."
+    end
     @values_mutex.synchronize do
       values_hash.each do |table_id, operations|
         operations.each do |operation, counter_types|
@@ -26,6 +30,9 @@ class StatisticCounterConcentrator
           end
         end
       end
+    end
+    unless start_wait.nil?
+      Rails.logger.warn "StatisticCounterConcentrator.cumulate: Waited #{Time.now - start_wait} seconds to get, hold and free Mutex @values_mutex"
     end
   end
 

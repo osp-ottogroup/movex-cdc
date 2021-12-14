@@ -88,7 +88,7 @@ class TransferThread
     rescue Exception => e
       log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
-    @statistic_counter.flush                                                    # Write remaining cumulated statistics to disk
+    @statistic_counter.flush                                                    # Write cumulated statistics to singleton memory
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
     Rails.logger.info JSON.pretty_generate(thread_state(without_stacktrace: true))
     ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
