@@ -39,6 +39,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/WorkerCount.vue'),
   },
   {
+    path: '/administration/max-transaction-size',
+    name: 'max-transaction-size',
+    component: () => import(/* webpackChunkName: "about" */ '../views/administration/MaxTransactionSize.vue'),
+  },
+  {
     path: '/administration/server-log-level',
     name: 'server-log-level',
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogLevel.vue'),
