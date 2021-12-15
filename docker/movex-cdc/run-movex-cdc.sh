@@ -6,7 +6,7 @@
 
 export RAILS_LOG_FILE=log/production.log
 
-echo "Starting MOVEX CDC. Build version is `cat /app/build_version`" | tee -a RAILS_LOG_FILE
+echo "Starting MOVEX CDC. Build version is `cat /app/build_version`" | tee -a $RAILS_LOG_FILE
 
 # remove possible remaining PID-File from last run if container did not graceful stop (stop timeout too short)
 rm -f tmp/pids/server.pid
@@ -16,7 +16,7 @@ export RAILS_SERVE_STATIC_FILES=true
 export RAILS_MIN_THREADS=10
 # Default for RAILS_MAX_THREADS is set as ENV in Dockerfile
 
-echo "OS Memory values before starting Rails application:" | tee -a RAILS_LOG_FILE
+echo "OS Memory values before starting Rails application:" | tee -a $RAILS_LOG_FILE
 function log_memory {
   KEY=$1
   # Log to stdout/Docker log and Rails log
@@ -47,7 +47,7 @@ then
   CONFIG_RAILS_MAX_THREADS=`run_config_value RAILS_MAX_THREADS`
   if [ -n "$CONFIG_RAILS_MAX_THREADS" ]
   then
-    echo "Setting RAILS_MAX_THREADS to $CONFIG_RAILS_MAX_THREADS according to value in config file $RUN_CONFIG"
+    echo "Setting RAILS_MAX_THREADS to $CONFIG_RAILS_MAX_THREADS according to value in config file $RUN_CONFIG" | tee -a $RAILS_LOG_FILE
     export RAILS_MAX_THREADS=$CONFIG_RAILS_MAX_THREADS
   fi
 
@@ -56,11 +56,11 @@ then
   then
     if [ -n "$JAVA_OPTS" ]
     then
-      echo "Adding JAVA_OPTS '$CONFIG_JAVA_OPTS' to existing environment value '$JAVA_OPTS' according to value in config file $RUN_CONFIG"
+      echo "Adding JAVA_OPTS '$CONFIG_JAVA_OPTS' to existing environment value '$JAVA_OPTS' according to value in config file $RUN_CONFIG" | tee -a $RAILS_LOG_FILE
       export JAVA_OPTS="$JAVA_OPTS $CONFIG_JAVA_OPTS"
-      echo "Resulting value for JAVA_OPTS is '$JAVA_OPTS'"
+      echo "Resulting value for JAVA_OPTS is '$JAVA_OPTS'" | tee -a $RAILS_LOG_FILE
     else
-      echo "Setting JAVA_OPTS to '$CONFIG_JAVA_OPTS' according to value in config file $RUN_CONFIG"
+      echo "Setting JAVA_OPTS to '$CONFIG_JAVA_OPTS' according to value in config file $RUN_CONFIG" | tee -a $RAILS_LOG_FILE
       export JAVA_OPTS="$CONFIG_JAVA_OPTS"
     fi
   fi
@@ -76,14 +76,14 @@ then
   if [ $MEM_AVAIL -lt 1024 ]
   then
     export JAVA_OPTS="$JAVA_OPTS -Xmx1024m"
-    echo "Setting JAVA_OPTS to '$JAVA_OPTS' to ensure at least a minimum of 1GB for max. Java heap size"
-    echo "!!! You should increase the available memory for this instance to ensure proper work of MOVEX Change Data Capture !!!"
+    echo "Setting JAVA_OPTS to '$JAVA_OPTS' to ensure at least a minimum of 1GB for max. Java heap size" | tee -a $RAILS_LOG_FILE
+    echo "!!! You should increase the available memory for this instance to ensure proper work of MOVEX Change Data Capture !!!" | tee -a $RAILS_LOG_FILE
   else
     export JAVA_OPTS="$JAVA_OPTS -Xmx${MEM_AVAIL}m"
-    echo "Setting JAVA_OPTS to '$JAVA_OPTS' to ensure max. Java heap size is 75% of available memory"
+    echo "Setting JAVA_OPTS to '$JAVA_OPTS' to ensure max. Java heap size is 75% of available memory" | tee -a $RAILS_LOG_FILE
   fi
 else
-  echo "No default setting of Java heap memory because JAVA_OPTS is already set to '$JAVA_OPTS'"
+  echo "No default setting of Java heap memory because JAVA_OPTS is already set to '$JAVA_OPTS'" | tee -a $RAILS_LOG_FILE
 fi
 
 # "exec ..." ensures that rails server runs in the same process like shell script before

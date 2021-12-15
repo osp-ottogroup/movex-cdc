@@ -117,7 +117,14 @@ class HealthCheckController < ApplicationController
 
     connection_info = []
     Rails.logger.debug "HealthCheckController.index: Start getting connection pool data"
-    ActiveRecord::Base.connection_pool.connections.each do |conn|
+    connections = nil
+    begin
+      connections = ActiveRecord::Base.connection_pool.connections
+    rescue ActiveRecord::ConnectionNotEstablished
+      sleep 3                                                                   # Wait some time to fix sudden outage in access
+      connections = ActiveRecord::Base.connection_pool.connections
+    end
+    connections.each do |conn|
       connection_info << {
         owner_thread: conn.owner&.object_id,
         owner_name:   conn.owner&.name,

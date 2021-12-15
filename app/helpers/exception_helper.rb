@@ -45,16 +45,18 @@ module ExceptionHelper
 
   # get Hash with details
   def self.memory_info_hash
-    memoryBean = java.lang.management.ManagementFactory.getMemoryMXBean
+    memoryUsage = java.lang.management.ManagementFactory.getMemoryMXBean.getHeapMemoryUsage
     gb = (1024 * 1024 * 1024).to_f
     {
-      total_memory:       { name: 'Total OS Memory (GB)',      value: gb_value_from_proc('MemTotal',      'hw.memsize') },
-      available_memory:   { name: 'Available OS Memory (GB)',  value: gb_value_from_proc('MemAvailable',  'hw.memsize') },   # Real avail. mem. for application. Max-OS: phys. mem. used to ensure valid test becaus real mem avail is not available
-      free_memory:        { name: 'Free Memory OS (GB)',       value: gb_value_from_proc('MemFree',       'page_free_count') },   # free mem. may be much smaller than real avail. mem. for app.
-      total_swap:         { name: 'Total OS Swap (GB)',        value: gb_value_from_proc('SwapTotal',     'vm.swapusage') },
-      free_swap:          { name: 'Free OS Swap (GB)',         value: gb_value_from_proc('SwapFree',      'vm.swapusage') },
-      initial_java_heap:  { name: 'Initial Java Heap (GB)',    value: (memoryBean.getHeapMemoryUsage.getInit/gb).round(3) },
-      maximum_java_heap:  { name: 'Maximum Java Heap (GB)',    value: (memoryBean.getHeapMemoryUsage.getMax/gb).round(3) },
+      total_memory:         { name: 'Total OS Memory (GB)',      value: gb_value_from_proc('MemTotal',      'hw.memsize') },
+      available_memory:     { name: 'Available OS Memory (GB)',  value: gb_value_from_proc('MemAvailable',  'hw.memsize') },   # Real avail. mem. for application. Max-OS: phys. mem. used to ensure valid test becaus real mem avail is not available
+      free_memory:          { name: 'Free Memory OS (GB)',       value: gb_value_from_proc('MemFree',       'page_free_count') },   # free mem. may be much smaller than real avail. mem. for app.
+      total_swap:           { name: 'Total OS Swap (GB)',        value: gb_value_from_proc('SwapTotal',     'vm.swapusage') },
+      free_swap:            { name: 'Free OS Swap (GB)',         value: gb_value_from_proc('SwapFree',      'vm.swapusage') },
+      initial_java_heap:    { name: 'Initial Java Heap (GB)',    value: (memoryUsage.getInit/gb).round(3) },
+      used_java_heap:       { name: 'Used Java Heap (GB)',       value: (memoryUsage.getUsed/gb).round(3) },
+      committed_java_heap:  { name: 'Committed Java Heap (GB)',  value: (memoryUsage.getCommitted/gb).round(3) },
+      maximum_java_heap:    { name: 'Maximum Java Heap (GB)',    value: (memoryUsage.getMax/gb).round(3) },
     }
   end
 

@@ -11,9 +11,11 @@
       </b-input>
     </b-field>
 
-    <div class="logs">
-      <b-loading :active="isLoading" :is-full-page="false"></b-loading>
-      {{data}}
+    <div class="logs" >
+      <tt>
+        <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+        {{data}}
+      </tt>
     </div>
   </div>
 </template>

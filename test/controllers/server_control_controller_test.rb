@@ -47,13 +47,22 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 200000}, as: :json
     assert_response :internal_server_error
 
+    expected_worker_count = 6                                                   # expected number of workers after successful change
     Thread.new do                                                               # execute request in background, so the next request should fail
-      post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 6}, as: :json
+      post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: expected_worker_count}, as: :json
     end
     sleep 1                                                                     # let thread start
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 4}, as: :json
     assert_response :internal_server_error
-    assert_equal 6, ThreadHandling.get_instance.thread_count, 'There should run 6 threads now because the async request was first'
+
+    # Wait until the async setting of expected_worker_count has finished
+    waited_loop = 0
+    while ThreadHandling.get_instance.thread_count != expected_worker_count && waited_loop < 10
+      waited_loop += 1
+      sleep 1
+    end
+
+    assert_equal expected_worker_count, ThreadHandling.get_instance.thread_count, "There should run #{expected_worker_count} threads now because the async request was first"
 
     ThreadHandling.get_instance.shutdown_processing                             # Stop worker threads to restore normal test state
   end
