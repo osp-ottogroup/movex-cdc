@@ -215,9 +215,6 @@ class TransferThread
 
 
   def read_event_logs_batch
-    # Ensure that older IDs are processed first
-    # only half of @max_transaction_size is processed with newer IDs than last execution
-    # the other half of @max_transaction_size is reserved for older IDs from pending insert transactions that become visible later due to longer transaction duration
     event_logs = []
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
@@ -233,20 +230,24 @@ class TransferThread
         partitions.each_index do |i|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
           if remaining_records > 0 # Skip next partitions if already read enough records
-            event_logs.concat(read_event_logs_steps(remaining_records, partitions[i]['partition_name'], i == partitions.count-1))
+            event_logs.concat(read_event_logs_steps(max_records_to_read:  remaining_records,
+                                                    partition_name:       partitions[i]['partition_name'],
+                                                    last_partition:       i == partitions.count-1
+                              )
+            )
             @last_scanned_partitions += 1                                       # remember for health check
           end
         end
         housekeep_max_sorted_id_distance(partitions.map {|p| p['partition_name']})
       else
-        event_logs.concat(read_event_logs_steps(@max_transaction_size))
+        event_logs.concat(read_event_logs_steps(max_records_to_read: @max_transaction_size))
       end
 
       # adjust cached value to reality for next read if not maximum number of records has been read
       @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if event_logs.count < @max_transaction_size
 
     when 'SQLITE' then
-      event_logs.concat(read_event_logs_steps(@max_transaction_size))
+      event_logs.concat(read_event_logs_steps(max_records_to_read: @max_transaction_size))
     else
       raise "Unsupported DB type '#{MovexCdc::Application.config.db_type}'"
     end
@@ -262,7 +263,7 @@ class TransferThread
   # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
   # 2. look for records without key value and with smaller ID than largest of last run (older records)
   # 3. look for records without key value and with larger ID than largest of last run (newer records)
-  def read_event_logs_steps(max_records_to_read, partition_name = nil, last_partition = true)
+  def read_event_logs_steps(max_records_to_read:, partition_name: nil, last_partition: true)
     result = []
     # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
     # Condition to identify events with msg_key for which this worker instance is reponsible for processing
@@ -280,7 +281,7 @@ class TransferThread
     loop_count = 0                                                              # observe number of loops to prevent infinite loops
     loop do                                                                     # loop until all records read or max_records_to_read reached
       loop_count += 1
-      loop do                                                                   # loop until reords read at once are < @max_transaction_size to ensure sorted order
+      loop do                                                                   # loop until records read at once are < @max_transaction_size to ensure sorted order
         loop_count += 1                                                         # count inner loop like outer loop in sum
 
         if loop_count > 1000                                                    # protect against infinite loop
@@ -291,10 +292,10 @@ class TransferThread
 
         max_key_event_logs_id_used_for_sql = @max_key_event_logs_id             # remember the value used for SQL for later comparison in break clause
         # @max_transaction_size instead of max_records_to_read is the limit here to ensure even distances also if events from previous and next partition are combined
-        key_result = read_event_logs_single(@max_transaction_size,
-                                            "ID > :min_ID AND ID < :max_id AND #{msg_key_filter_condition}",
-                                            {min_id: max_processed_key_event_logs_id, max_id: max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name), worker_id: @worker_id},
-                                            partition_name
+        key_result = read_event_logs_single(fetch_limit:      @max_transaction_size,
+                                            filter:           "ID > :min_ID AND ID < :max_id AND #{msg_key_filter_condition}",
+                                            params:           {min_id: max_processed_key_event_logs_id, max_id: max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name), worker_id: @worker_id},
+                                            partition_name:   partition_name
         )
 
         break if key_result.count < @max_transaction_size                       # it is ensured that no unread records are remaining with key IS NOT NULL and ID < @max_key_event_logs_id (sorted order ensured)
@@ -314,10 +315,16 @@ class TransferThread
       result.concat key_result
 
       # break loop if max. amount of record is reached. It is sufficient if more than max_records_to_read are read even if select was done with full @max_transaction_size
-      break if result.count >= max_records_to_read
+      if result.count >= max_records_to_read
+        Rails.logger.debug "TransferThread.read_event_logs_steps: break the loop of step 1 because number of read records (#{result.count}) > max_records_to_read (#{max_records_to_read})"
+        break
+      end
 
       # break loop if all possible values of ID have been covered by previous SQL
-      break if max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+      if max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
+        Rails.logger.debug "TransferThread.read_event_logs_steps: break the loop of step 1 because max_key_event_logs_id_used_for_sql (#{max_key_event_logs_id_used_for_sql}) + get_max_sorted_id_distance('#{partition_name}') (#{get_max_sorted_id_distance(partition_name)}) > @cached_max_event_logs_seq_id (#{@cached_max_event_logs_seq_id})"
+        break
+      end
 
       # Enlarge max_sorted_id_distance up to maximum if less than 1/2 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
       if key_result.count < @max_transaction_size / 2
@@ -339,18 +346,26 @@ class TransferThread
 
     # 2. look for records without key value and with smaller ID than largest of last run (older records)
     remaining_records = max_records_to_read - result.count                      # available space for more result records
-    result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID < :max_id", {max_id: @max_event_logs_id}, partition_name)
+    result.concat read_event_logs_single(fetch_limit:     remaining_records,
+                                         filter:          "Msg_Key IS NULL AND ID < :max_id",
+                                         params:          {max_id: @max_event_logs_id},
+                                         partition_name:  partition_name
+                  )
 
     # 3. look for records without key value and with larger ID than largest of last run (newer records)
     remaining_records = max_records_to_read - result.count                      # available space for more result records
     # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
-    result.concat read_event_logs_single(remaining_records, "Msg_Key IS NULL AND ID >= :max_id", {max_id: @max_event_logs_id}, partition_name)
+    result.concat read_event_logs_single(fetch_limit:     remaining_records,
+                                         filter:          "Msg_Key IS NULL AND ID >= :max_id",
+                                         params:          {max_id: @max_event_logs_id},
+                                         partition_name:  partition_name
+                  )
 
     result
   end
 
   # Do SQL select for given conditions
-  def read_event_logs_single(fetch_limit, filter, params, partition_name)
+  def read_event_logs_single(fetch_limit:, filter:, params:, partition_name:)
     if fetch_limit > 0
       case MovexCdc::Application.config.db_type
       when 'ORACLE' then
