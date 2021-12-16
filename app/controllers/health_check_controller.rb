@@ -116,11 +116,12 @@ class HealthCheckController < ApplicationController
     end
 
     connection_info = []
-    Rails.logger.debug "HealthCheckController.index: Start getting connection pool data"
+    Rails.logger.debug "HealthCheckController.health_check_content: Start getting connection pool data"
     connections = nil
     begin
       connections = ActiveRecord::Base.connection_pool.connections
-    rescue ActiveRecord::ConnectionNotEstablished
+    rescue ActiveRecord::ConnectionNotEstablished => e
+      Rails.logger.warn "HealthCheckController.health_check_content: Error #{e.class}:#{e.message} at ActiveRecord::Base.connection_pool.connections! Doing retry."
       sleep 3                                                                   # Wait some time to fix sudden outage in access
       connections = ActiveRecord::Base.connection_pool.connections
     end
