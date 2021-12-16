@@ -128,13 +128,15 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
     raise "Missing database right!!! CREATE VIEW is not possible!\n#{e.class}: #{e.message}"
   end
 
+  # Check is user is allowed to create triggers in foreign schemas
   def check_create_trigger
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      priv_count = Database.select_one "SELECT COUNT(*) FROM User_Sys_Privs WHERE UserName = :user AND Privilege = 'CREATE ANY TRIGGER'", user: MovexCdc::Application.config.db_user.upcase
+      priv_count = Database.select_one "SELECT COUNT(*) FROM User_Sys_Privs WHERE UserName = :username AND Privilege = 'CREATE ANY TRIGGER'", username: MovexCdc::Application.config.db_user.upcase
       raise "Missing database right!!! DB user '#{MovexCdc::Application.config.db_user}' lacks the system privilege CREATE ANY TRIGGER" if priv_count == 0
     end
   end
+
   # Ensure dictionary info for database objects is loaded at startup
   def warmup_ar_classes
     Rails.logger.debug "Warmup dictionary info for DB objects started"
