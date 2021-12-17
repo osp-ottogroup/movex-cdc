@@ -71,9 +71,15 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.text "payload", null: false
     t.string "msg_key", limit: 4000
     t.datetime "created_at", precision: 6, null: false
-    t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
-    t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
-    t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
+    t.datetime "last_error_time", precision: 6
+    t.integer "retry_count", precision: 38, default: 0, null: false
+    t.string "transaction_id", limit: 100
+  end
+
+  create_table "orderdetailgaattr", primary_key: ["id_orderdetail", "id_gaattr"], force: :cascade do |t|
+    t.decimal "id_orderdetail"
+    t.decimal "id_gaattr"
+    t.string "value", limit: 20
   end
 
   create_table "schema_rights", force: :cascade do |t|
@@ -89,7 +95,7 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.index ["user_id"], name: "index_schema_rights_on_user_id"
   end
 
-  create_table "schemas", comment: "Schemas allowed for use with MOVEX CDC by admin acount", force: :cascade do |t|
+  create_table "schemas", comment: "Schemas allowed for use with TriXX by admin acount", force: :cascade do |t|
     t.string "name", limit: 256, null: false, comment: "Name of corresponding database schema"
     t.string "topic", comment: "Default topic name for tables of this schema if no topic is defined at table level. Null if topic should be defined at table level"
     t.datetime "last_trigger_deployment", precision: 6, comment: "Timestamp of last successful trigger deployment for schema (no matter if there have been changes for triggers or not)"
@@ -97,6 +103,13 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
     t.index ["name"], name: "ix_schemas_name", unique: true
+  end
+
+  create_table "semaphores", comment: "Records to lock at database level as precondition for start of processing", force: :cascade do |t|
+    t.string "process_identifier", limit: 300, null: false, comment: "Unique identifier of process (hostname + process id)"
+    t.integer "thread_id", precision: 38, null: false, comment: "ID of transfer thread"
+    t.datetime "created_at", precision: 6, null: false
+    t.datetime "updated_at", precision: 6, null: false
   end
 
   create_table "statistics", comment: "Throughput statistics", force: :cascade do |t|
