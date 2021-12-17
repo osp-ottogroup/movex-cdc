@@ -34,8 +34,7 @@ First implementations have been for SQLite and Oracle with focus on productive u
 <br/>
 Further planned implementations are:
 - Production readyness for Oracle Standard Edition / EE without Partitiong Option
-- PostgreSQL
-- MS SQL-Server
+- Adaptation for PostgreSQL and MS SQL Server, but only if in the result the application becomes easier than with the existing solution [Debezium](https://debezium.io)
 
 ## License
 This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/otto-group-solution-provider/movex-cdc/-/blob/master/LICENSE).

@@ -99,11 +99,9 @@ Solution for Standard Edition without partitioning is in progress
 ==== SQLite ====
 SQLite is used as development database for MOVEX CDC. There might be no useful production use case but it works.
 
-==== Microsoft SQL Server ====
-Support for MS SQL Server is planned in the future.
-
-==== PostgreSQL ====
-Support for PostgreSQL is planned in the future.
+==== PostgreSQL, Microsoft SQL Server ====
+Support for PostgreSQL and MS SQL Server is planned in the future. +
+The implementation depends on achievable benefits in application and operation compared to simply using the existing open source log-based solution https://debezium.io[Debezium].
 
 == Operation ==
 === Preconditions for usage ===
