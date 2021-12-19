@@ -9,10 +9,15 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :sectnumlevels: 6
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
+:keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
+:google-site-verification: 4G_hgB4PkmWH-9ztp8BgLfKSS5Dq1olLhY6NA7gFuqc
 
-TIP: This page is not yet completed and still under construction.
+TIP: This page is not yet fully completed and still under construction.
 
 == Introduction ==
+
+This documentation describes the product MOVEX Change Data Capture which is hosted at https://gitlab.com/otto-group-solution-provider/movex-cdc.
+
 === Purpose ===
 **********************************************************************
 Captures data change events (Insert/Update/Delete) in relational databases and immediately transfers the data changes to Kafka event hub.
