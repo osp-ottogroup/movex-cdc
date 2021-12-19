@@ -10,7 +10,7 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
 :keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
-:google-site-verification: 4G_hgB4PkmWH-9ztp8BgLfKSS5Dq1olLhY6NA7gFuqc
+:docinfo:
 
 TIP: This page is not yet fully completed and still under construction.
 
