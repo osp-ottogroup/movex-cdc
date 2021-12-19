@@ -9,7 +9,7 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :sectnumlevels: 6
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
-:keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
+:keywords: Oracle, Kafka, Change Data Capture, CDC, Movex, Trigger
 :docinfo:
 
 TIP: This page is not yet fully completed and still under construction.
