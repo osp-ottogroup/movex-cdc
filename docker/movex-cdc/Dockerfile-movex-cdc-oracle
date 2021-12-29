@@ -65,12 +65,8 @@ RUN   echo "### microdnf update" && \
       ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake && \
       echo "### update installed system gems" && \
       gem update --system --no-doc && \
-      echo "### remove unnecessary gems" && \
-      gem uninstall -x -a ruby-maven ruby-maven-libs && \
-      echo "### update system gems to fix trivy findings" && \
-      gem update --no-doc rdoc && \
       echo "### install bundler gems" && \
-      gem install --no-document bundler && \
+      gem install --no-doc bundler && \
       echo "### set .gemrc" && \
       echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
       echo "### cleanup and list installed gems" && \
