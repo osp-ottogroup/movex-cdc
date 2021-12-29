@@ -236,8 +236,11 @@ If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUN
 |MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
 This value controls the setting for INI_TRANS for ORACLE.
 Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of the application container.
-Otherwise error ORA-00054 is raised and application does not start.
-|16
+Otherwise error ORA-00054 is raised and application does not start. +
+You should ensure that this value is higher than the expected maximum number of simultaneous transactions on table EVENT_LOGS (User transactions firing triggers + worker threads). +
+Reaching this limit with the number of simultaneous pending transactions at one DB block may lead to mismatches in processing order of events for Oracle DB
+because SELECT FOR UPDATE SKIP LOCK skips also unlocked records in DB blocks with full ITL (interested transaction list).
+|60
 |PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
 Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
 Relevant only if EVENT_LOGS is used partitioned. +

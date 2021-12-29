@@ -102,6 +102,8 @@ class ActiveSupport::TestCase
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR2(20), Char_Name CHAR(1), Date_Val DATE, TS_Val TIMESTAMP(6), Raw_val RAW(20), TSTZ_Val TIMESTAMP(6) WITH TIME ZONE, RowID_Val ROWID, #{pkey_list}
       )")
+      # Ensure uniqueness of ID even if other PKey is used to test event keys from primary key columns
+      exec_victim_sql("CREATE UNIQUE INDEX  #{victim_schema_prefix}UX_#{victim1_table.name} ON #{victim_schema_prefix}#{victim1_table.name}(ID)")
       exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{MovexCdc::Application.config.db_user}") # needed for table initialization
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}

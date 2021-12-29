@@ -6,6 +6,16 @@ class EventLog < ApplicationRecord
     expected_value = MovexCdc::Application.config.max_simultaneous_transactions
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
+      assumed_simultaneous_user_tx = 20
+      suggested_min_value = MovexCdc::Application.config.max_simultaneous_table_initializations + MovexCdc::Application.config.initial_worker_threads + assumed_simultaneous_user_tx
+      if expected_value < suggested_min_value
+        msg = "EventLog.adjust_max_simultaneous_transactions: Setting of #{expected_value} for config parameter MAX_SIMULTANEOUS_TRANSACTIONS should be increased to at least #{suggested_min_value}"
+        msg << " because it is smaller than MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS (#{MovexCdc::Application.config.max_simultaneous_table_initializations}) +"
+        msg << " INITIAL_WORKER_THREADS (#{MovexCdc::Application.config.initial_worker_threads}) +"
+        msg << " assumed number of simultaneous user transactions (#{assumed_simultaneous_user_tx})"
+        Rails.logger.error msg
+      end
+
       current_value =  if MovexCdc::Application.partitioning?
                          Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
                        else
@@ -14,7 +24,11 @@ class EventLog < ApplicationRecord
       if current_value != expected_value
         Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
         Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
-        Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
+        if MovexCdc::Application.partitioning?
+          Database.execute "ALTER TABLE Event_Logs MODIFY DEFAULT ATTRIBUTES INITRANS #{expected_value}"
+        else
+          Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
+        end
       end
     end
   end
