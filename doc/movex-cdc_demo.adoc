@@ -198,7 +198,7 @@ Select a table from the list, then:
 image:add_table.png[format=png, width=600]
 
 Now tap on the table to mark it as current, then configuration of columns appear.
-Check the columns you want transfer to Kafka for the particular operation.
+Check the columns you want to transfer to Kafka for the particular operation.
 
 image:config_columns.png[format=png, width=800]
 

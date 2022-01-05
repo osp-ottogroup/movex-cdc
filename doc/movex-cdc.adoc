@@ -476,6 +476,7 @@ Depending on table configuration Kafka messages may contain an additional key va
 |operation|kind of triggering database operation
 |dbuser|database user who run the triggering operation
 |timestamp|detailled timestamp of triggering event
+|transaction_id|unique ID of database transaction (optional)
 |old|values of observed columns before triggering change event
 |new|values of observed columns after triggering event
 |===
