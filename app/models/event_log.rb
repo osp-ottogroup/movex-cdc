@@ -169,6 +169,7 @@ class EventLog < ApplicationRecord
     true
   end
 
+  # log current partitions of table on error conditions
   def self.error_log_partitions
     Rails.logger.error "Current existing partitions are:"
     case MovexCdc::Application.config.db_type

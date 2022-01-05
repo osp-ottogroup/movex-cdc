@@ -342,7 +342,7 @@ TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
 payload_rec     Payload_Rec_Type;
 payload_tab     Payload_Tab_Type;
 tab_size        PLS_INTEGER;
-dbuser          VARCHAR2(128) := USER;
+dbuser          VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
 transaction_id  VARCHAR2(100) := NULL;
 
 PROCEDURE Flush IS
