@@ -474,13 +474,37 @@ Depending on table configuration Kafka messages may contain an additional key va
 |id|consecutive unique message ID, describes the order of message creation at database trigger level
 |schema|schema name of database table
 |tablename|name of database table
-|operation|kind of triggering database operation (I/i \| U \| D)
+|operation|kind of triggering database operation (INIT / INSERT / UPDATE / DELETE)
 |dbuser|database user who run the triggering operation
 |timestamp|detailled timestamp of triggering event
 |transaction_id|unique ID of database transaction (optional)
 |old|values of observed columns before triggering change event
 |new|values of observed columns after triggering event
 |===
+
+==== Example of initial load message ====
+
+[source, json]
+{
+  "id": 23423274179,
+  "schema": "EINKAUF",
+  "tablename": "HUGO",
+  "operation": "INIT",
+  "dbuser": "MEYER",
+  "timestamp": "2020-02-21T12:07:43,396142+00:00",
+  "transaction_id": null,
+  "new": {
+    "ID": 1,
+    "NAME": "Record1",
+    "CHAR_NAME": "Y",
+    "DATE_VAL": "2020-02-21T12:07:43",
+    "TS_VAL": "2020-02-21T12:07:43,396153000",
+    "RAW_VAL": "FFFF",
+    "TSTZ_VAL": "2020-02-21T12:07:43,396142000+00:00",
+    "ROWID_VAL": "AAAUQ6AAMAAAAJlAAC",
+    "NULL_VAL": null
+  }
+}
 
 ==== Example of INSERT message ====
 
@@ -582,7 +606,8 @@ The following things are executed at startup of application / docker container i
 ===== Creating triggers based on configuration
 ===== Initial transfer of table content at first trigger generation
 If requested in table config, after generation of trigger a job will be created for transfer of the already existing records of a table to Kafka. +
-For each record in the table existing at the time of trigger creation an insert-event will be transferred to Kafka.
+For each record in the table existing at the time of trigger creation an insert-like event will be transferred to Kafka.
+The field 'operation' is marked INIT instead of INSERT to be able to distinguish between real insert events and initial load events.
 The table's filter condition for insert operation as well as the filter condition for initialization are considered. +
 This jobs are queued and processed deferred asynchronously.
 The maximum number of simultaneously processed table initialization jobs is limited by the environment setting MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.

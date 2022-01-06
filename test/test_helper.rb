@@ -134,13 +134,13 @@ class ActiveSupport::TestCase
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} INSERT ON #{victim1_table.name}
         BEGIN
-          INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
+          DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
       exec_db_user_sql("\
         CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}VICTIM1_TO_DROP UPDATE ON #{victim1_table.name}
         BEGIN
-          INSERT INTO Event_Logs(Table_ID, Payload) VALUES (4, '{}');
+          DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
@@ -166,23 +166,6 @@ class ActiveSupport::TestCase
     result.assert_valid_keys(:successes, :errors, :load_sqls)
     assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
 
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      date_val  = "SYSDATE"
-      ts_val    = "LOCALTIMESTAMP"
-      raw_val   = "HexToRaw('FFFF')"
-      tstz_val  = "SYSTIMESTAMP"
-      rownum    = "RowNum"
-    when 'SQLITE' then
-      date_val  = "'2020-02-01T12:20:22'"
-      ts_val    = "'2020-02-01T12:20:22.999999+01:00'"
-      raw_val   = "'FFFF'"
-      tstz_val  = "'2020-02-01T12:20:22.999999+01:00'"
-      rownum    = 'row_number() over ()'
-    else
-      raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
-    end
-
     # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
     Rails.logger.debug "#{event_logs_before} records exist in table Event_Logs"
@@ -192,16 +175,10 @@ class ActiveSupport::TestCase
 
     ActiveRecord::Base.transaction do
       # First 4 I events
-      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
-      VALUES (#{victim_max_id+1}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
-      )")
-      log_event_logs_count
-      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+2}, 0.456,    'Record''2', #{date_val}, #{ts_val}, #{raw_val})")
-      log_event_logs_count
-      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+3}, 48.375,   'Record''3', #{date_val}, #{ts_val}, #{raw_val})")
-      log_event_logs_count
-      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+4}, -23.475,  'Record''4', #{date_val}, #{ts_val}, #{raw_val})")
-      log_event_logs_count
+      insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id,    num_val: 1,         log_count: true)
+      insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+1,  num_val: 0.456,     log_count: true)
+      insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+2,  num_val: 48.375,    log_count: true)
+      insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+3,  num_val: -23.475,   log_count: true)
 
       # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
@@ -215,8 +192,7 @@ class ActiveSupport::TestCase
       log_event_logs_count
 
       # Next record should not generate record in Event_Logs due to excluding condition
-      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Date_Val, TS_Val, RAW_VAL) VALUES (#{victim_max_id+5}, 1, 'EXCLUDE FILTER', #{date_val}, #{ts_val}, #{raw_val})")
-      log_event_logs_count
+      insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+4,  name: 'EXCLUDE FILTER', num_val: -23.475,   log_count: true)
 
       # create exactly 3 records in Event_Logs for Victim2
       victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
@@ -244,13 +220,8 @@ class ActiveSupport::TestCase
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM2 WHERE ID = #{victim2_max_id+1}")
       log_event_logs_count
 
-      # create the reamining records in Event_Log
-      (number_of_records-(8+3)).downto(1).each do |i|
-        exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
-        VALUES (#{victim_max_id+9+i}, 1, 'Record1', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
-        )")
-        log_event_logs_count
-      end
+      # create the remaining records in Event_Log
+      insert_victim1_records(number_of_records_to_insert: number_of_records-(8+3), last_max_id: victim_max_id+9, log_count: true)
     end # COMMIT
 
     event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
@@ -260,6 +231,32 @@ class ActiveSupport::TestCase
       Rails.logger.error msg
       log_event_logs_content
       raise msg
+    end
+  end
+
+  def insert_victim1_records(number_of_records_to_insert:, last_max_id:, name: 'Record', num_val: 1, log_count: false)
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      date_val  = "SYSDATE"
+      ts_val    = "LOCALTIMESTAMP"
+      raw_val   = "HexToRaw('FFFF')"
+      tstz_val  = "SYSTIMESTAMP"
+      rownum    = "RowNum"
+    when 'SQLITE' then
+      date_val  = "'2020-02-01T12:20:22'"
+      ts_val    = "'2020-02-01T12:20:22.999999+01:00'"
+      raw_val   = "'FFFF'"
+      tstz_val  = "'2020-02-01T12:20:22.999999+01:00'"
+      rownum    = 'row_number() over ()'
+    else
+      raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
+    end
+
+    number_of_records_to_insert.downto(1).each do |i|
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
+        VALUES (#{last_max_id+i}, #{num_val}, '#{name}', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
+        )")
+      log_event_logs_count if log_count
     end
   end
 

@@ -1,6 +1,7 @@
 module KeyHelper
-  def self.operation_from_short_op(short_op)
+  def self.long_operation_from_short(short_op)
     case short_op
+    when 'i' then 'INIT'                                                        # initial load of table content to Kafka
     when 'I' then 'INSERT'
     when 'U' then 'UPDATE'
     when 'D' then 'DELETE'

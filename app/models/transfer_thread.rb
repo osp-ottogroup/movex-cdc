@@ -506,7 +506,7 @@ class TransferThread
 \"id\": #{event_log['id']},
 \"schema\": \"#{table.schema.name}\",
 \"tablename\": \"#{table.name}\",
-\"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
+\"operation\": \"#{KeyHelper.long_operation_from_short(event_log['operation'])}\",
 \"dbuser\": \"#{event_log['dbuser']}\",
 \"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
 \"transaction_id\": #{event_log['transaction_id'].nil? ? "null" : "\"#{event_log['transaction_id']}\"" },
@@ -515,15 +515,6 @@ class TransferThread
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
     JSON.parse(msg) if Rails.env.test?                                          # Check valid JSON structure for all test modes
     msg
-  end
-
-  def long_operation_from_short(op)
-    case op
-    when 'I' then 'INSERT'
-    when 'U' then 'UPDATE'
-    when 'D' then 'DELETE'
-    else raise "Unknown operation '#{op}'"
-    end
   end
 
   def timestamp_as_iso_string(timestamp)
