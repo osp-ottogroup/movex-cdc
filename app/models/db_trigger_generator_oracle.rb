@@ -289,8 +289,8 @@ END #{build_trigger_name(table, operation)};
     # current SCN directly after creation of insert trigger
     scn = Database.select_one "SELECT current_scn FROM V$DATABASE"
     table_config    = @expected_triggers[table.name]
-    operation       = 'I'
-    trigger_config  = table_config[operation]                                   # Loads columns declared for insert trigger
+    operation       = 'i'                                                       # Lower case for initialization to distinguish between new inserts (I) and initial load (i)
+    trigger_config  = table_config[operation.upcase]                            # Loads columns declared for insert trigger
     columns         = trigger_config[:columns]
 
     where = ''                                                                  # optional conditions
@@ -300,7 +300,7 @@ END #{build_trigger_name(table, operation)};
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
 
     load_sql = "DECLARE\n"
-    load_sql << generate_declare_section(table, operation, :load)
+    load_sql << generate_declare_section(table, operation, :load)               # use operation 'i' for event generation
     load_sql << "
 BEGIN
   FOR rec IN (SELECT #{columns.map{|x| x[:column_name]}.join(',')}
@@ -308,7 +308,7 @@ BEGIN
               #{where}
              ) LOOP
 "
-    trigger_row_section = generate_row_section(table_config, operation)
+    trigger_row_section = generate_row_section(table_config, operation.upcase)  # generate columns for insert operation (I)
     load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
     load_sql << "
   END LOOP;

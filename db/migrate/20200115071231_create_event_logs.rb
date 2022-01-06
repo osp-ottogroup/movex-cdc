@@ -25,7 +25,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
     else
       create_table :event_logs do |t|
         t.references  :table,                   null: false,  comment: 'Reference to tables'
-        t.string      :operation, limit: 1,     null: false,  comment: 'Operation type /I/U/D'
+        t.string      :operation, limit: 1,     null: false,  comment: 'Operation type i/I/U/D'
         t.string      :dbuser,    limit: 128,   null: false,  comment: 'Name of connected DB user'
         t.text        :payload,                 null: false,  comment: 'Payload of message with old and new values'
         t.string      :msg_key,   limit: 4000,  null: true,   comment: 'Optional Kafka message key to ensure all messages of same key are stored in same partition'
