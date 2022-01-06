@@ -18,11 +18,11 @@ class TableInitializationTest < ActiveSupport::TestCase
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466 at update
+      Database.execute "UPDATE Tables SET Topic=Topic"                          # ensure SCN is incremented at least once to prevent from ORA-01466 at update
       sleep 1
       Database.select_all "SELECT * FROM #{victim_schema_prefix}#{victim1_table.name}"  # Dummy read to prevent from ORA-01466
-      Database.execute "BEGIN\nUPDATE Tables SET Topic=Topic;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466 at update
-      sleep 1
+      Database.execute "UPDATE Tables SET Topic=Topic"                          # ensure SCN is incremented at least once to prevent from ORA-01466 at update
+      sleep 2
     end
 
     # Ensure that initialization is started as part of trigger generation
