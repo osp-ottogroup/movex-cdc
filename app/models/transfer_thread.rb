@@ -507,6 +507,7 @@ class TransferThread
 \"schema\": \"#{table.schema.name}\",
 \"tablename\": \"#{table.name}\",
 \"operation\": \"#{long_operation_from_short(event_log['operation'])}\",
+\"dbuser\": \"#{event_log['dbuser']}\",
 \"timestamp\": \"#{timestamp_as_iso_string(event_log['created_at'])}\",
 \"transaction_id\": #{event_log['transaction_id'].nil? ? "null" : "\"#{event_log['transaction_id']}\"" },
 #{event_log['payload']}

@@ -373,6 +373,7 @@ Possible onfiguration actions are:
 ** modify topic name per table
 ** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
 ** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
+** decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
 * modify triggering of change events per column
 
 NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
@@ -473,7 +474,7 @@ Depending on table configuration Kafka messages may contain an additional key va
 |id|consecutive unique message ID, describes the order of message creation at database trigger level
 |schema|schema name of database table
 |tablename|name of database table
-|operation|kind of triggering database operation
+|operation|kind of triggering database operation (I/i \| U \| D)
 |dbuser|database user who run the triggering operation
 |timestamp|detailled timestamp of triggering event
 |transaction_id|unique ID of database transaction (optional)
