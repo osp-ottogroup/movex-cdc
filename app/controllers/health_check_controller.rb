@@ -54,7 +54,13 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:max_transaction_size,              'max. messages in a transaction')
     info << build_info_record(:max_simultaneous_table_initializations, '')
     info << build_info_record(:max_simultaneous_transactions,     'for insert in EVENT_LOGS')
-    info << { name: 'RAILS_MAX_THREADS: max. number of threads for application',  value: ENV['RAILS_MAX_THREADS'], default_value: 300, startup_config_value: ENV['RAILS_MAX_THREADS']}  # Default is set in Dockerfile
+    info << {
+      name: 'RAILS_MAX_THREADS',
+      description: 'max. number of threads for application',
+      value: ENV['RAILS_MAX_THREADS'],
+      default_value: 300,
+      startup_config_value: ENV['RAILS_MAX_THREADS']
+    }  # Default is set in Dockerfile
     info << build_info_record(:run_config,                        'path to config file')
     info << build_info_record(:partition_interval,                'for table EVENT_LOGS')
 
@@ -208,7 +214,7 @@ class HealthCheckController < ApplicationController
   # Build a record for config_info
   # key should be lower case
   def build_info_record(key, description)
-    info_record = { name: "#{key.upcase}: #{description}", value:nil, default_value: nil, startup_config_value: nil }
+    info_record = { name: key.upcase, description: description, value:nil, default_value: nil, startup_config_value: nil }
     info_record[:value] = MovexCdc::Application.config.send(key) if MovexCdc::Application.config.respond_to?(key)
     config_info = MovexCdc::Application.config_attributes(key)
     if config_info
