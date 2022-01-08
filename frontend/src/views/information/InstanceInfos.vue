@@ -5,10 +5,7 @@
     </div>
     <b-tabs v-model="currentTab" @input="onTabChanged">
       <b-tab-item label="Instance" :value="tabNames.INSTANCE">
-        <p v-for="element in instanceData" :key="element.name" class="columns">
-          <span class="column">{{ element.name }}</span>
-          <span class="column">{{ element.value }}</span>
-        </p>
+        <InstanceDataTable :instanceData="instanceData" :isLoading="isLoading"></InstanceDataTable>
       </b-tab-item>
 
       <b-tab-item label="Health" :value="tabNames.HEALTH">
@@ -43,9 +40,11 @@
 <script>
 import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
+import InstanceDataTable from '@/views/information/InstanceDataTable.vue';
 
 export default {
   name: 'InstanceInfos',
+  components: { InstanceDataTable },
   data() {
     return {
       tabNames: {

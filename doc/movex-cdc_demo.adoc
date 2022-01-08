@@ -12,7 +12,12 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :description: Oracle change data capture to Kafka: How to run within 10 minutes
 :keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
-Implement change data tracking on an existing Oracle DB including event transfer to Kafka within 10 minutes
+**Implement change data tracking on an existing Oracle DB including event transfer to Kafka within 10 minutes
+**
+
+== Introduction ==
+
+This demo describes how to use the product *MOVEX Change Data Capture* which is hosted at https://gitlab.com/otto-group-solution-provider/movex-cdc.
 
 == Preconditions
 - A running local Oracle database with an existing user to observe
