@@ -9,6 +9,8 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :sectnumlevels: 6
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
+:description: Oracle change data capture to Kafka: How to run within 10 minutes
+:keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
 Implement change data tracking on an existing Oracle DB including event transfer to Kafka within 10 minutes
 
