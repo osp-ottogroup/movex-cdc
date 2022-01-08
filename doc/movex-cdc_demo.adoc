@@ -47,6 +47,7 @@ We use an own Docker image that combines Zookeeper and Kafka in one image.
 The command will log the Kafka console output and block until termination by Ctrl-C.
 ----
 docker run --rm \
+  --name kafka \
   -p 2181:2181 \
   -p 9092:9092 \
   -e IP_ADDRESS=$IP_ADDRESS \
@@ -108,6 +109,7 @@ docker run --rm \
 === Run MOVEX CDC Docker container
 ----
 docker run --rm \
+  --name cdc \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
