@@ -9,7 +9,7 @@
       </b-tab-item>
 
       <b-tab-item label="Health" :value="tabNames.HEALTH">
-        <pre>{{ healthCheck }}</pre>
+        <pre v-html="healthCheck"></pre>
       </b-tab-item>
 
       <b-tab-item label="Kafka Topics" :value="tabNames.KAFKA_TOPICS">
@@ -41,6 +41,48 @@
 import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 import InstanceDataTable from '@/views/information/InstanceDataTable.vue';
+
+function escapeHtml(unsafe) {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+// Convert objects to HTML with collapse for array elements, call recursively
+function convertHealthCheckDetailElement(item, indent, inArrayIndent = 0) {
+  if (item == null) return 'null';
+
+  const inArrayIndentPrefix = (inArrayIndent === 0 ? '' : '&nbsp;'.repeat(inArrayIndent - 2));
+
+  if (typeof (item) === 'string' || item instanceof String) return `${inArrayIndentPrefix}"${escapeHtml(item)}"`;
+  if (typeof (item) === 'number') return `${inArrayIndentPrefix}${item}`;
+  if (typeof (item) === 'boolean') return `${inArrayIndentPrefix}${JSON.stringify(item)}`;
+
+  let stringEntries = `${inArrayIndentPrefix}{`;
+  Object.entries(item).forEach((entry) => {
+    // if item's element is an array then iterate through array and call convertHealthCheckDetailElement for each element
+    if (Array.isArray(entry[1])) {
+      stringEntries += `<details><summary>${'&nbsp;'.repeat(indent - 2)}${escapeHtml(entry[0])} (${entry[1].length}) [</summary>`;
+      stringEntries += entry[1].map((x) => convertHealthCheckDetailElement(x, indent + 4, indent + 4)).join(',<br/>');
+      stringEntries += '</details>';
+      stringEntries += `${'&nbsp;'.repeat(indent)}]`;
+    } else {
+      // if item's element is other than array then call convertHealthCheckDetailElement for each element
+      stringEntries += `<br/>${'&nbsp;'.repeat(indent)}${escapeHtml(entry[0])}: `;
+      stringEntries += `${convertHealthCheckDetailElement(entry[1], indent + 2)}`;
+    }
+  });
+  stringEntries += `<br/>${'&nbsp;'.repeat(indent - 2)}}`;
+  return stringEntries;
+}
+
+async function readAndConvertHealthCheck() {
+  const rawHealthCheck = (await CRUDService.healthCheck.check());
+  return convertHealthCheckDetailElement(rawHealthCheck, 2);
+}
 
 export default {
   name: 'InstanceInfos',
@@ -124,7 +166,8 @@ export default {
       }
     },
     async loadHealthData() {
-      this.healthCheck = await CRUDService.healthCheck.check();
+      // this.healthCheck = (await CRUDService.healthCheck.check());
+      this.healthCheck = (await readAndConvertHealthCheck());
     },
     async loadInstanceData() {
       this.instanceData = (await CRUDService.instance.info()).config_info;
@@ -179,4 +222,5 @@ export default {
     },
   },
 };
+
 </script>
