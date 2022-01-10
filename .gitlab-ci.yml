@@ -310,12 +310,14 @@ pages:
     - cp doc/movex-cdc.pdf public/
     - cp doc/movex-cdc_demo.html public/
     - cp doc/google70fcb57bf7ac9cbe.html public/
+    - cp doc/sitemap.xml public/
   artifacts:
     paths:
       - public/movex-cdc.pdf
       - public/movex-cdc.html
       - public/movex-cdc_demo.html
       - public/google70fcb57bf7ac9cbe.html
+      - public/sitemap.xml
       - public/images/
 
 # Make the Docker image available for user after treating as clean
