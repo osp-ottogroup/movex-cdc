@@ -479,7 +479,7 @@ END Flush;
 
     result = "'{'||"
     result << table_config[:pk_columns]
-      .map{|pkc| "'#{pkc[:column_name]}: '||#{convert_col({column_name: pkc[:column_name] , data_type: pkc[:data_type]}, pk_accessor)}" }
+      .map{|pkc| "'\"#{pkc[:column_name]}\": '||#{convert_col({column_name: pkc[:column_name] , data_type: pkc[:data_type]}, pk_accessor)}" }
       .join("||','||")
     result << "||'}'"
     result
