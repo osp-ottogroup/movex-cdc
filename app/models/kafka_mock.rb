@@ -11,7 +11,7 @@ class KafkaMock
       msg_hash = JSON.parse message                                             # ensure correct JSON notation
       if options[:key]                                                          # for keyed messages ID should be ascending
         # suspended until decision about fixing JSON error in PK keys
-        #JSON.parse options[:key] if options[:key][0] == '{'                     # key should contain valid JSON
+        JSON.parse options[:key] if options[:key][0] == '{'                     # key should contain valid JSON if Key contains JSON (e.g. for primary key)
         next_id = msg_hash['id'].to_i
         if next_id <= @last_produced_id
           raise "KafkaMock::Producer.produce: Ascending order of IDs violated for messages with key! Current ID = #{next_id}, Last used ID = #{@last_produced_id}"
