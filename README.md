@@ -11,14 +11,14 @@ The full documentation of this product you may find here:
 - <b>SQLite</b> The aditional implementation for SQLite ensures that the product remains database independent.
 
 
-## Usage
+## Usage / Release history / Downloads
 MOVEX Change Data Capture is offered as a single compact Docker image.
 
-The latest build of the master branch is available by:<br/>
+* The latest build of the master branch is available by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
-
-Production ready releases are tagged like 'prod_x.xx' and can be pulled by:<br/>
-`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:prod_x.xx`
+* Production-ready releases are provided as separate Git branches with branch name 'prod_x.xx'.
+* The most recent production-ready release branch is prod_1.06:<br/>
+  `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:prod_1.06`
 
 ## Quick start demo
 Establish change data capture on Oracle DB including event transfer to Kafka within 10 minutes.<br/>
@@ -40,9 +40,5 @@ Further planned implementations are:
 This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/otto-group-solution-provider/movex-cdc/-/blob/master/LICENSE).
 
 ## Project status
-It is already used in production with Oracle databases.
+Production usage with Oracle databases started in 2020.
 Further development takes place.
-
-## Release history of Docker images
-* Last nightly build based on master branch: 
-  `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
