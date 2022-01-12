@@ -1,332 +1,266 @@
-# Build and test MovexCdc application
-# Requires:
-#  - prebuilt database image
-#  - kafka-jruby image built from /docker/kafka-jruby
-
-# Dockerfile for image is located in movex-cdc/docker/kafka-jruby
+# You can override the included template(s) by including variable overrides
+# SAST customization: https://docs.gitlab.com/ee/user/application_security/sast/#customizing-the-sast-settings
+# Secret Detection customization: https://docs.gitlab.com/ee/user/application_security/secret_detection/#customizing-settings
+# Dependency Scanning customization: https://docs.gitlab.com/ee/user/application_security/dependency_scanning/#customizing-the-dependency-scanning-settings
+# Note that environment variables can be set in several places
+# See https://docs.gitlab.com/ee/ci/variables/#cicd-variable-precedence
 image: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.2.0-jdk17
-
 variables:
   RAILS_MAX_THREADS: 100
   CI_DEBUG_SERVICES: trace
   KAFKA_SEED_BROKER: localhost:9092
-  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
-  FINAL_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME
+  TEMP_DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp"
+  FINAL_DOCKER_IMAGE: "$CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME"
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
-
-
-# Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - code_analysis
-  - test
-  - pre_build
-  - build
-  - post_build
-  - deploy
-
-# interactive edit config/brakemen.ignore by > brakeman -A -I
-# Use this to exclude findings after considering as false positives
+- code_analysis
+- test
+- pre_build
+- build
+- post_build
+- deploy
 brakeman_analysis:
   stage: code_analysis
   script:
-      # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
-    - gem install --no-doc racc brakeman
-    - brakeman -A
-
+  - gem install --no-doc racc brakeman
+  - brakeman -A
 test_frontend:
   image: node:14-alpine
   stage: code_analysis
   script:
-    - npm install -g @vue/cli
-    - cd frontend && npm ci && npm run test:unit
-
-.tests:
+  - npm install -g @vue/cli
+  - cd frontend && npm ci && npm run test:unit
+".tests":
   variables:
-    RAILS_ENV: "test"
-  #    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
-  #    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
-  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-  #    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
-
+    RAILS_ENV: test
   script:
-    - /opt/start-kafka.sh
-    - date
-    - java -version
-    - gem install --no-doc bundler
-    - bundle config set deployment 'true'
-    # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
-    - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
-    - bundle install --jobs 4
-    # Wait max. 10 minutes for DB available
-    - bundle exec rake "ci_preparation:wait_for_db_available[10]"
-    # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
-    - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
-    - bundle exec rake ci_preparation:create_user
-    - bundle exec rails db:migrate RAILS_ENV=test
-    - >
-      if [ "$DB_TYPE" == "ORACLE" ]; then
-        # Check if db:rollback is functional + restore migration
-        # SQLite does not support remove_foreign_key although it is implemented
-        bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
-      fi
-    - bundle exec rails test
+  - "/opt/start-kafka.sh"
+  - date
+  - java -version
+  - gem install --no-doc bundler
+  - bundle config set deployment 'true'
+  - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
+  - bundle install --jobs 4
+  - bundle exec rake "ci_preparation:wait_for_db_available[10]"
+  - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
+  - bundle exec rake ci_preparation:create_user
+  - bundle exec rails db:migrate RAILS_ENV=test
+  - |
+    if [ "$DB_TYPE" == "ORACLE" ]; then
+      # Check if db:rollback is functional + restore migration
+      # SQLite does not support remove_foreign_key although it is implemented
+      bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
+    fi
+  - bundle exec rails test
   artifacts:
     when: always
     paths:
-      - log/
-      - tmp/screenshots/
-      - /opt/kafka/logs/*
+    - log/
+    - tmp/screenshots/
+    - "/opt/kafka/logs/*"
     expire_in: 1 month
-
-
-.tests_SQLITE:
-  extends: .tests
+".tests_SQLITE":
+  extends: ".tests"
   variables:
-    DB_TYPE: "SQLITE"
-
-.tests_ORACLE:
-  extends: .tests
+    DB_TYPE: SQLITE
+".tests_ORACLE":
+  extends: ".tests"
   variables:
-    DB_TYPE: "ORACLE"
-    DB_SYS_PASSWORD: "oracle"
-    TEST_SERVICENAME: "ORCL"
-
+    DB_TYPE: ORACLE
+    DB_SYS_PASSWORD: oracle
+    TEST_SERVICENAME: ORCL
 test_sqlite:
   stage: test
-  extends: .tests_SQLITE
-
+  extends: ".tests_SQLITE"
 test_oracle_12.1:
   stage: test
-  extends: .tests_ORACLE
+  extends: ".tests_ORACLE"
   services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-ee
-      alias: oracle-db
+  - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-ee
+    alias: oracle-db
   variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
-
+    DB_URL: oracle-db:1521/ORCLPDB1
 test_oracle_12.2:
   stage: test
-  extends: .tests_ORACLE
+  extends: ".tests_ORACLE"
   services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-ee
-      alias: oracle-db
+  - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-ee
+    alias: oracle-db
   variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
-
+    DB_URL: oracle-db:1521/ORCLPDB1
 test_oracle_19.3:
   stage: test
-  extends: .tests_ORACLE
+  extends: ".tests_ORACLE"
   services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.3.0.0-ee
-      alias: oracle-db
+  - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.3.0.0-ee
+    alias: oracle-db
   variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
-
+    DB_URL: oracle-db:1521/ORCLPDB1
 test_oracle_19.10-SE2:
   stage: test
-  extends: .tests_ORACLE
+  extends: ".tests_ORACLE"
   services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.10.0.0-se2
-      alias: oracle-db
+  - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.10.0.0-se2
+    alias: oracle-db
   variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
-
+    DB_URL: oracle-db:1521/ORCLPDB1
 generate_asciidoc:
   stage: build
   script:
-    - gem install --no-doc asciidoctor
-    - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
-    - asciidoctor -o doc/movex-cdc_demo.html doc/movex-cdc_demo.adoc
-    - gem install --no-doc asciidoctor-pdf
-    - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
+  - gem install --no-doc asciidoctor
+  - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
+  - asciidoctor -o doc/movex-cdc_demo.html doc/movex-cdc_demo.adoc
+  - gem install --no-doc asciidoctor-pdf
+  - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
   artifacts:
     paths:
-      - doc/movex-cdc.html
-      - doc/movex-cdc_demo.html
-      - doc/images/
-      - doc/movex-cdc.pdf
-
+    - doc/movex-cdc.html
+    - doc/movex-cdc_demo.html
+    - doc/images/
+    - doc/movex-cdc.pdf
 build_movex_cdc:
   stage: build
-
   image:
-    # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
-    # name: gcr.io/kaniko-project/executor:debug
     name: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kaniko-executor:debug
-    entrypoint: [""]
-
+    entrypoint:
+    - ''
   script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
-    - cat build.json
-    - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle --destination $TEMP_DOCKER_IMAGE
-
+  - mkdir -p /kaniko/.docker
+  - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}"
+    > /kaniko/.docker/config.json
+  - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}"
+    > build.json'
+  - cat build.json
+  - echo "Docker image = $TEMP_DOCKER_IMAGE"
+  - "/kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle
+    --destination $TEMP_DOCKER_IMAGE"
 trivy_scan:
   stage: post_build
   image:
     name: docker.io/aquasec/trivy:latest
-    entrypoint: [""]
+    entrypoint:
+    - ''
   variables:
-    # No need to clone the repo, we exclusively work on artifacts.  See
-    # https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
     GIT_STRATEGY: none
     TRIVY_USERNAME: "$CI_REGISTRY_USER"
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
     TRIVY_AUTH_URL: "$CI_REGISTRY"
   script:
-    - trivy --version
-    # cache cleanup is needed when scanning images with the same tags, it does not remove the database
-    - time trivy image --clear-cache
-    # update vulnerabilities db
-    - time trivy --download-db-only --no-progress --cache-dir .trivycache/
-    # Builds report and puts it in the default workdir $CI_PROJECT_DIR, so `artifacts:` can take it from there
-    - time trivy --exit-code 0 --cache-dir .trivycache/ --no-progress --format template --template "@/contrib/gitlab.tpl"
-      --output "$CI_PROJECT_DIR/gl-container-scanning-report.json" "$TEMP_DOCKER_IMAGE"
-    # Prints full report
-    - time trivy --exit-code 0 --cache-dir .trivycache/ --no-progress "$TEMP_DOCKER_IMAGE"
-    # Fail on critical vulnerabilities
-    - time trivy --exit-code 1 --cache-dir .trivycache/ --severity CRITICAL --no-progress "$TEMP_DOCKER_IMAGE"
+  - trivy --version
+  - time trivy image --clear-cache
+  - time trivy --download-db-only --no-progress --cache-dir .trivycache/
+  - time trivy --exit-code 0 --cache-dir .trivycache/ --no-progress --format template
+    --template "@/contrib/gitlab.tpl" --output "$CI_PROJECT_DIR/gl-container-scanning-report.json"
+    "$TEMP_DOCKER_IMAGE"
+  - time trivy --exit-code 0 --cache-dir .trivycache/ --no-progress "$TEMP_DOCKER_IMAGE"
+  - time trivy --exit-code 1 --cache-dir .trivycache/ --severity CRITICAL --no-progress
+    "$TEMP_DOCKER_IMAGE"
   cache:
     paths:
-      - .trivycache/
-  # Enables https://docs.gitlab.com/ee/user/application_security/container_scanning/ (Container Scanning report is available on GitLab EE Ultimate or GitLab.com Gold)
+    - ".trivycache/"
   artifacts:
-    when:                          always
+    when: always
     reports:
-      container_scanning:          gl-container-scanning-report.json
-
-#rapid7_scan:
-# # deactivated because of error if calling in podman: Failed to analyze image. java.io.IOException: Insufficient disk space to extract resource. 0 available, 9 required.
-#  stage: post_build
-#  variables:
-#    MAXIMAL_ALLOWED_RISK_SCORE: 0
-#  script:
-#    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-#    - $PODMAN pull $TEMP_DOCKER_IMAGE
-#    - $PODMAN pull docker.io/rapid7/container-image-scanner
-#    - $PODMAN save $TEMP_DOCKER_IMAGE -o movex-cdc.tar
-#    - $PODMAN run -it --rm -v $PWD/movex-cdc.tar:/movex-cdc.tar rapid7/container-image-scanner -f movex-cdc.tar -k "$RAPID7_IMAGE_SCANNER_API_KEY" -r eu > rapid7.json
-#    - cat rapid7.json | jq .assessment
-#    - |
-#      RISK_SCORE=`cat rapid7.json | jq .assessment.risk_score`
-#      # Use bc for comparison because $RISK_SCORE can be a floating point number
-#      if [ `echo "$RISK_SCORE > $MAXIMAL_ALLOWED_RISK_SCORE" | bc` -eq 1 ]; then
-#        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
-#        echo ''
-#        cat rapid7.json
-#        exit 1
-#      fi
-#  artifacts:
-#    when: always
-#    paths:
-#      - rapid7.json
-#    expire_in: 1 month
-
-
-.docker_test:
+      container_scanning: gl-container-scanning-report.json
+".docker_test":
   script:
-    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - $PODMAN pull $TEMP_DOCKER_IMAGE
+  - "$PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+  - "$PODMAN pull $TEMP_DOCKER_IMAGE"
+  - 'echo  "# MOVEX CDC config generated by CI Pipeline  " >  run_config.yml  && echo  "DB_TYPE:            ORACLE                   "
+    >> run_config.yml && echo  "DB_USER:            movex                    " >>
+    run_config.yml && echo  "DB_PASSWORD:        movex                    " >> run_config.yml
+    && echo  "DB_URL:             $DB_URL                  " >> run_config.yml &&
+    echo  "DB_SYS_PASSWORD:    oracle                   " >> run_config.yml && echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER
+    " >> run_config.yml
 
-    - >
-      echo  "# MOVEX CDC config generated by CI Pipeline  " >  run_config.yml  &&
-      echo  "DB_TYPE:            ORACLE                   " >> run_config.yml &&
-      echo  "DB_USER:            movex                    " >> run_config.yml &&
-      echo  "DB_PASSWORD:        movex                    " >> run_config.yml &&
-      echo  "DB_URL:             $DB_URL                  " >> run_config.yml &&
-      echo  "DB_SYS_PASSWORD:    oracle                   " >> run_config.yml &&
-      echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER " >> run_config.yml
-    - cat run_config.yml
-    - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
-    - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
-    - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
-    - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE
-    - sleep 5
-    - $PODMAN ps
-    - |
-      echo "
-      MAX_WAIT=60
-      typeset -i LOOPS=0
-      echo :\$LOOPS:
-      while [ \$LOOPS -lt \$MAX_WAIT ]; do
-        curl http://localhost:8080/ 2>/dev/null >/dev/null
-        retval=\$?
-        if [ \$retval -eq 0 ]; then
-          break
-        fi
-        LOOPS=LOOPS+1
-        echo -n .
-        sleep 1
-      done
-      if [ \$LOOPS -eq \$MAX_WAIT ]; then
-        echo No access to port 8080 after \$MAX_WAIT seconds
-        echo retval = \$retval
-        exit 1
-      else
-        # Let the worker start before health check
-        sleep 1
-        exit 0
+'
+  - cat run_config.yml
+  - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml
+    $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
+  - "$PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml
+    $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls"
+  - "$PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml
+    $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user"
+  - "$PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml
+    -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE"
+  - sleep 5
+  - "$PODMAN ps"
+  - |
+    echo "
+    MAX_WAIT=60
+    typeset -i LOOPS=0
+    echo :\$LOOPS:
+    while [ \$LOOPS -lt \$MAX_WAIT ]; do
+      curl http://localhost:8080/ 2>/dev/null >/dev/null
+      retval=\$?
+      if [ \$retval -eq 0 ]; then
+        break
       fi
-      " | bash
-    - curl http://localhost:8080/
-    - curl -L http://localhost:8080/health_check/
-    - |
-      echo "
-      sleep 3
-      curl -L http://localhost:8080/health_check/ | tee health_check_result.log | grep health_check_timestamp
-      if [ \$? -ne 0 ]; then
-        echo healthcheck not complete! Details follow:
-        cat health_check_result.log
-        $PODMAN logs movex-cdc
-        exit 1
-      fi
-      " | bash
-    - $PODMAN stop movex-cdc
-
+      LOOPS=LOOPS+1
+      echo -n .
+      sleep 1
+    done
+    if [ \$LOOPS -eq \$MAX_WAIT ]; then
+      echo No access to port 8080 after \$MAX_WAIT seconds
+      echo retval = \$retval
+      exit 1
+    else
+      # Let the worker start before health check
+      sleep 1
+      exit 0
+    fi
+    " | bash
+  - curl http://localhost:8080/
+  - curl -L http://localhost:8080/health_check/
+  - |
+    echo "
+    sleep 3
+    curl -L http://localhost:8080/health_check/ | tee health_check_result.log | grep health_check_timestamp
+    if [ \$? -ne 0 ]; then
+      echo healthcheck not complete! Details follow:
+      cat health_check_result.log
+      $PODMAN logs movex-cdc
+      exit 1
+    fi
+    " | bash
+  - "$PODMAN stop movex-cdc"
 docker_test_oracle_12.1:
   stage: post_build
-  extends: .docker_test
+  extends: ".docker_test"
   services:
-    - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
-      alias: oracle-db
+  - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
+    alias: oracle-db
   variables:
     DB_TYPE: ORACLE
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
-    DB_URL: "oracle-db:1521/ORCLPDB1"
-
-
-# Deploy the static site to GitLab Pages, but only for master branch
+    DB_URL: oracle-db:1521/ORCLPDB1
 pages:
   stage: deploy
   only:
     refs:
-      - master
+    - master
   script:
-    - cp doc/movex-cdc.html public/
-    - cp -r doc/images public/
-    - cp doc/movex-cdc.pdf public/
-    - cp doc/movex-cdc_demo.html public/
-    - cp doc/google70fcb57bf7ac9cbe.html public/
-    - cp doc/sitemap.xml public/
+  - cp doc/movex-cdc.html public/
+  - cp -r doc/images public/
+  - cp doc/movex-cdc.pdf public/
+  - cp doc/movex-cdc_demo.html public/
+  - cp doc/google70fcb57bf7ac9cbe.html public/
+  - cp doc/sitemap.xml public/
   artifacts:
     paths:
-      - public/movex-cdc.pdf
-      - public/movex-cdc.html
-      - public/movex-cdc_demo.html
-      - public/google70fcb57bf7ac9cbe.html
-      - public/sitemap.xml
-      - public/images/
-
-# Make the Docker image available for user after treating as clean
+    - public/movex-cdc.pdf
+    - public/movex-cdc.html
+    - public/movex-cdc_demo.html
+    - public/google70fcb57bf7ac9cbe.html
+    - public/sitemap.xml
+    - public/images/
 final_tag_docker:
   stage: deploy
   script:
-    - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    # Ensure previously built image is available
-    - $PODMAN pull $TEMP_DOCKER_IMAGE
-    # make master tag available for consumer
-    - $PODMAN tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
-    - $PODMAN push $FINAL_DOCKER_IMAGE
+  - "$PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY"
+  - "$PODMAN pull $TEMP_DOCKER_IMAGE"
+  - "$PODMAN tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE"
+  - "$PODMAN push $FINAL_DOCKER_IMAGE"
+include:
+- template: Security/Dependency-Scanning.gitlab-ci.yml
