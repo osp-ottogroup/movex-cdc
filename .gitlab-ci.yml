@@ -34,7 +34,7 @@ brakeman_analysis:
     - brakeman -A
 
 test_frontend:
-  image: node:14-alpine
+  image: node:16-alpine
   stage: code_analysis
   script:
     - npm install -g @vue/cli
