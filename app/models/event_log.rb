@@ -4,6 +4,7 @@ class EventLog < ApplicationRecord
 
   def self.adjust_max_simultaneous_transactions
     expected_value = MovexCdc::Application.config.max_simultaneous_transactions
+    workaround_hint = ''                                                        # possible workaround hint at exception
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       assumed_simultaneous_user_tx = 20
@@ -22,6 +23,7 @@ class EventLog < ApplicationRecord
                          Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
                        end
       if current_value != expected_value
+        workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
         Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
         Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
         if MovexCdc::Application.partitioning?
@@ -31,6 +33,9 @@ class EventLog < ApplicationRecord
         end
       end
     end
+  rescue Exception=>e
+    EventLog.log_resource_busy_error_helper(e, workaround_hint)
+    raise
   end
 
   def self.current_interval_seconds
@@ -43,17 +48,22 @@ class EventLog < ApplicationRecord
   # Adjust interval
   def self.adjust_interval
     expected_interval = MovexCdc::Application.config.partition_interval
+    workaround_hint = ''                                                        # possible workaround hint at exception
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         current_interval = current_interval_seconds
         if current_interval.nil? || current_interval != expected_interval
+          workaround_hint = "PARTITION_INTERVAL = #{current_interval}"
           Rails.logger.info "EventLog.adjust_interval: Change partition interval from #{current_interval} to #{expected_interval} seconds "
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs SET INTERVAL(NUMTODSINTERVAL(#{expected_interval},'SECOND'))"
         end
       end
     end
+  rescue Exception=>e
+    EventLog.log_resource_busy_error_helper(e, workaround_hint)
+    raise
   end
 
   # called by health_check controller
@@ -181,4 +191,18 @@ class EventLog < ApplicationRecord
       end
     end
   end
+
+  def self.log_resource_busy_error_helper(exception, workaround_hint)
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      if exception.message['ORA-00054']
+        Rails.logger.warn '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        Rails.logger.warn "Table EVENT_LOGS must not be locked by any other transactions during startup of MOVEX CDC to allow this transformation!"
+        Rails.logger.warn "Possible workaround: set '#{workaround_hint}' in startup configuration to start without transformation on EVENT_LOGS."
+        Rails.logger.warn "Restart the application at a later time with the adjusted configuration, if no transactions are active on the table then."
+        Rails.logger.warn '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+      end
+    end
+  end
+
 end
