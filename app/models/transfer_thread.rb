@@ -410,14 +410,21 @@ class TransferThread
             @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
           rescue Kafka::BufferOverflow => e
             handle_kafka_buffer_overflow(e, kafka_message, topic, table)
-            raise                                                                 # Ensure transaction is rolled back an retried
+            raise                                                               # Ensure transaction is rolled back an retried
           end
         end
-        @kafka_producer.deliver_messages                                       # bulk transfer of messages from collection to kafka
+        begin
+          @kafka_producer.deliver_messages                                      # bulk transfer of messages from collection to kafka
+        rescue Kafka::ConcurrentTransactionError                                # raised in TransactionManager.add_partitions_to_transaction
+          sleep 1
+          # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
+          Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying '@kafka_producer.deliver_messages' again."
+          @kafka_producer.deliver_messages
+        end
       rescue Kafka::MessageSizeTooLarge => e
         Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
         fix_message_size_too_large(kafka, event_logs_slice)
-        raise                                                                 # Ensure transaction is rolled back an retried
+        raise                                                                   # Ensure transaction is rolled back an retried
       rescue Exception => e
         msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
         msg << event_logs_debug_info(event_logs_slice)
