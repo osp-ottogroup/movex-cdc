@@ -71,12 +71,10 @@ class TransferThread
         @last_read_events = event_logs.count                                    # remember for health check
         if event_logs.count > 0
           @last_active_time = Time.now
-          idle_sleep_time = 0                                                   # Reset sleep time for next idle time
           process_event_logs_divide_and_conquer(event_logs)
           @statistic_counter.flush                                              # Write cumulated statistics to singleton memory only if processing happened
-        else
-          idle_sleep_time += 1 if idle_sleep_time < 60
         end
+        idle_sleep_time = calc_idle_sleep_time(processed_events_count: event_logs.count, current_idle_sleep_time: idle_sleep_time)
       end                                                                       # ActiveRecord::Base.transaction do
       sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
     end
@@ -392,7 +390,7 @@ class TransferThread
 
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
-  def process_kafka_transaction(event_logs)
+  def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
     # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
     @kafka_producer.begin_transaction
     event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
@@ -413,14 +411,7 @@ class TransferThread
             raise                                                               # Ensure transaction is rolled back an retried
           end
         end
-        begin
-          @kafka_producer.deliver_messages                                      # bulk transfer of messages from collection to kafka
-        rescue Kafka::ConcurrentTransactionError                                # raised in TransactionManager.add_partitions_to_transaction
-          sleep 1
-          # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-          Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying '@kafka_producer.deliver_messages' again."
-          @kafka_producer.deliver_messages
-        end
+        @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka
       rescue Kafka::MessageSizeTooLarge => e
         Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
         fix_message_size_too_large(kafka, event_logs_slice)
@@ -436,11 +427,21 @@ class TransferThread
     @statistic_counter.commit_uncommitted_success_increments
     @messages_processed_successful += event_logs.count
   rescue Exception => e
-    Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
     @statistic_counter.rollback_uncommitted_success_increments
     @kafka_producer.abort_transaction
     @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
-    raise
+
+    max_concurrent_transaction_error_retries = 1
+    # Kafka::ConcurrentTransactionError is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
+    if e.class == Kafka::ConcurrentTransactionError && concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
+      sleep 1
+      # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
+      Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."
+      process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
+    else
+      Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
+      raise
+    end
   end
 
   # get min id for event_logs with msg_key where this worker instance is responsible for
@@ -536,6 +537,7 @@ class TransferThread
   end
 
   def sleep_and_watch(sleeptime)
+    Rails.logger.debug "TransferThread.sleep_and_watch: Sleeping #{sleeptime} seconds" if sleeptime > 0
     1.upto(sleeptime) do
       sleep(1)
       if @thread_mutex.synchronize { @stop_requested }                          # Cancel sleep if stop requested
@@ -702,6 +704,20 @@ class TransferThread
         Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
       end
     end
+  end
+
+  # how long should be waited after processing of whole DB transaction
+  def calc_idle_sleep_time(processed_events_count:, current_idle_sleep_time:)
+    new_sleep_time = case
+                     when processed_events_count > @max_transaction_size/5 then 0 # Ensure also small max transactions do immediately proceed
+                     when processed_events_count < 10 && current_idle_sleep_time < 60 then current_idle_sleep_time + 10 # increase sleep time if < 10 records are processed in last loop
+                     when processed_events_count < 100 then 5
+                     when processed_events_count < 1000 then 2
+                     when processed_events_count >= 1000 then 0
+                     else 60                                                    # < 10 records processed and max sleep time reached
+                     end
+    new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes fast enough
+    new_sleep_time
   end
 
 end

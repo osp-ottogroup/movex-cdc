@@ -83,7 +83,8 @@ class Housekeeping
           Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
         end
 
-        max_distance_seconds = (1024*1024-1) * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
+        max_possible_partition_count = 1024*1024-1
+        max_distance_seconds = max_possible_partition_count * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
         max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
@@ -91,20 +92,25 @@ class Housekeeping
         min_time =  get_time_from_high_value.call(part1.high_value)
         Rails.logger.debug "High value of oldest partition for Event_Logs is #{min_time}"
         compare_time = Time.now - 100*86400                                     # 100 days back
-        Database.select_all("SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position > 1").each do |p|
-          part_time = get_time_from_high_value.call(p.high_value)
-          compare_time = part_time if part_time < compare_time                  # get oldest partition high value
+        second_hv = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
+        if second_hv.nil?
+          Rails.logger.warn "Only one partition exists for table EVENT_LOGS! This should never happen except at initial start of application!"
+          return
         end
-        Rails.logger.debug "High value of second oldest partition for Event_Logs is #{compare_time}"
+        second_hv_time = get_time_from_high_value.call(second_hv)
+        compare_time = second_hv_time if second_hv_time < compare_time          # get oldest partition high value
+
+        Rails.logger.debug "High value of second oldest partition for Event_Logs is #{second_hv_time}, compare_time is #{compare_time}"
         if compare_time - Time.now > max_distance_seconds/2                     # Half of expected max. distance
           Rails.logger.error "There are older partitions in table EVENT_LOGS with high value = #{compare_time} which will soon conflict with oldest possible high value of first non-interval partition"
         end
         if Time.now - min_time > max_distance_seconds                           # update of high_value of first non-interval partition should happen
+          Rails.logger.warn "Adjusting high value of first partition forced because '#{min_time}' gets to old to securely prevent from reaching max. partition count"
           log_partitions
           # Check if more than one range partition exists
           part_stats = Database.select_first_row "SELECT SUM(DECODE(Interval, 'NO', 1, 0)) Range_Partition_Count, COUNT(*) Partition_Count FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
           if part_stats.range_partition_count > 1 && part_stats.partition_count > 2  # drop first of more range partitions only if at least two partitions remain
-            Rails.logger.info "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
+            Rails.logger.warn "There are more than one range partitions for table EVENT_LOGS with interval='NO'! Try to drop the first one"
             partition = Database.select_first_row("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1")
             EventLog.check_and_drop_partition(partition.partition_name, 'Housekeeping.check_partition_interval_internal')
           else
@@ -126,6 +132,17 @@ class Housekeeping
             Rails.logger.debug "Partition created at position 2 with partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
             Rails.logger.debug "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}"
             raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
+
+            # Both partitions must be empty because they become the first partition then
+            unless EventLog.partition_allowed_for_drop?(part2.partition_name, 2, part2.high_value, 'Housekeeping.check_partition_interval_internal')
+              Rails.logger.error "Partition #{part2.partition_name} at position 2 cannot be merged because it is not empty"
+              return
+            end
+            unless EventLog.partition_allowed_for_drop?(part3.partition_name, 3, part3.high_value, 'Housekeeping.check_partition_interval_internal')
+              Rails.logger.error "Partition #{part3.partition_name} at position 3 cannot be merged because it is not empty"
+              return
+            end
+
             Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
             Rails.logger.debug "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}"
             # Drop partition only if empty and without transactions
