@@ -71,12 +71,10 @@ class TransferThread
         @last_read_events = event_logs.count                                    # remember for health check
         if event_logs.count > 0
           @last_active_time = Time.now
-          idle_sleep_time = 0                                                   # Reset sleep time for next idle time
           process_event_logs_divide_and_conquer(event_logs)
           @statistic_counter.flush                                              # Write cumulated statistics to singleton memory only if processing happened
-        else
-          idle_sleep_time += 1 if idle_sleep_time < 60
         end
+        idle_sleep_time = calc_idle_sleep_time(processed_events_count: event_logs.count, current_idle_sleep_time: idle_sleep_time)
       end                                                                       # ActiveRecord::Base.transaction do
       sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
     end
@@ -539,6 +537,7 @@ class TransferThread
   end
 
   def sleep_and_watch(sleeptime)
+    Rails.logger.debug "TransferThread.sleep_and_watch: Sleeping #{sleeptime} seconds" if sleeptime > 0
     1.upto(sleeptime) do
       sleep(1)
       if @thread_mutex.synchronize { @stop_requested }                          # Cancel sleep if stop requested
@@ -705,6 +704,20 @@ class TransferThread
         Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
       end
     end
+  end
+
+  # how long should be waited after processing of whole DB transaction
+  def calc_idle_sleep_time(processed_events_count:, current_idle_sleep_time:)
+    new_sleep_time = case
+                     when processed_events_count > @max_transaction_size/5 then 0 # Ensure also small max transactions do immediately proceed
+                     when processed_events_count < 10 && current_idle_sleep_time < 60 then current_idle_sleep_time + 10 # increase sleep time if < 10 records are processed in last loop
+                     when processed_events_count < 100 then 5
+                     when processed_events_count < 1000 then 2
+                     when processed_events_count >= 1000 then 0
+                     else 60                                                    # < 10 records processed and max sleep time reached
+                     end
+    new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes fast enough
+    new_sleep_time
   end
 
 end
