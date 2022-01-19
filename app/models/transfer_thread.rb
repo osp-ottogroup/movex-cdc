@@ -711,12 +711,13 @@ class TransferThread
     new_sleep_time = case
                      when processed_events_count > @max_transaction_size/5 then 0 # Ensure also small max transactions do immediately proceed
                      when processed_events_count < 10 && current_idle_sleep_time < 60 then current_idle_sleep_time + 10 # increase sleep time if < 10 records are processed in last loop
+                     when processed_events_count < 10 then 60                   # sleep_time for < 10 is already 60 then stay at this level
                      when processed_events_count < 100 then 5
                      when processed_events_count < 1000 then 2
                      when processed_events_count >= 1000 then 0
-                     else 60                                                    # < 10 records processed and max sleep time reached
+                     else 60                                                    # this line should never be reached
                      end
-    new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes fast enough
+    new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes are fast enough
     new_sleep_time
   end
 
