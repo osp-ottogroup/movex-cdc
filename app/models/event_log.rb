@@ -113,6 +113,11 @@ class EventLog < ApplicationRecord
     end
   end
 
+  # Is partition in a state that it can be dropped
+  # @param {String} partition_name
+  # @param {Integer} partition_position
+  # @param {String} high_value
+  # @param {String} caller
   def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller)
     Rails.logger.debug "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
 
@@ -153,6 +158,10 @@ class EventLog < ApplicationRecord
   end
 
   # check if partition does not contain records or pending transactions
+  # @param {String} partition_name
+  # @param {Integer} partition_position
+  # @param {String} high_value
+  # @param {String} caller
   def self.partition_empty?(partition_name, partition_position, high_value, caller)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then

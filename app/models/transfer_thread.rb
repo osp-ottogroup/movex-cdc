@@ -392,7 +392,7 @@ class TransferThread
 
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
-  def process_kafka_transaction(event_logs)
+  def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
     # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
     @kafka_producer.begin_transaction
     event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
@@ -413,14 +413,7 @@ class TransferThread
             raise                                                               # Ensure transaction is rolled back an retried
           end
         end
-        begin
-          @kafka_producer.deliver_messages                                      # bulk transfer of messages from collection to kafka
-        rescue Kafka::ConcurrentTransactionError                                # raised in TransactionManager.add_partitions_to_transaction
-          sleep 1
-          # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-          Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying '@kafka_producer.deliver_messages' again."
-          @kafka_producer.deliver_messages
-        end
+        @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka
       rescue Kafka::MessageSizeTooLarge => e
         Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
         fix_message_size_too_large(kafka, event_logs_slice)
@@ -436,11 +429,21 @@ class TransferThread
     @statistic_counter.commit_uncommitted_success_increments
     @messages_processed_successful += event_logs.count
   rescue Exception => e
-    Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
     @statistic_counter.rollback_uncommitted_success_increments
     @kafka_producer.abort_transaction
     @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
-    raise
+
+    max_concurrent_transaction_error_retries = 1
+    # Kafka::ConcurrentTransactionError is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
+    if e.class == Kafka::ConcurrentTransactionError && concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
+      sleep 1
+      # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
+      Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."
+      process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
+    else
+      Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
+      raise
+    end
   end
 
   # get min id for event_logs with msg_key where this worker instance is responsible for
