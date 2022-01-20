@@ -49,6 +49,7 @@ class TransferThread
     @kafka_producer                 = nil                                       # initialized later
     @last_read_events               = 0                                         # number of event_log records read at last read rom event_logs
     @last_scanned_partitions        = 0                                         # number of partitions scanned at last read rom event_logs
+    @concurrent_tx_retry_delay_ms   = 1                                         # Amount of delay before retry at Kafka::ConcurrentTransactionError, increased if not sufficient
   end
 
   # Do processing in a separate Thread
@@ -433,11 +434,20 @@ class TransferThread
 
     max_concurrent_transaction_error_retries = 1
     # Kafka::ConcurrentTransactionError is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
-    if e.class == Kafka::ConcurrentTransactionError && concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
-      sleep 1
-      # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-      Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."
-      process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
+    if e.class == Kafka::ConcurrentTransactionError
+      if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
+        sleep @concurrent_tx_retry_delay_ms/1000.0
+        # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
+        Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."
+        process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
+      else
+        Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
+        if @concurrent_tx_retry_delay_ms < 1000                                 # Max. 1 second for delay
+          Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from Kafka::ConcurrentTransactionError next time"}
+          @concurrent_tx_retry_delay_ms = @concurrent_tx_retry_delay_ms * 10    # Increase ot sufficient value
+        end
+        raise
+      end
     else
       Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
       raise
