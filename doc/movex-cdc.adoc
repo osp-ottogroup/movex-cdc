@@ -9,8 +9,8 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :sectnumlevels: 6
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
-:keywords: Oracle, Kafka, Change Data Capture, CDC, Movex, Trigger
-:docinfo:
+:description: Solution for change data capture from Oracle to Kafka
+:keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
 TIP: This page is not yet fully completed and still under construction.
 
@@ -20,7 +20,7 @@ This documentation describes the product MOVEX Change Data Capture which is host
 
 === Purpose ===
 **********************************************************************
-Captures data change events (Insert/Update/Delete) in relational databases and immediately transfers the data changes to Kafka event hub.
+Captures data change events (Insert/Update/Delete) in Oracle and other databases and immediately transfers the data changes to Kafka event hub.
 **********************************************************************
 
 

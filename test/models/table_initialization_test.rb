@@ -18,6 +18,7 @@ class TableInitializationTest < ActiveSupport::TestCase
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
+      sleep 1
       Database.execute "UPDATE Tables SET Topic=Topic"                          # ensure SCN is incremented at least once to prevent from ORA-01466 at update
       sleep 1
       Database.select_all "SELECT * FROM #{victim_schema_prefix}#{victim1_table.name}"  # Dummy read to prevent from ORA-01466

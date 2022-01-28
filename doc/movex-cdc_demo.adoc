@@ -9,8 +9,8 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :sectnumlevels: 6
 :homepage: https://www.osp.de
 :title-logo-image: osp.png
-:keywords: Oracle, Kafka, Change Data Capture, CDC, Movex, Trigger, Demo, Quickstart
-:docinfo:
+:description: Oracle change data capture to Kafka: How to run within 10 minutes
+:keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
 **Implement change data tracking on an existing Oracle DB including event transfer to Kafka within 10 minutes
 **
@@ -54,6 +54,7 @@ We use an own Docker image that combines Zookeeper and Kafka in one image.
 The command will log the Kafka console output and block until termination by Ctrl-C.
 ----
 docker run --rm \
+  --name kafka \
   -p 2181:2181 \
   -p 9092:9092 \
   -e IP_ADDRESS=$IP_ADDRESS \
@@ -115,6 +116,7 @@ docker run --rm \
 === Run MOVEX CDC Docker container
 ----
 docker run --rm \
+  --name cdc \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
