@@ -112,7 +112,10 @@ The implementation depends on achievable benefits in application and operation c
 === Preconditions for usage ===
 ==== Sizing of server instance for MOVEX Change Data Cature ====
 The application runs on one CPU and 4 GB of memory with it's default settings.
-But for higher number of worker threads and/or larger memory buffer size you should increase the number or CPUs and memory according.
+But for higher number of worker threads and/or larger memory buffer size you should increase the number or CPUs and memory according. +
+By default MOVEX CDC uses up to 75% of the available memory.
+If you want to limit the maximum memory used by MOVEC CDC then set JAVA_OPTS=-Xmx to the desired value (like JAVA_OPTS=-Xmx4096m for 4 GB ).
+
 
 ==== Database schema for MOVEX Change Data Cature  ====
 The application needs it's own database schema at the observed database. +
