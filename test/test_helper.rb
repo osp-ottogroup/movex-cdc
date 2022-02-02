@@ -21,6 +21,15 @@ module TestHelper
       raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
     end
   end
+
+  # allow assertions failure message to appear in logfile
+  # use like: assert_response :success, log_on_failure('should get log file with JWT')
+  def log_on_failure(message)
+    Proc.new do
+      Rails.logger.debug "Assertion failed: #{message}"
+      message
+    end
+  end
 end
 
 class ActiveSupport::TestCase

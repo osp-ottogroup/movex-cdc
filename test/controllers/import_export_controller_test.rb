@@ -198,8 +198,8 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     old_schema = Schema.where(name: MovexCdc::Application.config.db_user).first
     #assert_equal "main", old_schema.name
     assert_equal KafkaHelper.existing_topic_for_test, old_schema.topic
-    assert old_schema.tables.count > 0, 'original schema should contain tables'
-    assert old_schema.schema_rights.count > 0, 'original schema should contain schema rights'
+    assert old_schema.tables.count > 0, log_on_failure('original schema should contain tables')
+    assert old_schema.schema_rights.count > 0, log_on_failure('original schema should contain schema rights')
 
     # this is the minimal schema configuration
     schema = [{name: old_schema.name, topic: "TheWeather"}, tables: [], schema_rights: []]
@@ -211,8 +211,8 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     new_schema = Schema.where(name: MovexCdc::Application.config.db_user).first
     assert_equal old_schema.name, new_schema.name
     assert_equal "TheWeather", new_schema.topic
-    assert_equal 0, new_schema.tables.count, 'imported schema should not have any table'
-    assert_equal 0, new_schema.schema_rights.count, 'imported schema should not have any schema rights'
+    assert_equal 0, new_schema.tables.count, log_on_failure('imported schema should not have any table')
+    assert_equal 0, new_schema.schema_rights.count, log_on_failure('imported schema should not have any schema rights')
     Schema.find(new_schema.id).update!(old_schema.attributes.select{|key, value| key != 'lock_version'})  # Restore original state
 
     GlobalFixtures.reinitialize                                                 # load original fixtures

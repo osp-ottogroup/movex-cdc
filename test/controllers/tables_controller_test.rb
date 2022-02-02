@@ -11,7 +11,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get "/tables?schema_id=#{user_schema.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should create table" do
@@ -32,7 +32,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     post tables_url, headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info' } }, as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
 
     # reopen hidden table instead of creation
     tables_deletable = Table.where(schema_id: victim_schema.id, name: 'VICTIM3').first

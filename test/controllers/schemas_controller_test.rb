@@ -11,9 +11,9 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
 
     case MovexCdc::Application.config.db_type
     when 'SQLITE' then
-      assert_equal(1, result.count, 'Should return schema main only')
+      assert_equal(1, result.count, log_on_failure('Should return schema main only'))
     else
-      assert_equal(2, result.count, 'Should return the allowed schemas for user')
+      assert_equal(2, result.count, log_on_failure('Should return the allowed schemas for user'))
     end
   end
 
