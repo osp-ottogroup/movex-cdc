@@ -13,7 +13,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         assert 2 <= Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"),
-               "There should remain at least two partitions"
+               log_on_failure("There should remain at least two partitions")
       end
     end
   end
@@ -89,7 +89,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             current_hv = get_time_from_high_value.call(1)
             max_expected_seconds_for_interval = (1024*1024)*10*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
             min_expected_hv = Time.now-max_expected_seconds_for_interval
-            assert current_hv > min_expected_hv, "high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} seconds (#{min_expected_hv})"
+            assert current_hv > min_expected_hv, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} seconds (#{min_expected_hv})")
           end
 
           # take into account that Time cannot be before ca. 1729-02-15

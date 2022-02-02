@@ -13,7 +13,7 @@ class SchemaRightTest < ActiveSupport::TestCase
 
   test "select schema_right" do
     schema_rights = SchemaRight.all
-    assert(schema_rights.count > 0, 'Should return at least one record')
+    assert schema_rights.count > 0, log_on_failure('Should return at least one record')
   end
 
   test 'process_user_request' do
@@ -21,10 +21,10 @@ class SchemaRightTest < ActiveSupport::TestCase
     SchemaRight.process_user_request(admin, [{ info: 'LaLa', yn_deployment_granted: 'N', schema: { name: 'HUGO'}}])
 
     schema = Schema.where(name: 'HUGO').first
-    assert_not_nil(schema, 'Should have created new schema record')
+    assert_not_nil schema, log_on_failure('Should have created new schema record')
 
     schema_right = SchemaRight.where(user_id: admin.id, schema_id: schema.id).first
-    assert_not_nil(schema_right, 'Should have created new schema_right record')
+    assert_not_nil schema_right, log_on_failure('Should have created new schema_right record')
 
     assert_equal('LaLa', schema_right.info)
     SchemaRight.process_user_request(admin,
@@ -35,11 +35,11 @@ class SchemaRightTest < ActiveSupport::TestCase
                                       }]
     )
     schema_right = SchemaRight.where(user_id: admin.id, schema_id: schema.id).first # reload object
-    assert_equal('HaHa', schema_right.info, 'should have updated info')
-    assert_equal('Y', schema_right.yn_deployment_granted, 'should have updated yn_deployment_granted')
+    assert_equal 'HaHa', schema_right.info, log_on_failure('should have updated info')
+    assert_equal 'Y', schema_right.yn_deployment_granted, log_on_failure('should have updated yn_deployment_granted')
 
     SchemaRight.process_user_request(admin, [])
-    assert_nil(SchemaRight.where(user_id: admin.id, schema_id: schema.id).first, 'should remove schema right')
+    assert_nil SchemaRight.where(user_id: admin.id, schema_id: schema.id).first, log_on_failure('should remove schema right')
 
   end
 
@@ -48,10 +48,10 @@ class SchemaRightTest < ActiveSupport::TestCase
     SchemaRight.process_user_request(admin, [{ info: 'LaLa', yn_deployment_granted: 'N', schema: { name: 'HUGO'}}])
 
     schema = Schema.where(name: 'HUGO').first
-    assert_not_nil(schema, 'Should have created new schema record')
+    assert_not_nil schema, log_on_failure('Should have created new schema record')
 
     schema_right = SchemaRight.where(user_id: admin.id, schema_id: schema.id).first
-    assert_not_nil(schema_right, 'Should have created new schema_right record')
+    assert_not_nil schema_right, log_on_failure('Should have created new schema_right record')
 
     assert_equal('LaLa', schema_right.info)
     SchemaRight.process_user_request(admin,
@@ -61,11 +61,11 @@ class SchemaRightTest < ActiveSupport::TestCase
                                       }]
     )
     schema_right = SchemaRight.where(user_id: admin.id, schema_id: schema.id).first # reload object
-    assert_equal('HaHa', schema_right.info, 'should have updated info')
-    assert_equal('Y', schema_right.yn_deployment_granted, 'should have updated yn_deployment_granted')
+    assert_equal 'HaHa', schema_right.info, log_on_failure('should have updated info')
+    assert_equal 'Y', schema_right.yn_deployment_granted, log_on_failure('should have updated yn_deployment_granted')
 
     SchemaRight.process_user_request(admin, [])
-    assert_nil(SchemaRight.where(user_id: admin.id, schema_id: schema.id).first, 'should remove schema right')
+    assert_nil SchemaRight.where(user_id: admin.id, schema_id: schema.id).first, log_on_failure('should remove schema right')
   end
 
 end

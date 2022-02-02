@@ -348,9 +348,9 @@ class ActiveSupport::TestCase
                                   AND    Operation = :operation
                                  ", { table_id: table_id, operation: operation}
     if max_expected.nil?
-      assert_equal expected, result, "Expected Statistics value for Table_ID=#{table_id} Name='#{Table.find(table_id).name}', Operation='#{operation}', Column='#{column_name}'"
+      assert_equal expected, result, log_on_failure("Expected Statistics value for Table_ID=#{table_id} Name='#{Table.find(table_id).name}', Operation='#{operation}', Column='#{column_name}'")
     else
-      assert result >= expected && result <= max_expected, "Statistics value #{result} not between #{expected} and #{max_expected} for Table_ID=#{table_id} Name='#{Table.find(table_id).name}, Operation='#{operation}', Column='#{column_name}'"
+      assert result >= expected && result <= max_expected, log_on_failure("Statistics value #{result} not between #{expected} and #{max_expected} for Table_ID=#{table_id} Name='#{Table.find(table_id).name}, Operation='#{operation}', Column='#{column_name}'")
     end
   end
 

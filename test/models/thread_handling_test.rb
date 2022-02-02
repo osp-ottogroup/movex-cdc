@@ -49,7 +49,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     Rails.logger.debug "ThreadHandlingTest.process: #{messages_to_process} Event_Logs records before processing"
     log_event_logs_content(console_output: false)
     ThreadHandling.get_instance.ensure_processing
-    assert_equal(MovexCdc::Application.config.initial_worker_threads, ThreadHandling.get_instance.thread_count, 'Number of threads should run')
+    assert_equal MovexCdc::Application.config.initial_worker_threads, ThreadHandling.get_instance.thread_count, log_on_failure('Number of threads should run')
 
     Rails.logger.debug "ThreadHandlingTest.process: wait for processing finished"
     loop_count = 0
@@ -75,13 +75,13 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
     log_event_logs_content(console_output: true) if messages_to_process > successful_messages_processed # List remaining events from table
 
-    assert_equal(messages_to_process, successful_messages_processed, 'Exactly the number of records in Event_Logs should be processed')
-    assert_equal(0, message_processing_errors, 'There should not be processing errors')
+    assert_equal messages_to_process, successful_messages_processed, log_on_failure('Exactly the number of records in Event_Logs should be processed')
+    assert_equal 0, message_processing_errors, log_on_failure('There should not be processing errors')
 
     Rails.logger.debug "ThreadHandlingTest.process: shutdown processing of threads"
     ThreadHandling.get_instance.shutdown_processing
-    assert_equal(0, ThreadHandling.get_instance.thread_count, 'No threads should run after shutdown')
-    assert_equal(0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), 'All event_logs should be processed after shutdown')
+    assert_equal 0, ThreadHandling.get_instance.thread_count, log_on_failure('No threads should run after shutdown')
+    assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All event_logs should be processed after shutdown')
 
     MovexCdc::Application.config.max_transaction_size    = original_max_transaction_size   # Restore previous setting
     MovexCdc::Application.config.kafka_max_bulk_count    = original_kafka_max_bulk_count   # Restore previous setting

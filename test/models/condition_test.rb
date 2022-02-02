@@ -9,6 +9,6 @@ class ConditionTest < ActiveSupport::TestCase
 
   test "select condition" do
     tables = Condition.where(table_id: tables_table.id)
-    assert(tables.count > 0, 'Should return at least one condition of table')
+    assert tables.count > 0, log_on_failure('Should return at least one condition of table')
   end
 end

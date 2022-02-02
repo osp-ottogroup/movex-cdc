@@ -10,7 +10,7 @@ class SchemaTest < ActiveSupport::TestCase
 
   test "select schema" do
     schemas = Schema.all
-    assert(schemas.count > 0, 'Should return at least one schema')
+    assert schemas.count > 0, log_on_failure('Should return at least one schema')
   end
 
   test "update schema without topic" do
@@ -20,7 +20,7 @@ class SchemaTest < ActiveSupport::TestCase
       table.update! topic:nil
     end
     success = schema.update(topic:nil)
-    assert success == false, 'Validation should suppress empty schema.topic if any table of schema has no topic'
+    assert success == false, log_on_failure('Validation should suppress empty schema.topic if any table of schema has no topic')
   end
 
 

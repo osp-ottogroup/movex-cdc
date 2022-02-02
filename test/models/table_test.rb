@@ -21,7 +21,7 @@ class TableTest < ActiveSupport::TestCase
 
   test "select table" do
     tables = Table.where(schema_id: victim_schema.id)
-    assert(tables.count > 0, 'Should return at least one table of schema')
+    assert tables.count > 0, log_on_failure('Should return at least one table of schema')
   end
 
   # Check if non existing tables are also part of result
@@ -29,47 +29,47 @@ class TableTest < ActiveSupport::TestCase
     non_existing_table = Table.new(schema_id: user_schema.id, name: 'NON_EXISTING')
     non_existing_table.save!
     tables = Table.all_allowed_tables_for_schema(user_schema.id, MovexCdc::Application.config.db_user)
-    assert(tables.count >= 3, 'Should return at least 3 tables of schema 1')
-    assert(tables.select{ |t| t.name == 'TABLES'}.count > 0, 'Result should contain physically existing table with name = TABLES')
-    assert(tables.select{ |t| t.name == 'COLUMNS'}.count > 0, 'Result should contain physically existing table with name=TABLES')
-    assert(tables.select{ |t| t.name == 'NON_EXISTING'}.count > 0, 'Result should contain non existing table with name=NON_EXISTING')
+    assert tables.count >= 3, log_on_failure('Should return at least 3 tables of schema 1')
+    assert tables.select{ |t| t.name == 'TABLES'}.count > 0, log_on_failure('Result should contain physically existing table with name = TABLES')
+    assert tables.select{ |t| t.name == 'COLUMNS'}.count > 0, log_on_failure('Result should contain physically existing table with name=TABLES')
+    assert tables.select{ |t| t.name == 'NON_EXISTING'}.count > 0, log_on_failure('Result should contain non existing table with name=NON_EXISTING')
 
     db_tables = DbTable.all_by_schema(user_schema.name, MovexCdc::Application.config.db_user)
-    assert(db_tables.select{ |t| t['name'].upcase == non_existing_table.name.upcase}.count == 0, 'Table with name=NON_EXISTING should not exist physically for this test')
+    assert db_tables.select{ |t| t['name'].upcase == non_existing_table.name.upcase}.count == 0, log_on_failure('Table with name=NON_EXISTING should not exist physically for this test')
     non_existing_table.destroy!
   end
 
   test "table validations" do
     result = tables_table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
-    assert(!result, 'Validation should raise error for fixed_message_key if not empty')
+    assert !result, log_on_failure('Validation should raise error for fixed_message_key if not empty')
 
     result = tables_table.update(kafka_key_handling: 'F', fixed_message_key: nil)
-    assert(!result, 'Validation should raise error for fixed_message_key if empty')
+    assert !result, log_on_failure('Validation should raise error for fixed_message_key if empty')
 
     result = tables_table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
-    assert(!result, 'Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
+    assert !result, log_on_failure('Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
 
     result = tables_table.update(kafka_key_handling: 'X')
-    assert(!result, 'Validation should raise error for wrong kafka_key_handling')
+    assert !result, log_on_failure('Validation should raise error for wrong kafka_key_handling')
 
     org_topic = Schema.find(tables_table.schema_id).topic
     schema = Schema.find(user_schema.id)
     schema.tables.each {|t| t.update!(topic: KafkaHelper.existing_topic_for_test) if t.topic.nil?}  # Topic may have been changed by previous tests
     schema.update!(topic: nil)
     result = tables_table.update(topic: nil)
-    assert(!result, 'Validation should raise error if neither table nor schema have valid topic')
+    assert !result, log_on_failure('Validation should raise error if neither table nor schema have valid topic')
 
     result = tables_table.update(yn_record_txid: 'f')
-    assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
+    assert !result, log_on_failure('Validation should raise error if YN-column does not contain Y or N')
 
     result = tables_table.update(yn_initialization: 'f')
-    assert(!result, 'Validation should raise error if YN-column does not contain Y or N')
+    assert !result, log_on_failure('Validation should raise error if YN-column does not contain Y or N')
 
     non_existing_table = Table.new(schema_id: victim_schema.id, name: 'NON_EXISTING', topic: 'Hugo')
     non_existing_table.save!
 
     result = non_existing_table.update(yn_initialization: 'Y')
-    assert(!result, 'Validation should raise error if yn_initialization=Y for not readable table')
+    assert !result, log_on_failure('Validation should raise error if yn_initialization=Y for not readable table')
 
     non_existing_table.destroy!
     Schema.find(tables_table.schema_id).update!(topic: org_topic)                      # restore original state
@@ -80,9 +80,9 @@ class TableTest < ActiveSupport::TestCase
     ['I', 'U', 'D'].each do |operation|
       oldest_change_date = oldest_change_dates[operation]
       if ['I', 'U'].include?(operation) && ['ORACLE'].include?(MovexCdc::Application.config.db_type)
-        assert_not_nil(oldest_change_date, 'oldest change date should be known for existing insert trigger')
+        assert_not_nil oldest_change_date, log_on_failure('oldest change date should be known for existing insert trigger')
       else
-        assert_nil(oldest_change_date, "no trigger should exists for operation '#{operation}' or no change date available for DB")
+        assert_nil oldest_change_date, log_on_failure("no trigger should exists for operation '#{operation}' or no change date available for DB")
       end
     end
   end

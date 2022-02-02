@@ -50,18 +50,18 @@ class CompressStatisticsTest < ActiveSupport::TestCase
 
     CompressStatistics.get_instance.do_compress
 
-    assert_equal 3, get_single_values('I', Time.now-10.days)['records'], 'Number of uncompressed insert records younger than 14 days'
-    assert_equal 5, get_single_values('U', Time.now-10.days)['records'], 'Number of uncompressed update records younger than 14 days'
-    assert_equal 1, get_single_values('I', Time.now-20.days)['records'], 'Number of compressed insert records older than 14 days but younger than 3 months'
-    assert_equal 1, get_single_values('U', Time.now-20.days)['records'], 'Number of compressed update records older than 14 days but younger than 3 months'
-    assert_equal 1, get_single_values('I', Time.now-100.days)['records'], 'Number of compressed insert records older than 3 months'
-    assert_equal 1, get_single_values('U', Time.now-100.days)['records'], 'Number of compressed update records older than 3 months'
+    assert_equal 3, get_single_values('I', Time.now-10.days)['records'], log_on_failure('Number of uncompressed insert records younger than 14 days')
+    assert_equal 5, get_single_values('U', Time.now-10.days)['records'], log_on_failure('Number of uncompressed update records younger than 14 days')
+    assert_equal 1, get_single_values('I', Time.now-20.days)['records'], log_on_failure('Number of compressed insert records older than 14 days but younger than 3 months')
+    assert_equal 1, get_single_values('U', Time.now-20.days)['records'], log_on_failure('Number of compressed update records older than 14 days but younger than 3 months')
+    assert_equal 1, get_single_values('I', Time.now-100.days)['records'], log_on_failure('Number of compressed insert records older than 3 months')
+    assert_equal 1, get_single_values('U', Time.now-100.days)['records'], log_on_failure('Number of compressed update records older than 3 months')
 
     sums_after = get_sums
-    assert_equal sums_after['events_success'],          sums_before['events_success'],          'Total number of events_success should not differ after compression'
-    assert_equal sums_after['events_delayed_errors'],   sums_before['events_delayed_errors'],   'Total number of events_delayed_errors should not differ after compression'
-    assert_equal sums_after['events_final_errors'],     sums_before['events_final_errors'],     'Total number of events_final_errors should not differ after compression'
-    assert_equal sums_after['events_d_and_c_retries'],  sums_before['events_d_and_c_retries'],  'Total number of events_d_and_c_retries should not differ after compression'
-    assert_equal sums_after['events_delayed_retries'],  sums_before['events_delayed_retries'],  'Total number of events_delayed_retries should not differ after compression'
+    assert_equal sums_after['events_success'],          sums_before['events_success'],          log_on_failure('Total number of events_success should not differ after compression')
+    assert_equal sums_after['events_delayed_errors'],   sums_before['events_delayed_errors'],   log_on_failure('Total number of events_delayed_errors should not differ after compression')
+    assert_equal sums_after['events_final_errors'],     sums_before['events_final_errors'],     log_on_failure('Total number of events_final_errors should not differ after compression')
+    assert_equal sums_after['events_d_and_c_retries'],  sums_before['events_d_and_c_retries'],  log_on_failure('Total number of events_d_and_c_retries should not differ after compression')
+    assert_equal sums_after['events_delayed_retries'],  sums_before['events_delayed_retries'],  log_on_failure('Total number of events_delayed_retries should not differ after compression')
   end
 end
