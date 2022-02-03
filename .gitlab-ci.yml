@@ -176,7 +176,7 @@ trivy_scan:
     TRIVY_PASSWORD: "$CI_REGISTRY_PASSWORD"
     TRIVY_AUTH_URL: "$CI_REGISTRY"
   script:
-  - trivy --version
+    - trivy --version
     # cache cleanup is needed when scanning images with the same tags, it does not remove the database
     - time trivy image --clear-cache
     # update vulnerabilities db
