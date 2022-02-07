@@ -8,7 +8,7 @@ class TableInitializationTest < ActiveSupport::TestCase
 
   test "get_instance" do
     instance = TableInitialization.get_instance
-    assert instance.instance_of?(TableInitialization), 'should return instance of class'
+    assert instance.instance_of?(TableInitialization), log_on_failure('should return instance of class')
   end
 
   test "add_table_initialization" do
@@ -31,12 +31,12 @@ class TableInitializationTest < ActiveSupport::TestCase
 
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
 
-    assert_instance_of(Hash, result, 'Should return result of type Hash')
+    assert_instance_of Hash, result, log_on_failure('Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
-    assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
+    assert_equal 0, result[:errors].count, log_on_failure('Should not return errors from trigger generation')
 
     ti_instance = TableInitialization.get_instance
-    assert_equal(0, ti_instance.init_requests_count(raise_exception_if_locked: false), 'Request should not be waiting')
+    assert_equal 0, ti_instance.init_requests_count(raise_exception_if_locked: false), log_on_failure('Request should not be waiting')
     max_loop = 0
     while (ti_instance.init_requests_count(raise_exception_if_locked: false) > 0 ||
       ti_instance.running_threads_count(raise_exception_if_locked: false) > 0 ) &&
@@ -45,14 +45,14 @@ class TableInitializationTest < ActiveSupport::TestCase
       sleep 1
     end
 
-    assert_equal(0, ti_instance.init_requests_count(raise_exception_if_locked: false), 'All requests should be started')
-    assert_equal(0, ti_instance.running_threads_count(raise_exception_if_locked: false), 'All requests should be finished')
+    assert_equal 0, ti_instance.init_requests_count(raise_exception_if_locked: false), log_on_failure('All requests should be started')
+    assert_equal 0, ti_instance.running_threads_count(raise_exception_if_locked: false), log_on_failure('All requests should be finished')
 
     event_logs_after_test = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
-    assert_equal(test_record_count, event_logs_after_test-event_logs_before_test, 'Content of VICTIM1 should be initially loaded to Event_Logs')
+    assert_equal test_record_count, event_logs_after_test-event_logs_before_test, log_on_failure('Content of VICTIM1 should be initially loaded to Event_Logs')
 
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Regular processing of all records')
-    assert_equal 0, remaining_event_log_count, 'All Records from Event_Logs should be processed and deleted now'
+    assert_equal 0, remaining_event_log_count, log_on_failure('All Records from Event_Logs should be processed and deleted now')
 
   end
 

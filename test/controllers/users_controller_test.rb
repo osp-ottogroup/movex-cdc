@@ -20,7 +20,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     post users_url, headers: jwt_header, params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
-    assert_response :unauthorized, 'Access allowed to supervisor only'
+    assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
     User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy                 # cleanup user table
   end
@@ -50,7 +50,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get user_url(peter_user), headers: jwt_header, as: :json
-    assert_response :unauthorized, 'Access allowed to supervisor only'
+    assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
   end
 
@@ -71,7 +71,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response 200
 
     patch user_url(peter_user), headers: jwt_header, params: { user: { first_name: 'Hugo' } }, as: :json
-    assert_response :unauthorized, 'Access allowed to supervisor only'
+    assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
     GlobalFixtures.restore_schema_rights
   end
@@ -103,7 +103,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response 204
 
     delete user_url(user_to_delete), headers: jwt_header, as: :json
-    assert_response :unauthorized, 'Access allowed to supervisor only'
+    assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
   end
 

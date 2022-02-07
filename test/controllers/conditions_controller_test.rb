@@ -12,7 +12,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get "/conditions?table_id=#{tables_table.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should create condition" do
@@ -24,7 +24,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     Condition.where(filter: 'ID IS NULL').first.destroy!                        # restore previous state
 
     post conditions_url, headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: tables_table.id, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should show condition" do
@@ -32,7 +32,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should update condition" do
@@ -44,7 +44,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     condition.update!(filter: org_filter, lock_version: condition.lock_version) # Restore previous state
 
     patch condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should destroy condition" do
@@ -65,7 +65,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should not destroy condition" do
     delete condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: @condition.attributes}, as: :json
-    assert_response :internal_server_error, 'Should not get access without schema rights'
+    assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
 end

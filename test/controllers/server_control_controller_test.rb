@@ -13,12 +13,12 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
 
     post "/server_control/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'ERROR'}, as: :json
     assert_response :success
-    assert Rails.logger.level == 3, 'Log level should be set to ERROR now'
+    assert Rails.logger.level == 3, log_on_failure('Log level should be set to ERROR now')
 
     # reset level to DEBUG
     post "/server_control/set_log_level", headers: jwt_header(@jwt_admin_token), params: { log_level: 'DEBUG'}, as: :json
     assert_response :success
-    assert Rails.logger.level == 0, 'Log level should be set to DEBUG now'
+    assert Rails.logger.level == 0, log_on_failure('Log level should be set to DEBUG now')
 
   end
 
@@ -37,11 +37,11 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
 
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 5}, as: :json
     assert_response :success
-    assert_equal 5, ThreadHandling.get_instance.thread_count, 'There should run x threads now'
+    assert_equal 5, ThreadHandling.get_instance.thread_count, log_on_failure('There should run x threads now')
 
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 2}, as: :json
     assert_response :success
-    assert_equal 2, ThreadHandling.get_instance.thread_count, 'There should run x threads now'
+    assert_equal 2, ThreadHandling.get_instance.thread_count, log_on_failure('There should run x threads now')
 
     # Value too large, should return error
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 200000}, as: :json
@@ -62,7 +62,7 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
       sleep 1
     end
 
-    assert_equal expected_worker_count, ThreadHandling.get_instance.thread_count, "There should run #{expected_worker_count} threads now because the async request was first"
+    assert_equal expected_worker_count, ThreadHandling.get_instance.thread_count, log_on_failure("There should run #{expected_worker_count} threads now because the async request was first")
 
     ThreadHandling.get_instance.shutdown_processing                             # Stop worker threads to restore normal test state
   end
@@ -75,11 +75,11 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
 
     post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 1000}, as: :json
     assert_response :success
-    assert_equal 1000, MovexCdc::Application.config.max_transaction_size, 'Should be set in config'
+    assert_equal 1000, MovexCdc::Application.config.max_transaction_size, log_on_failure('Should be set in config')
 
     post "/server_control/set_max_transaction_size", headers: jwt_header(@jwt_admin_token), params: { max_transaction_size: 5000}, as: :json
     assert_response :success
-    assert_equal 5000, MovexCdc::Application.config.max_transaction_size, 'Should be set in config'
+    assert_equal 5000, MovexCdc::Application.config.max_transaction_size, log_on_failure('Should be set in config')
 
   end
 

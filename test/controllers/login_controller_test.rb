@@ -11,15 +11,15 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     # login existing user with email downcase
     post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.downcase, password: MovexCdc::Application.config.db_victim_password }
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then assert_response :success, 'Login with email in downcase should be possible'
-    when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
+    when 'ORACLE' then assert_response :success, log_on_failure('Login with email in downcase should be possible')
+    when 'SQLITE' then assert_response :unauthorized, log_on_failure('Only admin allowed for SQLite')
     end
 
     # login existing user with email upcase
     post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: MovexCdc::Application.config.db_victim_password }
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then assert_response :success, 'Login with email in upcase should be possible'
-    when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
+    when 'ORACLE' then assert_response :success, log_on_failure('Login with email in upcase should be possible')
+    when 'SQLITE' then assert_response :unauthorized, log_on_failure('Only admin allowed for SQLite')
     end
 
     4.downto(0) do                                                              # account is locked after 5 failed logon tries
@@ -45,8 +45,8 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     # login existing user with email upcase, account should be locked now
     post login_do_logon_url, params: { email: 'Peter.Ramm@ottogroup.com'.upcase, password: MovexCdc::Application.config.db_victim_password }
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then assert_response :unauthorized, 'Login with email in upcase should not be possible because account is locked now'
-    when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
+    when 'ORACLE' then assert_response :unauthorized, log_on_failure('Login with email in upcase should not be possible because account is locked now')
+    when 'SQLITE' then assert_response :unauthorized, log_on_failure('Only admin allowed for SQLite')
     end
 
     # Unlock account for further use
@@ -57,24 +57,24 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     # login  existing user with db-user (admin) in downcase
     post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then assert_response :success, 'Login with DB password should be possible with downcase'
-    when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
+    when 'ORACLE' then assert_response :success, log_on_failure('Login with DB password should be possible with downcase')
+    when 'SQLITE' then assert_response :unauthorized, log_on_failure('Only admin allowed for SQLite')
     end
 
     # login  existing user with db-user (admin) in upcase
     post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.upcase, password: MovexCdc::Application.config.db_password}
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then assert_response :success, 'Login with DB password should be possible with upcase'
-    when 'SQLITE' then assert_response :unauthorized, 'Only admin allowed for SQLite'
+    when 'ORACLE' then assert_response :success, log_on_failure('Login with DB password should be possible with upcase')
+    when 'SQLITE' then assert_response :unauthorized, log_on_failure('Only admin allowed for SQLite')
     end
 
     # Non-existing user
     post login_do_logon_url, params: { email: 'Hugo@ottogroup.com', password: 'hugo'}
-    assert_response :unauthorized, 'Non existing user should not be able to login'
+    assert_response :unauthorized, log_on_failure('Non existing user should not be able to login')
 
     # redundant db_user
     post login_do_logon_url, params: { email: 'double_db_user', password: 'hugo'}
-    assert_response :unauthorized, 'Redundant DB user should not used to login'
+    assert_response :unauthorized, log_on_failure('Redundant DB user should not used to login')
 
   end
 
@@ -86,27 +86,27 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
       end
 
       post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
-      assert_response :unauthorized, 'Also the valid password should not function now'
+      assert_response :unauthorized, log_on_failure('Also the valid password should not function now')
 
       User.where(email: 'admin').first.update!(yn_account_locked: 'N')
 
       post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
-      assert_response :success, 'After unlock user logon should be possible again'
+      assert_response :success, log_on_failure('After unlock user logon should be possible again')
     end
 
   end
 
   test "should get check_jwt" do
     get login_check_jwt_url, as: :json
-    assert_response :unauthorized, 'No access should be possible without valid JWT'
+    assert_response :unauthorized, log_on_failure('No access should be possible without valid JWT')
 
     get login_check_jwt_url, headers: jwt_header, as: :json
-    assert_response :success, 'Access should be possible with valid JWT'
+    assert_response :success, log_on_failure('Access should be possible with valid JWT')
   end
 
   test "should get release_info" do
     get login_release_info_url, as: :json
-    assert_response :success, 'Access should be possible without valid JWT'
+    assert_response :success, log_on_failure('Access should be possible without valid JWT')
   end
 
 end
