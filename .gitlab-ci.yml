@@ -157,11 +157,12 @@ build_movex_cdc:
 
   script:
     - mkdir -p /kaniko/.docker
+    - export BUILD_VERSION=$CI_COMMIT_REF_NAME_`date "+%Y-%m-%d_%H-%M-%S"`
     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
     - cat build.json
     - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - /kaniko/executor --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle --destination $TEMP_DOCKER_IMAGE
+    - /kaniko/executor --build-arg BUILD_VERSION=$BUILD_VERSION --context $CI_PROJECT_DIR --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
   stage: post_build
