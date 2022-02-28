@@ -372,7 +372,7 @@ This dialog shows:
 
 Possible onfiguration actions are:
 
-* add tables to configuration for a schema (only possible for tables where the user has SELECT grant for)
+* add tables to configuration for a schema (only possible for tables where the user is allowed to select from)
 ** modify topic name per table
 ** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
 ** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
