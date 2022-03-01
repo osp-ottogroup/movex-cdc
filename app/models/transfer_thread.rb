@@ -80,12 +80,12 @@ class TransferThread
       sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
     end
   rescue Exception => e
-    log_exception(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
+    log_exception_with_worker_state(e, "TransferThread.process #{@worker_id}: Terminating thread due to exception")
   ensure
     begin
       @kafka_producer&.shutdown                                                 # free kafka connections before terminating Thread
     rescue Exception => e
-      log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
+      ExceptionHelper.log_exception(e, "TransferThread.process #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
     @statistic_counter.flush                                                    # Write cumulated statistics to singleton memory
     Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
@@ -155,7 +155,7 @@ class TransferThread
         init_transactions_successfull = true                                    # no exception raise
       rescue Exception => e
         kafka_producer&.shutdown                                                # clear existing producer
-        log_exception(e, "kafka_producer.init_transactions: retry-count = #{init_transactions_retry_count}")
+        ExceptionHelper.log_exception(e, "kafka_producer.init_transactions: retry-count = #{init_transactions_retry_count}")
         if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
           sleep 1
           init_transactions_retry_count += 1
@@ -204,7 +204,7 @@ class TransferThread
     begin
       delete_event_logs_batch(event_logs) if kafka_transaction_successful       # delete the events that are successfully processed in previous kafka transaction
     rescue Exception => e
-      log_exception(e, "delete_event_logs_batch failed. This should never happen and leads to multiple processing of events to Kafka.")
+      ExceptionHelper.log_exception(e, "delete_event_logs_batch failed. This should never happen and leads to multiple processing of events to Kafka.")
       event_logs_debug_info(event_logs)
       raise
     end
@@ -420,7 +420,7 @@ class TransferThread
       rescue Exception => e
         msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
         msg << event_logs_debug_info(event_logs_slice)
-        log_exception(e, msg)
+        ExceptionHelper.log_exception(e, msg)
         raise
       end
     end
@@ -480,7 +480,7 @@ class TransferThread
           end
         end
       rescue Exception => e
-        log_exception(e, "Erroneous SQL:\n#{sql}")
+        ExceptionHelper.log_exception(e, "TransferThread.delete_event_logs_batch: Erroneous SQL:\n#{sql}")
         raise
       ensure
         cursor.close if defined? cursor && !cursor.nil?
@@ -604,7 +604,7 @@ class TransferThread
     options[option_name]
   end
 
-  def log_exception(exception, message)
+  def log_exception_with_worker_state(exception, message)
     ExceptionHelper.log_exception(exception, "#{message}
 #{JSON.pretty_generate(thread_state(without_stacktrace: true))}
 #{JSON.pretty_generate(ExceptionHelper.memory_info_hash)}")
