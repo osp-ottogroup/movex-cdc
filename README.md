@@ -6,6 +6,8 @@ The full documentation of this product you may find here:
 - HTML: https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html
 - PDF: https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.pdf
 
+![](doc/images/event_flow.svg)
+
 ## Supported database systems
 - <b>Oracle</b> First productive usage for Enterprise Edition with Partitioning Option (Rel. 12.1. ++ )
 - <b>SQLite</b> The aditional implementation for SQLite ensures that the product remains database independent.
