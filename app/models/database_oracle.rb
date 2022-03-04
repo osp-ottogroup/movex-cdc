@@ -98,6 +98,8 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
       Rails.logger.debug "#{row_count} records selected with following SQL"
       cursor.close
       result
+    ensure
+      cursor.close if defined?(cursor) && !cursor.nil?
     end
   end #iterate_query
 

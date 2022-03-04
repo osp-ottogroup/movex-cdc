@@ -9,21 +9,21 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "find_all_by_schema_id" do
     triggers = DbTrigger.find_all_by_schema_id(victim_schema.id)
-    assert_equal(2, triggers.count, 'Should find the number of triggers in victim schema')
+    assert_equal 2, triggers.count, log_on_failure('Should find the number of triggers in victim schema')
   end
 
   test "find_all_by_table" do
     triggers = DbTrigger.find_all_by_table(victim1_table)
-    assert_equal(2, triggers.count, 'Should find triggers for table with valid MOVEX CDC trigger name prefix')
+    assert_equal 2, triggers.count, log_on_failure('Should find triggers for table with valid MOVEX CDC trigger name prefix')
 
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
     triggers = DbTrigger.find_all_by_table(victim1_table)
-    assert_equal(3, triggers.count, 'Should find triggers for table after trigger generation')
+    assert_equal 3, triggers.count, log_on_failure('Should find triggers for table after trigger generation')
   end
 
   test "find_by_table_id_and_trigger_name" do
     trigger = DbTrigger.find_by_table_id_and_trigger_name(victim1_table.id, DbTrigger.build_trigger_name(victim1_table, 'I'))
-    assert_not_equal(nil, trigger, 'Should find the trigger in victim schema')
+    assert_not_equal nil, trigger, log_on_failure('Should find the trigger in victim schema')
   end
 
   test "generate_triggers" do
@@ -50,7 +50,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
 
-      assert_instance_of(Hash, result, 'Should return result of type Hash')
+      assert_instance_of Hash, result, log_on_failure('Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors, :load_sqls)
 
       result[:errors].each do |e|
@@ -58,14 +58,14 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
 
       created_trigger_names = result[:successes].select{|x| x[:sql]['CREATE']}.map{|x| x[:trigger_name]}
-      assert_equal 2, created_trigger_names.select{|x| x['_I']}.length, "Should have created x insert trigger"
-      assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, "Should have created x update trigger"
-      assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, "Should have created x delete trigger"
+      assert_equal 2, created_trigger_names.select{|x| x['_I']}.length, log_on_failure("Should have created x insert trigger")
+      assert_equal 2, created_trigger_names.select{|x| x['_U']}.length, log_on_failure("Should have created x update trigger")
+      assert_equal 2, created_trigger_names.select{|x| x['_D']}.length, log_on_failure("Should have created x delete trigger")
 
-      assert_not_nil result[:successes][0][:table_id],           ':table_id in successes result should be set for trigger'
-      assert_not_nil result[:successes][0][:table_name],         ':table_name in successes result should be set for trigger'
-      assert_not_nil result[:successes][0][:trigger_name],       ':trigger_name in successes result should be set for trigger'
-      assert_not_nil result[:successes][0][:sql],                ':sql in successes result should be set for trigger'
+      assert_not_nil result[:successes][0][:table_id],           log_on_failure(':table_id in successes result should be set for trigger')
+      assert_not_nil result[:successes][0][:table_name],         log_on_failure(':table_name in successes result should be set for trigger')
+      assert_not_nil result[:successes][0][:trigger_name],       log_on_failure(':trigger_name in successes result should be set for trigger')
+      assert_not_nil result[:successes][0][:sql],                log_on_failure(':sql in successes result should be set for trigger')
 
 
 =begin
@@ -83,14 +83,14 @@ class DbTriggerTest < ActiveSupport::TestCase
           puts e[:sql]
         end
       end
-      assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
+      assert_equal 0, result[:errors].count, log_on_failure('Should not return errors from trigger generation')
 
-      assert_not_nil Schema.find(victim_schema.id).last_trigger_deployment, 'Timestamp of last successful trigger generation should be set'
+      assert_not_nil Schema.find(victim_schema.id).last_trigger_deployment, log_on_failure('Timestamp of last successful trigger generation should be set')
 
       # second run of trigger generation should not touch the already existing triggers
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
-      assert_equal 0, result[:successes].length,  '2nd run should not touch the existing triggers'
-      assert_equal 0, result[:errors].length,     '2nd run should not have errors'
+      assert_equal 0, result[:successes].length,  log_on_failure('2nd run should not touch the existing triggers')
+      assert_equal 0, result[:errors].length,     log_on_failure('2nd run should not have errors')
 
       fixture_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
       event_logs_to_create = 20
@@ -99,9 +99,9 @@ class DbTriggerTest < ActiveSupport::TestCase
       create_event_logs_for_test(event_logs_to_create)
 
       real_event_logs     = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-      assert_equal(expected_event_logs, real_event_logs, 'Previous operation should create x records in Event_Logs')
+      assert_equal expected_event_logs, real_event_logs, log_on_failure('Previous operation should create x records in Event_Logs')
 
-      assert EventLog.last!.transaction_id.nil? ^ (key[:yn_record_txid] == 'Y'), "Transaction-ID must be filled only if requested! yn_record_txid=#{key[:yn_record_txid]}"
+      assert EventLog.last!.transaction_id.nil? ^ (key[:yn_record_txid] == 'Y'), log_on_failure("Transaction-ID must be filled only if requested! yn_record_txid=#{key[:yn_record_txid]}")
 
       # Dump Event_Logs and check JSON structure
       Rails.logger.info "======== Dump all event_logs ========="
@@ -117,9 +117,9 @@ class DbTriggerTest < ActiveSupport::TestCase
     Table.find(victim1_table.id).update!(yn_hidden: 'Y')                        # Ensure this table is not considered for trigger generation
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
     assert_equal 2, result[:successes].select{|s| s[:table_id] == victim1_table.id }.length,
-                 'drop trigger should return only drop of existing triggers for victim1'
-    assert_equal 0, result[:errors].length,     'drop trigger should not have errors'
-    assert_equal 0, result[:load_sqls].length,  'drop trigger should not have load SQLs'
+                 log_on_failure('drop trigger should return only drop of existing triggers for victim1')
+    assert_equal 0, result[:errors].length,     log_on_failure('drop trigger should not have errors')
+    assert_equal 0, result[:load_sqls].length,  log_on_failure('drop trigger should not have load SQLs')
 
     Table.find(victim1_table.id).update!(yn_hidden: 'N')                        # restore original state
   end
@@ -131,7 +131,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     column.save!
 
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
-    assert_equal 1, result[:errors].length,     'Not existing column should lead to error for this table'
+    assert_equal 1, result[:errors].length,     log_on_failure('Not existing column should lead to error for this table')
 
     column.delete                                                               # Remove temporary object
     table.delete                                                                # Remove temporary object
@@ -163,9 +163,9 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       existing_triggers_after = DbTrigger.find_all_by_schema_id(victim_schema.id)
 
-      assert_equal existing_triggers_before.count, existing_triggers_after.count, 'existing triggers should not be touched by dry run'
+      assert_equal existing_triggers_before.count, existing_triggers_after.count, log_on_failure('existing triggers should not be touched by dry run')
 
-      assert_instance_of(Hash, result, 'Should return result of type Hash')
+      assert_instance_of Hash, result, log_on_failure('Should return result of type Hash')
       result.assert_valid_keys(:successes, :errors, :load_sqls)
     end
   end
@@ -176,13 +176,13 @@ class DbTriggerTest < ActiveSupport::TestCase
     original_filter = condition.filter
     condition.update!(filter: "NOT EXECUTABLE SQL")  # Set a condition that causes compile error for trigger
     result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
-    assert_equal 1, result[:errors].count, 'Should result in compile error for one trigger'
-    assert_not_nil result[:errors][0][:table_id],           ':table_id in error result should be set for trigger'
-    assert_not_nil result[:errors][0][:table_name],         ':table_name in error result should be set for trigger'
-    assert_not_nil result[:errors][0][:trigger_name],       ':trigger_name in error result should be set for trigger'
-    assert_not_nil result[:errors][0][:exception_class],    ':exception_class in error result should be set for trigger'
-    assert_not_nil result[:errors][0][:exception_message],  ':exception_message in error result should be set for trigger'
-    assert_not_nil result[:errors][0][:sql],                ':sql in error result should be set for trigger'
+    assert_equal 1, result[:errors].count, log_on_failure('Should result in compile error for one trigger')
+    assert_not_nil result[:errors][0][:table_id],           log_on_failure(':table_id in error result should be set for trigger')
+    assert_not_nil result[:errors][0][:table_name],         log_on_failure(':table_name in error result should be set for trigger')
+    assert_not_nil result[:errors][0][:trigger_name],       log_on_failure(':trigger_name in error result should be set for trigger')
+    assert_not_nil result[:errors][0][:exception_class],    log_on_failure(':exception_class in error result should be set for trigger')
+    assert_not_nil result[:errors][0][:exception_message],  log_on_failure(':exception_message in error result should be set for trigger')
+    assert_not_nil result[:errors][0][:sql],                log_on_failure(':sql in error result should be set for trigger')
 
     Rails.logger.debug("Reset condition to '#{original_filter}'")
     condition.update!(filter: original_filter)                                  # reset valid entry
@@ -236,9 +236,9 @@ class DbTriggerTest < ActiveSupport::TestCase
         result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
         if result[:errors].length > 0
           result[:errors].each {|e| puts e}
-          assert_equal 0, result[:errors].length, 'No errors should occur'
+          assert_equal 0, result[:errors].length, log_on_failure('No errors should occur')
         end
-        assert_equal 1, result[:load_sqls].length, 'load SQLs should be generated'
+        assert_equal 1, result[:load_sqls].length, log_on_failure('load SQLs should be generated')
 
         # Wait for successful initialization
 
@@ -248,13 +248,13 @@ class DbTriggerTest < ActiveSupport::TestCase
           loop_count += 1
           sleep 1
         end
-        assert_equal 0, table_init.init_requests_count, 'There should not be unprocessed requests'
-        assert_equal 0, table_init.running_threads_count, 'There should not be running threads'
+        assert_equal 0, table_init.init_requests_count, log_on_failure('There should not be unprocessed requests')
+        assert_equal 0, table_init.running_threads_count, log_on_failure('There should not be running threads')
 
 
         event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
         assert_equal(victim_record_count - filtered_records_count, event_logs_count_after - event_logs_count_before,
-                     'Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records')
+                     log_on_failure('Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records'))
 
         if condition_filter.nil?
           Condition.new(condition.attributes).save!                             # recreate the dropped condition

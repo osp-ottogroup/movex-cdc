@@ -19,7 +19,7 @@ class UserTest < ActiveSupport::TestCase
 
   test "select user" do
     users = User.all
-    assert(users.count > 0, 'Should return at least one user')
+    assert users.count > 0, log_on_failure('Should return at least one user')
   end
 
   test "destroy user" do
@@ -28,7 +28,7 @@ class UserTest < ActiveSupport::TestCase
 
     ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
     user_to_delete.destroy!
-    assert_equal 'Y', User.find(user_to_delete.id).yn_account_locked, 'Account should be locked instead of delete after destroy if foreign keys prevents this'
+    assert_equal 'Y', User.find(user_to_delete.id).yn_account_locked, log_on_failure('Account should be locked instead of delete after destroy if foreign keys prevents this')
 
     # Remove objects that may cause foreign key error
     ActivityLog.where(user_id: user_to_delete.id).each do |al|
@@ -47,8 +47,8 @@ class UserTest < ActiveSupport::TestCase
     sr = SchemaRight.new(user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info', yn_deployment_granted: 'Y')
     sr.save!
     ds = sandro_user.deployable_schemas
-    assert(ds.count == 1, 'Should have one deployable schema')
-    assert(ds.first.name == user_schema.name, 'Should be correct schema name')
+    assert ds.count == 1, log_on_failure('Should have one deployable schema')
+    assert ds.first.name == user_schema.name, log_on_failure('Should be correct schema name')
     sr.destroy!
   end
 
@@ -59,7 +59,7 @@ class UserTest < ActiveSupport::TestCase
     sr = SchemaRight.new(user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info', yn_deployment_granted: 'N')
     sr.save!
     ds = sandro_user.deployable_schemas
-    assert(ds.count == 0, 'Should have no deployable schemas')
+    assert ds.count == 0, log_on_failure('Should have no deployable schemas')
     sr.destroy!
   end
 

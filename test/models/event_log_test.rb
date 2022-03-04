@@ -28,7 +28,7 @@ class EventLogTest < ActiveSupport::TestCase
       MovexCdc::Application.config.max_simultaneous_transactions = current_value + 5
       EventLog.adjust_max_simultaneous_transactions
       changed_value = get_ini_trans.call
-      assert_equal current_value + 5, changed_value, 'INI_TRANS should have been changed'
+      assert_equal current_value + 5, changed_value, log_on_failure('INI_TRANS should have been changed')
       MovexCdc::Application.config.max_simultaneous_transactions = current_value
       EventLog.adjust_max_simultaneous_transactions                               # Restore original state
     end
@@ -43,7 +43,7 @@ class EventLogTest < ActiveSupport::TestCase
         MovexCdc::Application.config.partition_interval = current_interval + CHANGE_DIFF
         EventLog.adjust_interval
         new_interval = EventLog.current_interval_seconds
-        assert_equal current_interval + CHANGE_DIFF, new_interval, 'Interval should have been changed'
+        assert_equal current_interval + CHANGE_DIFF, new_interval, log_on_failure('Interval should have been changed')
         MovexCdc::Application.config.partition_interval = current_interval + 120000
         EventLog.adjust_interval                                                # Test a higher value
         MovexCdc::Application.config.partition_interval = current_interval
@@ -64,7 +64,7 @@ class EventLogTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         max_partition_name = Database.select_one "SELECT MAX(Partition_Name) KEEP (DENSE_RANK LAST ORDER BY Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
-        assert !EventLog.check_and_drop_partition(max_partition_name, 'Test'), "Max. partition should not be dropped"
+        assert !EventLog.check_and_drop_partition(max_partition_name, 'Test'), log_on_failure("Max. partition should not be dropped")
       end
     end
   end
@@ -81,7 +81,7 @@ class EventLogTest < ActiveSupport::TestCase
                                                  FROM   Parts
                                                  WHERE  Partition_Position = (SELECT MAX(Partition_Position) FROM Parts)
                                                 "
-        assert !EventLog.partition_allowed_for_drop?(max_part.partition_name, max_part.partition_position, max_part.high_value, 'Test'), "Max. partition should not be dropped"
+        assert !EventLog.partition_allowed_for_drop?(max_part.partition_name, max_part.partition_position, max_part.high_value, 'Test'), log_on_failure("Max. partition should not be dropped")
       end
     end
   end

@@ -16,7 +16,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get "/schema_rights?user_id=#{peter_user.id}", headers: jwt_header, as: :json
-    assert_response :unauthorized, 'Should not get access without admin role'
+    assert_response :unauthorized, log_on_failure('Should not get access without admin role')
   end
 
   test "should create schema_right" do
@@ -26,7 +26,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     post schema_rights_url, headers: jwt_header, params: { schema_right: { user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info'  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without admin role'
+    assert_response :unauthorized, log_on_failure('Should not get access without admin role')
 
     SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).first.destroy! # Restore original state
   end
@@ -36,7 +36,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get schema_right_url(@schema_right), headers: jwt_header, as: :json
-    assert_response :unauthorized, 'Should not get access without admin role'
+    assert_response :unauthorized, log_on_failure('Should not get access without admin role')
   end
 
   test "should update schema_right" do
@@ -44,7 +44,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     assert_response 200
 
     patch schema_right_url(@schema_right), headers: jwt_header, params: { schema_right: {  } }, as: :json
-    assert_response :unauthorized, 'Should not get access without admin role'
+    assert_response :unauthorized, log_on_failure('Should not get access without admin role')
   end
 
   test "should destroy schema_right" do
@@ -65,6 +65,6 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     end
 
     delete schema_right_url(@schema_right), headers: jwt_header, as: :json
-    assert_response :unauthorized, 'Should not get access without admin role'
+    assert_response :unauthorized, log_on_failure('Should not get access without admin role')
   end
 end

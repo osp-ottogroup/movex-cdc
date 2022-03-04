@@ -112,7 +112,10 @@ The implementation depends on achievable benefits in application and operation c
 === Preconditions for usage ===
 ==== Sizing of server instance for MOVEX Change Data Cature ====
 The application runs on one CPU and 4 GB of memory with it's default settings.
-But for higher number of worker threads and/or larger memory buffer size you should increase the number or CPUs and memory according.
+But for higher number of worker threads and/or larger memory buffer size you should increase the number or CPUs and memory according. +
+By default MOVEX CDC uses up to 75% of the available memory.
+If you want to limit the maximum memory used by MOVEC CDC then set JAVA_OPTS=-Xmx to the desired value (like JAVA_OPTS=-Xmx4096m for 4 GB ).
+
 
 ==== Database schema for MOVEX Change Data Cature  ====
 The application needs it's own database schema at the observed database. +
@@ -128,7 +131,7 @@ but this solution without using partitioning still has some disadvantages:
 - Peak usage increases high water mark in table Event_Logs and this way full table scans become slower and reduce event throughput
 
 ==== Rights for the owner of MOVEX CDC's DB schema ====
-The owner of the schema requires some preconditions/grants at database.
+The owner of the schema requires some preconditions/grants at the database as well as quota on its default tablespace.
 The existence of this grants is checked at application start.
 
 To ensure sufficient user rights the schema owner for MOVEX CDC can also be created by the application itself with given DB admin credentials.
@@ -159,7 +162,7 @@ To ensure sufficient user rights the schema owner for MOVEX CDC can also be crea
 |===
 If suitable an alternative for the detailed single grants may also be to grant 'SELECT ANY DICTIONARY' to MOVEX CDC's DB-user.
 
-Create MOVEX CDC's schema owner for Oracle with all required grants by issuing:
+Instead of manually creating the DB user you can let MOVEX CDC itself create the schema owner for Oracle with all required grants by issuing:
 [source]
 docker run --rm \
   -e KAFKA_SEED_BROKER=/dev/null
@@ -168,7 +171,7 @@ docker run --rm \
   -e DB_PASSWORD=hugo
   -e DB_SYS_PASSWORD=oracle
   -e DB_URL=10.213.131.150:1521/ORCLPDB1
-  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master bundle exec rake ci_preparation:create_user
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
 
 .Optional grants required to initially transfer table content in Oracle DB
 [cols="~,~"]
@@ -309,7 +312,7 @@ Now you are prepared with the four values needed to configure SSL connection in 
 === Running MOVEX Change Data Capture ===
 The application is provided as Docker-Image by:
 [source]
-docker pull registry.gitlab.com/otto-group-solution-provider/movex_cdc:master
+docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
 
 ==== Start Docker container ====
 You can run the this image like:
@@ -318,7 +321,7 @@ docker run -p 8080:8080 \
   --stop-timeout=120 \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v /my_local_dir/run_config.yml:/etc/run_config.yml \
-  registry.gitlab.com/otto-group-solution-provider/movex_cdc:master
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
 
 The web-GUI would be available by http://localhost:8080 in this case.
 It is recommended to place an own reverse proxy nearby for SSL encryption.
@@ -369,7 +372,7 @@ This dialog shows:
 
 Possible onfiguration actions are:
 
-* add tables to configuration for a schema (only possible for tables where the user has SELECT grant for)
+* add tables to configuration for a schema (only possible for tables where the user is allowed to select from)
 ** modify topic name per table
 ** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
 ** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)

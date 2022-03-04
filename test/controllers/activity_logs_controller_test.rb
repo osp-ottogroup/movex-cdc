@@ -16,7 +16,7 @@ class ActivityLogsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     get "/activity_logs", headers: jwt_header, as: :json
-    assert_response :internal_server_error, 'At least one parameter'
+    assert_response :internal_server_error, log_on_failure('At least one parameter')
   end
 
   test "should create activity_log" do

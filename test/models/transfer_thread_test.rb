@@ -18,16 +18,16 @@ class TransferThreadTest < ActiveSupport::TestCase
   test "process" do
     create_event_logs_for_test(20)
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Regular processing of all records')
-    assert_equal 0, remaining_event_log_count, 'All Records from Event_Logs should be processed and deleted now'
+    assert_equal 0, remaining_event_log_count, log_on_failure('All Records from Event_Logs should be processed and deleted now')
 
     create_event_logs_for_test(20)
     EventLog.last.update!(retry_count: 1, last_error_time: Time.now+20000)  # set erroneous, keep in mind that DB time and client time may differ in time zone
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Processing with one error record')
-    assert_equal 1, remaining_event_log_count, 'All Records from Event_Logs except the one erroneous should be processed and deleted now'
+    assert_equal 1, remaining_event_log_count, log_on_failure('All Records from Event_Logs except the one erroneous should be processed and deleted now')
 
     EventLog.last.update!(last_error_time: Time.now-20000)  # set timestamp so remaining erroneous record should be processed now
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Processing the one error record')
-    assert_equal 0, remaining_event_log_count, 'Last error record from Event_Logs should be processed and deleted now'
+    assert_equal 0, remaining_event_log_count, log_on_failure('Last error record from Event_Logs should be processed and deleted now')
 
   end
 
@@ -46,13 +46,13 @@ class TransferThreadTest < ActiveSupport::TestCase
     EventLog.last.update!(payload: huge_payload)
     create_event_logs_for_test(20)                                              # create another records to ensure error is in the middle
     remaining_event_log_count = process_eventlogs(max_wait_time: 30, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
-    assert_equal 1, remaining_event_log_count, 'One event_Log record with huge payload should cause processing error'
+    assert_equal 1, remaining_event_log_count, log_on_failure('One event_Log record with huge payload should cause processing error')
 
     MovexCdc::Application.config.error_retry_start_delay = 1                 # ensure retry processing takes place now
     MovexCdc::Application.config.error_max_retries = 3                 # ensure retry processing takes place now
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Process remaining erroneous record')
-    assert_equal 0, remaining_event_log_count, 'The remaining erroneous record should be moved to final error now'
-    assert_equal 1, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors"), 'The remaining erroneous record should exist in final errors now'
+    assert_equal 0, remaining_event_log_count, log_on_failure('The remaining erroneous record should be moved to final error now')
+    assert_equal 1, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors"), log_on_failure('The remaining erroneous record should exist in final errors now')
 
     StatisticCounterConcentrator.get_instance.flush_to_db       # ensure Statistics records are in DB
     # Database.select_all("SELECT * FROM Statistics").each do |s|

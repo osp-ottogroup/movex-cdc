@@ -15,10 +15,10 @@ class HousekeepingFinalErrorsTest < ActiveSupport::TestCase
     Database.execute "COMMIT" if MovexCdc::Application.config.db_type == 'ORACLE'
 
     retval = HousekeepingFinalErrors.get_instance.do_housekeeping
-    assert(retval, 'Should not return false')
+    assert retval, log_on_failure('Should not return false')
 
     record_count = Database.select_one "SELECT COUNT(*) FROM Event_Log_Final_Errors"
-    assert_equal 1, record_count, 'Only younger record from fixtures should survive housekeeping'
+    assert_equal 1, record_count, log_on_failure('Only younger record from fixtures should survive housekeeping')
   end
 
 end
