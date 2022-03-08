@@ -20,13 +20,17 @@
             </option>
           </b-select>
         </b-field>
-        <b-button @click="onGenerateClicked"
-                  type="is-primary"
-                  expanded
-                  :disabled="selectedSchema === null || isGenerating || isDeploying"
-                  :loading="isGenerating">
-          Generate for Schema
-        </b-button>
+         <b-tooltip label="Compare the expected trigger configuration with real existent triggers and prepare the needed actions for transition"
+                    multilined="true">
+           <b-button @click="onGenerateClicked"
+             type="is-primary"
+             expanded
+             :disabled="selectedSchema === null || isGenerating || isDeploying"
+             :loading="isGenerating">
+             Generate for Schema
+           </b-button>
+         </b-tooltip>
+
       </div>
     </div>
 
@@ -39,13 +43,16 @@
       </div>
       <div class="columns is-mobile mt-1">
         <div class="column is-one-quarter">
-          <b-button @click="onDeployClicked"
-                    type="is-primary"
-                    expanded
-                    :disabled="!isDeployable || isGenerating || isDeploying"
-                    :loading="isGenerating">
-            Deploy
-          </b-button>
+          <b-tooltip label="Final execution of the selected actions against the database. Now activating the changes in the database."
+                     multilined="true">
+            <b-button @click="onDeployClicked"
+              type="is-primary"
+              expanded
+              :disabled="!isDeployable || isGenerating || isDeploying"
+              :loading="isGenerating">
+              Deploy
+            </b-button>
+          </b-tooltip>
         </div>
       </div>
     </div>
