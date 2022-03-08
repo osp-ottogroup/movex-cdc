@@ -15,9 +15,14 @@
                 <template #label>
                   <div class="is-size-7 has-text-grey" @click.stop>
                     Deploy
-                    <a @click="onSelectAll(result)">All</a>
+                    <b-tooltip label="Select all pending trigger changes for deployment.Then click the button 'Deploy' to execute the changes."
+                               multilined="true">
+                      <a @click="onSelectAll(result)">All</a>
+                    </b-tooltip>
                     |
-                    <a @click="onDeselectAll(result)">No</a>
+                    <b-tooltip label="Unmark all pending trigger changes from deployment.">
+                      <a @click="onDeselectAll(result)">No</a>
+                    </b-tooltip>
                     tables
                   </div>
                 </template>

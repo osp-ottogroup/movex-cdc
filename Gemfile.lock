@@ -149,7 +149,7 @@ GEM
     snappy (0.2.0-java)
       snappy-jars (~> 1.1.0)
     snappy-jars (1.1.0.1.2-java)
-    sprockets (4.0.2)
+    sprockets (4.0.3)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)
     sprockets-rails (3.4.2)
@@ -183,7 +183,7 @@ DEPENDENCIES
   tzinfo-data
 
 RUBY VERSION
-   ruby 2.6.8p0 (jruby 9.3.2.0)
+   ruby 2.6.8p0 (jruby 9.3.3.0)
 
 BUNDLED WITH
-   2.2.33
+   2.3.6
