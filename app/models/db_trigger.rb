@@ -52,15 +52,15 @@ class DbTrigger < ApplicationRecord
     end
 
     generator.errors.each do |error|
-      Rails.logger.error "Error creating trigger #{error[:trigger_name]}"
-      Rails.logger.error "#{error[:exception_class]}: #{error[:exception_message]}"
-      Rails.logger.error "#{error[:sql]}"
+      Rails.logger.error('DbTrigger.generate_schema_triggers'){ "Error creating trigger #{error[:trigger_name]}" }
+      Rails.logger.error('DbTrigger.generate_schema_triggers'){ "#{error[:exception_class]}: #{error[:exception_message]}" }
+      Rails.logger.error('DbTrigger.generate_schema_triggers'){ "#{error[:sql]}" }
     end
 
     unless dry_run
       # Schedule initialization of table data if requested
       generator.load_sqls.each do |load|
-        Rails.logger.debug "Schedule table data initialization for #{schema.name}.#{load[:table_name]}"
+        Rails.logger.debug('DbTrigger.generate_schema_triggers'){ "Schedule table data initialization for #{schema.name}.#{load[:table_name]}" }
         TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql], user_options)
       end
 

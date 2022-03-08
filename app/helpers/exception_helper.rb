@@ -1,37 +1,55 @@
 require 'java'
 
 module ExceptionHelper
-  def self.log_exception_backtrace(exception, line_number_limit=nil)
-    Rails.logger.error "Stack-Trace for exception: '#{exception.class} #{exception.message}'"
+  def self.exception_backtrace(exception, line_number_limit=nil)
+    result = "Stack-Trace for exception '#{exception.class} #{exception.message}' is:\n"
     curr_line_no=0
     exception.backtrace.each do |bt|
-      Rails.logger.error(bt) if line_number_limit.nil? || curr_line_no < line_number_limit # report First x lines of stacktrace in log
+      result << "#{bt}\n" if line_number_limit.nil? || curr_line_no < line_number_limit # report First x lines of stacktrace in log
       curr_line_no += 1
     end
+    result
   end
 
-  def self.log_exception(exception, context)
-    Rails.logger.error "Exception: #{exception.class}: #{exception.message}"
-    explanation = explain_exception(exception)
-    Rails.logger.error explanation if explanation
-    Rails.logger.error "Context: #{context}"
+  # log exception as ERROR
+  # @param exception      The exception object
+  # @param context        The class and method name where the exception occured
+  # @param additional_msg Additional text to log in subseauent lines
+  def self.log_exception(exception, context, additional_msg: nil)
+    following_lines = ''
+    following_lines << explain_exception(exception) unless explain_exception(exception).nil?
+    following_lines << "\n" unless following_lines == ''
+    following_lines << "#{additional_msg}\n" unless additional_msg.nil?
     if Rails.logger.level == 0 # DEBUG
       mem_info = memory_info_string
-      Rails.logger.error "#{mem_info}\n" if mem_info && mem_info != ''
-      log_exception_backtrace(exception)
+      following_lines << "#{mem_info}\n" if mem_info && mem_info != ''
+      following_lines << exception_backtrace(exception)
     else
-      Rails.logger.error "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
+      following_lines << "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
     end
+    following_lines << "\n" unless following_lines == ''
+
+    Rails.logger.error(context){ "Exception: #{exception.class}: #{exception.message}#{"\n" unless following_lines == ''}#{following_lines}" }
+    #explanation = explain_exception(exception)
+    #Rails.logger.error explanation if explanation
+    #Rails.logger.error "Context: #{context}"
+    #if Rails.logger.level == 0 # DEBUG
+    #  mem_info = memory_info_string
+    #  Rails.logger.error "#{mem_info}\n" if mem_info && mem_info != ''
+    #  log_exception_backtrace(exception)
+    #else
+    #  Rails.logger.error "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
+    #end
   end
 
-  def self.warn_with_backtrace(message)
-    Rails.logger.warn(message)
+  def self.warn_with_backtrace(context, message)
+    Rails.logger.warn(context){ message }
     if Rails.logger.level == 0 # DEBUG
       backtrace_msg = "Stacktrace for previous warning follows:\n"
       Thread.current.backtrace.each do |bt|
         backtrace_msg << "#{bt}\n"
       end
-      Rails.logger.debug(backtrace_msg)
+      Rails.logger.debug(context){ backtrace_msg }
     end
   end
 
@@ -70,7 +88,7 @@ module ExceptionHelper
     if raise_exception
       raise "ExceptionHelper.limited_wait_for_mutex: Mutex is still locked after #{max_wait_time_secs} seconds"
     else
-      ExceptionHelper.warn_with_backtrace "ExceptionHelper.limited_wait_for_mutex: Mutex is still locked after #{max_wait_time_secs} seconds! Continuing."
+      ExceptionHelper.warn_with_backtrace 'ExceptionHelper.limited_wait_for_mutex', "Mutex is still locked after #{max_wait_time_secs} seconds! Continuing."
     end
   end
 

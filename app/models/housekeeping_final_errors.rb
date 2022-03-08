@@ -8,11 +8,11 @@ class HousekeepingFinalErrors
 
   def do_housekeeping
     if @last_housekeeping_started.nil?
-      Rails.logger.debug "HousekeepingFinalErrors.do_housekeeping: Start housekeeping"
+      Rails.logger.debug('HousekeepingFinalErrors.do_housekeeping'){ "Start housekeeping" }
       do_housekeeping_internal
       true                                                                      # signal state for test run only
     else
-      Rails.logger.error "HousekeepingFinalErrors.do_housekeeping: Last run started at #{@last_housekeeping_started} not yet finished!"
+      Rails.logger.error('HousekeepingFinalErrors.do_housekeeping'){ "Last run started at #{@last_housekeeping_started} not yet finished!" }
       false                                                                     # signal state for test run only
     end
   end
@@ -42,7 +42,7 @@ class HousekeepingFinalErrors
           to_remove = Database.select_one "SELECT CASE WHEN TO_DATE(:high_value, '\"TIMESTAMP'' \"YYYY-MM-DD HH24:MI:SS\"''\"') < SYSDATE - :keep_hours / 24 THEN 1 ELSE 0 END FROM DUAL",
                                           { high_value: part['high_value'], keep_hours: MovexCdc::Application.config.final_errors_keep_hours}
           if to_remove == 1
-            Rails.logger.info "HousekeepingFinalErrors: Check partition #{part['partition_name']} with high value #{part['high_value']} of table EVENT_LOG_FINAL_ERRORS for drop"
+            Rails.logger.info('HousekeepingFinalErrors.do_housekeeping_internal'){ "Check partition #{part['partition_name']} with high value #{part['high_value']} of table EVENT_LOG_FINAL_ERRORS for drop" }
 
             pending_transactions = Database.select_one("\
               SELECT COUNT(*)
@@ -53,11 +53,11 @@ class HousekeepingFinalErrors
               ", partition_name: part['partition_name']
                 )
             if pending_transactions > 0
-              Rails.logger.info "HousekeepingFinalObjects: Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{pending_transactions} pending transactions"
+              Rails.logger.info('HousekeepingFinalErrors.do_housekeeping_internal'){ "Drop partition #{part['partition_name']} with high value #{part['high_value']} not possible because there are #{pending_transactions} pending transactions" }
             else
-              Rails.logger.info "HousekeepingFinalObjects: Execute drop partition #{part['partition_name']} with high value #{part['high_value']}"
+              Rails.logger.info('HousekeepingFinalErrors.do_housekeeping_internal'){ "Execute drop partition #{part['partition_name']} with high value #{part['high_value']}" }
               Database.execute "ALTER TABLE Event_Log_Final_Errors DROP PARTITION #{part['partition_name']}"
-              Rails.logger.info "HousekeepingFinalObjects: Successful dropped partition #{part['partition_name']} with high value #{part['high_value']}"
+              Rails.logger.info('HousekeepingFinalErrors.do_housekeeping_internal'){ "Successful dropped partition #{part['partition_name']} with high value #{part['high_value']}" }
             end
           end
         end
@@ -70,7 +70,7 @@ class HousekeepingFinalErrors
                                         WHERE  Error_Time < SYSDATE - #{MovexCdc::Application.config.final_errors_keep_hours} / 24
                                         AND    RowNum <= 1000000 /* limit transaction size to  */
                                        "
-            Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
+            Rails.logger.debug('HousekeepingFinalErrors.do_housekeeping_internal'){ "#{deleted} records deleted from Event_Log_Final_Errors" }
           end
         end while deleted > 0                                                   # Repeat until all too old records are deleted
 
@@ -78,7 +78,7 @@ class HousekeepingFinalErrors
     when 'SQLITE' then
       ActiveRecord::Base.transaction do
         deleted = Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Error_Time < DATE('now', '-#{MovexCdc::Application.config.final_errors_keep_hours} hours')"
-        Rails.logger.debug "HousekeepingFinalObjects: #{deleted} records deleted from Event_Log_Final_Errors"
+        Rails.logger.debug('HousekeepingFinalErrors.do_housekeeping_internal'){ "#{deleted} records deleted from Event_Log_Final_Errors" }
       end
     end
   ensure

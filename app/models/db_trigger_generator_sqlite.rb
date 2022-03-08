@@ -125,10 +125,10 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       t.table_name == table.name && t.operation == operation
     }.each do |t|
       if !@expected_triggers.has_key?(table.name) || !@expected_triggers[table.name].has_key?(operation)
-        Rails.logger.debug("drop_obsolete_triggers: Existing trigger  #{table.name}.#{t.trigger_name} not expected in config, drop to remove")
+        Rails.logger.debug('DbTriggerGeneratorOracle.drop_obsolete_triggers'){ "Existing trigger  #{table.name}.#{t.trigger_name} not expected in config, drop to remove" }
         exec_trigger_sql("DROP TRIGGER #{t.trigger_name}", t.trigger_name, table)       # Remove existing trigger
       else
-        Rails.logger.debug("drop_obsolete_triggers: Existing trigger #{table.name}.#{t.trigger_name} expected in config, not dropped")
+        Rails.logger.debug('DbTriggerGeneratorOracle.drop_obsolete_triggers'){ "Existing trigger #{table.name}.#{t.trigger_name} expected in config, not dropped" }
       end
     end
   end
@@ -298,7 +298,7 @@ FROM   main.#{table.name}
 
 
   def exec_trigger_sql(sql, trigger_name, table)
-    Rails.logger.info "Execute trigger action: #{sql}"
+    Rails.logger.info('DbTriggerGeneratorSqlite.exec_trigger_sql'){ "Execute trigger action: #{sql}" }
     ActiveRecord::Base.connection.execute(sql) unless  @dry_run
     @successes << {
       table_id:     table.id,
@@ -307,7 +307,7 @@ FROM   main.#{table.name}
       sql:          sql
     }
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "DbTriggerSqlite.exec_trigger_sql: Executing SQL\n#{sql}")
+    ExceptionHelper.log_exception(e, 'DbTriggerSqlite.exec_trigger_sql', additional_msg: "Executing SQL\n#{sql}")
     @errors << {
       table_id:           table.id,
       table_name:         table.name,

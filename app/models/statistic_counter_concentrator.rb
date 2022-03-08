@@ -17,7 +17,7 @@ class StatisticCounterConcentrator
     start_wait = nil
     if @values_mutex.locked?
       start_wait = Time.now
-      ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.cumulate: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed."
+      ExceptionHelper.warn_with_backtrace 'StatisticCounterConcentrator.cumulate', "Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed."
     end
     @values_mutex.synchronize do
       values_hash.each do |table_id, operations|
@@ -32,13 +32,13 @@ class StatisticCounterConcentrator
       end
     end
     unless start_wait.nil?
-      Rails.logger.warn "StatisticCounterConcentrator.cumulate: Waited #{Time.now - start_wait} seconds to get, hold and free Mutex @values_mutex"
+      Rails.logger.warn('StatisticCounterConcentrator.cumulate'){ "Waited #{Time.now - start_wait} seconds to get, hold and free Mutex @values_mutex" }
     end
   end
 
   def flush_to_db
     cloned_values = nil
-    ExceptionHelper.warn_with_backtrace "StatisticCounterConcentrator.flush_to_db: Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?
+    ExceptionHelper.warn_with_backtrace 'StatisticCounterConcentrator.flush_to_db', "Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?
     @values_mutex.synchronize do
       # synchronize shortly, clone (not really) the value and than let concurring threads cumumlate to new one
       # this allows to process the cloned values outside Mutex
@@ -58,14 +58,14 @@ class StatisticCounterConcentrator
                                  events_d_and_c_retries:    counter_types[:events_d_and_c_retries],
                                  events_delayed_retries:    counter_types[:events_delayed_retries]
           )
-          Rails.logger.debug "Counter_Types: #{counter_types}"
+          Rails.logger.debug('StatisticCounterConcentrator.flush_to_db'){ "Counter_Types: #{counter_types}" }
 
           table = table_cache(table_id)
 
           # allow transferring log output to time series database
-          Rails.logger.info "Statistics: Schema=#{table.schema.name}, Table=#{table.name}, Operation=#{KeyHelper.long_operation_from_short(operation)}, " +
+          Rails.logger.info('StatisticCounterConcentrator.flush_to_db'){ "Statistics: Schema=#{table.schema.name}, Table=#{table.name}, Operation=#{KeyHelper.long_operation_from_short(operation)}, " +
               "Events_Success=#{counter_types[:events_success]}, Events_Delayed_Errors=#{counter_types[:events_delayed_errors]}, Events_Final_Errors=#{counter_types[:events_final_errors]}, " +
-              "Events_D_and_C_Retries=#{counter_types[:events_d_and_c_retries]}, Events_Delayed_Retries=#{counter_types[:events_delayed_retries]}"
+              "Events_D_and_C_Retries=#{counter_types[:events_d_and_c_retries]}, Events_Delayed_Retries=#{counter_types[:events_delayed_retries]}" }
         end
       end
     end

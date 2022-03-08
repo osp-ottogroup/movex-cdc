@@ -196,9 +196,9 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     }.each do |trigger|
       if trigger_expected?(table, operation) &&
          build_trigger_name(table, operation) == trigger.trigger_name           # existing trigger for operation has the expected name
-        Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} should persist and will not be dropped.")
+        Rails.logger.debug('DbTriggerGeneratorOracle.drop_obsolete_triggers'){ "Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} should persist and will not be dropped." }
       else
-        Rails.logger.debug("Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped.")
+        Rails.logger.debug('DbTriggerGeneratorOracle.drop_obsolete_triggers'){ "Existing trigger #{trigger.trigger_name} of table #{trigger.table_name} is not in list of expected triggers and will be dropped." }
         exec_trigger_sql("DROP TRIGGER #{MovexCdc::Application.config.db_user}.#{trigger.trigger_name}", trigger.trigger_name, table)
       end
     end
@@ -224,7 +224,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       existing_trigger['status'] != 'VALID'                                   # Always recreate invalid triggers because erroneous body is stored in DB
       exec_trigger_sql(trigger_sql, trigger_name, table)
     else
-      Rails.logger.debug "DbTriggerGeneratorOracle.create_or_rebuild_trigger: Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed"
+      Rails.logger.debug('DbTriggerGeneratorOracle.create_or_rebuild_trigger'){ "Trigger #{@schema.name}.#{trigger_name} not replaced because nothing has changed" }
     end
   end
 
@@ -499,7 +499,7 @@ END Flush;
     if @dry_run
       errors = []
     else
-      Rails.logger.info "Execute trigger action: #{sql}"
+      Rails.logger.info('DbTriggerGeneratorOracle.exec_trigger_sql'){ "Execute trigger action: #{sql}" }
       ActiveRecord::Base.connection.execute(sql)
       errors = Database.select_all(
         "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
@@ -530,7 +530,7 @@ END Flush;
       end
     end
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "DbTriggerGeneratorOracle.exec_trigger_sql: Executing SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, 'DbTriggerGeneratorOracle.exec_trigger_sql', additional_msg: "Executing SQL:\n#{sql}")
     @errors << {
       table_id:           table.id,
       table_name:         table.name,

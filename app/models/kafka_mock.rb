@@ -19,7 +19,7 @@ class KafkaMock
         @last_produced_id = next_id
       end
 
-#      Rails.logger.debug "KafkaMock.produce: options = #{options}, message=\n#{message}"
+#      Rails.logger.debug('KafkaMock.produce'){ "options = #{options}, message=\n#{message}" }
     end
 
     def deliver_messages

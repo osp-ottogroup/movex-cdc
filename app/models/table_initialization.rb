@@ -38,7 +38,7 @@ class TableInitialization
 
   # remove worker from pool: called from other threads after finishing TableInitializationThread.process
   def remove_from_thread_pool(worker)
-    ExceptionHelper.warn_with_backtrace "TableInitialization.remove_from_thread_pool: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+    ExceptionHelper.warn_with_backtrace 'TableInitialization.remove_from_thread_pool', "Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @thread_pool.delete(worker)
     end

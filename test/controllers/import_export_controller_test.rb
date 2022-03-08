@@ -102,7 +102,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     get "/import_export", headers: jwt_header(@jwt_admin_token)
     assert_response :success
 
-    Rails.logger.debug @response.body
+    Rails.logger.debug('ImportExportControllerTest.export'){ @response.body }
     actual = JSON.parse(@response.body)
 
     expected_schemas = []
@@ -121,7 +121,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     get "/import_export/#{db_user}", headers: jwt_header(@jwt_admin_token)
     assert_response :success
 
-    Rails.logger.debug @response.body
+    Rails.logger.debug('ImportExportControllerTest.export_schema'){ @response.body }
     actual = JSON.parse(@response.body)
 
     assert objects_equal?(generate_expected_users, actual['users'])
@@ -142,7 +142,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     get "/import_export", headers: jwt_header(@jwt_admin_token)
     assert_response :success
 
-    Rails.logger.debug @response.body
+    Rails.logger.debug('ImportExportControllerTest.import_all_schemas'){ @response.body }
     exported = JSON.parse(@response.body)
 
     assert objects_equal?(generate_expected_users, exported['users'])

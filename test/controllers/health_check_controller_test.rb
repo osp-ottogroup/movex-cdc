@@ -14,7 +14,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     end
 
     get "/health_check", as: :json
-    Rails.logger.info @response.body
+    Rails.logger.info('HealthCheckControllerTest.should get index'){ @response.body }
     if MovexCdc::Application.config.initial_worker_threads == ThreadHandling.get_instance.thread_count
       assert_response :success, log_on_failure("200 (success) expected because all worker threads are active, but is #{@response.response_code}")
     else
