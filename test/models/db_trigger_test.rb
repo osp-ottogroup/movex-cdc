@@ -104,9 +104,9 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert EventLog.last!.transaction_id.nil? ^ (key[:yn_record_txid] == 'Y'), log_on_failure("Transaction-ID must be filled only if requested! yn_record_txid=#{key[:yn_record_txid]}")
 
       # Dump Event_Logs and check JSON structure
-      Rails.logger.info "======== Dump all event_logs ========="
+      Rails.logger.info('DbTriggerTest.generate_triggers'){ "======== Dump all event_logs =========" }
       Database.select_all("SELECT * FROM Event_Logs").each do |e|
-        Rails.logger.info e
+        Rails.logger.info('DbTriggerTest.generate_triggers'){ e }
         JSON.parse("{ #{e['payload']} }")                                       # Check in generated JSON is valid
       end
 
@@ -184,7 +184,7 @@ class DbTriggerTest < ActiveSupport::TestCase
     assert_not_nil result[:errors][0][:exception_message],  log_on_failure(':exception_message in error result should be set for trigger')
     assert_not_nil result[:errors][0][:sql],                log_on_failure(':sql in error result should be set for trigger')
 
-    Rails.logger.debug("Reset condition to '#{original_filter}'")
+    Rails.logger.debug('DbTriggerTest.generate erroneous trigger'){ "Reset condition to '#{original_filter}'" }
     condition.update!(filter: original_filter)                                  # reset valid entry
     DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test) # Create trigger again to raise DDL that commits the update on condition
   end
@@ -204,7 +204,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
     [nil, "ID != #{max_victim_id}"].each do |init_filter|
       [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
-        Rails.logger.debug("Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'")
+        Rails.logger.debug('DbTriggerTest.generate trigger with initialization'){ "Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'" }
 
         raise "Other test process necessary because there are more key types than test loops" if msgkeys.count == 0
         kafka_key_handling = msgkeys.delete_at(0)                               # Remove used key handling so next test loop will use the next one for test
