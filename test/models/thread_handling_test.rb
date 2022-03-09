@@ -13,7 +13,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
     Database.execute "DELETE FROM Event_Logs"                                   # Ensure table is empty before testing with super-large sequences
 
-    Rails.logger.debug "ThreadHandlingTest.process: Create Event_Log_Records"
+    Rails.logger.debug('ThreadHandlingTest.process'){ "Create Event_Log_Records" }
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       MovexCdc::Application.config.max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
@@ -46,18 +46,18 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     end
 
     messages_to_process = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
-    Rails.logger.debug "ThreadHandlingTest.process: #{messages_to_process} Event_Logs records before processing"
+    Rails.logger.debug('ThreadHandlingTest.process'){ "#{messages_to_process} Event_Logs records before processing" }
     log_event_logs_content(console_output: false)
     ThreadHandling.get_instance.ensure_processing
     assert_equal MovexCdc::Application.config.initial_worker_threads, ThreadHandling.get_instance.thread_count, log_on_failure('Number of threads should run')
 
-    Rails.logger.debug "ThreadHandlingTest.process: wait for processing finished"
+    Rails.logger.debug('ThreadHandlingTest.process'){ "wait for processing finished" }
     loop_count = 0
     while loop_count < 200 do                                                    # wait up to 200 seconds for processing of event_logs records
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
       if event_logs == 0                                                        # All records processed, no need to wait anymore
-        Rails.logger.debug "Loop terminated because Event_Logs is Empty now"
+        Rails.logger.debug('ThreadHandlingTest.process'){ "Loop terminated because Event_Logs is Empty now" }
         break
       end
       sleep 1
@@ -67,7 +67,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     successful_messages_processed   = 0
     message_processing_errors       = 0
     health_check_data = ThreadHandling.get_instance.health_check_data
-    Rails.logger.info "Health check data: #{health_check_data}"
+    Rails.logger.info('ThreadHandlingTest.process'){ "Health check data: #{health_check_data}" }
     health_check_data.each do |hd|
       successful_messages_processed  += hd[:successful_messages_processed]
       message_processing_errors      += hd[:message_processing_errors]
@@ -78,7 +78,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal messages_to_process, successful_messages_processed, log_on_failure('Exactly the number of records in Event_Logs should be processed')
     assert_equal 0, message_processing_errors, log_on_failure('There should not be processing errors')
 
-    Rails.logger.debug "ThreadHandlingTest.process: shutdown processing of threads"
+    Rails.logger.debug('ThreadHandlingTest.process'){ "shutdown processing of threads" }
     ThreadHandling.get_instance.shutdown_processing
     assert_equal 0, ThreadHandling.get_instance.thread_count, log_on_failure('No threads should run after shutdown')
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All event_logs should be processed after shutdown')
@@ -95,10 +95,10 @@ class ThreadHandlingTest < ActiveSupport::TestCase
           begin
             Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
           rescue Exception => e
-            Rails.logger.error "#{e.class}:#{e.message}: while trying to drop partition #{p.partition_name}! Current existing partitions follows:"
+            Rails.logger.error('ThreadHandlingTest.process'){ "#{e.class}:#{e.message}: while trying to drop partition #{p.partition_name}! Current existing partitions follows:" }
             Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
               msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
-              Rails.logger.debug msg
+              Rails.logger.debug('ThreadHandlingTest.process'){ msg }
               puts msg
             end
             raise

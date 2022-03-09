@@ -26,7 +26,7 @@ module TestHelper
   # use like: assert_response :success, log_on_failure('should get log file with JWT')
   def log_on_failure(message)
     Proc.new do
-      Rails.logger.debug "Assertion failed: #{message}"
+      Rails.logger.debug('TestHelper.log_on_failure'){ "Assertion failed: #{message}" }
       message
     end
   end
@@ -82,7 +82,7 @@ class ActiveSupport::TestCase
     end
   rescue Exception => e
     msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
-    Rails.logger.error(msg)
+    Rails.logger.error('ActiveSupport::TestCase.exec_victim_sql'){ msg }
     raise msg
   end
 
@@ -90,7 +90,7 @@ class ActiveSupport::TestCase
     ActiveRecord::Base.connection.execute sql
   rescue Exception => e
     msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
-    Rails.logger.error(msg)
+    Rails.logger.error('ActiveSupport::TestCase.exec_db_user_sql'){ msg }
     raise msg
   end
 
@@ -165,7 +165,7 @@ class ActiveSupport::TestCase
     raise "Should create at least 11 records" if number_of_records < 11
     if ThreadHandling.get_instance.thread_count > 0
       msg = "There are already #{ThreadHandling.get_instance.thread_count} running worker threads! Created Event_Logs will be processed immediately!"
-      Rails.logger.debug msg
+      Rails.logger.debug('ActiveSupport::TestCase.create_event_logs_for_test'){ msg }
       raise msg
     end
 
@@ -177,7 +177,7 @@ class ActiveSupport::TestCase
 
     # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
-    Rails.logger.debug "#{event_logs_before} records exist in table Event_Logs"
+    Rails.logger.debug('ActiveSupport::TestCase.create_event_logs_for_test'){ "#{event_logs_before} records exist in table Event_Logs" }
 
     victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM1"
     victim_max_id = 0 if victim_max_id.nil?
@@ -234,10 +234,10 @@ class ActiveSupport::TestCase
     end # COMMIT
 
     event_logs_after = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
-    Rails.logger.debug "#{event_logs_after} records exist in table Event_Logs"
+    Rails.logger.debug('ActiveSupport::TestCase.create_event_logs_for_test'){ "#{event_logs_after} records exist in table Event_Logs" }
     if event_logs_before+number_of_records != event_logs_after
       msg = "Number of event_logs should be increased by #{number_of_records} but before are #{event_logs_before} records and after are #{event_logs_after} records"
-      Rails.logger.error msg
+      Rails.logger.error('ActiveSupport::TestCase.create_event_logs_for_test'){ msg }
       log_event_logs_content
       raise msg
     end
@@ -270,12 +270,12 @@ class ActiveSupport::TestCase
   end
 
   def log_event_logs_count
-    Rails.logger.debug "Table Event_Logs now contains #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"} records"
+    Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_count'){ "Table Event_Logs now contains #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"} records" }
   end
 
   def log_event_logs_content(options = {})
     puts options[:caption] if options[:caption] && options[:console_output]
-    Rails.logger.debug options[:caption] if options[:caption]
+    Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ options[:caption] if options[:caption] }
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
@@ -283,14 +283,14 @@ class ActiveSupport::TestCase
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
           msg = "Partition #{p['partition_name']}: position= #{p.partition_position} high_value = '#{p['high_value']}', #{record_count} records"
           puts msg if options[:console_output]
-          Rails.logger.debug msg
+          Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ msg }
         end
       end
     end
 
     msg = "First 100 remaining events in table Event_Logs:"
     puts msg if options[:console_output]
-    Rails.logger.debug msg
+    Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ msg }
 
     counter = 0
     Database.select_all("SELECT * FROM Event_Logs ORDER BY ID").each do |e|
@@ -300,7 +300,7 @@ class ActiveSupport::TestCase
         clone['payload'] = clone['payload'][0, 1000]                            # Limit output to fist 1000 chars
         clone['payload'] << "... [content reduced to 1000 chars]" if clone['payload'].length == 1000
         puts clone if options[:console_output]
-        Rails.logger.debug clone
+        Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ clone }
       end
     end
   end
@@ -324,7 +324,7 @@ class ActiveSupport::TestCase
       while loop_count < options[:max_wait_time] do                           # wait up to x seconds for processing
         loop_count += 1
         event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-        Rails.logger.debug "#{event_logs} records remaining in Event_Logs"
+        Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "#{event_logs} records remaining in Event_Logs" }
         break if event_logs == options[:expected_remaining_records]           # All records processed, no need to wait anymore
         sleep 1
       end
@@ -515,7 +515,7 @@ class GlobalFixtures
                               db_config['username'] = MovexCdc::Application.config.db_victim_user
                               db_config['password'] = MovexCdc::Application.config.db_victim_password
                               db_config.symbolize_keys!
-                              Rails.logger.debug "create_victim_connection: creating JDBCConnection"
+                              Rails.logger.debug('GlobalFixtures.initialize'){ "create_victim_connection: creating JDBCConnection" }
                               ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
                             end
 
