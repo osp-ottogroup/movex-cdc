@@ -15,7 +15,7 @@ class ApplicationController < ActionController::API
 
   # Catch all remainig errors with exception content in response
   rescue_from RuntimeError do |e|
-    ExceptionHelper.log_exception(e, "Request: #{request_log_attributes}")
+    ExceptionHelper.log_exception(e, 'ApplicationHelper.rescue_from', additional_msg: "Request: #{request_log_attributes}")
     render json: { status: :internal_server_error, error: e.message }, status: :internal_server_error
   end
 

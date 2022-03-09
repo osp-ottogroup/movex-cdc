@@ -10,7 +10,7 @@ class ApplicationJobTest < ActiveJob::TestCase
     end
 
     def perform(*args)
-      Rails.logger.debug("DummyJob executed")
+      Rails.logger.debug('DummyJob.perform'){ "DummyJob executed"}
     end
   end
 

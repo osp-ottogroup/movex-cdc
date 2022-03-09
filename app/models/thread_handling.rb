@@ -15,24 +15,24 @@ class ThreadHandling
 
   # Ensure that matching number of worker threads is active
   def ensure_processing
-    ExceptionHelper.warn_with_backtrace "ThreadHandling.ensure_processing: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+    ExceptionHelper.warn_with_backtrace 'ThreadHandling.ensure_processing', "Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     current_thread_pool_size = @thread_pool_mutex.synchronize { @thread_pool.count }
 
     # calculate required number of worker threads
     required_number_of_threads = MovexCdc::Application.config.initial_worker_threads
-    Rails.logger.info "ThreadHandling.ensure_processing: Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}"
+    Rails.logger.info('ThreadHandling.ensure_processing'){ "Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}" }
     unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
-      ExceptionHelper.warn_with_backtrace "ThreadHandling.ensure_processing: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+      ExceptionHelper.warn_with_backtrace 'ThreadHandling.ensure_processing', "Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
       @thread_pool_mutex.synchronize do
-        Rails.logger.debug "ThreadHandling.ensure_processing: within @thread_pool_mutex.synchronize"
+        Rails.logger.debug('ThreadHandling.ensure_processing'){ "within @thread_pool_mutex.synchronize" }
         current_thread_pool_size.downto(required_number_of_threads+1) do |i|    # reduce the number of threads if necessary
-          Rails.logger.debug "ThreadHandling.ensure_processing: stopping thread if there are too much threads"
+          Rails.logger.debug('ThreadHandling.ensure_processing'){ "stopping thread if there are too much threads" }
           @thread_pool[i-1].stop_thread                                         # inform TransferThread.process it should terminate
         end
 
         current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
-          Rails.logger.debug "ThreadHandling.ensure_processing: starting worker thread because there are not enough"
+          Rails.logger.debug('ThreadHandling.ensure_processing'){ "starting worker thread because there are not enough" }
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
               max_transaction_size:     MovexCdc::Application.config.max_transaction_size,
               max_message_bulk_count:   MovexCdc::Application.config.kafka_max_bulk_count,
@@ -51,7 +51,7 @@ class ThreadHandling
   SHUTDOWN_TIMEOUT_SECS = 100
   # graceful shutdown processing of transfer threads at rails exit
   def shutdown_processing
-    ExceptionHelper.warn_with_backtrace "ThreadHandling.shutdown_processing stop_thread: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+    ExceptionHelper.warn_with_backtrace 'ThreadHandling.shutdown_processing', "stop_thread: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @shutdown_requested = true                                                # prevent ensure_processing from recreating shut down threads
       @thread_pool.each do |worker|
@@ -69,14 +69,14 @@ class ThreadHandling
       Rails.logger.info "All TransferThread worker are stopped now, shutting down"
       @shutdown_requested = false                                               # Reset state so next ensure_processing may start again
     else
-      Rails.logger.info "ThreadHandling.shutdown_processing: Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless"
+      Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless" }
     end
     StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB after stop of worker threads
   end
 
   # remove worker from pool: called from other threads after finishing TransferThread.process
   def remove_from_pool(worker)
-    ExceptionHelper.warn_with_backtrace "ThreadHandling.remove_from_pool: Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
+    ExceptionHelper.warn_with_backtrace 'ThreadHandling.remove_from_pool', "Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
     @thread_pool_mutex.synchronize do
       @thread_pool.delete(worker)
     end

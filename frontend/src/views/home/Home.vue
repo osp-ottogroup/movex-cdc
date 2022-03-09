@@ -20,8 +20,6 @@ import HttpService from '@/services/HttpService';
 import Config from '@/config/config';
 
 export default {
-  // TODO change to multi word component name
-  // eslint-disable-next-line vue/multi-word-component-names
   name: 'Home',
   components: { ContactPerson },
   data() {

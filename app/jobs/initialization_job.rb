@@ -11,23 +11,23 @@ class InitializationJob < ApplicationJob
     Database.initialize_connection                                              # do some init actions for DB connection before use
     ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
-    Rails.logger.info "Start db:migrate to ensure up to date data structures"
+    Rails.logger.info('InitializationJob.perform'){ "Start db:migrate to ensure up to date data structures"}
     MovexCdc::Application.load_tasks                                               # precondition for invoke of db:migrate
     if ENV['SUPPRESS_MIGRATION_AT_STARTUP']
-      Rails.logger.info "Migration suppressed because SUPPRESS_MIGRATION_AT_STARTUP is set in environment"
+      Rails.logger.info('InitializationJob.perform'){ "Migration suppressed because SUPPRESS_MIGRATION_AT_STARTUP is set in environment"}
     else
       Rake::Task['db:migrate'].invoke
     end
-    Rails.logger.info "Finished db:migrate"
+    Rails.logger.info('InitializationJob.perform'){ "Finished db:migrate" }
 
     warmup_ar_classes
 
     ensure_admin_existence
 
     # LOG Datase and JDBC driver version
-    Rails.logger.info "JDBC driver version = #{Database.jdbc_driver_version}"
+    Rails.logger.info('InitializationJob.perform'){ "JDBC driver version = #{Database.jdbc_driver_version}" }
     MovexCdc::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
-    Rails.logger.info "Database version = #{Database.db_version}"
+    Rails.logger.info('InitializationJob.perform'){ "Database version = #{Database.db_version}"}
     MovexCdc::Application.log_attribute('Database version', Database.db_version)
 
     EventLog.adjust_interval                                                    # Activate new MovexCdc::Application.config.partition_interval if necessary
@@ -39,7 +39,7 @@ class InitializationJob < ApplicationJob
     DailyJob.set(wait: 1200.seconds).perform_later unless Rails.env.test?       # Job is tested separately, run first time after SystemValidationJob should have finished
   rescue Exception => e
     begin
-      ExceptionHelper.log_exception e, "Initialization failed, abort application now!\n#{ExceptionHelper.memory_info_hash}"
+      ExceptionHelper.log_exception(e, 'InitializationJob.perform', additional_msg: "Initialization failed, abort application now!\n#{ExceptionHelper.memory_info_hash}")
     ensure
       exit! 1                                                                   # Ensure application terminates if initialization fails
     end
@@ -139,17 +139,17 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
 
   # Ensure dictionary info for database objects is loaded at startup
   def warmup_ar_classes
-    Rails.logger.debug "Warmup dictionary info for DB objects started"
+    Rails.logger.debug('InitializationJob.warmup_ar_classes'){ "Warmup dictionary info for DB objects started" }
     [ActivityLog, Column, Condition, EventLog, Schema, SchemaRight, Statistic, Table, User].each do |ar_class|
       ar_class.first                                                            # Load one record to provoke loading of dictionary info
     end
-    Rails.logger.debug "Warmup dictionary info for DB objects finished"
+    Rails.logger.debug('InitializationJob.warmup_ar_classes'){ "Warmup dictionary info for DB objects finished" }
   end
 
   def log_memory_state
-    Rails.logger.warn "Memory resources at startup:"
+    Rails.logger.warn('InitializationJob.log_memory_state'){ "Memory resources at startup:" }
     ExceptionHelper.memory_info_hash.each do |key, value|
-      Rails.logger.warn "#{value[:name].ljust(25)}: #{value[:value]}"
+      Rails.logger.warn('InitializationJob.log_memory_state'){ "#{value[:name].ljust(25)}: #{value[:value]}" }
     end
 
   end

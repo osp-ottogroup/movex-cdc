@@ -8,11 +8,11 @@ class CompressStatistics
 
   def do_compress
     if @last_compress_started.nil?
-      Rails.logger.debug "CompressStatistics.do_compress: Start compressing"
+      Rails.logger.debug('CompressStatistics.do_compress'){ "Start compressing" }
       do_compress_internal
       true                                                                      # signal state for test run only
     else
-      Rails.logger.error "CompressStatistics.do_compress: Last run started at #{@last_compress_started} not yet finished!"
+      Rails.logger.error('CompressStatistics.do_compress'){ "Last run started at #{@last_compress_started} not yet finished!" }
       false                                                                     # signal state for test run only
     end
   end

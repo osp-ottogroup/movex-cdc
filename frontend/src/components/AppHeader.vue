@@ -30,11 +30,6 @@
                            label="Administration"
                            :class="{'router-link-exact-active': $route.path.startsWith('/administration/')}">
           <b-navbar-item tag="router-link"
-                         :to="{ path: '/administration/config-exchange' }"
-                         :active="$route.path === '/administration/config-exchange'">
-            Config Exchange (Import/Export)
-          </b-navbar-item>
-          <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/server-log-level' }"
                          :active="$route.path === '/administration/server-log-level'">
             Set server log level (LOG_LEVEL)

@@ -17,8 +17,6 @@ import TableManager from './TableManager.vue';
 import ColumnManager from './ColumnManager.vue';
 
 export default {
-  // TODO change to multi word component name
-  // eslint-disable-next-line vue/multi-word-component-names
   name: 'configuration',
   components: {
     SchemaManager,

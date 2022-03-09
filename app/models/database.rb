@@ -31,7 +31,7 @@ class Database
     case MovexCdc::Application.config.db_type
     when 'SQLITE' then
       journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
-      Rails.logger.info "SQLITE journal mode = #{journal_mode}"
+      Rails.logger.info('Database.initialize_connection'){ "SQLITE journal mode = #{journal_mode}" }
     end
   end
 
@@ -50,7 +50,7 @@ class Database
     end
     result
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "Database.select_all: Erroneous SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}")
     raise
   end
 
@@ -79,7 +79,7 @@ class Database
 
     ActiveRecord::Base.connection.exec_update(sql, "Database.execute Thread=#{Thread.current.object_id}", binds)  # returns the number of affected rows
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "Database.execute: Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
+    ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
     raise
   end
 

@@ -87,8 +87,6 @@ import CRUDService from '../../services/CRUDService';
 import UserModal from './UserModal.vue';
 
 export default {
-  // TODO change to multi word component name
-  // eslint-disable-next-line vue/multi-word-component-names
   name: 'Users',
   components: {
     ActivityLogModal,

@@ -37,7 +37,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
         db_config['username'] = MovexCdc::Application.config.db_victim_user
         db_config['password'] = MovexCdc::Application.config.db_victim_password
         db_config.symbolize_keys!
-        Rails.logger.debug "LoginControllerTest.should post do_logon: creating JDBCConnection with right credentials"
+        Rails.logger.debug('LoginControllerTest.should post do_logon'){ "creating JDBCConnection with right credentials" }
         ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
       end
     end

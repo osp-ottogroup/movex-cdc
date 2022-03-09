@@ -219,7 +219,7 @@ module MovexCdc
                                  else
                                    false
                                  end
-        Rails.logger.info "Partitioning = #{@db_partitioning} for this #{config.db_type} database"
+        Rails.logger.info('Application'){ "Partitioning = #{@db_partitioning} for this #{config.db_type} database" }
       end
       @db_partitioning
     end

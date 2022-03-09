@@ -14,7 +14,7 @@ class TableInitializationThread
     thread.report_on_exception = false                                          # don't report the last exception in thread because it is already logged by thread itself
     worker
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TableInitializationThread.start_worker_thread (#{request[:table_id]})")
+    ExceptionHelper.log_exception(e, 'TableInitializationThread.start_worker_thread', additional_msg: "Request = '#{request[:table_id]}'")
     raise
   end
 
@@ -30,7 +30,7 @@ class TableInitializationThread
     Database.execute @sql
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'" ).save!
   rescue Exception => e
-    ExceptionHelper.log_exception(e, "TableInitializationThread.process #{@table_id}: Terminating thread due to exception")
+    ExceptionHelper.log_exception(e, 'TableInitializationThread.process', additional_msg: "Table_ID = #{@table_id}: Terminating thread due to exception")
     ActivityLog.new(user_id: @user_id, schema_name: @table.schema.name, table_name: @table.name, client_ip: @client_ip, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}" ).save!
   ensure
     @table.update!(yn_initialization: 'N')                                      # Mark initialization as finished no matter if succesful or not

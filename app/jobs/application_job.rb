@@ -36,7 +36,7 @@ class ApplicationJob < ActiveJob::Base
   # Housekeeping executed by Docker container can repair this seldom scenario
   def self.ensure_job_rescheduling
     if @@reschedule_mutex.locked?
-      Rails.logger.warn "ApplicationJob.ensure_job_restarts: Mutex is locked by another thread. Not waiting."
+      Rails.logger.warn('ApplicationJob.ensure_job_restarts'){"Mutex is locked by another thread. Not waiting."}
       return                                                                    # do not wait for mutex in health_check
     end
     @@reschedule_mutex.synchronize do
@@ -44,10 +44,10 @@ class ApplicationJob < ActiveJob::Base
       @@last_job_warnings.each do |job_class_name, value|
         if Time.now > value[:last_execution] + value[:cycle_seconds] * wait_factor    # Wait twice the cycle before assuming job as not active no more
           SystemValidationJob.set(wait: CYCLE.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
-          Rails.logger.warn "ApplicationJob.ensure_job_restarts: Job '#{job_class_name}' has not been executed for #{wait_factor} * cycle_seconds (#{value[:cycle_seconds]})!"
-          Rails.logger.warn "ApplicationJob.ensure_job_restarts: Last execution time for job '#{job_class_name}' was #{value[:last_execution]}."
-          Rails.logger.warn "ApplicationJob.ensure_job_restarts: This may happen randomly if application runs out of memory."
-          Rails.logger.warn "ApplicationJob.ensure_job_restarts: Rescheduling job '#{job_class_name}' for now + #{value[:cycle_seconds]} seconds."
+          Rails.logger.warn('ApplicationJob.ensure_job_restarts'){ "Job '#{job_class_name}' has not been executed for #{wait_factor} * cycle_seconds (#{value[:cycle_seconds]})!"}
+          Rails.logger.warn('ApplicationJob.ensure_job_restarts'){ "Last execution time for job '#{job_class_name}' was #{value[:last_execution]}."}
+          Rails.logger.warn('ApplicationJob.ensure_job_restarts'){ "This may happen randomly if application runs out of memory."}
+          Rails.logger.warn('ApplicationJob.ensure_job_restarts'){ "Rescheduling job '#{job_class_name}' for now + #{value[:cycle_seconds]} seconds."}
           job_class_name.constantize.set(wait: value[:cycle_seconds].seconds).perform_later # unless Rails.env.test?
         end
       end
