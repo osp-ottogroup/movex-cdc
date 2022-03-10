@@ -330,3 +330,14 @@ final_tag_docker:
     # make master tag available for consumer
     - $PODMAN tag $TEMP_DOCKER_IMAGE $FINAL_DOCKER_IMAGE
     - $PODMAN push $FINAL_DOCKER_IMAGE
+    # Deploy prod-Releases to OSPs dockerhub account
+    - |
+      if [[ "$CI_COMMIT_REF_NAME" == "prod_"* ]]; then
+        # use tag name with release number only (without prefix "prod_")
+        DOCKER_TAG_NAME=${CI_COMMIT_REF_NAME#"prod_"}
+        DOCKER_IMAGE_NAME=docker.io/ottogroupsolutionproviderosp/movex-cdc:$DOCKER_TAG_NAME
+        echo "Push image $FINAL_DOCKER_IMAGE to $DOCKER_IMAGE_NAME"
+        $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
+        $PODMAN tag $FINAL_DOCKER_IMAGE $DOCKER_IMAGE_NAME
+        $PODMAN push $DOCKER_IMAGE_NAME
+      fi
