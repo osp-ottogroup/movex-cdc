@@ -78,7 +78,7 @@ class LoginController < ApplicationController
   @@last_call_time_release_info = Time.now-100.seconds                                       # ensure enough distance at startup
   # GET /login/release_info
   def release_info
-    raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time_release_info   # suppress DOS attacks
+    raise "Release info called too frequently" if Time.now - 1.seconds < @@last_call_time_release_info   # suppress DOS attacks
     @@last_call_time_release_info = Time.now
 
     begin

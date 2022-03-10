@@ -110,7 +110,7 @@ docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
   -e DB_SYS_PASSWORD=$DB_SYS_PASSWORD \
   -v $PWD/run_config.yml:/etc/run_config.yml \
-  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc bundle exec rake ci_preparation:create_user
 ----
 
 === Run MOVEX CDC Docker container
@@ -120,7 +120,7 @@ docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
-  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc
 ----
 
 == Prepare test case

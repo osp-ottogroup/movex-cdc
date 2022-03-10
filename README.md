@@ -14,18 +14,26 @@ The full documentation of this product you may find here:
 
 
 ## Usage
-MOVEX Change Data Capture is offered as a single compact Docker image.
-
-The latest build of the master branch is available by:<br/>
-`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
-
-Production ready releases are tagged like 'prod_x.xx' and can be pulled by:<br/>
-`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:prod_x.xx`
+MOVEX Change Data Capture is offered as one single compact Docker image.<br>
 
 ## Quick start demo
 Establish change data capture on Oracle DB including event transfer to Kafka within 10 minutes.<br/>
-Here you find the howto guide to quickly get up and running:<br/>
-https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html
+[Here you find the howto guide to quickly get up and running.](https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html)
+
+## Releases
+Production ready releases are tagged with release number and can be pulled from gitlab.com by:<br/>
+`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:1.07.0`
+<br>or from Docker hub by <br>
+`docker pull ottogroupsolutionproviderosp/movex-cdc:1.07.0`
+
+The current production ready release is also tagged with `:latest` and can by pulled without a tag by:<br>
+`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc`
+<br>or from Docker hub by <br>
+`docker pull ottogroupsolutionproviderosp/movex-cdc`
+
+The latest build of the development master branch is available by:<br/>
+`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
+
 
 ## Support
 If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
