@@ -171,7 +171,7 @@ docker run --rm \
   -e DB_PASSWORD=hugo
   -e DB_SYS_PASSWORD=oracle
   -e DB_URL=10.213.131.150:1521/ORCLPDB1
-  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master bundle exec rake ci_preparation:create_user
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc bundle exec rake ci_preparation:create_user
 
 .Optional grants required to initially transfer table content in Oracle DB
 [cols="~,~"]
@@ -312,7 +312,7 @@ Now you are prepared with the four values needed to configure SSL connection in 
 === Running MOVEX Change Data Capture ===
 The application is provided as Docker-Image by:
 [source]
-docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
+docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc
 
 ==== Start Docker container ====
 You can run the this image like:
@@ -321,7 +321,7 @@ docker run -p 8080:8080 \
   --stop-timeout=120 \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v /my_local_dir/run_config.yml:/etc/run_config.yml \
-  registry.gitlab.com/otto-group-solution-provider/movex-cdc:master
+  registry.gitlab.com/otto-group-solution-provider/movex-cdc
 
 The web-GUI would be available by http://localhost:8080 in this case.
 It is recommended to place an own reverse proxy nearby for SSL encryption.
