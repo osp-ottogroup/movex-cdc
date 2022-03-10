@@ -30,7 +30,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         log_state = proc do |console|
           Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
             msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
-            Rails.logger.debug msg
+            Rails.logger.debug('HousekeepingTest.check_partition_interval'){ msg }
             puts msg if console
           end
         end
@@ -48,7 +48,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             MovexCdc::Application.config.partition_interval = interval
             current_high_value_time = get_time_from_high_value.call(1)
             if current_high_value_time >= high_value_time                 # high value should by adjusted to an older Time
-              Rails.logger.debug "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}"
+              Rails.logger.debug('HousekeepingTest.check_partition_interval'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
               log_state.call(false)                                             # log partitions
               Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"         # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
               partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
