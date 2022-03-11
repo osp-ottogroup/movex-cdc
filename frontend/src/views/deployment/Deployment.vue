@@ -76,6 +76,8 @@ import UserService from '@/services/UserService';
 import DeploymentResults from '@/views/deployment/DeploymentResults.vue';
 
 export default {
+  // TODO change to multi word component name
+  // eslint-disable-next-line vue/multi-word-component-names
   name: 'Deployment',
   components: {
     DeploymentResults,

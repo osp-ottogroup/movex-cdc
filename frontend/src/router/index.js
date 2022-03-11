@@ -49,6 +49,11 @@ const routes = [
     component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogLevel.vue'),
   },
   {
+    path: '/administration/config-exchange',
+    name: 'config-exchange',
+    component: () => import(/* webpackChunkName: "about" */ '../views/administration/ConfigExchange.vue'),
+  },
+  {
     path: '/information',
     name: 'information',
     component: () => import(/* webpackChunkName: "about" */ '../views/information/InstanceInfos.vue'),
