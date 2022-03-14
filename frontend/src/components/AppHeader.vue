@@ -12,10 +12,10 @@
 
       <template v-slot:start>
         <b-navbar-item tag="router-link" :to="{ path: '/' }" :active="$route.path === '/'">
-            Home
+          Home
         </b-navbar-item>
         <b-navbar-item tag="router-link" :to="{ path: '/users' }" :active="$route.path === '/users'" v-if="isAdminUser" >
-            Users
+          Users
         </b-navbar-item>
         <b-navbar-item tag="router-link" :to="{ path: '/configuration' }" :active="$route.path === '/configuration'">
           Configuration
@@ -29,6 +29,11 @@
         <b-navbar-dropdown v-if="isAdminUser"
                            label="Administration"
                            :class="{'router-link-exact-active': $route.path.startsWith('/administration/')}">
+          <b-navbar-item tag="router-link"
+                         :to="{ path: '/administration/config-exchange' }"
+                         :active="$route.path === '/administration/config-exchange'">
+            Config Exchange (Import/Export)
+          </b-navbar-item>
           <b-navbar-item tag="router-link"
                          :to="{ path: '/administration/server-log-level' }"
                          :active="$route.path === '/administration/server-log-level'">
