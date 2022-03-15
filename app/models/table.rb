@@ -214,4 +214,13 @@ class Table < ApplicationRecord
     # Raise exception if none of previous checks has returned from method
     raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{current_user.db_user}"
   end
+
+  # Alternative to destroy a table because it should physically exist with its ID because old triggers may still produce event_logs with this table_id
+  def mark_hidden
+    ActiveRecord::Base.transaction do
+      update!(yn_hidden: 'Y')
+      Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", {id: self.id}
+    end
+  end
+
 end

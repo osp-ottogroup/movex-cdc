@@ -676,6 +676,12 @@ The response status code contains the health status of the running instance:
 - 409 (conflict): Health check recognized a problem in operation
 - 500 (internal server error): Technical problem during processing of health check request or called too frequently (further details in response body)
 
+==== Export and import of configuration data ====
+The whole content of configuration tables can be exported as a JSON document.
+This JSON document can also be imported to a MOVEX-CDC instance. +
+This way the configuration data can be stored as a backup outside the database and MOVEX-CDC instance.
+Import and export requires authentication as admin user.
+
 === API endpoints ===
 Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside the application. +
 API Responses are JSON objects.

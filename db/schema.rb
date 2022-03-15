@@ -29,9 +29,9 @@ ActiveRecord::Schema.define(version: 2021_04_14_010000) do
     t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
     t.string "name", limit: 256, null: false, comment: "Column name of database table"
     t.string "info", limit: 1000, comment: "Additional info"
-    t.string "yn_log_insert", limit: 1, null: false, comment: "Log this column at insert operation (Y/N)"
-    t.string "yn_log_update", limit: 1, null: false, comment: "Log this column at update operation (Y/N)"
-    t.string "yn_log_delete", limit: 1, null: false, comment: "Log this column at delete operation (Y/N)"
+    t.string "yn_log_insert", limit: 1, default: "N", null: false, comment: "Log this column at insert operation (Y/N)"
+    t.string "yn_log_update", limit: 1, default: "N", null: false, comment: "Log this column at update operation (Y/N)"
+    t.string "yn_log_delete", limit: 1, default: "N", null: false, comment: "Log this column at delete operation (Y/N)"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false

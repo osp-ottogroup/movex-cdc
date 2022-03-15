@@ -52,7 +52,7 @@ class SchemaRightsController < ApplicationController
   # DELETE /schema_rights/1
   def destroy
     @schema_right.lock_version = schema_right_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
-    @schema_right.destroy
+    @schema_right.destroy!
     log_activity(
         schema_name:  @schema_right.schema.name,
         action:       "schema right deleted for user '#{@schema_right.user.email}': #{@schema_right.attributes}"
