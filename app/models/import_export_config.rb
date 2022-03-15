@@ -139,12 +139,11 @@ class ImportExportConfig
   # adjust sequences to the highest used ID +1
   def adjust_sequences
     set_sequence = proc do |ar_class|
-      curr_val = Database.select_one(
+      curr_val =
         case MovexCdc::Application.config.db_type
-        when 'ORACLE' then "SELECT #{ar_class.sequence_name}.CurrVal FROM DUAL"
-        when 'SQLITE' then "SELECT seq FROM sqlite_sequence WHERE name = '#{ar_class.table_name}'"
+        when 'ORACLE' then Database.select_one("SELECT Last_Number FROM User_Sequences WHERE Sequence_Name = :seq_name", { seq_name: ar_class.sequence_name})
+        when 'SQLITE' then Database.select_one("SELECT seq FROM sqlite_sequence WHERE name = '#{ar_class.table_name}'")
         end
-      )
       curr_val = 1 if curr_val.nil?
       max_val = Database.select_one("SELECT MAX(ID) FROM #{ar_class.table_name}")
       max_val = 1 if max_val.nil?
