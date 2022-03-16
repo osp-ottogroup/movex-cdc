@@ -692,12 +692,23 @@ This example exports the whole configuration data into a file +
 curl -X GET -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
-http://localhost:8080/import_export > movex-cdc-config.json
+http://localhost:8080/import_export/export > movex-cdc-config.json
 
-===== Import of configuation data =====
-The import from JSON data can be done for the whole content or you may pick only one schema to import.
+With schema name in parameter 'schema' the exported is limited to a particular schema. +
+Data of all configured users is included in the JSON document in both cases.
 
+===== Import of schema configuration data =====
+The import from JSON data can be done for the whole content or you may pick only one schema to import. +
 
+This example imports a particular schema from a JSON document with several schemas:
+[source]
+curl -X POST -H "Authorization: \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+-d "json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
+http://localhost:8080/import_export/export
+
+===== Import of user configuration data =====
 === API endpoints ===
 Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside the application. +
 API Responses are JSON objects.
@@ -715,9 +726,9 @@ Requires valid user JWT in request header.
 |POST|/server_control/set_max_transaction_size|max_transaction_size (1..infinity)|no|Set the number of events to process within on DB and Kafka transaction, requires valid admin JWT in request header
 |POST|/server_control/set_worker_threads_count|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
 |POST|/server_control/terminate|no|no|Graceful shut down the current container instance of MOVEX CDC by sending SIGTERM to the application, requires valid admin JWT in request header
-|GET|/import_export|no|JSON object|Export complete configuration data (users, schemas, tables, columns, conditions ...) as JSON object
-|GET|/import_export/<Schemaname>|no|JSON object|Export configuration data of a particular schema as JSON object
-|POST|/import_export|JSON object|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in the applications config tables
+|GET|/import_export/export|schema (Limit export to a single schema, optional)|JSON object|Export configuration data of all or a particular schema (users, schemas, tables, columns, conditions, schema rights, users) as JSON object
+|POST|/import_export/import|JSON object, schema (Limit exports to a single schema, optional)|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in the applications config tables
+|POST|/import_export/import_all_users|JSON object|no|Import the complete configuration data for users from JSON object. The schema import in contrast imports only the users that are necessary for dependencies with locked account.
 |===
 
 ==== Using API endpoints from command line ====

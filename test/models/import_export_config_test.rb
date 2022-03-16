@@ -5,7 +5,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   # get the relevant column names for export
   def extract_column_names(ar_class)
     # extract column names without id, *_id, timestamps and lock_version
-    ar_class.columns.select{|c| !['created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
+    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
   end
 
   def compare_hash_with_ar_record(export_hash, ar_record)
@@ -32,42 +32,43 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       last_name: 'User'
     )
     new_user.save!
-    exported_users = ImportExportConfig.new.export_users
+    exported_data = ImportExportConfig.new.export
 
     # check if all existing users are part of export
     User.all.each do |user|
-      compare_hash_with_ar_record(exported_users&.find{|e| e['email'] == user.email}, user)
+      compare_hash_with_ar_record(exported_data['users']&.find{|e| e['email'] == user.email}, user)
     end
 
     new_user.destroy!                                                           # remove fake user
   end
 
   test "import_users" do
-    exported_users = ImportExportConfig.new.export_users
-    exported_users << { 'email'       => 'New_user@test.com',
-                        'db_user'     => MovexCdc::Application.config.db_victim_user,
-                        'first_name'  => 'New',
-                        'last_name'   => 'User'
+    exported_data = ImportExportConfig.new.export
+    exported_data['users'] << {
+      'email'       => 'New_user@test.com',
+      'db_user'     => MovexCdc::Application.config.db_victim_user,
+      'first_name'  => 'New',
+      'last_name'   => 'User'
     }
-    ImportExportConfig.new.import_users(exported_users)
+    ImportExportConfig.new.import_users(exported_data)
     new_user = User.where(email: 'New_user@test.com').first
     assert(!new_user.nil?, 'New user should exist now' )
 
     # Check for update of attribute
-    exported_users.last['last_name'] = 'CHANGED'
-    ImportExportConfig.new.import_users(exported_users)
+    exported_data['users'].last['last_name'] = 'CHANGED'
+    ImportExportConfig.new.import_users(exported_data)
     new_user = User.where(email: 'New_user@test.com').first
     assert_equal('CHANGED', new_user.last_name, 'Last name should have changed')
 
     new_user.destroy!                                                           # remove fake user from DB
   end
 
-  test "export_schemas" do
-    exported_schemas = ImportExportConfig.new.export_schemas(Schema.all)
+  test "export all" do
+    exported_data = ImportExportConfig.new.export
 
     # check if all existing schemas are part of export
     Schema.all.each do |schema|
-      exported_schema = exported_schemas&.find{|e| e['name'] == schema.name}
+      exported_schema = exported_data['schemas']&.find{|e| e['name'] == schema.name}
       compare_hash_with_ar_record(exported_schema, schema)
       schema.tables.all do |table|
         exported_table = exported_schema['tables']&.find{|e| e['name'] == table.name}
@@ -85,22 +86,26 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     end
   end
 
+  test 'export single schema' do
+    exported_data = ImportExportConfig.new.export(single_schema_name: MovexCdc::Application.config.db_user)
+  end
+
   # a schema not in whole import list should be deactivated but not dropped
   test 'import schemas deactivate schema' do
-    exported_schemas = ImportExportConfig.new.export_schemas(Schema.all)
+    exported_data = ImportExportConfig.new.export
     unused_schema = Schema.new(name: 'UNUSED', topic: 'unused')
     unused_schema.save!
     unused_schema.tables          << Table.new(name: 'UNUSED_TABLE' )
     unused_schema.schema_rights   << SchemaRight.new(user_id: User.where(email: 'admin')&.first&.id)
     unused_schema.save!
-    ImportExportConfig.new.import_schemas(exported_schemas)
+    ImportExportConfig.new.import_schemas(exported_data)
     assert_equal('Y', Schema.find(unused_schema.id).tables[0].yn_hidden, 'Table should be hidden now')
     assert_equal(0, Schema.find(unused_schema.id).schema_rights.count, 'SchemaRights should be deleted')
   end
 
   test 'import new schema' do
-    exported_schemas = ImportExportConfig.new.export_schemas(Schema.all)
-    exported_schemas << {
+    exported_data = ImportExportConfig.new.export
+    exported_data['schemas'] << {
       'name'          => 'NEW_SCHEMA',
       'topic'         => 'new_topic',
       'wrong_colname' => 'no more existent column name',                        # This should test for toleration of columns not existing in DB
@@ -122,7 +127,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
                             'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
                           }]
     }
-    ImportExportConfig.new.import_schemas(exported_schemas)
+    ImportExportConfig.new.import_schemas(exported_data)
     new_schema = Schema.where(name: 'NEW_SCHEMA').first
     assert_not_equal(nil, new_schema, 'The new schema should be created')
     assert_equal('NEW_SCHEMA',  new_schema.name,                                'The new schema should be created with this name')
@@ -137,7 +142,8 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     new_schema.destroy!
   end
 
-  test 'import existing schema' do
+  # test import of all schemas from JSON with missing old and added new: tables, columns, conditions, schema_rights
+  test 'import existing schemas' do
     test_table = Table.new(schema_id: Schema.first.id, name: 'TEST_TABLE_IMPORT')
     test_table.save!
     test_table.columns    << Column.new(name: 'TEST_TABLE_COL1')
@@ -152,24 +158,24 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
     SchemaRight.new(schema_id: Schema.first.id, user_id: test_user_u.id).save!  # SchemaRight existing in DB and import
 
-    exported_schemas = ImportExportConfig.new.export_schemas(Schema.all)        # get JSON data to test for import
-    old_topic = exported_schemas[0]['topic']
-    exported_schemas[0]['topic'] = 'Changed topic'
+    exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
+    old_topic = exported_data['schemas'][0]['topic']
+    exported_data['schemas'][0]['topic'] = 'Changed topic'
 
     # Table that exists in DB but is not existing in import data
-    first_schema = Schema.where(name: exported_schemas[0]['name']).first
+    first_schema = Schema.where(name: exported_data['schemas'][0]['name']).first
     missing_table = Table.new(schema_id: first_schema.id, name: 'MISSING TABLE')
     missing_table.save!
 
     # Table that is not existing in DB but in import data
-    exported_schemas[0]['tables'] << {
+    exported_data['schemas'][0]['tables'] << {
       'name'        => 'ADDED_TABLE',
       'columns'     => [{ 'name' => 'COL1'}, { 'name' => 'COL2'}],
       'conditions'  => [{ 'operation' => 'I', 'filter' => '1 = 2'}],
     }
 
     # existing table with added and deleted and changed column and conditions
-    test_table_hash = exported_schemas[0]['tables'].find{|t| t['name'] == 'TEST_TABLE_IMPORT'}
+    test_table_hash = exported_data['schemas'][0]['tables'].find{|t| t['name'] == 'TEST_TABLE_IMPORT'}
     raise "Hash value for table 'TEST_TABLE_IMPORT' not found in export" if test_table_hash.nil?
     test_table_hash['columns'] << { 'name' => 'TEST_TABLE_COL3'}
     test_table_hash['columns'].find{|c| c['name'] == 'TEST_TABLE_COL2'}['yn_log_update'] = 'Y'
@@ -179,11 +185,11 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     test_table_hash['conditions'].delete_if{|c| c['operation'] == 'I'}
 
     SchemaRight.new(schema_id: Schema.first.id, user_id: test_user_i.id).save!  # SchemaRight existing in DB but not in import
-    exported_schemas[0]['schema_rights'] << { 'email' => test_user_d.email}     # SchemaRight not existing in DB but in import
-    exported_schemas[0]['schema_rights'].find{|sr| sr['email'] == test_user_u.email}['yn_deployment_granted'] = 'Y'
+    exported_data['schemas'][0]['schema_rights'] << { 'email' => test_user_d.email}     # SchemaRight not existing in DB but in import
+    exported_data['schemas'][0]['schema_rights'].find{|sr| sr['email'] == test_user_u.email}['yn_deployment_granted'] = 'Y'
 
-    ImportExportConfig.new.import_schemas(exported_schemas)                     # Now import the data for test
-    assert_equal('Changed topic', Schema.where(name: exported_schemas[0]['name']).first.topic, 'Changed topic should occur in DB')
+    ImportExportConfig.new.import_schemas(exported_data)                        # Now import the data for test
+    assert_equal('Changed topic', Schema.where(name: exported_data['schemas'][0]['name']).first.topic, 'Changed topic should occur in DB')
     assert_equal('Y', Table.find(missing_table.id).yn_hidden, 'Missing table should be set hidden after import')
     assert_equal(1, Table.where(name: 'ADDED_TABLE').count, 'Additional table from import should exist in DB now')  # ensure also that only one table exists with this name
     added_table = Table.where(name: 'ADDED_TABLE').first
@@ -214,5 +220,56 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     destroy_table_with_dependencies(Table.find(test_table.id))
     Table.find(missing_table.id).destroy!                                       # Table is only set hidden by import
     Schema.first.update!(topic: old_topic)
+  end
+
+  # only check for not touching other schemas during import
+  test 'import single schema' do
+    exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
+    schema0 = Schema.where(name: exported_data['schemas'][0]['name']).first
+    org_topic = schema0.topic
+    exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
+    ImportExportConfig.new.import_schemas(exported_data, schema_name_to_pick: schema0.name)
+
+    Schema.all.each do |schema|
+      if schema.id == schema0.id
+        assert_equal('CHANGED_TOPIC', schema.topic, 'The first schema should be updated')
+      else
+        assert_not_equal('CHANGED_TOPIC', schema.topic, 'The other schemas should not be updated')
+      end
+    end
+
+    # Restore original state
+    Schema.find(schema0.id).update!(topic: org_topic)
+  end
+
+  test 'import schema with missing user' do
+    exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
+    exported_data['schemas'][0]['schema_rights'] << { 'email'       => 'NON_EXISTING' }
+
+    begin
+      exported_users   = ImportExportConfig.new.import_schemas(exported_data)
+      raise "Missing user should raise exception before executing this line"
+    rescue Exception => e
+      assert(e.message["doesn't exist neither in the DB"], "Missing user should raise specific exception, but is #{e.class}:#{e.message}")
+    end
+
+    exported_data['users'] << {
+      'email'             => 'NON_EXISTING',
+      'db_user'           => MovexCdc::Application.config.db_victim_user,
+      'first_name'        => 'non',
+      'last_name'         => 'exist',
+      'yn_admin'          => 'Y',
+      'yn_account_locked' => 'N'
+    }
+
+    ImportExportConfig.new.import_schemas(exported_data)     # Now import with valid user
+    user = User.where(email: 'NON_EXISTING').first
+    assert_not_nil(user, 'Missing user should be created')
+    assert_equal('N', user.yn_admin, 'User should not remain admin')
+    assert_equal('Y', user.yn_account_locked, 'User should not locked')
+
+    # restore original state
+    user.schema_rights.each{|sr| sr.destroy!}
+    user.destroy!
   end
 end
