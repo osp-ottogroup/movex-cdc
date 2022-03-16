@@ -21,19 +21,17 @@ Establish change data capture on Oracle DB including event transfer to Kafka wit
 [Here you find the howto guide to quickly get up and running.](https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html)
 
 ## Releases
-Production ready releases are tagged with release number and can be pulled from gitlab.com by:<br/>
+Production-ready releases are tagged with release number and can be pulled from gitlab.com by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:1.07.0`
-<br>or from Docker hub by <br>
-`docker pull ottogroupsolutionproviderosp/movex-cdc:1.07.0`
 
-The current production ready release is also tagged with `:latest` and can by pulled without a tag by:<br>
+The current production-ready release is also tagged with `:latest` and can by pulled without a tag by:<br>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc`
-<br>or from Docker hub by <br>
-`docker pull ottogroupsolutionproviderosp/movex-cdc`
 
 The latest build of the development master branch is available by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
 
+Production-ready releases are also available at Docker Hub.<br>
+`docker pull ottogroupsolutionproviderosp/movex-cdc`
 
 ## Support
 If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
@@ -44,7 +42,7 @@ First implementations have been for SQLite and Oracle with focus on productive u
 <br/>
 Further planned implementations are:
 - Production readyness for Oracle Standard Edition / EE without Partitiong Option
-- Adaptation for PostgreSQL and MS SQL Server, but only if in the result the application becomes easier than with the existing solution [Debezium](https://debezium.io)
+- Adaptation for PostgreSQL and MS SQL Server, but only if there will be significant advantages compared to the existing solution [Debezium](https://debezium.io)
 
 ## License
 This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/otto-group-solution-provider/movex-cdc/-/blob/master/LICENSE).
