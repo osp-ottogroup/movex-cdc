@@ -677,10 +677,26 @@ The response status code contains the health status of the running instance:
 - 500 (internal server error): Technical problem during processing of health check request or called too frequently (further details in response body)
 
 ==== Export and import of configuration data ====
-The whole content of configuration tables can be exported as a JSON document.
+The content of configuration tables can be exported as a consistent JSON document.
 This JSON document can also be imported to a MOVEX-CDC instance. +
 This way the configuration data can be stored as a backup outside the database and MOVEX-CDC instance.
-Import and export requires authentication as admin user.
+Import and export requires authentication as user with admin rights.
+This function is available in MOVEX-CDC's GUI and also as http API.
+
+===== Export of configuration data =====
+The export to a JSON document can be executed for a particular DB schema or for all schemas.
+It exports schemas, tables, columns, conditions, schema rights and users.
+
+This example exports the whole configuration data into a file +
+[source]
+curl -X GET -H "Authorization: \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+http://localhost:8080/import_export > movex-cdc-config.json
+
+===== Import of configuation data =====
+The import from JSON data can be done for the whole content or you may pick only one schema to import.
+
 
 === API endpoints ===
 Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside the application. +
@@ -713,7 +729,7 @@ Steps are:
 * authenticate with valid user and get JWT token for next steps
 * call API methode with use of JWT
 
-
+To use this example replace the values for email, password, host and port with yours:
 [source]
 curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \

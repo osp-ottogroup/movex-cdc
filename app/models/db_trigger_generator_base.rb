@@ -70,4 +70,49 @@ class DbTriggerGeneratorBase < Database
       @expected_triggers[table.name][operation]                                 # Operation has columns to trigger
   end
 
+  # check if orphaned MOVEX-CDC triggers exist in DB for not existing table IDs in TABLES
+  # This may result in records in table Event_Logs which cannot be processed to Kafka
+  def check_for_orphaned_triggers(schema)
+    found_msg = nil
+    found_number = 0
+    table_ids = Table.where(schema_id: schema.id).map{|t| t.id}
+    @existing_triggers.each do |trigger|
+      trigger_name_rest = trigger['trigger_name'].sub(TRIGGER_NAME_PREFIX, '') # Rest is I_<schema_id>_<table_id>
+      trigger_name_rest = trigger_name_rest[2,100]                              # remove leading operation and _
+      delimiter_pos = trigger_name_rest.index('_')                               # delimiting _ between schema_id and table_id
+      unless delimiter_pos.nil?
+        trigger_schema_id = trigger_name_rest[0, delimiter_pos].to_i
+        trigger_name_rest = trigger_name_rest[delimiter_pos+1, 100]             # table_id + rest
+        delimiter_pos = trigger_name_rest.index('_')                            # delimiting _ between schema_id and table_id
+        unless delimiter_pos.nil?
+          trigger_table_id = trigger_name_rest[0, delimiter_pos].to_i
+        else
+          trigger_table_id = 0
+        end
+      else
+        trigger_schema_id = 0
+        trigger_table_id = 0
+      end
+      if trigger_schema_id != schema.id || table_ids.find{|t| t == trigger_table_id}.nil?
+        Rails.logger.error('DbTriggerGeneratorBase.check_for_orphaned_triggers') do
+          "Orphaned MOVEX-CDC trigger '#{trigger['trigger_name']}' found for table '#{schema.name}.#{trigger['table_name']}'!
+This table does not have a corresponding record in configured tables of MOVEX-CDC!
+Events created by this trigger may block the whole processing of events to Kafka!
+Please fix (remove) this trigger manually before proceeding!"
+        end
+
+        found_msg = "Trigger '#{trigger['trigger_name']}' of table #{schema.name}.#{trigger['table_name']}"
+        found_number += 1
+      end
+    end
+    unless found_msg.nil?
+      raise "#{found_number} orphaned trigger(s) found for schema #{schema.name}!
+Tables of this orphaned triggers do not have a corresponding record in configured tables of MOVEX-CDC!
+Events created by this triggers may block the whole processing of events to Kafka!
+Please fix (remove) this trigger(s) manually before proceeding!
+Example: #{found_msg}.
+The whole list of orphaned triggers can be found in server log.
+"
+    end
+  end
 end

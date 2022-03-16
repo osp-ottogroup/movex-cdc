@@ -137,6 +137,41 @@ class DbTriggerTest < ActiveSupport::TestCase
     table.delete                                                                # Remove temporary object
   end
 
+  test "generate trigger with remaining trigger for not configured table" do
+    begin
+      Database.execute "DROP TABLE NOT_CONFIGURED"
+    rescue                                                                      # Ignore drop errors
+    end
+
+    Database.execute "CREATE TABLE NOT_CONFIGURED (ID INTEGER)"
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      Database.execute "CREATE TRIGGER #{DbTriggerGeneratorBase::TRIGGER_NAME_PREFIX}_NOT_CONFIGURED FOR UPDATE ON NOT_CONFIGURED
+        COMPOUND TRIGGER
+          BEFORE STATEMENT IS
+          BEGIN
+            NULL;
+          END BEFORE STATEMENT;
+        END;
+      "
+    when 'SQLITE' then
+      Database.execute "CREATE TRIGGER #{DbTriggerGeneratorBase::TRIGGER_NAME_PREFIX}_NOT_CONFIGURED UPDATE ON NOT_CONFIGURED
+      BEGIN
+        DELETE FROM Event_Logs WHERE 1=2;
+      END;
+      "
+    end
+
+    begin
+      DbTrigger.generate_schema_triggers(schema_id: user_schema.id, user_options: user_options_4_test)
+      assert(false, 'DbTrigger.generate_schema_triggers should raise an exception due to orphaned triggers')
+    rescue Exception => e
+      assert(e.message['1 orphaned trigger(s) found for schema'], 'Exception due to orphaned triggers should be raised')
+    end
+
+    Database.execute "DROP TABLE NOT_CONFIGURED"
+  end
+
   test "generate_triggers dry run" do
     # Execute test for each key handling type
     [
