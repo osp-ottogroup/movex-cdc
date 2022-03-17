@@ -106,6 +106,7 @@ class ActiveSupport::TestCase
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
+    victim1_drop_trigger_name = "#{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}I_#{victim_schema.id}_#{victim1_table.id}_TO_DROP"
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
@@ -124,13 +125,13 @@ class ActiveSupport::TestCase
         END #{DbTrigger.build_trigger_name(victim1_table, 'I')};
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}_TO_DROP FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
+        CREATE TRIGGER #{victim1_drop_trigger_name} FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
           BEGIN
             NULL;
           END BEFORE STATEMENT;
-        END #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}_TO_DROP;
+        END #{victim1_drop_trigger_name};
       ")
 
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
@@ -147,7 +148,7 @@ class ActiveSupport::TestCase
         END;
       ")
       exec_db_user_sql("\
-        CREATE TRIGGER #{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}VICTIM1_TO_DROP UPDATE ON #{victim1_table.name}
+        CREATE TRIGGER #{victim1_drop_trigger_name} UPDATE ON #{victim1_table.name}
         BEGIN
           DELETE FROM Event_Logs WHERE 1=2;
         END;

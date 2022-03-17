@@ -18,7 +18,7 @@
       },
       "user_input": "params[:id]",
       "confidence": "Weak",
-      "note": "admin state checked globally for controller with: before_action :check_for_current_user_admin"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -38,7 +38,27 @@
       },
       "user_input": "params.require(:table_id)",
       "confidence": "Weak",
-      "note": "Check for allowance is done with check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "305ef047c6154ef6e8858825b1b1a90184a162ab8290a581a43b1334ea4bcde6",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/import_export_controller.rb",
+      "line": 48,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ImportExportController",
+        "method": "import_all_users"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "allow JSON structure with unknown content"
     },
     {
       "warning_type": "Unscoped Find",
@@ -58,7 +78,7 @@
       },
       "user_input": "params.require(:table_id)",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Command Injection",
@@ -67,7 +87,7 @@
       "check_name": "Execute",
       "message": "Possible command injection",
       "file": "app/helpers/exception_helper.rb",
-      "line": 74,
+      "line": 101,
       "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
       "code": "` #{\"cat /proc/meminfo 2>/dev/null | grep #{key_linux}\"} `",
       "render_path": null,
@@ -98,7 +118,7 @@
       },
       "user_input": "params[:id]",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -118,7 +138,7 @@
       },
       "user_input": "params[:id]",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -138,7 +158,7 @@
       },
       "user_input": "Column.find(params[:id]).table_id",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Missing Encryption",
@@ -154,7 +174,7 @@
       "location": null,
       "user_input": null,
       "confidence": "High",
-      "note": "SSL should be provided by reverse proxy"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -174,7 +194,7 @@
       },
       "user_input": "Column.new(column_params).table_id",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -183,7 +203,7 @@
       "check_name": "UnscopedFind",
       "message": "Unscoped call to `Table#find`",
       "file": "app/controllers/tables_controller.rb",
-      "line": 86,
+      "line": 83,
       "link": "https://brakemanscanner.org/docs/warning_types/unscoped_find/",
       "code": "Table.find(params[:id])",
       "render_path": null,
@@ -194,7 +214,7 @@
       },
       "user_input": "params[:id]",
       "confidence": "Weak",
-      "note": "Check for allowance is done with check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -214,7 +234,7 @@
       },
       "user_input": "params.require(:table_id)",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -234,7 +254,7 @@
       },
       "user_input": "Condition.find(params[:id]).table_id",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -254,7 +274,7 @@
       },
       "user_input": "params.require(:table_id)",
       "confidence": "Weak",
-      "note": "Check for allowance is done with check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Command Injection",
@@ -263,7 +283,7 @@
       "check_name": "Execute",
       "message": "Possible command injection",
       "file": "app/helpers/exception_helper.rb",
-      "line": 78,
+      "line": 105,
       "link": "https://brakemanscanner.org/docs/warning_types/command_injection/",
       "code": "` #{\"sysctl -a | grep '#{key_darwin}'\"} `",
       "render_path": null,
@@ -275,6 +295,46 @@
       "user_input": "key_darwin",
       "confidence": "Medium",
       "note": "Only used with fix literal"
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "cb4c1aa8d1c60a11a854f9e740a630659f54337a075e4b87b2e075dd8988fc19",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/import_export_controller.rb",
+      "line": 25,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ImportExportController",
+        "method": "import"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "allow JSON structure with unknown content"
+    },
+    {
+      "warning_type": "Mass Assignment",
+      "warning_code": 70,
+      "fingerprint": "cb4c1aa8d1c60a11a854f9e740a630659f54337a075e4b87b2e075dd8988fc19",
+      "check_name": "MassAssignment",
+      "message": "Specify exact keys allowed for mass assignment instead of using `permit!` which allows any keys",
+      "file": "app/controllers/import_export_controller.rb",
+      "line": 28,
+      "link": "https://brakemanscanner.org/docs/warning_types/mass_assignment/",
+      "code": "params.permit!",
+      "render_path": null,
+      "location": {
+        "type": "method",
+        "class": "ImportExportController",
+        "method": "import"
+      },
+      "user_input": null,
+      "confidence": "Medium",
+      "note": "allow JSON structure with unknown content"
     },
     {
       "warning_type": "Unscoped Find",
@@ -314,7 +374,7 @@
       },
       "user_input": "Condition.new(condition_params).table_id",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     },
     {
       "warning_type": "Unscoped Find",
@@ -334,9 +394,9 @@
       },
       "user_input": "params[:table_id]",
       "confidence": "Weak",
-      "note": "Check for allowance is done in next line: check_user_for_valid_schema_right(table.schema_id)"
+      "note": ""
     }
   ],
-  "updated": "2021-02-11 11:31:55 +0100",
-  "brakeman_version": "5.0.0"
+  "updated": "2022-03-17 11:18:50 +0100",
+  "brakeman_version": "5.2.1"
 }

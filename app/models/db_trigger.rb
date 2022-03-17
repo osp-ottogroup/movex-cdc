@@ -45,6 +45,8 @@ class DbTrigger < ApplicationRecord
                   raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
                 end
 
+    generator.check_for_orphaned_triggers(schema)                               # check if triggers exist for not existing table IDs
+
     Table.where(schema_id: schema_id).each do |table|
       if table_id_list.nil? || table_id_list.include?(table.id)
         generator.generate_table_triggers(table_id: table.id) # check if drop or create trigger is to do

@@ -8,11 +8,12 @@ class ImportExportConfig
   # get relevant column names for a AR class
   def self.extract_column_names(ar_class)
     # extract column names without id, *_id, timestamps and lock_version
-    ar_class.columns.select{|c| !['created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
+    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
   end
 
-  # export schema infor for a list of schemas
-  def export_schemas(schemas)
+  # export schema info for all or one schemas
+  # @param single_schema_name nil for all schemas or limited for one schema
+  def export(single_schema_name: nil)
     schema_columns        = self.class.extract_column_names(Schema)
     table_columns         = self.class.extract_column_names(Table)
     column_columns        = self.class.extract_column_names(Column)
@@ -20,7 +21,7 @@ class ImportExportConfig
     schema_right_columns  = self.class.extract_column_names(SchemaRight)
 
     schemas_list = []
-    schemas.each do |schema|
+    Schema.all.select{|s| single_schema_name.nil? || single_schema_name == s.name}.each do |schema|
       schema_hash = generate_export_object(schema, schema_columns)
 
       schema_hash['tables'] = []
@@ -47,41 +48,60 @@ class ImportExportConfig
       end
       schemas_list << schema_hash
     end
-    Rails.logger.debug('ImportExportConfig.export_schemas'){"Generated export:\n#{JSON.pretty_generate(schemas_list)}"}
-    schemas_list
-  end
 
-  # create list of current users for export
-  def export_users
-    user_columns = self.class.extract_column_names(User)
     users_list = []
     User.all.each do |user|
       user_hash = {}
-      user_columns.each do |c|
+      self.class.extract_column_names(User).each do |c|
         user_hash[c] = user.send(c)                                             # call method by name
       end
       users_list << user_hash
     end
-    Rails.logger.debug('ImportExportConfig.export_users'){"Generated export:\n#{JSON.pretty_generate(users_list)}"}
-    users_list
+
+    export_data = Hash.new
+    export_data['schemas']  = schemas_list
+    export_data['users']    = users_list
+
+    Rails.logger.debug('ImportExportConfig.export'){"Generated export:\n#{JSON.pretty_generate(export_data)}"}
+    export_data
   end
 
   # import schema data
-  # @param schema_hashes        List of schema objects with all descendents from JSON document
+  # @param json_data            Hash with list of schema objects and list of user objects
   # @param schema_name_to_pick  Single schema name which should be imported out of the whole list of schemas, nil = import all schemas in list
-  def import_schemas(schema_hashes, schema_name_to_pick: nil)
-    raise "Parameter schemas is not an array" unless schema_hashes.instance_of? Array
+  def import_schemas(import_hash, schema_name_to_pick: nil)
+    raise "Parameter import_hash is not a Hash"   unless import_hash.is_a? Hash
+    raise "Object users is not an array"   unless import_hash['users'].instance_of? Array
+    raise "Object schemas is not an array" unless import_hash['schemas'].instance_of? Array
+    raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
+
+    # Ensure all users exist in DB that are referenced in schema_rights
+    import_hash['schemas'].each do |schema_hash|
+      schema_hash['schema_rights'].each do |schema_right_hash|
+        if User.where(email: schema_right_hash['email']).count == 0             # User does not exists in DB
+          user_hash = import_hash['users'].find{|u| u['email'] == schema_right_hash['email']}
+          raise "User with email '#{schema_right_hash['email']}' doesn't exist neither in the DB nor in the user list of import data!" if user_hash.nil?
+          User.new(
+            email:      user_hash['email'],
+            db_user:    user_hash['db_user'],
+            first_name: user_hash['first_name'],
+            last_name:  user_hash['last_name'],
+            yn_account_locked: 'Y'
+          ).save! # create as locked user for reference
+        end
+      end
+    end
 
     # Deactivate schemas which are not part of full import
     if schema_name_to_pick.nil?
       Schema.all.each do |schema|
-        if schema_hashes.find{|s| s['name'] == schema.name}.nil?                # existing schema not in list
+        if import_hash['schemas'].find{|s| s['name'] == schema.name}.nil?       # existing schema not in list
           deactivate_surplus_schema(schema)                                     # Deactivate, not physically delete
         end
       end
     end
 
-    schema_hashes.select{|s| schema_name_to_pick.nil? || schema_name_to_pick == s['name'] }.each do |schema_hash|
+    import_hash['schemas'].select{|s| schema_name_to_pick.nil? || schema_name_to_pick == s['name'] }.each do |schema_hash|
       existing_schema = Schema.where(name: schema_hash['name']).first
       if existing_schema
         update_existing_schema(schema_hash, existing_schema)
@@ -89,18 +109,17 @@ class ImportExportConfig
         import_new_schema(schema_hash)
       end
     end
-    adjust_sequences
   end
 
   # import an array of user configurations
   # Update existing users
   # Add missing users
   # Don't touch existing users that are not part of import list
-  def import_users(users)
-    raise "Parameter users is not an array" unless users.instance_of? Array
+  def import_users(import_data)
+    raise "Parameter users is not an array" unless import_data['users'].instance_of? Array
 
     Rails.logger.info('ImportExportConfig'){'Importing Users'}
-    users.each do |user_hash|
+    import_data['users'].each do |user_hash|
       existing_user = User.find_by_email_case_insensitive user_hash['email']
       if existing_user
         Rails.logger.info('ImportExportConfig'){ "Updating User #{user_hash.inspect}" }
@@ -136,6 +155,7 @@ class ImportExportConfig
     end
   end
 
+=begin
   # adjust sequences to the highest used ID +1
   def adjust_sequences
     set_sequence = proc do |ar_class|
@@ -165,14 +185,14 @@ class ImportExportConfig
     set_sequence.call(Condition)
     set_sequence.call(SchemaRight)
   end
+=end
 
   # list of columns for import which are: relevant for AR class, existing in import structure, are not substructure-arrays
   def relevant_import_data(record_hash, ar_class)
     result = {}
     relevant_ar_columns = self.class.extract_column_names(ar_class)
     record_hash.each do |key, value|
-      if key != 'id' &&                                                         # ID from import is not used in all cases, excluded here
-        !relevant_ar_columns.find{|c| c == key}.nil? &&                         # Hash entry in relevant AR columns
+      if !relevant_ar_columns.find{|c| c == key}.nil? &&                        # Hash entry in relevant AR columns
         value.class != Array                                                    # Entry is not a substructure
         result[key] = value
       end
