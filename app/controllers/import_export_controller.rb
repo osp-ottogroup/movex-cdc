@@ -22,10 +22,10 @@ class ImportExportController < ApplicationController
     logger.info('ImportExportController.import'){ 'Starting import of trigger configuration' }
     params.require([:json_data])
 
-    single_schema_name = params.permit(:schema)[:schema]
+    single_schema_name = params.permit![:schema]
     single_schema_name = nil if single_schema_name == ''
 
-    json_data = convert_json_data_param_to_h(params.permit(:json_data)[:json_data])
+    json_data = convert_json_data_param_to_h(params.permit![:json_data])
     raise "ImportExportController.import: JSON data should contain an 'schemas' array!" unless json_data['schemas']
     raise "ImportExportController.import: JSON data should contain an 'users' array!"   unless json_data['users']
 
@@ -45,7 +45,7 @@ class ImportExportController < ApplicationController
   def import_all_users
     params.require([:json_data])
     ActiveRecord::Base.transaction do
-      ImportExportConfig.new.import_users(convert_json_data_param_to_h(params.permit(:json_data)[:json_data]))
+      ImportExportConfig.new.import_users(convert_json_data_param_to_h(params.permit![:json_data]))
     end
   end
 

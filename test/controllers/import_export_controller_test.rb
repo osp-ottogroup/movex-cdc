@@ -37,8 +37,11 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
   test "import all schemas" do
     json_data = ImportExportConfig.new.export
 
-    post "/import_export/import", headers: jwt_header(@jwt_admin_token), params: {json_data: json_data}
-    assert_response :success
+    # import as structured parameters / JSON and as String e.g. used by curl without application/content
+    [json_data, JSON.pretty_generate(json_data)].each do |import_data|
+      post "/import_export/import", headers: jwt_header(@jwt_admin_token), params: {json_data: import_data}
+      assert_response :success
+    end
 
     post "/import_export/import", headers: jwt_header(@jwt_token), params: {json_data: json_data}
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
@@ -48,8 +51,11 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     db_user = MovexCdc::Application.config.db_user
     json_data = ImportExportConfig.new.export
 
-    post "/import_export/import", headers: jwt_header(@jwt_admin_token), params: {json_data: json_data, schema: db_user}
-    assert_response :success
+    # import as structured parameters / JSON and as String e.g. used by curl without application/content
+    [json_data, JSON.pretty_generate(json_data)].each do |import_data|
+      post "/import_export/import", headers: jwt_header(@jwt_admin_token), params: {json_data: import_data, schema: db_user}
+      assert_response :success
+    end
 
     post "/import_export/import", headers: jwt_header(@jwt_token), params: {json_data: json_data, schema: db_user}
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
@@ -58,8 +64,11 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
   test 'import all users' do
     json_data = ImportExportConfig.new.export
 
-    post "/import_export/import_all_users", headers: jwt_header(@jwt_admin_token), params: {json_data: json_data}
-    assert_response :success
+    # import as structured parameters / JSON and as String e.g. used by curl without application/content
+    [json_data, JSON.pretty_generate(json_data)].each do |import_data|
+      post "/import_export/import_all_users", headers: jwt_header(@jwt_admin_token), params: {json_data: import_data}
+      assert_response :success
+    end
 
     post "/import_export/import_all_users", headers: jwt_header(@jwt_token), params: {json_data: json_data}
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
