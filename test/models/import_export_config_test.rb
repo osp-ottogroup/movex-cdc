@@ -144,7 +144,8 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
   # test import of all schemas from JSON with missing old and added new: tables, columns, conditions, schema_rights
   test 'import existing schemas' do
-    test_table = Table.new(schema_id: Schema.first.id, name: 'TEST_TABLE_IMPORT')
+    test_schema = Schema.first                                                  # arbitrary choosen Schema for manipulation
+    test_table = Table.new(schema_id: test_schema.id, name: 'TEST_TABLE_IMPORT')
     test_table.save!
     test_table.columns    << Column.new(name: 'TEST_TABLE_COL1')
     test_table.columns    << Column.new(name: 'TEST_TABLE_COL2')
@@ -156,26 +157,26 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     test_user_u = User.new(email: 'test_user_u', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Test', last_name: 'U' ); test_user_u.save!
     test_user_d = User.new(email: 'test_user_d', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Test', last_name: 'D' ); test_user_d.save!
 
-    SchemaRight.new(schema_id: Schema.first.id, user_id: test_user_u.id).save!  # SchemaRight existing in DB and import
+    SchemaRight.new(schema_id: test_schema.id, user_id: test_user_u.id).save!  # SchemaRight existing in DB and import
 
     exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
-    old_topic = exported_data['schemas'][0]['topic']
-    exported_data['schemas'][0]['topic'] = 'Changed topic'
+    test_schema_hash = exported_data['schemas'].find{|s| s['name'] == test_schema.name}
+    old_topic = test_schema_hash['topic']
+    test_schema_hash['topic'] = 'Changed topic'
 
     # Table that exists in DB but is not existing in import data
-    first_schema = Schema.where(name: exported_data['schemas'][0]['name']).first
-    missing_table = Table.new(schema_id: first_schema.id, name: 'MISSING TABLE')
+    missing_table = Table.new(schema_id: test_schema.id, name: 'MISSING TABLE')
     missing_table.save!
 
     # Table that is not existing in DB but in import data
-    exported_data['schemas'][0]['tables'] << {
+    test_schema_hash['tables'] << {
       'name'        => 'ADDED_TABLE',
       'columns'     => [{ 'name' => 'COL1'}, { 'name' => 'COL2'}],
       'conditions'  => [{ 'operation' => 'I', 'filter' => '1 = 2'}],
     }
 
     # existing table with added and deleted and changed column and conditions
-    test_table_hash = exported_data['schemas'][0]['tables'].find{|t| t['name'] == 'TEST_TABLE_IMPORT'}
+    test_table_hash = test_schema_hash['tables'].find{|t| t['name'] == 'TEST_TABLE_IMPORT'}
     raise "Hash value for table 'TEST_TABLE_IMPORT' not found in export" if test_table_hash.nil?
     test_table_hash['columns'] << { 'name' => 'TEST_TABLE_COL3'}
     test_table_hash['columns'].find{|c| c['name'] == 'TEST_TABLE_COL2'}['yn_log_update'] = 'Y'
@@ -184,12 +185,12 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     test_table_hash['conditions'].find{|c| c['operation'] == 'U'}['filter'] = 'changed'
     test_table_hash['conditions'].delete_if{|c| c['operation'] == 'I'}
 
-    SchemaRight.new(schema_id: Schema.first.id, user_id: test_user_i.id).save!  # SchemaRight existing in DB but not in import
-    exported_data['schemas'][0]['schema_rights'] << { 'email' => test_user_d.email}     # SchemaRight not existing in DB but in import
-    exported_data['schemas'][0]['schema_rights'].find{|sr| sr['email'] == test_user_u.email}['yn_deployment_granted'] = 'Y'
+    SchemaRight.new(schema_id: test_schema.id, user_id: test_user_i.id).save!  # SchemaRight existing in DB but not in import
+    test_schema_hash['schema_rights'] << { 'email' => test_user_d.email}     # SchemaRight not existing in DB but in import
+    test_schema_hash['schema_rights'].find{|sr| sr['email'] == test_user_u.email}['yn_deployment_granted'] = 'Y'
 
     ImportExportConfig.new.import_schemas(exported_data)                        # Now import the data for test
-    assert_equal('Changed topic', Schema.where(name: exported_data['schemas'][0]['name']).first.topic, 'Changed topic should occur in DB')
+    assert_equal('Changed topic', Schema.find(test_schema.id).topic, 'Changed topic should occur in DB')
     assert_equal('Y', Table.find(missing_table.id).yn_hidden, 'Missing table should be set hidden after import')
     assert_equal(1, Table.where(name: 'ADDED_TABLE').count, 'Additional table from import should exist in DB now')  # ensure also that only one table exists with this name
     added_table = Table.where(name: 'ADDED_TABLE').first
@@ -208,9 +209,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     assert_equal(1,       test_table.conditions.select{|c| c.operation == 'D'}.count,                                 'Condition should be added to existing table')
     assert_equal(1,       test_table.conditions.select{|c| c.operation == 'U' && c.filter == 'changed'}.count,        'Condition should be changed in existing table')
     assert_equal(0,       test_table.conditions.select{|c| c.operation == 'I'}.count,                                 'Condition should be deleted in existing table')
-    assert_equal(1,       first_schema.schema_rights.select{|sr| sr.user_id == test_user_d.id}.count,                 'SchemaRight should be added to existing schema')
-    assert_equal(1,       first_schema.schema_rights.select{|sr| sr.user_id == test_user_u.id && sr.yn_deployment_granted == 'Y'}.count, 'SchemaRight should be changed in existing schema')
-    assert_equal(0,       first_schema.schema_rights.select{|sr| sr.user_id == test_user_i.id}.count,                 'SchemaRight should be deleted in existing schema')
+    assert_equal(1,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_d.id}.count,                  'SchemaRight should be added to existing schema')
+    assert_equal(1,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_u.id && sr.yn_deployment_granted == 'Y'}.count, 'SchemaRight should be changed in existing schema')
+    assert_equal(0,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_i.id}.count,                  'SchemaRight should be deleted in existing schema')
 
     # restore original data
     SchemaRight.where(user_id: test_user_i.id).each {|sr| sr.destroy!}; test_user_i.destroy!
@@ -219,7 +220,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     destroy_table_with_dependencies(added_table)
     destroy_table_with_dependencies(Table.find(test_table.id))
     Table.find(missing_table.id).destroy!                                       # Table is only set hidden by import
-    Schema.first.update!(topic: old_topic)
+    Schema.find(test_schema.id).update!(topic: old_topic)
   end
 
   # only check for not touching other schemas during import
