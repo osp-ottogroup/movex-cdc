@@ -60,10 +60,7 @@ export default {
     info: async () => (await HttpService.get(`${Config.backendUrl}/health_check/config_info`)).data,
   },
   config: {
-    import: BaseCRUDService('import_export').create,
-    export: {
-      getAll: BaseCRUDService('import_export').getAll,
-      get: BaseCRUDService('import_export').get,
-    },
+    import: async (object) => (await HttpService.post(`${backendUrl}/import_export/import`, object)).data,
+    export: async (object) => (await HttpService.get(`${backendUrl}/import_export/export`, object)).data,
   },
 };
