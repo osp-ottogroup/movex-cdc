@@ -81,7 +81,8 @@ export default {
         this.isLoading = true;
         const jsonText = await this.file.text();
         const json = JSON.parse(jsonText);
-        await CRUDService.config.import({ schemas: json.schemas, users: json.users });
+        // TODO: Reduce JSON-File to all or selected schemas + 'users' section
+        await CRUDService.config.import({ json_data: json });
         this.$buefy.toast.open({
           message: 'Import was successful!',
           type: 'is-success',
@@ -101,11 +102,11 @@ export default {
       try {
         this.isLoading = true;
         if (this.selectedSchema === 'ALL_SCHEMAS') {
-          const response = await CRUDService.config.export.getAll({});
+          const response = await CRUDService.config.export({});
           const fileName = `${this.dateString()}_movex_cdc_export.json`;
           this.downloadJsonFile(response, fileName);
         } else {
-          const response = await CRUDService.config.export.get(this.selectedSchema.name);
+          const response = await CRUDService.config.export({ schema: this.selectedSchema.name });
           const fileName = `${this.dateString()}_movex_cdc_export_${this.selectedSchema.name}.json`;
           this.downloadJsonFile(response, fileName);
         }
@@ -128,6 +129,7 @@ export default {
       a.download = filename;
       a.click();
       a.remove();
+      // TODO: Show a list of schemas contained in downloaded file + "All Schemas"
     },
     dateString() {
       const date = new Date();
