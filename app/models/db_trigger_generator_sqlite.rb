@@ -40,8 +40,8 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
   ### instance methods following
 
-  def initialize(schema_id:, user_options:, dry_run:)
-    super(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
+  def initialize(schema_id:, dry_run:)
+    super(schema_id: schema_id, dry_run: dry_run)
   end
 
   private

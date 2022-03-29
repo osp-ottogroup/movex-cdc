@@ -28,7 +28,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     post schema_rights_url, headers: jwt_header, params: { schema_right: { user_id: sandro_user.id, schema_id: user_schema.id, info: 'Info'  } }, as: :json
     assert_response :unauthorized, log_on_failure('Should not get access without admin role')
 
-    SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).first.destroy! # Restore original state
+    run_with_current_user { SchemaRight.where(user_id: sandro_user.id, schema_id: user_schema.id).first.destroy! } # Restore original state
   end
 
   test "should show schema_right" do
@@ -51,7 +51,7 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     schema_right_to_delete = SchemaRight.new(user_id: User.where(email: 'no_schema_right@xy.com').first.id,
                                              schema_id: user_schema.id
     )
-    schema_right_to_delete.save!
+    run_with_current_user { schema_right_to_delete.save! }
 
     assert_difference('SchemaRight.count', -1) do
       delete schema_right_url(schema_right_to_delete), headers: jwt_header(@jwt_admin_token), params: { schema_right: schema_right_to_delete.attributes}, as: :json
@@ -59,9 +59,9 @@ class SchemaRightsControllerTest < ActionDispatch::IntegrationTest
     assert_response 204
 
     if MovexCdc::Application.config.db_type != 'SQLITE'
-      assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-        delete schema_right_url(SchemaRight.where(user_id: peter_user.id, schema_id: user_schema.id).first), headers: jwt_header(@jwt_admin_token), params: { schema_right: {lock_version: 42}}, as: :json
-      end
+      delete schema_right_url(SchemaRight.where(user_id: peter_user.id, schema_id: user_schema.id).first), headers: jwt_header(@jwt_admin_token), params: { schema_right: {lock_version: 42}}, as: :json
+      assert_response :internal_server_error
+      assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
     end
 
     delete schema_right_url(@schema_right), headers: jwt_header, as: :json

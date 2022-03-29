@@ -21,7 +21,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    Condition.where(filter: 'ID IS NULL').first.destroy!                        # restore previous state
+    run_with_current_user { Condition.where(filter: 'ID IS NULL').first.destroy! } # restore previous state
 
     post conditions_url, headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: tables_table.id, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
@@ -41,7 +41,7 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     assert_response 200
 
     condition = Condition.find(@condition.id)                                   # load fresh state from DB
-    condition.update!(filter: org_filter, lock_version: condition.lock_version) # Restore previous state
+    run_with_current_user { condition.update!(filter: org_filter, lock_version: condition.lock_version) } # Restore previous state
 
     patch condition_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
@@ -49,18 +49,17 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy condition" do
     condition_to_delete = Condition.new(table_id: victim2_table.id, operation: 'D', filter: '1=1')
-    condition_to_delete.save!
+    run_with_current_user { condition_to_delete.save! }
 
     assert_difference('Condition.count', -1) do
       delete condition_url(condition_to_delete), headers: jwt_header, params: { condition: condition_to_delete.attributes}, as: :json
     end
     assert_response 204
 
-    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      condition = Condition.where(table_id: victim1_table.id, operation: 'D').first
-      delete condition_url(condition), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
-    end
-
+    condition = Condition.where(table_id: victim1_table.id, operation: 'D').first
+    delete condition_url(condition), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
+    assert_response :internal_server_error
+    assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
   end
 
   test "should not destroy condition" do

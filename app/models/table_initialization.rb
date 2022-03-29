@@ -8,8 +8,14 @@ class TableInitialization
     @@instance
   end
 
-  def add_table_initialization(table_id, table_name, sql, user_options)
-    @init_requests_mutex.synchronize { @init_requests << {table_id: table_id, table_name: table_name, sql: sql, user_options: user_options} }
+  def add_table_initialization(table_id, table_name, sql)
+    @init_requests_mutex.synchronize do  @init_requests << {table_id:               table_id,
+                                                            table_name:             table_name,
+                                                            sql:                    sql,
+                                                            current_user:           ApplicationController.current_user,           # This attribute is thread-releated
+                                                            current_client_ip_info: ApplicationController.current_client_ip_info  # This attribute is thread-releated
+    }
+    end
     check_for_next_processing
   end
 

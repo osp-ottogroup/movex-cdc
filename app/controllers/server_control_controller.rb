@@ -9,12 +9,12 @@ class ServerControlController < ApplicationController
 
   # POST /server_control/set_log_level
   def set_log_level
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
       level = params.permit(:log_level)[:log_level]&.upcase
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
-      Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       Rails.logger.level = "Logger::#{level}".constantize
       MovexCdc::Application.config.log_level = level.downcase.to_sym
     end
@@ -28,8 +28,8 @@ class ServerControlController < ApplicationController
   # POST /server_control/set_worker_threads_count
   @@restart_worker_threads_active=nil
   def set_worker_threads_count
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
       worker_threads_count = params.permit(:worker_threads_count)[:worker_threads_count].to_i
 
@@ -39,7 +39,7 @@ class ServerControlController < ApplicationController
       raise "Number of worker threads (#{worker_threads_count}) should not be negative" if worker_threads_count < 0
 
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
       else
@@ -57,13 +57,13 @@ class ServerControlController < ApplicationController
   # POST /server_control/set_max_transaction_size
   @@restart_worker_threads_active=nil
   def set_max_transaction_size
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
       max_transaction_size = params.permit(:max_transaction_size)[:max_transaction_size].to_i
       raise "Max. transaction size (#{max_transaction_size}) should not greater than 0 " if max_transaction_size < 1
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_max_transaction_size: setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn "ServerControl.set_max_transaction_size: setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       if max_transaction_size == MovexCdc::Application.config.max_transaction_size
         Rails.logger.info "ServerControl.set_max_transaction_size: Nothing to do because max. transaction size = #{max_transaction_size} is still active"
       else
@@ -76,10 +76,10 @@ class ServerControlController < ApplicationController
 
   # POST /server_control/terminate
   def terminate
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
-      Rails.logger.warn "ServerControl.terminate: shutdown requested by API function! User = '#{@current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn "ServerControl.terminate: shutdown requested by API function! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       Process.kill(:TERM, Process.pid)                                          # send TERM signal to myself
     end
   end

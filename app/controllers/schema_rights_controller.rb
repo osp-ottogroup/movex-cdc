@@ -25,10 +25,6 @@ class SchemaRightsController < ApplicationController
     @schema_right = SchemaRight.new(schema_right_params)
 
     if @schema_right.save
-      log_activity(
-          schema_name:  @schema_right.schema.name,
-          action:       "schema right inserted for user '#{@schema_right.user.email}': #{@schema_right.attributes}"
-      )
       render json: @schema_right, status: :created, location: @schema_right
     else
       render json: { errors: @schema_right.errors.full_messages }, status: :unprocessable_entity
@@ -39,10 +35,6 @@ class SchemaRightsController < ApplicationController
   def update
     schema_right_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @schema_right.update(schema_right_params)
-      log_activity(
-          schema_name:  @schema_right.schema.name,
-          action:       "schema right updated for user '#{@schema_right.user.email}': #{@schema_right.attributes}"
-      )
       render json: @schema_right
     else
       render json: { errors: @schema_right.errors.full_messages }, status: :unprocessable_entity
@@ -53,10 +45,6 @@ class SchemaRightsController < ApplicationController
   def destroy
     @schema_right.lock_version = schema_right_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @schema_right.destroy!
-    log_activity(
-        schema_name:  @schema_right.schema.name,
-        action:       "schema right deleted for user '#{@schema_right.user.email}': #{@schema_right.attributes}"
-    )
   end
 
   private

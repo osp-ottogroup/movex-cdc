@@ -6,7 +6,7 @@ class InitializationJobTest < ActiveJob::TestCase
     admin = User.where(email: 'admin').first
     if admin
       ActivityLog.delete(ActivityLog.where(user_id: admin.id).map{|a| a.id})    # Remove relation to allow delete of user
-      admin.destroy!
+      run_with_current_user { admin.destroy! }
     end
 
     assert_difference('User.count', 1, 'Should add new user admin') do

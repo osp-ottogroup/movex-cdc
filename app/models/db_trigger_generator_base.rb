@@ -28,9 +28,8 @@ class DbTriggerGeneratorBase < Database
 
   ### instance methods following
 
-  def initialize(schema_id:, user_options:, dry_run:)
+  def initialize(schema_id:, dry_run:)
     @schema             = Schema.find schema_id
-    @user_options       = user_options
     @dry_run            = dry_run
     @successes          = []                                                    # created triggers
     @errors             = []                                                    # errors during trigger creation

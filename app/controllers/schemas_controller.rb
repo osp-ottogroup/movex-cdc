@@ -5,7 +5,7 @@ class SchemasController < ApplicationController
   # GET /schemas
   # List schemas the current user is allowed for
   def index
-    @schemas = Schema.includes(:schema_rights).where(schema_rights: { user_id: @current_user.id})
+    @schemas = Schema.includes(:schema_rights).where(schema_rights: { user_id: ApplicationController.current_user.id})
     render json: @schemas
   end
 
@@ -19,10 +19,6 @@ class SchemasController < ApplicationController
     @schema = Schema.new(schema_params)
 
     if @schema.save
-      log_activity(
-          schema_name:  @schema.name,
-          action:       "schema inserted: #{@schema.attributes}"
-      )
       render json: @schema, status: :created, location: @schema
     else
       render json: { errors: @schema.errors.full_messages }, status: :unprocessable_entity
@@ -33,10 +29,6 @@ class SchemasController < ApplicationController
   def update
     schema_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @schema.update(schema_params)
-      log_activity(
-          schema_name:  @schema.name,
-          action:       "schema updated: #{@schema.attributes}"
-      )
       render json: @schema
     else
       render json: { errors: @schema.errors.full_messages }, status: :unprocessable_entity
@@ -47,10 +39,6 @@ class SchemasController < ApplicationController
   def destroy
     @schema.lock_version = schema_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @schema.destroy!
-    log_activity(
-        schema_name:  @schema.name,
-        action:       "schema deleted: #{@schema.attributes}"
-    )
   end
 
   private

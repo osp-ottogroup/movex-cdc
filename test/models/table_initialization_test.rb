@@ -27,9 +27,9 @@ class TableInitializationTest < ActiveSupport::TestCase
     end
 
     # Ensure that initialization is started as part of trigger generation
-    Table.find(GlobalFixtures.victim1_table.id).update!(yn_initialization: 'Y')
+    run_with_current_user { Table.find(GlobalFixtures.victim1_table.id).update!(yn_initialization: 'Y') }
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
+    result = run_with_current_user { DbTrigger.generate_schema_triggers(schema_id: victim_schema.id) }
 
     assert_instance_of Hash, result, log_on_failure('Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -42,6 +42,7 @@ class TableInitializationTest < ActiveSupport::TestCase
       ti_instance.running_threads_count(raise_exception_if_locked: false) > 0 ) &&
       max_loop < 20
       max_loop += 1
+      Rails.logger.debug('TableInitializationTest.add_table_initialization') { "Waiting for pending initialization threads"}
       sleep 1
     end
 

@@ -55,13 +55,15 @@ class User < ApplicationRecord
   end
 
   def destroy
+    Rails.logger.warn('User.destroy') { "primary user 'admin' should never be deleted!" } if self.email == 'admin'
     super
     :destroyed
   rescue ActiveRecord::StaleObjectError
     raise
   rescue Exception => e
     # Lock user in case DELETE is not possbible due to constraint violation
-    self.update!(yn_account_locked: 'Y', yn_hidden: 'Y')
+    Rails.logger.debug('User.destroy'){"#{e.class} '#{e.message}' during delete of user. Setting account locked instead."}
+    User.find(self.id).update!(yn_account_locked: 'Y', yn_hidden: 'Y') # Update new User object because original object is frozen after failed delete
     :locked
   end
 
@@ -69,7 +71,6 @@ class User < ApplicationRecord
   def check_user_for_valid_schema_right(schema_id)
     raise "Missing parameter schema_id for check of schema_rights for user '#{self.email}'" if schema_id.nil?
     schema_right = self.schema_rights.where(schema_id: schema_id).first
-    # schema_right = SchemaRight.find_by_user_id_and_schema_id(@current_user.id, schema_id)
     if schema_right.nil?
       schema = Schema.where(id: schema_id).first
       raise "User '#{self.email}' has no right for schema '#{schema&.name}'"
@@ -85,4 +86,8 @@ class User < ApplicationRecord
     self.deployable_schemas.count > 0
   end
 
+  # get hash with schema_name, table_name, column_name for activity_log
+  def activity_structure_attributes
+    {}
+  end
 end

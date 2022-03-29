@@ -22,7 +22,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     post users_url, headers: jwt_header, params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
-    User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy                 # cleanup user table
+    run_with_current_user { User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy! }  # cleanup user table
   end
 
   test "should not create user with already existing email" do
@@ -42,7 +42,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response :unprocessable_entity
 
-    User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy                 # cleanup user table
+    run_with_current_user { User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy }  # cleanup user table
   end
 
   test "should show user" do
@@ -73,16 +73,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     patch user_url(peter_user), headers: jwt_header, params: { user: { first_name: 'Hugo' } }, as: :json
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
-    GlobalFixtures.restore_schema_rights
+    run_with_current_user { GlobalFixtures.restore_schema_rights }
   end
 
   test "should destroy user" do
     user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: MovexCdc::Application.config.db_user, first_name: 'hans', last_name: 'dampf2')
-    user_to_delete.save!
+    run_with_current_user { user_to_delete.save! }
 
-    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      delete user_url(user_to_delete), headers: jwt_header(@jwt_admin_token), params: { user: {lock_version: 42}}, as: :json
-    end
+    delete user_url(user_to_delete), headers: jwt_header(@jwt_admin_token), params: { user: {lock_version: 42}}, as: :json
+    assert_response :internal_server_error
+    assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
 
     ActivityLog.new(user_id: user_to_delete.id, action: 'At least one activity_logs record to prevent user from delete by foreign key').save!
 
@@ -119,10 +119,10 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
                     info:       'Info',
                     yn_deployment_granted: 'N'
     )
-    new_sr.save!
+    run_with_current_user { new_sr.save! }
     get deployable_schemas_user_url(sandro_user), headers: jwt_header(@jwt_admin_token)
     assert_response :success
-    new_sr.destroy!
+    run_with_current_user { new_sr.destroy! }
   end
 
 end
