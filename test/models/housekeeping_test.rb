@@ -4,7 +4,7 @@ class HousekeepingTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
     create_victim_structures
-    create_event_logs_for_test(11)                                              # ensure that at least one interval partition is created
+    run_with_current_user { create_event_logs_for_test(11) }                    # ensure that at least one interval partition is created
   end
 
   # Ensure that last partition remains existing

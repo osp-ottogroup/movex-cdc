@@ -88,7 +88,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
       post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
       assert_response :unauthorized, log_on_failure('Also the valid password should not function now')
 
-      User.where(email: 'admin').first.update!(yn_account_locked: 'N')
+      run_with_current_user { User.where(email: 'admin').first.update!(yn_account_locked: 'N') }
 
       post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
       assert_response :success, log_on_failure('After unlock user logon should be possible again')

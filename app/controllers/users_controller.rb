@@ -29,9 +29,6 @@ class UsersController < ApplicationController
 
     if save_result
       SchemaRight.process_user_request(@user, schema_rights_params)
-      log_activity(
-          action:       "user inserted: #{@user.attributes}"
-      )
       render json: @user, include: { schema_rights: {include: :schema} }, status: :created, location: @user
     else
       render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
@@ -44,9 +41,6 @@ class UsersController < ApplicationController
 
     if @user.update(user_params)
       SchemaRight.process_user_request(@user, schema_rights_params)
-      log_activity(
-          action:       "user updated: #{@user.attributes}"
-      )
       render json: @user, include: { schema_rights: {include: :schema} }
     else
       render json: { errors: @user.errors.full_messages }, status: :unprocessable_entity
@@ -56,11 +50,7 @@ class UsersController < ApplicationController
   # DELETE /users/1
   def destroy
     @user.lock_version = user_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
-    if @user.destroy == :destroyed
-      log_activity(action: "user deleted: #{@user.attributes}")
-    else
-      log_activity(action: "user set hidden: #{@user.attributes}")
-    end
+    @user.destroy!
     # always return status = 204 No Content
   end
 

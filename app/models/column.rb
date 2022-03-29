@@ -63,4 +63,14 @@ class Column < ApplicationRecord
     end
   end
 
+  # get hash with schema_name, table_name, column_name for activity_log
+  def activity_structure_attributes
+    {
+      schema_name:  table.schema.name,
+      table_name:   table.name,
+      column_name:  self.name
+    }
+  end
+
+
 end

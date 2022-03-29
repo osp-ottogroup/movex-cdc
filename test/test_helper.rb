@@ -67,8 +67,19 @@ class ActiveSupport::TestCase
   end
 =end
 
-  def user_options_4_test
-    { user_id: peter_user.id, client_ip_info: '0.0.0.0'}
+  # Execute block with valid current user
+  def run_with_current_user
+    unless Thread.current[:current_user].nil?
+      msg = "Current user is already set! run_with_current_user should not be used recursive!"
+      Rails.logger.error('TestHelper.run_with_current_user') { msg }
+      raise msg
+    end
+    ApplicationController.set_current_user(peter_user)
+    ApplicationController.set_current_client_ip_info('test-IP')
+    yield                                                                       # execute block and return result
+  ensure
+    ApplicationController.unset_current_user
+    ApplicationController.unset_current_client_ip_info
   end
 
   def exec_victim_sql(sql)
@@ -161,7 +172,7 @@ class ActiveSupport::TestCase
     end
   end
 
-  # create records in Event_Log by trigger on VICTIM1
+  # create records in Event_Log by trigger on VICTIM1, current_user should be set outside
   def create_event_logs_for_test(number_of_records)
     raise "Should create at least 11 records" if number_of_records < 11
     if ThreadHandling.get_instance.thread_count > 0
@@ -170,7 +181,7 @@ class ActiveSupport::TestCase
       raise msg
     end
 
-    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id, user_options: user_options_4_test)
+    result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
@@ -189,17 +200,20 @@ class ActiveSupport::TestCase
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+1,  num_val: 0.456,     log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+2,  num_val: 48.375,    log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+3,  num_val: -23.475,   log_count: true)
+      # Table Event_Logs should contain 4 records now
 
       # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
       log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
       log_event_logs_count
+      # Table Event_Logs should contain 6 records now
       # 2 D events
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
       log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
       log_event_logs_count
+      # Table Event_Logs should contain 8 records now
 
       # Next record should not generate record in Event_Logs due to excluding condition
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+4,  name: 'EXCLUDE FILTER', num_val: -23.475,   log_count: true)
@@ -244,7 +258,7 @@ class ActiveSupport::TestCase
     end
   end
 
-  def insert_victim1_records(number_of_records_to_insert:, last_max_id:, name: 'Record', num_val: 1, log_count: false)
+  def insert_victim1_records(number_of_records_to_insert:, last_max_id:, name: 'Record', num_val: 1, log_count: false, expected_count: nil)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       date_val  = "SYSDATE"
@@ -266,12 +280,18 @@ class ActiveSupport::TestCase
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM1 (ID, Num_Val, Name, Char_Name, Date_Val, TS_Val, RAW_VAL, TSTZ_Val)
         VALUES (#{last_max_id+i}, #{num_val}, '#{name}', 'Y', #{date_val}, #{ts_val}, #{raw_val}, #{tstz_val}
         )")
-      log_event_logs_count if log_count
+      log_event_logs_count(expected_count: expected_count) if log_count
     end
   end
 
-  def log_event_logs_count
-    Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_count'){ "Table Event_Logs now contains #{Database.select_one "SELECT COUNT(*) records FROM Event_Logs"} records" }
+  def log_event_logs_count(expected_count: nil)
+    event_logs_count = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+    Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_count'){ "Table Event_Logs now contains #{event_logs_count} records" }
+    if expected_count && expected_count != event_logs_count
+      msg = "Number of records in Event_Logs should be #{expected_count} now but is #{event_logs_count}"
+      Rails.logger.error('TestHelper.log_event_logs_count') { msg }
+      raise msg
+    end
   end
 
   def log_event_logs_content(options = {})
@@ -355,6 +375,36 @@ class ActiveSupport::TestCase
     end
   end
 
+  # test for created activity log by previous action ( max. x seconds old)
+  def assert_activity_log(user_id: nil, schema_name:nil, table_name:nil, column_name:nil)
+    sql = "SELECT COUNT(*) FROM Activity_Logs WHERE Created_At > "
+    sql << case MovexCdc::Application.config.db_type
+           when 'ORACLE' then "SYSTIMESTAMP - 2/86400"
+           when 'SQLITE' then "DATETIME(DATETIME('now'), '-2 seconds')"
+           end
+    sql << " AND "
+
+    where = []
+    filter = {}
+    if user_id
+      where << "user_id = :user_id"
+      filter[:user_id]  = user_id
+    end
+    if schema_name
+      where << "schema_name = :schema_name"
+      filter[:schema_name] = schema_name
+    end
+    if table_name
+      where << "table_name = :table_name"
+      filter[:table_name] = table_name
+    end
+    if column_name
+      where << "column_name = :column_name"
+      filter[:column_name] = column_name
+    end
+    sql << where.join(' AND ')
+    assert Database.select_one(sql, filter) > 0, log_on_failure("Previous operation should have created a record in Activity_Logs for #{filter}")
+  end
 end
 
 class ActionDispatch::IntegrationTest
@@ -424,8 +474,11 @@ class GlobalFixtures
         Table.delete_all
         Schema.delete_all
 
-        # load admin from DB each time because ID may change
+        # load admin from DB each time because ID may change, don't use class User because current_user is not yet defined
         User.new(email: 'admin', db_user: MovexCdc::Application.config.db_user, first_name: 'Admin', last_name: 'from fixture', yn_admin: 'Y').save!
+        # User admin can be created without current user set, but from bow it is mandatory
+        ApplicationController.set_current_user(User.where(email: 'admin').first) # current user is valid from now
+        ApplicationController.set_current_client_ip_info('test-IP')
         @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Peter', last_name: 'Ramm')
         @@peter_user.save!
         @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Sandro', last_name: 'Preuß')
@@ -508,6 +561,9 @@ class GlobalFixtures
 
         Column.new(table_id: @@victim2_table.id, name: 'ID',          info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
         Column.new(table_id: @@victim2_table.id, name: 'LARGE_TEXT',  info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+      ensure
+        ApplicationController.unset_current_user
+        ApplicationController.unset_current_client_ip_info
       end
 
       @@victim_connection = case MovexCdc::Application.config.db_type

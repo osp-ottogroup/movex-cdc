@@ -3,13 +3,15 @@ require 'test_helper'
 class ColumnTest < ActiveSupport::TestCase
 
   test "create column" do
-    new_col = Column.new(table_id: tables_table.id, name: 'Column_new', info: 'info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
-    new_col.save!
+    run_with_current_user do
+      new_col = Column.new(table_id: tables_table.id, name: 'Column_new', info: 'info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
+      new_col.save!
 
-    assert_raise(Exception, 'Duplicate should raise unique index violation') do
-      Column.new(table_id: tables_table.id, name: 'Column_new', info: 'info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+      assert_raise(Exception, 'Duplicate should raise unique index violation') do
+        Column.new(table_id: tables_table.id, name: 'Column_new', info: 'info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
+      end
+      new_col.destroy!                                                          # restore original state
     end
-    new_col.destroy!                                                            # restore original state
   end
 
   test "select column" do
@@ -36,12 +38,12 @@ class ColumnTest < ActiveSupport::TestCase
       ['N', 'Y'].each do |tag|                                                  # Leave all columns with tag='Y' for following tests
         column_name = Column.affected_colname_by_operation(operation).to_sym    # Column name that should be updated
 
-        Column.tag_operation_for_all_columns(victim1_table.id, operation, tag)
+        run_with_current_user { Column.tag_operation_for_all_columns(victim1_table.id, operation, tag) }
         assert_equal org_column_count, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("All columns should be set with 'Y' for operation=#{operation}") if tag == 'Y'
         assert_equal 0, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
 
         Database.execute("DELETE FROM columns WHERE table_id = :table_id and name != 'NAME'", table_id: victim1_table.id)   # remove all columns except one (NAME)
-        Column.tag_operation_for_all_columns(victim1_table.id, operation, tag)
+        run_with_current_user { Column.tag_operation_for_all_columns(victim1_table.id, operation, tag) }
         assert_equal org_column_count, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("All columns should be created and set with 'Y' for operation=#{operation}") if tag == 'Y'
         assert_equal 0, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
       end

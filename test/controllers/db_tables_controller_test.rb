@@ -10,9 +10,9 @@ class DbTablesControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should raise error without parameters" do
-    assert_raise(ActionController::ParameterMissing, 'Should raise exception due to missing parameter') do
       get db_tables_url, headers: jwt_header, as: :json
-    end
+      assert_response :internal_server_error
+      assert response.body['ActionController::ParameterMissing'], log_on_failure('ActionController::ParameterMissing should be raised')
   end
 
 =begin

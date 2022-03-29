@@ -26,9 +26,9 @@ class DbTriggersControllerTest < ActionDispatch::IntegrationTest
     get "/db_triggers/details?table_id=#{tables_table.id}&trigger_name=hugo", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
 
-    assert_raise(Exception, 'Non existing table should raise exception') do
-      get "/db_triggers/details?table_id=177&trigger_name=hugo", headers: jwt_header, as: :json
-    end
+    get "/db_triggers/details?table_id=177&trigger_name=hugo", headers: jwt_header, as: :json
+    assert_response :internal_server_error
+    assert response.body['ActiveRecord::RecordNotFound'], log_on_failure('Should raise ActiveRecord::RecordNotFound')
   end
 
   test "generate triggers with failures" do

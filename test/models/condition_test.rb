@@ -2,9 +2,12 @@ require 'test_helper'
 
 class ConditionTest < ActiveSupport::TestCase
   test "create condition" do
-    Condition.new(table_id: tables_table.id, operation: 'U', filter: 'ID IS NOT NULL').save!
+    condition = Condition.new(table_id: tables_table.id, operation: 'U', filter: 'ID IS NOT NULL')
+    run_with_current_user { condition.save! }
 
     assert_raise(Exception, 'Duplicate should raise unique index violation') { Condition.new(table_id: tables_table.id, operation: 'U', filter: 'ID IS NOT NULL').save! }
+
+    run_with_current_user { condition.destroy! }
   end
 
   test "select condition" do

@@ -6,7 +6,7 @@ class ColumnsController < ApplicationController
   def index
     table_id = params.require(:table_id)                                        # Should only list columns of specific table
     table = Table.find table_id
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Table.check_table_allowed_for_db_user(schema_name: table.schema.name, table_name: table.name)
 
     @columns = Column.includes(table: :schema).joins(table: :schema).where(table_id: table_id)
     render json: @columns
@@ -22,15 +22,9 @@ class ColumnsController < ApplicationController
     column_params.require [:table_id]                                           # minimum set of values
     @column = Column.new(column_params)
     table = Table.find @column.table_id
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Table.check_table_allowed_for_db_user(schema_name: table.schema.name, table_name: table.name)
 
     if @column.save
-      log_activity(
-          schema_name:  table.schema.name,
-          table_name:   table.name,
-          column_name:  @column.name,
-          action:       "column inserted: #{@column.attributes}"
-      )
       render json: @column, status: :created, location: @column
     else
       render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity
@@ -41,12 +35,6 @@ class ColumnsController < ApplicationController
   def update
     column_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @column.update(column_params)
-      log_activity(
-          schema_name:  @column.table.schema.name,
-          table_name:   @column.table.name,
-          column_name:  @column.name,
-          action:       "column updated: #{@column.attributes}"
-      )
       render json: @column
     else
       render json: { errors: @column.errors.full_messages }, status: :unprocessable_entity
@@ -57,18 +45,12 @@ class ColumnsController < ApplicationController
   def destroy
     @column.lock_version = column_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @column.destroy!
-    log_activity(
-        schema_name:  @column.table.schema.name,
-        table_name:   @column.table.name,
-        column_name:  @column.name,
-        action:       "column deleted: #{@column.attributes}"
-    )
   end
 
   # POST /columns/select_all_columns table_id, operation (I/U/D)
   def tag_operation_for_all_columns
     table = Table.find params.require(:table_id)
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Table.check_table_allowed_for_db_user(schema_name: table.schema.name, table_name: table.name)
     Column.tag_operation_for_all_columns(table.id, params.require(:operation), 'Y')
     index                                                                       # return complete list of existing columns in table COLUMNS
   end
@@ -76,7 +58,7 @@ class ColumnsController < ApplicationController
   # POST /columns/deselect_all_columns table_id, operation (I/U/D)
   def untag_operation_for_all_columns
     table = Table.find params.require(:table_id)
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: table.schema.name, table_name: table.name)
+    Table.check_table_allowed_for_db_user(schema_name: table.schema.name, table_name: table.name)
     Column.tag_operation_for_all_columns(table.id, params.require(:operation), 'N')
     index                                                                       # return complete list of existing columns in table COLUMNS
   end
@@ -86,12 +68,12 @@ class ColumnsController < ApplicationController
     def set_column
       @column = Column.find(params[:id])
       @table = Table.find @column.table_id
-      Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: @table.schema.name, table_name: @table.name)
+      Table.check_table_allowed_for_db_user(schema_name: @table.schema.name, table_name: @table.name)
     end
 
     # Only allow a trusted parameter "white list" through.
     def column_params
-      params.fetch(:column, {}).permit(:table_id, :name, :info, :yn_log_insert, :yn_log_update, :yn_log_delete, :lock_version)
+      params.fetch(:column, {}).permit(:id, :table_id, :name, :info, :yn_log_insert, :yn_log_update, :yn_log_delete, :yn_pending, :lock_version, :created_at, :updated_at)
     end
 
 

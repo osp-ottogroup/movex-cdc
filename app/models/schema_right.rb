@@ -48,4 +48,10 @@ class SchemaRight < ApplicationRecord
 
   end
 
+  # get hash with schema_name, table_name, column_name for activity_log
+  def activity_structure_attributes
+    {
+      schema_name:  schema.name,
+    }
+  end
 end

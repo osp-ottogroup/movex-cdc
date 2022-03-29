@@ -150,13 +150,13 @@ class Table < ApplicationRecord
 
   # Check if maintenance of table is allowed for the current db_user
   # raise exception if not allowed
-  def self.check_table_allowed_for_db_user(current_user:, schema_name:, table_name:, allow_for_nonexisting_table: false)
-    current_user.check_user_for_valid_schema_right(Schema.where(name: schema_name).first.id)  # First check user config
+  def self.check_table_allowed_for_db_user(schema_name:, table_name:, allow_for_nonexisting_table: false)
+    ApplicationController.current_user.check_user_for_valid_schema_right(Schema.where(name: schema_name).first.id)  # First check user config
 
     table_exists = Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
                                        owner: schema_name, table_name: table_name) > 0
 
-    return if current_user.db_user == schema_name && table_exists               # Allow maintenance for own existing tables
+    return if ApplicationController.current_user.db_user == schema_name && table_exists # Allow maintenance for own existing tables
 
     return if allow_for_nonexisting_table && !table_exists                      # Allow action for non existing table without further check if requested
 
@@ -181,14 +181,14 @@ class Table < ApplicationRecord
                                      AND    Owner       = :owner
                                      AND    Grantee     = :db_user
                                      AND    Table_Name  = :table_name",
-                                    owner: schema_name, db_user: current_user.db_user, table_name: table_name) > 0
+                                    owner: schema_name, db_user: ApplicationController.current_user.db_user, table_name: table_name) > 0
 
       # Check if user has SELECT ANY TABLE
       return if Database.select_one("SELECT COUNT(*)
                                      FROM   DBA_Sys_Privs
                                      WHERE  Privilege = 'SELECT ANY TABLE'
                                      AND    Grantee     = :db_user",
-                                    db_user: current_user.db_user) > 0
+                                    db_user: ApplicationController.current_user.db_user) > 0
 
       # Check for implicite table grants for users's roles
       return if Database.select_one("SELECT COUNT(*)
@@ -203,7 +203,7 @@ class Table < ApplicationRecord
                                      AND    tp.Owner       = :owner
                                      AND    rp.Grantee     = :db_user
                                      AND    tp.Table_Name  = :table_name",
-                                    owner: schema_name, db_user: current_user.db_user, table_name: table_name) > 0
+                                    owner: schema_name, db_user: ApplicationController.current_user.db_user, table_name: table_name) > 0
 
     when 'SQLITE' then
       return if Database.select_one("SELECT COUNT(*) FROM All_DB_Tables WHERE Owner = :owner AND Table_Name = :table_name",
@@ -212,7 +212,7 @@ class Table < ApplicationRecord
       raise "Table.check_table_allowed_for_db_user: Declaration missing for #{MovexCdc::Application.config.db_type}"
     end
     # Raise exception if none of previous checks has returned from method
-    raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{current_user.db_user}"
+    raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{ApplicationController.current_user.db_user}"
   end
 
   # Alternative to destroy a table because it should physically exist with its ID because old triggers may still produce event_logs with this table_id
@@ -222,5 +222,14 @@ class Table < ApplicationRecord
       Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", {id: self.id}
     end
   end
+
+  # get hash with schema_name, table_name, column_name for activity_log
+  def activity_structure_attributes
+    {
+      schema_name:  schema.name,
+      table_name:   self.name,
+    }
+  end
+
 
 end

@@ -35,7 +35,7 @@ class DbSchemaTest < ActiveSupport::TestCase
     match_schemas = db_schemas.to_a.map{|s| s['name']}
     assert match_schemas.include?(peter_user.db_user), log_on_failure('users DB_User should be in list now for new user')
 
-    GlobalFixtures.restore_schema_rights
+    run_with_current_user { GlobalFixtures.restore_schema_rights }
   end
 
   test "valid_schema_name" do

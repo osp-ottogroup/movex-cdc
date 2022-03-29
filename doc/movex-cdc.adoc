@@ -681,7 +681,7 @@ The content of configuration tables can be exported as a consistent JSON documen
 This JSON document can also be imported to a MOVEX-CDC instance. +
 This way the configuration data can be stored as a backup outside the database and MOVEX-CDC instance.
 Import and export requires authentication as user with admin rights.
-This function is available in MOVEX-CDC's GUI and also as http API.
+This function is available in MOVEX-CDC's GUI at menu 'Administration/Config exchange' and also as raw http API.
 
 ===== Export of configuration data =====
 The export to a JSON document can be executed for a particular DB schema or for all schemas.
@@ -709,6 +709,12 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 http://localhost:8080/import_export/export
 
 ===== Import of user configuration data =====
+If importing one or all schemas from JSON file only users with rights for this schemas are created if they don't yet exist in DB.
+Missing users are created with locked account in this case to avoid unwanted security issues.
+
+To import all users with all their attributes from JSON document there's a separate function.
+
+
 === API endpoints ===
 Most of the API endpoints are useful only when called from GUI, but several of this API endpoints may also be useful for calling from outside the application. +
 API Responses are JSON objects.

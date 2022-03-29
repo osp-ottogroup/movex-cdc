@@ -5,9 +5,9 @@ class TablesController < ApplicationController
   # GET /tables
   def index
     schema_id = params.require(:schema_id)                                      # should only list tables of specific schema
-    @current_user.check_user_for_valid_schema_right(schema_id)
+    ApplicationController.current_user.check_user_for_valid_schema_right(schema_id)
 
-    @tables = Table.all_allowed_tables_for_schema(schema_id, @current_user.db_user).sort_by &:name
+    @tables = Table.all_allowed_tables_for_schema(schema_id, ApplicationController.current_user.db_user).sort_by &:name
     render json: @tables
   end
 
@@ -26,7 +26,7 @@ class TablesController < ApplicationController
   def create
     table_params.require([:schema_id, :name])
     schema = Schema.find(table_params[:schema_id].to_i)
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: schema.name, table_name: table_params[:name])
+    Table.check_table_allowed_for_db_user(schema_name: schema.name, table_name: table_params[:name])
 
     tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
     if tables.length > 0                                                        # table still exists
@@ -38,11 +38,6 @@ class TablesController < ApplicationController
     end
 
     if save_result
-      log_activity(
-          schema_name:  @table.schema.name,
-          table_name:   @table.name,
-          action:       "table inserted: #{@table.attributes}"
-      )
       render json: @table, status: :created, location: @table
     else
       render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
@@ -53,11 +48,6 @@ class TablesController < ApplicationController
   def update
     table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     if @table.update(table_params)
-      log_activity(
-          schema_name:  @table.schema.name,
-          table_name:   @table.name,
-          action:       "table updated: #{@table.attributes}"
-      )
       render json: @table
     else
       render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
@@ -67,21 +57,16 @@ class TablesController < ApplicationController
   # DELETE /tables/1
   def destroy
     @table = Table.find(params[:id].to_i)
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: @table.schema.name, table_name: @table.name, allow_for_nonexisting_table: true)
+    Table.check_table_allowed_for_db_user(schema_name: @table.schema.name, table_name: @table.name, allow_for_nonexisting_table: true)
     @table.lock_version = table_params.require(:lock_version)    # Ensure that column lock_version is sent as param from client
     @table.mark_hidden
-    log_activity(
-      schema_name:  @table.schema.name,
-      table_name:   @table.name,
-      action:       "table marked hidden: #{@table.attributes}"
-    )
   end
 
   private
   # Use callbacks to share common setup or constraints between actions.
   def set_table
     @table = Table.find(params[:id])
-    Table.check_table_allowed_for_db_user(current_user: @current_user, schema_name: @table.schema.name, table_name: @table.name)
+    Table.check_table_allowed_for_db_user(schema_name: @table.schema.name, table_name: @table.name)
   end
 
   # Only allow a trusted parameter "white list" through.

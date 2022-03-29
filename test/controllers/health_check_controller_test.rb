@@ -10,6 +10,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
       break if event_logs == 0                                                  # All records processed, no need to wait anymore
+      Rails.logger.debug('HealthCheckControllerTest.should get index') { "Waiting for Event_Logs to be empty"}
       sleep 1
     end
 

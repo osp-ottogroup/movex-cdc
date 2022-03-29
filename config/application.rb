@@ -223,6 +223,5 @@ module MovexCdc
       end
       @db_partitioning
     end
-
   end
 end

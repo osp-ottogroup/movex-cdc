@@ -2,7 +2,8 @@ class ApplicationController < ActionController::API
   include ApplicationHelper
 
   # Automatically protect every further controllers, exceptions are handled inside authorize_request
-  before_action :authorize_request
+  before_action :authorize_request                                              # ensures that processing is terminated after rendering an error
+  around_action :around_action
 
   # protect_from_forgery with: :exception
   # respond_to :json
@@ -13,10 +14,57 @@ class ApplicationController < ActionController::API
     render json: { status:  :unauthorized, error: e.message }, status: :unauthorized
   end
 
-  # Catch all remainig errors with exception content in response
-  rescue_from RuntimeError do |e|
-    ExceptionHelper.log_exception(e, 'ApplicationHelper.rescue_from', additional_msg: "Request: #{request_log_attributes}")
-    render json: { status: :internal_server_error, error: e.message }, status: :internal_server_error
+  # Catch all remaining errors with exception content in response
+  rescue_from Exception do |e|
+    self.class.unset_current_user
+    self.class.unset_current_client_ip_info
+    ExceptionHelper.log_exception(e, 'ApplicationController.rescue_from', additional_msg: "Request: #{request_log_attributes}")
+    render json: { status: :internal_server_error, error: e.message, error_class: e.class.name }, status: :internal_server_error
+  end
+
+  # get the user that is active only for the duration of a single request processing
+  def self.current_user
+    if Thread.current[:current_user]
+      Thread.current[:current_user]
+    else
+      raise "ApplicationController.current_user: No current user set for thread #{Thread.current.object_id}"
+    end
+  end
+
+  # get the client ip info that is active only for the duration of a single request processing
+  def self.current_client_ip_info
+    if Thread.current[:current_client_ip_info]
+      Thread.current[:current_client_ip_info]
+    else
+      raise "ApplicationController.current_client_ip_info: No current client IP info set for thread #{Thread.current.object_id}"
+    end
+  end
+
+  # Mark all actions in current thread with this user until it is unset at the end of request processing
+  def self.set_current_user(current_user)
+    unless Thread.current[:current_user].nil?
+      Rails.logger.error("#{self.class}.set_current_user"){ "Current thread already contains a corresponding user with email='#{Thread.current[:current_user].email}', but should not" }
+    end
+    Rails.logger.debug('ApplicationController.set_current_user'){ "Set current user to #{current_user}#{" but previous user #{Thread.current[:current_user]}is still existing" unless Thread.current[:current_user].nil?}" }
+    Thread.current[:current_user] = current_user
+  end
+
+  def self.set_current_client_ip_info(client_ip_info)
+    unless Thread.current[:current_client_ip_info].nil?
+      Rails.logger.error("#{self.class}.set_current_client_ip_info"){ "Current thread already contains a corresponding current_client_ip_info='#{Thread.current[:current_client_ip_info]}', but should not" }
+    end
+    Thread.current[:current_client_ip_info] = client_ip_info
+  end
+
+
+  # Remove user setting in current thread
+  def self.unset_current_user
+    Rails.logger.debug('ApplicationController.unset_current_user'){ "Unset current user from #{Thread.current[:current_user]}" }
+    Thread.current[:current_user] = nil
+  end
+
+  def self.unset_current_client_ip_info
+    Thread.current[:current_client_ip_info] = nil
   end
 
   protected
@@ -27,7 +75,7 @@ class ApplicationController < ActionController::API
   # in this application we define user_id in payload.
   # You should not include the user credentials data into payload because it will cause security issue, you can include data that needed to authorizing user.
   # When performing JsonWebToken.decode function, it will return JWT::DecodeError if there was an error like token was expired, token not valid, token missing etc.
-  # After we got user_id from payload then we will try to find user by id and assign it into current_user variable,
+  # After we got user_id from payload then we will try to find user by id and assign it into current_user variable of current thread,
   # If user not exist it will return ActiveRecord::RecordNotFound and it will render error message with http status unauthorized.
   @@authorize_exceptions = [
     { controller: :login,         action: :do_logon},
@@ -48,7 +96,8 @@ class ApplicationController < ActionController::API
     header = header.split(' ').last if header
     begin
       @decoded = JsonWebToken.decode(header)
-      @current_user = User.find(@decoded[:user_id])
+      self.class.set_current_user(User.find(@decoded[:user_id]))
+      self.class.set_current_client_ip_info(client_ip_info)
     rescue ActiveRecord::RecordNotFound => e
       msg = "Unauthorized request with valid token but not existing user: #{request_log_attributes}\n#{e.class} #{e.message}"
       Rails.logger.error msg
@@ -60,6 +109,14 @@ class ApplicationController < ActionController::API
       # raise ApplicationController::NotAuthorized.new(msg)
       render json: { errors: [msg] }, status: :unauthorized
     end
+  end
+
+  # Action is executed after successful execution of request
+  def around_action
+    yield                                                                       # process the controller action
+  ensure                                                                        # ensure unsetting thread state even if request failed
+    self.class.unset_current_user
+    self.class.unset_current_client_ip_info
   end
 
   # switch empty param string to nil
@@ -74,31 +131,13 @@ class ApplicationController < ActionController::API
     request.env['HTTP_X_FORWARDED_FOR'] || request.env['HTTP_X_REAL_IP']  || request.remote_ip
   end
 
-  # requires successful user login and hash with optional and required keys
-  # optional: :schema_name, :table_name, :column_name
-  # required: :action
-  def log_activity(activity)
-    raise "Missing action for logging" unless activity[:action]
-    raise "Missing value for attached user" unless defined?(@current_user)
-
-    ActivityLog.new(
-        user_id:      @current_user.id,
-        schema_name:  activity[:schema_name],
-        table_name:   activity[:table_name],
-        column_name:  activity[:column_name],
-        action:       activity[:action],
-        client_ip:    client_ip_info,
-    ).save!
-  end
-
   def request_log_attributes
     text = "controller='#{controller_name}' action='#{action_name}' client_ip='#{client_ip_info}'"
   end
 
   def check_for_current_user_admin
-    if @current_user.yn_admin != 'Y'
-      render json: { errors: ["Access denied! User #{@current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{self.class.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     end
   end
-
 end

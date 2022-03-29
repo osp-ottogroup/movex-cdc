@@ -24,7 +24,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
     post columns_url, headers: jwt_header(@jwt_no_schema_right_token), params: { column: {  table_id: tables_table.id, name: 'New column', info: 'New info', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y'  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
 
-    Column.where(name: 'New column').first.destroy!                             # Restore original state
+    run_with_current_user { Column.where(name: 'New column').first.destroy! }                            # Restore original state
   end
 
   test "should show column" do
@@ -45,7 +45,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
 
   test "should destroy column" do
     column_to_destroy = Column.new(table_id: victim1_table.id, name: 'Dummy43', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N')
-    column_to_destroy.save!
+    run_with_current_user { column_to_destroy.save! }
     assert_difference('Column.count', -1) do
       delete column_url(column_to_destroy), headers: jwt_header, params: { column: column_to_destroy.attributes}, as: :json
     end
@@ -53,11 +53,11 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
 
 
     column_to_destroy = Column.new(table_id: victim1_table.id, name: 'Dummy43', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N')
-    column_to_destroy.save!
-    assert_raise ActiveRecord::StaleObjectError, 'Should raise ActiveRecord::StaleObjectError' do
-      delete column_url(column_to_destroy), headers: jwt_header, params: { column: {lock_version: 42}}, as: :json
-    end
-    column_to_destroy.destroy!
+    run_with_current_user { column_to_destroy.save! }
+    delete column_url(column_to_destroy), headers: jwt_header, params: { column: {lock_version: 42}}, as: :json
+    assert_response :internal_server_error
+    assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
+    run_with_current_user { column_to_destroy.destroy! }
   end
 
   test "should not destroy column" do

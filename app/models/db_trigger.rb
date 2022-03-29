@@ -28,7 +28,6 @@ class DbTrigger < ApplicationRecord
 
   # Generate triggers
   # @param schema_id      schema all pending triggers are generated for
-  # @param user_options   User/request attributes for activity logging (:user_id, :client_ip_info)
   # @param dry_run        compile triggers or not
   # @param table_id_list  Array of table-IDs to generate triggers for, nil=all
   # @return { schema_id:,
@@ -36,11 +35,11 @@ class DbTrigger < ApplicationRecord
   #   errors: [{table_id, table_name, trigger_name, exception_class, exception_message, sql}, ...],
   #   load_sqls: [{table_id, table_name, sql}, ...],
   #   }
-  def self.generate_schema_triggers(schema_id:, user_options:, dry_run: false, table_id_list: nil)
+  def self.generate_schema_triggers(schema_id:, dry_run: false, table_id_list: nil)
     schema = Schema.find schema_id
     generator = case MovexCdc::Application.config.db_type
-                when 'ORACLE' then DbTriggerGeneratorOracle.new(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
-                when 'SQLITE' then DbTriggerGeneratorSqlite.new(schema_id: schema_id, user_options: user_options, dry_run: dry_run)
+                when 'ORACLE' then DbTriggerGeneratorOracle.new(schema_id: schema_id, dry_run: dry_run)
+                when 'SQLITE' then DbTriggerGeneratorSqlite.new(schema_id: schema_id, dry_run: dry_run)
                 else
                   raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
                 end
@@ -63,7 +62,7 @@ class DbTrigger < ApplicationRecord
       # Schedule initialization of table data if requested
       generator.load_sqls.each do |load|
         Rails.logger.debug('DbTrigger.generate_schema_triggers'){ "Schedule table data initialization for #{schema.name}.#{load[:table_name]}" }
-        TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql], user_options)
+        TableInitialization.get_instance.add_table_initialization(load[:table_id], load[:table_name], load[:sql])
       end
 
       if MovexCdc::Application.config.db_type == 'SQLITE'
@@ -79,15 +78,13 @@ class DbTrigger < ApplicationRecord
 
       # Log activities
       schema.update!(last_trigger_deployment: Time.now) if generator.errors.count == 0  # Flag trigger generation successful
-      raise "DbTrigger.generate_triggers: :user_id missing in user_options hash"        unless user_options.has_key? :user_id
-      raise "DbTrigger.generate_triggers: :client_ip_info missing in user_options hash" unless user_options.has_key? :client_ip_info
       generator.successes.each do |success_trigger|
         action = "Trigger #{success_trigger[:trigger_name]} successful created: #{success_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: success_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+        ActivityLog.log_activity(schema_name: schema.name, table_name: success_trigger[:table_name], action: action)
       end
       generator.errors.each do |error_trigger|
         action = "Trigger #{error_trigger[:trigger_name]} created but with errors: #{error_trigger[:exception_class]}:#{error_trigger[:exception_message]} :  #{error_trigger[:sql]}"[0, 500] # should be smaller than 1000 bytes
-        ActivityLog.new(user_id: user_options[:user_id], schema_name: schema.name, table_name: error_trigger[:table_name], action: action, client_ip: user_options[:client_ip_info]).save!
+        ActivityLog.log_activity(schema_name: schema.name, table_name: error_trigger[:table_name], action: action)
       end
     end
 
