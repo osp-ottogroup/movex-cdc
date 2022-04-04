@@ -18,7 +18,10 @@ class KafkaMock
         end
         @last_produced_id = next_id
       end
-
+    rescue JSON::ParserError => e
+      msg = "#{e.class} #{e.message} while parsing #{message}"
+      Rails.logger.error('KafkaMock.produce'){ msg }
+      raise msg
 #      Rails.logger.debug('KafkaMock.produce'){ "options = #{options}, message=\n#{message}" }
     end
 

@@ -200,23 +200,22 @@ class ActiveSupport::TestCase
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+1,  num_val: 0.456,     log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+2,  num_val: 48.375,    log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+3,  num_val: -23.475,   log_count: true)
-      # Table Event_Logs should contain 4 records now
+      log_event_logs_count(expected_count: event_logs_before + 4)
 
       # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
       log_event_logs_count
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
-      log_event_logs_count
-      # Table Event_Logs should contain 6 records now
+      log_event_logs_count(expected_count: event_logs_before + 6)
       # 2 D events
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
-      log_event_logs_count
+      log_event_logs_count(expected_count: event_logs_before + 8)
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
-      log_event_logs_count
-      # Table Event_Logs should contain 8 records now
+      log_event_logs_count(expected_count: event_logs_before + 8)
 
       # Next record should not generate record in Event_Logs due to excluding condition
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+4,  name: 'EXCLUDE FILTER', num_val: -23.475,   log_count: true)
+      log_event_logs_count(expected_count: event_logs_before + 8)
 
       # create exactly 3 records in Event_Logs for Victim2
       victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
@@ -238,11 +237,12 @@ class ActiveSupport::TestCase
       when 'SQLITE'
         exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM2 (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
       end
-      log_event_logs_count
+      log_event_logs_count(expected_count: event_logs_before + 9)
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM2  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
-      log_event_logs_count
+      log_event_logs_count(expected_count: event_logs_before + 10)
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM2 WHERE ID = #{victim2_max_id+1}")
-      log_event_logs_count
+      log_event_logs_count(expected_count: event_logs_before + 11)
+      # In Oracle 12.2 this delete-trigger may fire twice due to a bug
 
       # create the remaining records in Event_Log
       insert_victim1_records(number_of_records_to_insert: number_of_records-(8+3), last_max_id: victim_max_id+9, log_count: true)
