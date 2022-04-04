@@ -21,17 +21,14 @@ Establish change data capture on Oracle DB including event transfer to Kafka wit
 [Here you find the howto guide to quickly get up and running.](https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html)
 
 ## Releases
-Production-ready releases are tagged with release number and can be pulled from gitlab.com by:<br/>
-`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:1.07.0`
+Production-ready releases are tagged with release number and can be pulled from Docker hub by:<br/>
+`docker pull ottogroupsolutionproviderosp/movex-cdc:1.07.0`
 
 The current production-ready release is also tagged with `:latest` and can by pulled without a tag by:<br>
-`docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc`
+`docker pull ottogroupsolutionproviderosp/movex-cdc`
 
 The latest build of the development master branch is available by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
-
-Production-ready releases are also available at Docker Hub.<br>
-`docker pull ottogroupsolutionproviderosp/movex-cdc`
 
 ## Support
 If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
@@ -50,7 +47,3 @@ This product can be used under the terms and conditions of [GPL 3](https://gitla
 ## Project status
 It is already used in production with Oracle databases.
 Further development takes place.
-
-## Release history of Docker images
-* Last nightly build based on master branch: 
-  `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
