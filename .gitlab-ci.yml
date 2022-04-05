@@ -334,24 +334,29 @@ final_tag_docker:
       echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
       $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
       $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME     
-      DOCKER_IMAGE_NAME=docker.io/ottogroupsolutionproviderosp/movex-cdc
-      echo "Push image $TEMP_DOCKER_IMAGE to $DOCKER_IMAGE_NAME:$TAG_NAME"
-      $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
-      $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:$TAG_NAME
-      $PODMAN push $DOCKER_IMAGE_NAME:$TAG_NAME
-      LATEST_PROD_BRANCH=`curl -s https://gitlab.com/api/v4/projects/otto-group-solution-provider%2Fmovex-cdc/repository/branches | \
-        jq '.[] | .name' | \
-        grep 'prod_' | \
-        sort | \
-        tail -n 1 | \
-        sed 's/"//g'`
-      if [[ "$LATEST_PROD_BRANCH" = "$CI_COMMIT_REF_NAME" ]]; then
-        echo "Tagging the image :latest at gitlab registry because $CI_COMMIT_REF_NAME is the latest productive branch"
-        $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:latest
-        $PODMAN push $CI_REGISTRY_IMAGE:latest
-        echo "Tagging the image :latest at Docker hub because $CI_COMMIT_REF_NAME is the latest productive branch"
-        $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:latest
-        $PODMAN push $DOCKER_IMAGE_NAME:latest
+      # only push prod-branches to Dockerhub
+      if [[ $CI_COMMIT_REF_NAME == "prod_"* ]]; then
+        DOCKER_IMAGE_NAME=docker.io/ottogroupsolutionproviderosp/movex-cdc
+        echo "Push image $TEMP_DOCKER_IMAGE to $DOCKER_IMAGE_NAME:$TAG_NAME"
+        $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
+        $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:$TAG_NAME
+        $PODMAN push $DOCKER_IMAGE_NAME:$TAG_NAME
+        LATEST_PROD_BRANCH=`curl -s https://gitlab.com/api/v4/projects/otto-group-solution-provider%2Fmovex-cdc/repository/branches | \
+          jq '.[] | .name' | \
+          grep 'prod_' | \
+          sort | \
+          tail -n 1 | \
+          sed 's/"//g'`
+        if [[ "$LATEST_PROD_BRANCH" = "$CI_COMMIT_REF_NAME" ]]; then
+          echo "Tagging the image :latest at gitlab registry because $CI_COMMIT_REF_NAME is the latest productive branch"
+          $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:latest
+          $PODMAN push $CI_REGISTRY_IMAGE:latest
+          echo "Tagging the image :latest at Docker hub because $CI_COMMIT_REF_NAME is the latest productive branch"
+          $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:latest
+          $PODMAN push $DOCKER_IMAGE_NAME:latest
+        else
+          echo "$CI_COMMIT_REF_NAME is not the latest productive branch ($LATEST_PROD_BRANCH). Not tagged as latest"
+        fi
       else
-        echo "$CI_COMMIT_REF_NAME is not the latest productive branch ($LATEST_PROD_BRANCH). Not tagged as latest"
-      fi            
+        echo "Image of branch $CI_COMMIT_REF_NAME not pushed to Dockerhub"
+      fi
