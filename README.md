@@ -22,7 +22,7 @@ Establish change data capture on Oracle DB including event transfer to Kafka wit
 
 ## Releases
 Production-ready releases are tagged with release number and can be pulled from Docker hub by:<br/>
-`docker pull ottogroupsolutionproviderosp/movex-cdc:1.07.0`
+`docker pull ottogroupsolutionproviderosp/movex-cdc:1.7.0`
 
 The current production-ready release is also tagged with `:latest` and can by pulled without a tag by:<br>
 `docker pull ottogroupsolutionproviderosp/movex-cdc`
