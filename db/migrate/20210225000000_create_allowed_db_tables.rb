@@ -2,7 +2,6 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
   def up
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      puts "DB-Version ##############{Database.db_version}"
       EventLog.connection.execute "\
         CREATE OR REPLACE View Allowed_DB_Tables AS
         SELECT Owner, Grantee, Table_Name
