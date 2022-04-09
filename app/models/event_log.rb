@@ -41,7 +41,15 @@ class EventLog < ApplicationRecord
           workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value} for index"
           Rails.logger.info "Change INI_TRANS of index EVENT_LOGS_PK from #{current_value} to #{expected_value}"
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
-          Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}"
+          begin
+            Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}", options: { no_exception_logging: true}
+          rescue Exception => e
+            if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
+              Database.execute "ALTER INDEX Event_Logs_PK REBUILD OINITRANS #{expected_value}"
+            else
+              raise
+            end
+          end
         end
       end
     end
