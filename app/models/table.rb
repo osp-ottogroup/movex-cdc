@@ -167,8 +167,9 @@ class Table < ApplicationRecord
                                      FROM   DBA_Tab_Privs tp
                                      WHERE  tp.Grantee          = 'PUBLIC'
                                      AND    tp.Privilege        = 'SELECT'
-                                     AND    tp.Type             = 'TABLE'
+                                     #{"AND    tp.Type             = 'TABLE'
                                      AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
+                                     " if Database.db_version >= '12.1'}
                                      AND    tp.Owner = :owner
                                      AND    tp.Table_Name = :table_name",
                                     owner: schema_name, table_name: table_name) > 0
@@ -177,7 +178,7 @@ class Table < ApplicationRecord
       return if Database.select_one("SELECT COUNT(*)
                                      FROM   DBA_TAB_PRIVS
                                      WHERE  Privilege   = 'SELECT'
-                                     AND    Type        = 'TABLE'
+                                     #{"AND    Type        = 'TABLE'" if Database.db_version >= '12.1'}
                                      AND    Owner       = :owner
                                      AND    Grantee     = :db_user
                                      AND    Table_Name  = :table_name",
@@ -198,8 +199,9 @@ class Table < ApplicationRecord
                                              CONNECT BY PRIOR Granted_Role = Grantee
                                             ) rp ON rp.Granted_Role = tp.Grantee
                                      WHERE  tp.Privilege   = 'SELECT'
-                                     AND    tp.Type        = 'TABLE'
+                                     #{"AND    tp.Type        = 'TABLE'
                                      AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
+                                     " if Database.db_version >= '12.1'}
                                      AND    tp.Owner       = :owner
                                      AND    rp.Grantee     = :db_user
                                      AND    tp.Table_Name  = :table_name",
