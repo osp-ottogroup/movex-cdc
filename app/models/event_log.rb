@@ -53,7 +53,7 @@ class EventLog < ApplicationRecord
             Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}", options: { no_exception_logging: true}
           rescue Exception => e
             if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
-              Database.execute "ALTER INDEX Event_Logs_PK REBUILD OINITRANS #{expected_value}"
+              Database.execute "ALTER INDEX Event_Logs_PK REBUILD INITRANS #{expected_value}"
             else
               raise
             end
