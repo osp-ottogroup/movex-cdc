@@ -32,7 +32,15 @@ class EventLog < ApplicationRecord
           Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
-          Database.execute "ALTER TABLE Event_Logs MOVE#{" ONLINE" if Database.db_version >= '12.2'}"
+          begin
+            Database.execute "ALTER TABLE Event_Logs MOVE#{" ONLINE" if Database.db_version >= '12.2'}", options: { no_exception_logging: true}
+          rescue Exception => e
+            if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
+              Database.execute "ALTER TABLE Event_Logs MOVE"
+            else
+              raise
+            end
+          end
         end
 
         # Additional check for index
