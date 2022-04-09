@@ -70,10 +70,10 @@ class Database
   # returns the number of affected rows or 0 for DDL etc.
   # Example: Database.execute("UPDATE Table SET Value=:value", binds: {value: 5})
   def self.execute(sql, binds: {}, options: {})
-    raise "Hash expected as filter" if filter.class != Hash
+    raise "Hash expected as binds" if binds.class != Hash
 
     binds = []
-    filter.each do |key, value|
+    binds.each do |key, value|
       binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
     end
 
