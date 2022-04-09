@@ -131,7 +131,7 @@ class DatabaseOracle
 
   # Set context info at database session
   def self.set_application_info(action_info)
-    Database.execute "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)", {module: "MOVEX Change Data Capture", action: action_info}
+    Database.execute "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)", binds: {module: "MOVEX Change Data Capture", action: action_info}
   end
 
   @@cached_db_version = nil

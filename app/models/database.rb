@@ -68,8 +68,8 @@ class Database
 
   # execute SQL with bind variables
   # returns the number of affected rows or 0 for DDL etc.
-  # Example: Database.execute("UPDATE Table SET Value=:value", {value: 5})
-  def self.execute(sql, filter = {}, options: {})
+  # Example: Database.execute("UPDATE Table SET Value=:value", binds: {value: 5})
+  def self.execute(sql, binds: {}, options: {})
     raise "Hash expected as filter" if filter.class != Hash
 
     binds = []

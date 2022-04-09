@@ -16,7 +16,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
   test "should create table" do
     def remove_created_table(table_name)
-      Database.execute "DELETE FROM Tables WHERE Schema_ID = :schema_id AND Name = :name", schema_id:victim_schema.id, name: table_name
+      Database.execute "DELETE FROM Tables WHERE Schema_ID = :schema_id AND Name = :name", binds: {schema_id:victim_schema.id, name: table_name}
     end
 
     assert_difference('Table.count') do

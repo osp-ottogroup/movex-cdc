@@ -492,7 +492,7 @@ class TransferThread
       end
     when 'SQLITE' then
       event_logs.each do |e|
-        rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", id: e['id']  # No known way for SQLite to execute in array binding
+        rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", binds: { id: e['id']}  # No known way for SQLite to execute in array binding
         raise "Error in TransferThread.delete_event_logs_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
       end
     end
@@ -511,7 +511,7 @@ class TransferThread
       # increase number of retries and last error time
       @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_delayed_errors)
       Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Increase Retry_Count for Event_Logs.ID = #{event_log['id']}"}
-      Database.execute "UPDATE Event_Logs SET Retry_Count = Retry_Count + 1, Last_Error_Time = #{Database.systimestamp} WHERE #{filter_sql}", filter_value
+      Database.execute "UPDATE Event_Logs SET Retry_Count = Retry_Count + 1, Last_Error_Time = #{Database.systimestamp} WHERE #{filter_sql}", binds: filter_value
     else
       # move event_log to list of erroneous and delete from queue
       @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_final_errors)
@@ -520,7 +520,7 @@ class TransferThread
                        SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg, Transaction_ID
                        FROM   Event_Logs
                        WHERE #{filter_sql}", { error_msg: "#{exception.class}:#{exception.message}. #{ExceptionHelper.explain_exception(exception)}"}.merge(filter_value)
-      Database.execute "DELETE FROM Event_Logs WHERE #{filter_sql}", filter_value
+      Database.execute "DELETE FROM Event_Logs WHERE #{filter_sql}", binds: filter_value
     end
   end
 

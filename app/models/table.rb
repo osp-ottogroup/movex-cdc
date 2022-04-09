@@ -219,7 +219,7 @@ class Table < ApplicationRecord
   def mark_hidden
     ActiveRecord::Base.transaction do
       update!(yn_hidden: 'Y')
-      Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", {id: self.id}
+      Database.execute "UPDATE Columns SET YN_Log_Insert='N', YN_Log_Update='N', YN_Log_Delete='N' WHERE Table_ID = :id", binds: {id: self.id}
     end
   end
 
