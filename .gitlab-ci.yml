@@ -94,15 +94,6 @@ test_sqlite:
   stage: test
   extends: .tests_SQLITE
 
-test_oracle_11.2:
-  stage: test
-  extends: .tests_ORACLE
-  services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:11.2.0.4-ee
-      alias: oracle-db
-  variables:
-    DB_URL: "oracle-db:1521/ORCL"
-
 test_oracle_12.1:
   stage: test
   extends: .tests_ORACLE

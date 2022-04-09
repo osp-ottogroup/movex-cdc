@@ -13,7 +13,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                 SELECT Owner, Grantee, Table_Name
                 FROM   DBA_TAB_PRIVS
                 WHERE  Privilege = 'SELECT'
-                #{"AND    Type      = 'TABLE'" if Database.db_version >= '12.1'}
+                AND    Type      = 'TABLE'
                 UNION
                 /* Implicite table grants for users's roles */
                 SELECT tp.Owner, rp.Grantee, tp.Table_Name
@@ -24,9 +24,8 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                         CONNECT BY PRIOR Granted_Role = Grantee
                        ) rp ON rp.Granted_Role = tp.Grantee
                 WHERE  tp.Privilege = 'SELECT'
-                #{"AND    tp.Type      = 'TABLE'
+                AND    tp.Type      = 'TABLE'
                 AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
-                " if Database.db_version >= '12.1'}
                 UNION
                 /* All Tables with public select access */
                 SELECT tp.Owner, u.UserName Grantee, tp.Table_Name
@@ -34,9 +33,8 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                 CROSS JOIN All_Users u
                 WHERE  tp.Grantee          = 'PUBLIC'
                 AND    tp.Privilege        = 'SELECT'
-                #{"AND    tp.Type      = 'TABLE'
+                AND    tp.Type      = 'TABLE'
                 AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
-                " if Database.db_version >= '12.1'}
                 UNION
                 /* All schemas with tables if user has SELECT ANY TABLE */
                 SELECT t.Owner, p.Grantee, t.Table_Name

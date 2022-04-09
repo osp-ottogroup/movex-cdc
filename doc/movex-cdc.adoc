@@ -95,11 +95,7 @@ Requires supplemental logging in Oracle DB.
 === Supported databases ===
 
 ==== Oracle Database ====
-Oracle Database is supported for release 12.1. and higher. +
-Release 11.2 may function depending on the patch level. There are several issues with compound triggers in Oracle 11 up to release 11.2.0.4.
-
-NOTE: Enterprise Edition with Partitioning Option in Release >= 11.2 is needed until now +
-Solution for Standard Edition without partitioning is in progress
+Oracle Databases are supported for release 12.1. and higher.
 
 ===== Enterprise or Express Edition with Partitioning Option =====
 MOVEX CDC works best if Partitioning Option is available for your database in Enterprise or Express Edition.

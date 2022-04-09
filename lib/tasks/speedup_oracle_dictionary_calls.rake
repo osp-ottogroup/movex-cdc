@@ -56,11 +56,7 @@ Access to dictionary views has massively slowed down in PDB environments while u
       # see also: Dictionary Queries Run Slowly in 12C Pluggable Databases (Doc ID 2033658.1)
       # https://support.oracle.com/epmos/faces/DocumentDisplay?_afrLoop=471348295695682&parent=EXTERNAL_SEARCH&sourceId=PROBLEM&id=2033658.1&_afrWindowMode=0&_adf.ctrl-state=dywy3nphu_4
 
-      db_version_lt_12 = select_single conn, "SELECT CASE WHEN Version < '12' THEN 1 ELSE 0 END FROM v$Instance"
-      if db_version_lt_12 == 0
-        exec conn, 'ALTER SYSTEM SET "_common_data_view_enabled"=false SCOPE=BOTH'
-      end
-
+      exec conn, 'ALTER SYSTEM SET "_common_data_view_enabled"=false SCOPE=BOTH'
       conn.close
     end
 
