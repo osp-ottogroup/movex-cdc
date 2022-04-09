@@ -17,19 +17,31 @@ class EventLog < ApplicationRecord
         Rails.logger.error msg
       end
 
-      current_value =  if MovexCdc::Application.partitioning?
-                         Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
-                       else
-                         Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
-                       end
-      if current_value != expected_value
-        workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
-        Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
-        Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
-        if MovexCdc::Application.partitioning?
+      if MovexCdc::Application.partitioning?
+        current_value =  Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
+        if current_value != expected_value
+          workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
+          Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
+          Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs MODIFY DEFAULT ATTRIBUTES INITRANS #{expected_value}"
-        else
+        end
+      else                                                                      # non-partitioned table
+        current_value = Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
+        if current_value != expected_value
+          workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
+          Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
+          Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
+          Database.execute "ALTER TABLE Event_Logs MOVE#{" ONLINE" if Database.db_version >= '12.2'}"
+        end
+
+        # Additional check for index
+        current_value = Database.select_one "SELECT ini_trans from User_Indexes WHERE Index_Name ='EVENT_LOGS_PK'"
+        if current_value != expected_value
+          workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value} for index"
+          Rails.logger.info "Change INI_TRANS of index EVENT_LOGS_PK from #{current_value} to #{expected_value}"
+          Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
+          Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}"
         end
       end
     end

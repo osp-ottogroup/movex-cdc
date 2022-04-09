@@ -101,6 +101,19 @@ Release 11.2 may function depending on the patch level. There are several issues
 NOTE: Enterprise Edition with Partitioning Option in Release >= 11.2 is needed until now +
 Solution for Standard Edition without partitioning is in progress
 
+===== Enterprise or Express Edition with Partitioning Option =====
+MOVEX CDC works best if Partitioning Option is available for your database in Enterprise or Express Edition.
+Interval partitioning of table Event_Logs is used in this case which ensures automatic shrinking to minimum needed storage footprint. +
+
+===== Standard Edition or Enterprise Edition without Partitioning Option =====
+MOVEX CDC also works without partitioning,
+but in this case there are some disadvantages:
+
+- Peak usage increases high water mark in table Event_Logs, the claimed space is not freed after processing
+- Because read access with full table scan is not suitable in this case due to the unpredictable size of the table, an index on column ID is placed for the non-partitioned table Event_Logs
+- This index ensures processing troughput, but a tiny risk is remaining for wait szenarios at index block split operation under heavy concurrent transactions that are executing MOVEX CDC's triggers.
+
+
 ==== SQLite ====
 SQLite is used as development database for MOVEX CDC. There might be no useful production use case but it works.
 
@@ -121,14 +134,6 @@ If you want to limit the maximum memory used by MOVEC CDC then set JAVA_OPTS=-Xm
 The application needs it's own database schema at the observed database. +
 This schema contains configuration tables which the application will create itself at first startup as well as the buffered (not yet transferred) events. +
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
-
-==== DB-specific preconditions for Oracle
-Your database should have activated the Partitioning Option in Enterprise or Express Edition to work proper. +
-MOVEX CDC also works for Standard Edition rsp. without partitioning,
-but this solution without using partitioning still has some disadvantages:
-
-- Claimed space in table Event_Logs is not freed after processing
-- Peak usage increases high water mark in table Event_Logs and this way full table scans become slower and reduce event throughput
 
 ==== Rights for the owner of MOVEX CDC's DB schema ====
 The owner of the schema requires some preconditions/grants at the database as well as quota on its default tablespace.
@@ -758,6 +763,12 @@ http://localhost:8080/server_control/set_log_level
 image:er_model.svg[format=svg,opts=inline]
 
 === Security considerations ===
+==== SSL encryption for https access on GUI ====
+There is no SSL/HTTPS encryption for the GUI of MOVEX CDC out of the box. +
+To ensure encypted HTTP traffic you should place MOVEX CDC behind a reverse proxy or ingres controller with SSL encryption. +
+
+CAUTION: TODO: Example config for MOVEX CDC behind nginx with docker compose should be added
+
 ==== Access authentication for GUI ====
 * Users authenticate at logon with the password of the corresponding DB user
 * A JWT token is created at GUI logon and used for subsequent API calls

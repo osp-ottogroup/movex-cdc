@@ -243,7 +243,7 @@ class TransferThread
           end
         end
         housekeep_max_sorted_id_distance(partitions.map {|p| p['partition_name']})
-      else
+      else                                                                      # non-partitioned Oracle table
         event_logs.concat(read_event_logs_steps(max_records_to_read: @max_transaction_size))
       end
 
