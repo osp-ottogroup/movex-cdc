@@ -519,7 +519,7 @@ class TransferThread
       Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg, Transaction_ID)
                        SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp}, :error_msg, Transaction_ID
                        FROM   Event_Logs
-                       WHERE #{filter_sql}", { error_msg: "#{exception.class}:#{exception.message}. #{ExceptionHelper.explain_exception(exception)}"}.merge(filter_value)
+                       WHERE #{filter_sql}", binds: { error_msg: "#{exception.class}:#{exception.message}. #{ExceptionHelper.explain_exception(exception)}"}.merge(filter_value)
       Database.execute "DELETE FROM Event_Logs WHERE #{filter_sql}", binds: filter_value
     end
   end

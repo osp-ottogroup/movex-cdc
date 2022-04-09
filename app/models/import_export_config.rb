@@ -174,7 +174,7 @@ class ImportExportConfig
           Database.select_one "SELECT #{ar_class.sequence_name}.NextVal FROM DUAL"
         end
       when 'SQLITE' then
-        Database.execute "UPDATE sqlite_sequence SET seq = :max_val WHERE name = '#{ar_class.table_name}'", { max_val: max_val}
+        Database.execute "UPDATE sqlite_sequence SET seq = :max_val WHERE name = '#{ar_class.table_name}'", binds: { max_val: max_val}
       end
     end
 
