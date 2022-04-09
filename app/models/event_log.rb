@@ -36,6 +36,7 @@ class EventLog < ApplicationRecord
             Database.execute "ALTER TABLE Event_Logs MOVE#{" ONLINE" if Database.db_version >= '12.2'}", options: { no_exception_logging: true}
           rescue Exception => e
             if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
+              Rails.logger.debug('EventLog.adjust_max_simultaneous_transactions'){'ORA-00439 with ONLINE, retrying without ONLINE'}
               Database.execute "ALTER TABLE Event_Logs MOVE"
             else
               raise
@@ -53,6 +54,7 @@ class EventLog < ApplicationRecord
             Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}", options: { no_exception_logging: true}
           rescue Exception => e
             if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
+              Rails.logger.debug('EventLog.adjust_max_simultaneous_transactions'){'ORA-00439 with ONLINE, retrying without ONLINE'}
               Database.execute "ALTER INDEX Event_Logs_PK REBUILD INITRANS #{expected_value}"
             else
               raise
