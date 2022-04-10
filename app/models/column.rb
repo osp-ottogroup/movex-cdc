@@ -39,7 +39,7 @@ class Column < ApplicationRecord
         end
       end
 
-      Database.execute("UPDATE Columns SET #{affected_colname_by_operation(operation)} = :tag WHERE Table_ID = :table_id", tag: tag, table_id: table_id)
+      Database.execute("UPDATE Columns SET #{affected_colname_by_operation(operation)} = :tag WHERE Table_ID = :table_id", binds: { tag: tag, table_id: table_id })
     end
   end
 

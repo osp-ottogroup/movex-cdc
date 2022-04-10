@@ -55,8 +55,8 @@ Access to dictionary views has massively slowed down in PDB environments while u
       # exclude "X$COMVW$" from execution plan
       # see also: Dictionary Queries Run Slowly in 12C Pluggable Databases (Doc ID 2033658.1)
       # https://support.oracle.com/epmos/faces/DocumentDisplay?_afrLoop=471348295695682&parent=EXTERNAL_SEARCH&sourceId=PROBLEM&id=2033658.1&_afrWindowMode=0&_adf.ctrl-state=dywy3nphu_4
-      exec conn, 'ALTER SYSTEM SET "_common_data_view_enabled"=false SCOPE=BOTH'
 
+      exec conn, 'ALTER SYSTEM SET "_common_data_view_enabled"=false SCOPE=BOTH'
       conn.close
     end
 

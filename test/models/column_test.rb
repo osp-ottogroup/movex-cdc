@@ -42,7 +42,7 @@ class ColumnTest < ActiveSupport::TestCase
         assert_equal org_column_count, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("All columns should be set with 'Y' for operation=#{operation}") if tag == 'Y'
         assert_equal 0, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
 
-        Database.execute("DELETE FROM columns WHERE table_id = :table_id and name != 'NAME'", table_id: victim1_table.id)   # remove all columns except one (NAME)
+        Database.execute("DELETE FROM columns WHERE table_id = :table_id and name != 'NAME'", binds: {table_id: victim1_table.id})   # remove all columns except one (NAME)
         run_with_current_user { Column.tag_operation_for_all_columns(victim1_table.id, operation, tag) }
         assert_equal org_column_count, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("All columns should be created and set with 'Y' for operation=#{operation}") if tag == 'Y'
         assert_equal 0, Column.where(table_id: victim1_table.id, column_name => 'Y').count, log_on_failure("No columns should remain with 'Y' for operation=#{operation}") if tag == 'N'
@@ -50,7 +50,7 @@ class ColumnTest < ActiveSupport::TestCase
     end
 
     # Restore original state
-    Database.execute "UPDATE columns SET yn_log_insert='Y', yn_log_update='Y', yn_log_delete='Y' WHERE table_id = :table_id", table_id: victim1_table.id
+    Database.execute "UPDATE columns SET yn_log_insert='Y', yn_log_update='Y', yn_log_delete='Y' WHERE table_id = :table_id", binds: { table_id: victim1_table.id }
   end
 
 end
