@@ -88,7 +88,7 @@ test_frontend:
   variables:
     DB_TYPE: "ORACLE"
     DB_SYS_PASSWORD: "oracle"
-    TEST_SERVICENAME: "ORCL"
+    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 test_sqlite:
   stage: test
@@ -100,8 +100,13 @@ test_oracle_12.1:
   services:
     - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-ee
       alias: oracle-db
-  variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
+
+test_oracle_12.1_SE:
+  stage: test
+  extends: .tests_ORACLE
+  services:
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-se2
+      alias: oracle-db
 
 test_oracle_12.2:
   stage: test
@@ -109,8 +114,13 @@ test_oracle_12.2:
   services:
     - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
-  variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
+
+test_oracle_12.2_SE:
+  stage: test
+  extends: .tests_ORACLE
+  services:
+    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.2.0.1-se2
+      alias: oracle-db
 
 test_oracle_19.3:
   stage: test
@@ -118,8 +128,6 @@ test_oracle_19.3:
   services:
     - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.3.0.0-ee
       alias: oracle-db
-  variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 test_oracle_19.10-SE2:
   stage: test
@@ -127,8 +135,6 @@ test_oracle_19.10-SE2:
   services:
     - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:19.10.0.0-se2
       alias: oracle-db
-  variables:
-    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 generate_asciidoc:
   stage: build

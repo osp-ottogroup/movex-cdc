@@ -9,7 +9,7 @@ The full documentation of this product you may find here:
 ![](doc/images/event_flow.svg)
 
 ## Supported database systems
-- <b>Oracle</b> First productive usage for Enterprise Edition with Partitioning Option (Rel. 12.1. ++ )
+- <b>Oracle</b> Oracle databases with Release 12.1 and higher
 - <b>SQLite</b> The aditional implementation for SQLite ensures that the product remains database independent.
 
 

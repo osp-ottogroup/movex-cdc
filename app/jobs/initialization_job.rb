@@ -108,7 +108,7 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
   # check if create table is possible
   def check_create_table
     begin
-      Database.execute "DROP TABLE MOVEX_CDC_Table_Test", {}, no_exception_logging: true  # drop possibly existing table
+      Database.execute "DROP TABLE MOVEX_CDC_Table_Test", options: { no_exception_logging: true}  # drop possibly existing table
     rescue
     end
     Database.execute "CREATE  TABLE MOVEX_CDC_Table_Test (ID NUMBER)"

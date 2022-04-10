@@ -63,7 +63,8 @@ class CompressStatistics
       # delete multiple records
       Database.execute "DELETE FROM Statistics WHERE Table_ID = :table_id AND Operation = :operation
                         AND End_Timestamp >= :min_ts AND End_Timestamp <= :max_ts",
-                       { table_id:  record_group['table_id'],
+                       binds: {
+                         table_id:  record_group['table_id'],
                          operation: record_group['operation'],
                          min_ts:    record_group['min_end_timestamp'],
                          max_ts:    record_group['max_end_timestamp']

@@ -33,7 +33,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                 CROSS JOIN All_Users u
                 WHERE  tp.Grantee          = 'PUBLIC'
                 AND    tp.Privilege        = 'SELECT'
-                AND    tp.Type             = 'TABLE'
+                AND    tp.Type      = 'TABLE'
                 AND    tp.Owner NOT IN (SELECT UserName FROM All_Users WHERE Oracle_Maintained = 'Y') /* Don't show SYS, SYSTEM etc. */
                 UNION
                 /* All schemas with tables if user has SELECT ANY TABLE */

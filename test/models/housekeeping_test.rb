@@ -68,7 +68,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             # ensure existence of at least one interval partition
             ActiveRecord::Base.transaction do
               Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
-                               created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S')  # Don't use Time directly as bind variable because of timezone drift
+                               binds: { created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S') }  # Don't use Time directly as bind variable because of timezone drift
               raise ActiveRecord::Rollback
             end
 
