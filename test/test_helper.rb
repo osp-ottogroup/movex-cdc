@@ -200,22 +200,22 @@ class ActiveSupport::TestCase
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+1,  num_val: 0.456,     log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+2,  num_val: 48.375,    log_count: true)
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+3,  num_val: -23.475,   log_count: true)
-      log_event_logs_count(expected_count: event_logs_before + 4)
+      log_event_logs_count(expected_count: event_logs_before + 4, location: 'First 4 inserts')
 
       # 2 U events
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record3', RowID_Val = RowID WHERE ID = #{victim_max_id+3}")
-      log_event_logs_count
+      log_event_logs_count(expected_count: event_logs_before + 5, location: 'Update Record3')
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = 'Record4' WHERE ID = #{victim_max_id+4}")
-      log_event_logs_count(expected_count: event_logs_before + 6)
+      log_event_logs_count(expected_count: event_logs_before + 6, location: 'Update Record4')
       # 2 D events
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM1 WHERE ID IN (#{victim_max_id+1}, #{victim_max_id+2})")
-      log_event_logs_count(expected_count: event_logs_before + 8)
+      log_event_logs_count(expected_count: event_logs_before + 8, location: 'Delete 2 records')
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM1  SET Name = Name")  # Should not generate records in Event_Logs
-      log_event_logs_count(expected_count: event_logs_before + 8)
+      log_event_logs_count(expected_count: event_logs_before + 8, location: 'Update without Event_Log')
 
       # Next record should not generate record in Event_Logs due to excluding condition
       insert_victim1_records(number_of_records_to_insert: 1, last_max_id: victim_max_id+4,  name: 'EXCLUDE FILTER', num_val: -23.475,   log_count: true)
-      log_event_logs_count(expected_count: event_logs_before + 8)
+      log_event_logs_count(expected_count: event_logs_before + 8, location: 'Insert without event_log')
 
       # create exactly 3 records in Event_Logs for Victim2
       victim2_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM2"
@@ -237,11 +237,11 @@ class ActiveSupport::TestCase
       when 'SQLITE'
         exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM2 (ID, Large_Text) VALUES (#{victim2_max_id+1}, '01234567890123456789')")
       end
-      log_event_logs_count(expected_count: event_logs_before + 9)
+      log_event_logs_count(expected_count: event_logs_before + 9, location: 'Insert large content')
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM2  SET Large_Text = 'small text' WHERE ID = #{victim2_max_id+1}")
-      log_event_logs_count(expected_count: event_logs_before + 10)
+      log_event_logs_count(expected_count: event_logs_before + 10, location: 'Update large content to small content')
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM2 WHERE ID = #{victim2_max_id+1}")
-      log_event_logs_count(expected_count: event_logs_before + 11)
+      log_event_logs_count(expected_count: event_logs_before + 11, location: 'Delete one Record by ID')
       # In Oracle 12.2 this delete-trigger may fire twice due to a bug
 
       # create the remaining records in Event_Log
@@ -284,11 +284,11 @@ class ActiveSupport::TestCase
     end
   end
 
-  def log_event_logs_count(expected_count: nil)
+  def log_event_logs_count(expected_count: nil, location: nil)
     event_logs_count = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
     Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_count'){ "Table Event_Logs now contains #{event_logs_count} records" }
     if expected_count && expected_count != event_logs_count
-      msg = "Number of records in Event_Logs should be #{expected_count} now but is #{event_logs_count}"
+      msg = "Number of records in Event_Logs should be #{expected_count} now but is #{event_logs_count}#{" at '#{location}'" if location}"
       Rails.logger.error('TestHelper.log_event_logs_count') { msg }
       raise msg
     end
