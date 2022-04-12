@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div v-if="contactPerson !== ''" class="has-text-grey-light mb-1">
+    <div v-if="contactPerson !== null" class="has-text-grey-light mb-1">
       If you have questions regarding this Instance of MOVEX Change Data Capture,
       so please contact <span class="has-text-grey">{{ contactPerson }}</span>.
     </div>

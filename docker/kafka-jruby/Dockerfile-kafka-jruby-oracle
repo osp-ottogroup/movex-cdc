@@ -3,13 +3,13 @@
 # Peter Ramm, 2021-03-02
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.3.0-jdk17 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.4.0-jdk17 .
 
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
-ARG JRUBY_VERSION=9.3.3.0
-ARG KAFKA_VERSION=3.0.0
+ARG JRUBY_VERSION=9.3.4.0
+ARG KAFKA_VERSION=3.1.0
 ARG SCALA_VERSION=2.13
 ENV JRUBY_VERSION=$JRUBY_VERSION
 ENV KAFKA_VERSION=$KAFKA_VERSION

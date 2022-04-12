@@ -45,6 +45,7 @@ class Database
     end
 
     result = ActiveRecord::Base.connection.select_all(sql, "Database.select_all Thread=#{Thread.current.object_id}", binds)
+    Rails.logger.debug('Database.select_all'){ "Previous SQL selected #{result.count} records"}
     result.each do |record|
       record.extend TolerantSelectHashHelper
     end

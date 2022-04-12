@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.2.0-jdk17
+image: registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.4.0-jdk17
 
 variables:
   RAILS_MAX_THREADS: 100
