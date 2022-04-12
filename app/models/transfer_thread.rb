@@ -552,11 +552,17 @@ class TransferThread
   end
 
   def sleep_and_watch(sleeptime)
-    Rails.logger.debug "TransferThread.sleep_and_watch: Sleeping #{sleeptime} seconds" if sleeptime > 0
-    1.upto(sleeptime) do
-      sleep(1)
-      if @thread_mutex.synchronize { @stop_requested }                          # Cancel sleep if stop requested
-        return                                                                  # return immediate
+    if sleeptime > 0                                                            # no action for sleeptime == 0
+      Rails.logger.debug "TransferThread.sleep_and_watch: Sleeping #{sleeptime} seconds"
+      if sleeptime > 1
+        1.upto(sleeptime) do
+          sleep(1)
+          if @thread_mutex.synchronize { @stop_requested }                      # Cancel sleep if stop requested
+            return                                                              # return immediate
+          end
+        end
+      else
+        sleep(sleeptime)                                                        # must not be interrrupted for small wait times
       end
     end
   end
