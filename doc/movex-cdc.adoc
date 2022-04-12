@@ -759,7 +759,16 @@ http://localhost:8080/server_control/set_log_level
 image:er_model.svg[format=svg,opts=inline]
 
 === Security considerations ===
-==== SSL encryption for https access on GUI ====
+==== Encryption of network traffic ====
+===== Encrpytion of DB connection =====
+Connections to Oracle-DB are unencrypted until now.
+Encryption of DB connection will be default soon after release of https://github.com/rsim/oracle-enhanced/pull/2284[this pull request] for the underlying DB adapter. +
+Precondition for DB network encryption is that the DB server ist configured in sqlnet.ora with at least "SQLNET.ENCRYPTION_SERVER = ACCEPTED".
+
+===== Encrpytion of Kafka connection =====
+CAUTION: TODO: Describe preconditions for encrypted traffic between MOVEX CDC and Kafka
+
+===== SSL encryption for https access on GUI =====
 There is no SSL/HTTPS encryption for the GUI of MOVEX CDC out of the box. +
 To ensure encypted HTTP traffic you should place MOVEX CDC behind a reverse proxy or ingres controller with SSL encryption. +
 
