@@ -37,6 +37,19 @@ default: &default
     end
   %>
 
+  # jdbc_connect_properties are not active yet. Needs accptance of https://github.com/rsim/oracle-enhanced/pull/2284 to work
+<%=
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then "
+  jdbc_connect_properties:
+    'oracle.net.encryption_client': REQUESTED
+    'oracle.net.crypto_checksum_client': REQUESTED
+    "
+    end
+  %>
+
+
+
 development:
   <<: *default
 
