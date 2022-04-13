@@ -186,6 +186,7 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb, default: 100, integer: true, minimum: 1)
+    MovexCdc::Application.set_and_log_attrib_from_env(:max_failed_logons_before_account_locked, default: 3, integer: true, minimum: 0, maximum:99)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_transaction_size, default: 10000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_simultaneous_table_initializations, default: 5, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_simultaneous_transactions, default: 60, integer: true, minimum: 1)

@@ -44,7 +44,7 @@ class LoginController < ApplicationController
       auth_error = authenticate(user, password)
       if auth_error.nil?
         user.reset_failed_logons
-        token_lifetime_hours = 24
+        token_lifetime_hours = 24                                               # one day
         token = JsonWebToken.encode(
           {
             user_id: user.id,

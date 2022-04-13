@@ -235,6 +235,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
 If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
+|MAX_FAILED_LOGONS_BEFORE_ACCOUNT_LOCKED|Number of failed logons to GUI before the used user account will be locked and has to be unlocked by an admin user|3
 |MAX_TRANSACTION_SIZE|Maximum number of messages for processing within one transaction (both DB and Kafka). May be overbooked up to twice the number for special circumstances.|10000
 |MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS|Maximum number of simultaneously processed initial transfers of table data after first trigger generation (number of tables)|5
 |MAX_SIMULTANEOUS_TRANSACTIONS|Maximum number of transactions simultaneously processing inserts into table EVENT_LOGS without serialization. +
