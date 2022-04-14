@@ -42,10 +42,9 @@ class User < ApplicationRecord
     result[0].amount
   end
 
-  MAX_FAILED_LOGONS = 3                                                         # should be small enough to prevent DB account from beeing locked
   def increment_failed_logons
-    self.failed_logons = self.failed_logons + 1
-    self.yn_account_locked='Y' if self.failed_logons >= MAX_FAILED_LOGONS
+    self.failed_logons = self.failed_logons + 1 if self.failed_logons < 99      # remember only the first 99 failed logons because of number(2)
+    self.yn_account_locked='Y' if self.failed_logons >= MovexCdc::Application.config.max_failed_logons_before_account_locked
     save!
   end
 

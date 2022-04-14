@@ -40,3 +40,4 @@
 
 build_version
 /config/secret_key_base
+/identifier.sqlite
