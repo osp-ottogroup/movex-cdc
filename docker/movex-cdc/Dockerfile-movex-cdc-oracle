@@ -21,7 +21,7 @@ COPY $FRONTEND_SRC_PATH/package*.json ./
 # npm run install uses latest version of dependencies according to SEMVER behaviour
 # RUN npm install
 # npm run ci installs exact version according to package-lock.json in contrast to npm install
-RUN NODE_ENV=production npm ci
+RUN npm ci
 
 COPY $FRONTEND_SRC_PATH .
 
