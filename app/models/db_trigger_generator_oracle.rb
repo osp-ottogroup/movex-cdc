@@ -297,7 +297,7 @@ END #{build_trigger_name(table, operation)};
     where = ''                                                                  # optional conditions
     where << "WHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
-    where << " AND " if table.initialization_filter && trigger_config[:condition]
+    where << "\nAND " if table.initialization_filter && trigger_config[:condition]
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
 
     load_sql = "DECLARE\n"
@@ -307,6 +307,7 @@ BEGIN
   FOR rec IN (SELECT #{columns.map{|x| x[:column_name]}.join(',')}
               FROM   #{table.schema.name}.#{table.name} AS OF SCN #{scn}
               #{where}
+              #{"ORDER BY #{table.initialization_order_by}" if table.initialization_order_by}
              ) LOOP
 "
     trigger_row_section = generate_row_section(table_config, operation.upcase)  # generate columns for insert operation (I)

@@ -248,6 +248,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false)
 
       [nil, "ID != #{max_victim_id}"].each do |init_filter|
+        init_order_by = init_filter ? 'ID' : nil
         [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
           Rails.logger.debug('DbTriggerTest.generate trigger with initialization'){ "Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'" }
 
@@ -261,6 +262,7 @@ class DbTriggerTest < ActiveSupport::TestCase
           current_victim1_table = Table.find(victim1_table.id)                    # load fresh state from DB
           current_victim1_table.update!(yn_initialization:      'Y',
                                         initialization_filter:  init_filter,
+                                        initialization_order_by:init_order_by,
                                         kafka_key_handling:     kafka_key_handling,
                                         fixed_message_key:      fixed_message_key,
                                         yn_record_txid:         yn_record_txid,
@@ -285,6 +287,8 @@ class DbTriggerTest < ActiveSupport::TestCase
             assert_equal 0, result[:errors].length, log_on_failure('No errors should occur')
           end
           assert_equal 1, result[:load_sqls].length, log_on_failure('load SQLs should be generated')
+          assert(result[:load_sqls][0][:sql]["ORDER BY #{init_order_by}"], "ORDER BY should be set in load_sql to '#{init_order_by}'") if init_order_by
+          assert(result[:load_sqls][0][:sql]["ORDER BY"].nil?, "ORDER BY should not be set in load_sql") if init_order_by.nil?
 
           # Wait for successful initialization
 

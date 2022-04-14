@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_04_09_000000) do
+ActiveRecord::Schema.define(version: 2022_04_14_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", null: false
@@ -126,6 +126,7 @@ ActiveRecord::Schema.define(version: 2022_04_09_000000) do
     t.string "yn_record_txid", limit: 1, default: "N", null: false
     t.string "yn_initialization", limit: 1, default: "N", null: false
     t.string "initialization_filter", limit: 4000
+    t.string "initialization_order_by", limit: 4000
     t.index ["schema_id", "name"], name: "IX_TABLES_SCHEMA_NAME", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end
