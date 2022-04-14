@@ -383,7 +383,7 @@ Possible configuration actions are:
 ** Define the operations (insert/update(delete) to capture for a column
 ** Define optional filter conditions per operation +
 This filter conditions my rely on column values inside the trigger and may also contain subselects to other tables +
-Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID`
+Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID)`
 
 NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
 
