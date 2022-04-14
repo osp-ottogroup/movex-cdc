@@ -81,6 +81,12 @@
                    v-model="internalTable.initialization_filter"/>
         </b-field>
 
+        <b-field label="Optional order by expression for initial transfer" v-if="internalTable.yn_initialization === 'Y'">
+          <b-input type="textarea"
+                   rows="1"
+                   v-model="internalTable.initialization_order_by"/>
+        </b-field>
+
         <template v-if="!isAddMode">
           <b-field label="Date Of Last Trigger Deployment" custom-class="is-small" class="trigger-dates">
             <div class="columns is-1 is-variable">

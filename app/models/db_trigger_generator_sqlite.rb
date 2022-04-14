@@ -231,8 +231,9 @@ FROM   main.#{table.name}
 "
     sql << "WHERE " if table.initialization_filter || trigger_config[:condition]
     sql << "(/* init filter */ #{table.initialization_filter})" if table.initialization_filter
-    sql << " AND " if table.initialization_filter && trigger_config[:condition]
+    sql << "\nAND " if table.initialization_filter && trigger_config[:condition]
     sql << "(/* insert condition */ #{trigger_config[:condition].gsub(/new./i, '')})" if trigger_config[:condition]
+    sql << "\nORDER BY #{table.initialization_order_by}" if table.initialization_order_by
 
     @load_sqls << { table_id: table.id, table_name: table.name, sql: sql }
 
