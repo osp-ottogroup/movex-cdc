@@ -550,7 +550,7 @@ END Flush;
 
   # if condition contains a subselect then execution in separate SQL from DUAL is needed to workaround PLS-00405
   def separate_condition_sql_needed?(condition)
-    !condition.upcase['SELECT'].nil?
+    !condition.nil? && !condition.upcase['SELECT'].nil?
   end
 
   # if condition is executed in separate SQL then use result of SQL in IF, else direct use of condition in IF
