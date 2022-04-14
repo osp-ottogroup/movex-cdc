@@ -372,7 +372,7 @@ This dialog shows:
 * already configured tables of a schema (limited to tables where the user has SELECT grants for)
 * columns of a configured table with marks for Insert/Update/Delete-trigger
 
-Possible onfiguration actions are:
+Possible configuration actions are:
 
 * add tables to configuration for a schema (only possible for tables where the user is allowed to select from)
 ** modify topic name per table
@@ -380,6 +380,10 @@ Possible onfiguration actions are:
 ** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
 ** decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
 * modify triggering of change events per column
+** Define the operations (insert/update(delete) to capture for a column
+** Define optional filter conditions per operation +
+This filter conditions my rely on column values inside the trigger and may also contain subselects to other tables +
+Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID)`
 
 NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
 

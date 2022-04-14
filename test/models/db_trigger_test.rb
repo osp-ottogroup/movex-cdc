@@ -315,4 +315,28 @@ class DbTriggerTest < ActiveSupport::TestCase
       restored_table.update!(org_table_attributes.select{|key, value| key != 'lock_version'}.merge(lock_version: restored_table.lock_version))  # restore original state
     end
   end
+
+  test "generate trigger with subselect in condition" do
+    run_with_current_user do
+      [[200, 0], [2, 5]].each do |elem|
+        compared_table_count = elem[0]
+        expected_event_logs  = elem[1]
+
+        condition         = Condition.where(table_id: victim1_table.id, operation: 'I').first
+        original_condition_filter = condition.filter
+        condition.update!(filter: "#{compared_table_count} < (SELECT COUNT(*) FROM Tables)") # condition should failor not
+
+        result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+        assert_equal 0, result[:errors].length,     log_on_failure('drop trigger should not have errors')
+
+        event_logs_count = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
+        victim_max_id = Database.select_one "SELECT MAX(ID) max_id FROM #{victim_schema_prefix}VICTIM1"
+        victim_max_id = 0 if victim_max_id.nil?
+        insert_victim1_records(number_of_records_to_insert: 5, last_max_id: victim_max_id,    num_val: 1,         log_count: true)
+        assert_equal(event_logs_count+expected_event_logs, Database.select_one("SELECT COUNT(*) records FROM Event_Logs"), 'Condition with subselect should prevent from creating Event_Logs')
+
+        Condition.find(condition.id).update!(filter: original_condition_filter)     # restore original
+      end
+    end
+  end
 end
