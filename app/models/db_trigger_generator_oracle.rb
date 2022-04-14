@@ -214,6 +214,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   end
 
   # Check for existence, than compare and create
+  # This is the entry method for trigger generation from TriggerGeneratorBase
   def create_or_rebuild_trigger(table, operation)
     trigger_name = build_trigger_name(table, operation)
     trigger_sql = generate_trigger_sql(table, operation)
@@ -260,7 +261,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     columns         = trigger_config[:columns]
 
     body_sql = "COMPOUND TRIGGER\n"
-    body_sql << generate_declare_section(table, operation, :body)
+    body_sql << generate_declare_section(table, operation, :body, trigger_config)
     body_sql << "
 BEFORE STATEMENT IS
 BEGIN
@@ -300,7 +301,7 @@ END #{build_trigger_name(table, operation)};
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
 
     load_sql = "DECLARE\n"
-    load_sql << generate_declare_section(table, operation, :load)               # use operation 'i' for event generation
+    load_sql << generate_declare_section(table, operation, :load, trigger_config) # use operation 'i' for event generation
     load_sql << "
 BEGIN
   FOR rec IN (SELECT #{columns.map{|x| x[:column_name]}.join(',')}
@@ -331,7 +332,11 @@ END;
     end
   end
 
-  def generate_declare_section(table, operation, mode)
+  # @param table: Table object
+  # @param operation: I|U|D
+  # @param mode: :body | :load
+  # @param trigger_config: config for operation
+  def generate_declare_section(table, operation, mode, trigger_config)
     "\
 
 TYPE Payload_Rec_Type IS RECORD (
@@ -339,11 +344,12 @@ TYPE Payload_Rec_Type IS RECORD (
   Msg_Key VARCHAR2(4000)
 );
 TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
-payload_rec     Payload_Rec_Type;
-payload_tab     Payload_Tab_Type;
-tab_size        PLS_INTEGER;
-dbuser          VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
-transaction_id  VARCHAR2(100) := NULL;
+payload_rec       Payload_Rec_Type;
+payload_tab       Payload_Tab_Type;
+tab_size          PLS_INTEGER;
+dbuser            VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
+transaction_id    VARCHAR2(100) := NULL;
+#{"condition_result  NUMBER;" if mode == :body && separate_condition_sql_needed?(trigger_config[:condition])}
 
 PROCEDURE Flush IS
 BEGIN
@@ -369,23 +375,24 @@ END Flush;
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent
     update_indent    = operation == 'U' ? '  ' : ''
-
-    "
+    row_section = "
   tab_size := Payload_Tab.COUNT;
   IF tab_size >= 1000 THEN
     Flush;
     tab_size := 0;
   END IF;
 
-  #{"IF #{trigger_config[:condition]} THEN" if trigger_config[:condition]}
-    #{"#{condition_indent}IF #{old_new_compare(trigger_config[:columns])} THEN" if operation == 'U'}
-    #{"/* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */" unless @use_json_object}
-    #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation)};
-  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};
-  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;
-  #{"#{condition_indent}END IF;" if operation == 'U'}
-  #{"END IF;" if trigger_config[:condition]}
-    "
+"
+    row_section << "  SELECT COUNT(*) INTO Condition_Result FROM Dual WHERE #{trigger_config[:condition]};\n" if separate_condition_sql_needed?(trigger_config[:condition])
+    row_section << "  IF #{condition_if_expression(trigger_config[:condition])} THEN\n" if trigger_config[:condition]
+    row_section << "  #{condition_indent}IF #{old_new_compare(trigger_config[:columns])} THEN\n" if operation == 'U'
+    row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
+    row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
+    row_section << "  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};\n"
+    row_section << "  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;\n"
+    row_section << "  #{condition_indent}END IF;\n" if operation == 'U'
+    row_section << "  END IF;\n" if trigger_config[:condition]
+    row_section
   end
 
   # compare old and new values for update trigger
@@ -403,26 +410,26 @@ END Flush;
 
   # generate concatenated PL/SQL-commands for payload
   # - mode: :body or :load
-  def payload_command(table_config, operation)
+  def payload_command(table_config, operation, indent)
     trigger_config = table_config[operation]
     case operation
-    when 'I' then payload_command_internal(trigger_config, 'new')
-    when 'U' then "#{payload_command_internal(trigger_config, 'old')}||',\n'||#{payload_command_internal(trigger_config, 'new')}"
-    when 'D' then payload_command_internal(trigger_config, 'old')
+    when 'I' then payload_command_internal(trigger_config, 'new', indent)
+    when 'U' then "#{payload_command_internal(trigger_config, 'old', indent)}||',\n#{indent}'||#{payload_command_internal(trigger_config, 'new', indent)}"
+    when 'D' then payload_command_internal(trigger_config, 'old', indent)
     else
       raise "Unknown operation #{operation}"
     end
   end
 
-  def payload_command_internal(trigger_config, old_new)
+  def payload_command_internal(trigger_config, old_new, indent)
     if @use_json_object
-      result = "'\"#{old_new}\": ' ||\nJSON_OBJECT(\n"
-      result << trigger_config[:columns].map {|c| "'#{c[:column_name]}' VALUE :#{old_new}.#{c[:column_name]}"}.join(",\n")
-      result << "\n)"
+      result = "'\"#{old_new}\": ' ||\n#{indent}JSON_OBJECT(\n"
+      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE :#{old_new}.#{c[:column_name]}"}.join(",\n")
+      result << "\n#{indent})"
     else
       result = "'\"#{old_new}\": {'||\n"
-      result << trigger_config[:columns].map {|c| "'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
-      result << "||'}'"
+      result << trigger_config[:columns].map {|c| "  #{indent}'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
+      result << "#{indent}||'}'"
     end
     result
   end
@@ -541,4 +548,17 @@ END Flush;
     }
   end
 
+  # if condition contains a subselect then execution in separate SQL from DUAL is needed to workaround PLS-00405
+  def separate_condition_sql_needed?(condition)
+    !condition.upcase['SELECT'].nil?
+  end
+
+  # if condition is executed in separate SQL then use result of SQL in IF, else direct use of condition in IF
+  def condition_if_expression(condition)
+    if separate_condition_sql_needed?(condition)
+      "condition_result > 0"
+    else
+      condition
+    end
+  end
 end
