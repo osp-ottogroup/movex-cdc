@@ -712,7 +712,7 @@ curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
-http://localhost:8080/import_export/export
+http://localhost:8080/import_export/import
 
 ===== Import of user configuration data =====
 If importing one or all schemas from JSON file only users with rights for this schemas are created if they don't yet exist in DB.
