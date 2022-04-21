@@ -22,7 +22,7 @@
 # TNS_ADMIN: /etc
 
 # Set max. Java heap size. Default is 75% of available memory
-# JAVA_OPTS=-Xmx2048m
+# JAVA_OPTS:-Xmx2048m
 
 # Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
 # KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
