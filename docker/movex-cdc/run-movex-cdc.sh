@@ -64,7 +64,22 @@ then
       export JAVA_OPTS="$CONFIG_JAVA_OPTS"
     fi
   fi
+
+  if [ -z "$PUBLIC_PATH" ]; then
+    PUBLIC_PATH=`run_config_value PUBLIC_PATH`
+  fi
 fi
+
+# replace publicPath in VueJS artifacts with empty string for root or additional URL path to use
+export PUBLIC_PATH
+(
+  echo "Replace publicPath / root with '$PUBLIC_PATH'" | tee -a $RAILS_LOG_FILE
+  cd public
+  # regular hit should be index.html
+  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' *
+  cd js
+  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' *
+)
 
 # Default setting Java heap if not already set by JAVA_OPTS: Set to 75% of available mem
 echo $JAVA_OPTS | grep "\-Xmx" >/dev/null
