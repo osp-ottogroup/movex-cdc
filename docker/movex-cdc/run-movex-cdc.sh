@@ -65,6 +65,7 @@ then
     fi
   fi
 
+  # Look for possible entry in config file if no environment variable set
   if [ -z "$PUBLIC_PATH" ]; then
     PUBLIC_PATH=`run_config_value PUBLIC_PATH`
   fi
@@ -76,7 +77,7 @@ export PUBLIC_PATH
   echo "Replace publicPath / root with '$PUBLIC_PATH'" | tee -a $RAILS_LOG_FILE
   cd public
   # regular hit should be index.html
-  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' *
+  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' index.html
   cd js
   sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' *
 )
