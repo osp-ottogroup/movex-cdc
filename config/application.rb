@@ -206,6 +206,7 @@ module MovexCdc
       MovexCdc::Application.set_and_log_attrib_from_env(:tns_admin, accept_empty: true)
       if config.tns_admin
         System.setProperty("oracle.net.tns_admin", config.tns_admin)
+        raise "No file tnsnames.ora found at '#{config.tns_admin}'! Unset environment value TNS_ADMIN if you don't want to use it." unless File.file?(File.join(config.tns_admin, 'tnsnames.ora'))
       else
         raise "TNS_ADMIN must be set if DB_URL ('#{config.db_url}') is not a valid JDBC thin URL (host:port:sid or host:port/service_name) and is treated as TNS-alias" unless config.db_url[':']
       end
