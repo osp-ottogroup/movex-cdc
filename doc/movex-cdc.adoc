@@ -252,6 +252,8 @@ Relevant only if EVENT_LOGS is used partitioned. +
 Changing this setting requires that there are no pending transactions on table Event_Logs at next startup of the application container.
 Otherwise error ORA-00054 is raised and application does not start.
 |60 seconds
+|PUBLIC_PATH|Additional suffix to GUI URL if not the root URL of a host is used (e.g. if locations in nginx are used with URL like https://host/sub_path) +
+Ensures that API calls and js/css loads are properly extended with the used sub-path.|''
 |RAILS_MAX_THREADS|Maximum number of threads for the underlying Puma application server, should be set to greater than INITIAL_WORKER_THREADS + 30 if default is not sufficient|300
 |RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/run_config.yml
 |SECRET_KEY_BASE|Server side key used for encryption and signing of the JWT that is used for authentication|
@@ -430,6 +432,27 @@ For Docker you can configure this behaviour in /etc/docker/daemon.json like this
     "max-file": "3"
   }
 }
+
+===== Nginx as reverse proxy for SSL encryption or multiple instances =====
+If using URL suffixes in nginx locations, then MOVEX CDC container instance has to know this to ensure that all requests to backend API or js and css loads are proper qualified with the used sub-path.
+
+nginx.conf of myhost may look like this:
+[source]
+http {
+  server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name _;
+    location /mysubpath {
+      proxy_pass http://$host:8080/;
+    }
+  }
+}
+
+MOVEX CDC is running at the same host at port 8080. +
+The GUI URL is http://myhost/mysubpath in this case.
+
+The MOVEX CDC instance should be started in this case with PUBLIC_PATH="/mysubpath".
 
 
 
