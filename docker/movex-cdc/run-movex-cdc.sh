@@ -77,9 +77,9 @@ export PUBLIC_PATH
   echo "Replace publicPath / root with '$PUBLIC_PATH'" | tee -a $RAILS_LOG_FILE
   cd public
   # regular hit should be index.html
-  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' index.html
+  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" index.html
   cd js
-  sed -i 's/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g' *
+  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" *
 )
 
 # Default setting Java heap if not already set by JAVA_OPTS: Set to 75% of available mem
