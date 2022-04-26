@@ -40,8 +40,8 @@ then
 
   function run_config_value {
     KEY=$1
-    # get content before comment marker # and then the field after :
-    grep $KEY $RUN_CONFIG | cut -d# -f1 | cut -d: -f2
+    # get content before comment marker # and then the field after ':', xargs trims whitespaces and "
+    grep $KEY $RUN_CONFIG | cut -d# -f1 | cut -d: -f2 | xargs
   }
 
   CONFIG_RAILS_MAX_THREADS=`run_config_value RAILS_MAX_THREADS`
@@ -73,11 +73,11 @@ fi
 
 # replace publicPath in VueJS artifacts with empty string for root or additional URL path to use
 export PUBLIC_PATH
+if [ -n "$PUBLIC_PATH" ] && [ "`echo $PUBLIC_PATH | cut -c 1`" != "/" ]; then
+  echo "If PUBLIC_PATH is defined then it must start with '/'! Current value is '$PUBLIC_PATH'! Aborting!"
+  exit 1
+fi
 (
-  if [ -n "$PUBLIC_PATH" ] && [ "`echo $PUBLIC_PATH | cut -c 1`" != "/" ]; then
-    echo "If PUBLIC_PATH is defined then it must start with '/'! Current value is '$PUBLIC_PATH'! Aborting!"
-    exit 1
-  fi
   echo "Replace alias for publicPath so resulting URL path is <host>$PUBLIC_PATH/" | tee -a $RAILS_LOG_FILE
   cd public
   # regular hit should be index.html
