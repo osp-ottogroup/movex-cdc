@@ -9,7 +9,7 @@ module KafkaHelper
         client_id: "MOVEX-CDC-#{Socket.gethostname}",
         logger: Rails.logger
     }
-    kafka_options[:ssl_ca_certs_from_system]      = true unless MovexCdc::Application.config.kafka_ssl_ca_cert
+    kafka_options[:ssl_ca_certs_from_system]      = MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.upcase == 'TRUE' if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
     kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)          if MovexCdc::Application.config.kafka_ssl_ca_cert
     kafka_options[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)      if MovexCdc::Application.config.kafka_ssl_client_cert
     kafka_options[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)  if MovexCdc::Application.config.kafka_ssl_client_cert_key

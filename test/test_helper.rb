@@ -418,8 +418,8 @@ class ActionDispatch::IntegrationTest
 
     # create JWT token for following tests
     @jwt_token                  = jwt_token peter_user.id
-    @jwt_admin_token            = jwt_token User.where(email: 'admin').first.id
-    @jwt_no_schema_right_token  = jwt_token User.where(email: 'no_schema_right@xy.com').first.id
+    @jwt_admin_token            = jwt_token User.where(email: 'admin').first&.id
+    @jwt_no_schema_right_token  = jwt_token User.where(email: 'no_schema_right@xy.com').first&.id
   end
 
   teardown do

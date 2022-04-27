@@ -230,6 +230,8 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN|
 |KAFKA_SASL_PLAIN_USERNAME|Username for authentication with SASL_PLAIN|
 |KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format|
+|KAFKA_SSL_CA_CERTS_FROM_SYSTEM|Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE). +
+Set only in combination with SSL or SASL_PLAIN.|FALSE
 |KAFKA_SSL_CLIENT_CERT|Path to client certifikate file in pem format|
 |KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
 |KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
@@ -314,14 +316,13 @@ After generation open the file 'client_cert_key.pem' in an editor and remove all
 keytool -noprompt -keystore $KAFKA_CERT_DIR/kafka.client.keystore.jks -exportcert -alias CARoot -rfc -file ca_cert.pem -storepass $SSL_KEYSTORE_PASSWORD
 
 Now you are prepared with the four values for KAFKA_SSL_xxx needed to configure SSL connection in MOVEX CDC. +
-If KAFKA_SSL_CA_CERT is not set then ssl_ca_certs_from_system is assumed as to true.
+If KAFKA_SSL_CA_CERT is not set then KAFKA_SSL_CA_CERTS_FROM_SYSTEM should be set to TRUE to rely on system's CA certificate.
 
 ===== Using PLAIN connection to Kafka =====
 For the default PLAIN connection to Kafka without authentication nothing should be done.
 
 For authentication with user and password set the environment parameters KAFKA_SASL_PLAIN_USERNAME and KAFKA_SASL_PLAIN_PASSWORD. +
-If KAFKA_SSL_CA_CERT is not set then ssl_ca_certs_from_system is assumed as to true.
-
+If KAFKA_SSL_CA_CERT is not explicitely set then KAFKA_SSL_CA_CERTS_FROM_SYSTEM should be set to TRUE to rely on system's CA certificate.
 
 === Running MOVEX Change Data Capture ===
 The application is provided as Docker-Image by:
