@@ -9,7 +9,12 @@ module KafkaHelper
         client_id: "MOVEX-CDC-#{Socket.gethostname}",
         logger: Rails.logger
     }
-    kafka_options[:ssl_ca_certs_from_system]      = MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.upcase == 'TRUE' if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
+    # kafka_ssl_ca_certs_from_system should be boolean if set
+    if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
+      param = MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
+      raise "Config parameter KAFKA_SSL_CA_CERTS_FROM_SYSTEM should be of type boolean (true|false), not '#{param.class}' with value '#{param}'" if !param.is_a?(TrueClass) && !param.is_a?(FalseClass)
+      kafka_options[:ssl_ca_certs_from_system]      = param
+    end
     kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)          if MovexCdc::Application.config.kafka_ssl_ca_cert
     kafka_options[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)      if MovexCdc::Application.config.kafka_ssl_client_cert
     kafka_options[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)  if MovexCdc::Application.config.kafka_ssl_client_cert_key
