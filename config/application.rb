@@ -178,6 +178,8 @@ module MovexCdc
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count, default: 1000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '/dev/null')
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
