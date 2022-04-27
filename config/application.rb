@@ -69,14 +69,11 @@ module MovexCdc
     end
 
     def self.log_attribute(key, value)
-      if value.nil? || value == ''
-        outval = '< not set >'
+      return if value.nil? || value == ''
+      if key['PASSWORD']
+        outval = '*****'
       else
-        if key['PASSWORD']
-          outval = '*****'
-        else
-          outval = value
-        end
+        outval = value
       end
       puts "#{key.ljust(40, ' ')} #{outval}"
     end
@@ -116,7 +113,7 @@ module MovexCdc
 
     puts "\nStarting MOVEX Change Data Capture application at #{Time.now}\n"
 
-    puts "Configuration attributes:"
+    puts "Configuration attributes (if defined):"
     MovexCdc::Application.log_attribute('RAILS_ENV', Rails.env)
     MovexCdc::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
@@ -181,7 +178,10 @@ module MovexCdc
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count, default: 1000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '/dev/null')
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, default: 'FALSE')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true)

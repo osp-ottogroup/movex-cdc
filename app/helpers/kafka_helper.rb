@@ -9,11 +9,14 @@ module KafkaHelper
         client_id: "MOVEX-CDC-#{Socket.gethostname}",
         logger: Rails.logger
     }
+    kafka_options[:ssl_ca_certs_from_system]      = true if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a? (TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE'
     kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)          if MovexCdc::Application.config.kafka_ssl_ca_cert
     kafka_options[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)      if MovexCdc::Application.config.kafka_ssl_client_cert
     kafka_options[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)  if MovexCdc::Application.config.kafka_ssl_client_cert_key
     kafka_options[:ssl_client_cert_key_password]  = MovexCdc::Application.config.kafka_ssl_client_cert_key_password    if MovexCdc::Application.config.kafka_ssl_client_cert_key_password
 
+    kafka_options[:sasl_plain_username]  = MovexCdc::Application.config.kafka_sasl_plain_username if MovexCdc::Application.config.kafka_sasl_plain_username
+    kafka_options[:sasl_plain_password]  = MovexCdc::Application.config.kafka_sasl_plain_password if MovexCdc::Application.config.kafka_sasl_plain_password
     kafka_class.new(seed_brokers, kafka_options)                                # return instance of Kafka
   end
 
