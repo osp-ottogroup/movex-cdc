@@ -105,6 +105,10 @@ EOF
 ----
 
 === Create DB-User for MOVEX CDC
+If you don't already have a user for MOVEX CDC with the needed privileges at your DB,
+then this task ensures that the user exists and has the needed privileges. +
+You can run this task to ensure the needed privileges even if the user already exists. +
+Precondition for this task is the SYS password provided via DB_SYS_PASSWORD.
 ----
 docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \

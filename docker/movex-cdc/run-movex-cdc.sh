@@ -72,18 +72,24 @@ then
 fi
 
 # replace publicPath in VueJS artifacts with empty string for root or additional URL path to use
-export PUBLIC_PATH
-if [ -n "$PUBLIC_PATH" ] && [ "`echo $PUBLIC_PATH | cut -c 1`" != "/" ]; then
-  echo "If PUBLIC_PATH is defined then it must start with '/'! Current value is '$PUBLIC_PATH'! Aborting!"
-  exit 1
-fi
-(
+if [ -n "$PUBLIC_PATH" ]; then
+  if [ "`echo $PUBLIC_PATH | cut -c 1`" != "/" ]; then
+    echo "Expanding PUBLIC_PATH by leading / because it was missing"| tee -a $RAILS_LOG_FILE
+    PUBLIC_PATH=/$PUBLIC_PATH
+  fi
   echo "Replace alias for publicPath so resulting URL path is <host>$PUBLIC_PATH/" | tee -a $RAILS_LOG_FILE
+  # Escape the leading / for usage in sed
+  PUBLIC_PATH="\\${PUBLIC_PATH}"
+else
+  echo "Empty alias for publicPath so resulting URL path is root without any sub-path: <host>/" | tee -a $RAILS_LOG_FILE
+fi
+export PUBLIC_PATH
+(
   cd public
-  # regular hit should be index.html
-  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/\\$PUBLIC_PATH/g" index.html
+  # regular hit should be index.html only
+  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" index.html
   cd js
-  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/\\$PUBLIC_PATH/g" *
+  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" *
 )
 
 # Default setting Java heap if not already set by JAVA_OPTS: Set to 75% of available mem
