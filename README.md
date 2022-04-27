@@ -30,6 +30,9 @@ The current production-ready release is also tagged with `:latest` and can by pu
 The latest build of the development master branch is available by:<br/>
 `docker pull registry.gitlab.com/otto-group-solution-provider/movex-cdc:master`
 
+## Release notes
+[See here](https://gitlab.com/otto-group-solution-provider/movex-cdc/-/blob/master/doc/release_notes.md)
+
 ## Support
 If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
 
