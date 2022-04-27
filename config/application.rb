@@ -69,14 +69,11 @@ module MovexCdc
     end
 
     def self.log_attribute(key, value)
-      if value.nil? || value == ''
-        outval = '< not set >'
+      return if value.nil? || value == ''
+      if key['PASSWORD']
+        outval = '*****'
       else
-        if key['PASSWORD']
-          outval = '*****'
-        else
-          outval = value
-        end
+        outval = value
       end
       puts "#{key.ljust(40, ' ')} #{outval}"
     end
@@ -116,7 +113,7 @@ module MovexCdc
 
     puts "\nStarting MOVEX Change Data Capture application at #{Time.now}\n"
 
-    puts "Configuration attributes:"
+    puts "Configuration attributes (if defined):"
     MovexCdc::Application.log_attribute('RAILS_ENV', Rails.env)
     MovexCdc::Application.log_attribute('RAILS_MAX_THREADS', ENV['RAILS_MAX_THREADS'])
 
