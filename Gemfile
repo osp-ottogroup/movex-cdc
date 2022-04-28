@@ -5,7 +5,7 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby '2.6.8'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
-gem 'rails', '6.1.5'
+gem 'rails', '6.1.5.1'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'
@@ -16,7 +16,6 @@ gem 'puma'
 # Use Json Web Token (JWT) for token based authentication
 gem 'jwt'
 
-#gem 'ruby-kafka', '1.3.0'
 gem 'ruby-kafka', '1.4.0'
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible
