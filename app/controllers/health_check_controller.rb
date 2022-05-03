@@ -85,7 +85,7 @@ class HealthCheckController < ApplicationController
     }
 
     begin
-      health_data[:build_version] = File.read(Rails.root.join('build_version'))
+      health_data[:build_version] = File.read(Rails.root.join('build_version'))&.delete("\n")
     rescue Errno::ENOENT
       health_data[:build_version] = 'File ./build_version does not exist'
     end
