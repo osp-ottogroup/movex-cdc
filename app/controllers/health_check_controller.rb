@@ -201,7 +201,11 @@ class HealthCheckController < ApplicationController
 
     # get status of event queue
     begin
+      partition_threshold = MovexCdc::Application.config.max_partitions_to_count_as_healthy
       health_data[:event_log_status] = EventLog.health_check_status
+      if health_data[:event_log_status][:used_partition_count] && health_data[:event_log_status][:used_partition_count] > partition_threshold
+        health_data[:warnings] << "\n:Partition count (#{health_data[:event_log_status][:used_partition_count]}) exceeds threshold (#{partition_threshold})"
+      end
     rescue Exception=>e
       health_data[:warnings] << "\nError reading event queue states: #{e.class}:#{e.message}"
     end

@@ -79,18 +79,24 @@ class ApplicationController < ActionController::API
   # If user not exist it will return ActiveRecord::RecordNotFound and it will render error message with http status unauthorized.
   @@authorize_exceptions = [
     { controller: :login,         action: :do_logon},
-    { controller: :login,         action: :index},
-    { controller: :login,         action: :release_info},
+    { controller: :login,         action: :index,         without_set_application_info: true},
+    { controller: :login,         action: :release_info,  without_set_application_info: true},
     { controller: :health_check,  action: :index},
-    { controller: :help,          action: :doc_html},
-    { controller: :help,          action: :doc_pdf}
+    { controller: :help,          action: :doc_html,      without_set_application_info: true},
+    { controller: :help,          action: :doc_pdf,       without_set_application_info: true}
   ]
 
   # Terminate further processing if request is not authorized
   def authorize_request
-    Database.set_application_info("#{controller_name}/#{action_name}")
+    # register DB session only if DB is really needed for action
+    # ensure that e.g. health_check also works if DB is down
+    if @@authorize_exceptions.select{|e| e[:controller] == controller_name.to_sym && e[:action] == action_name.to_sym && e[:without_set_application_info]} == []
+      Database.set_application_info("#{controller_name}/#{action_name}")
+    end
 
-    return if @@authorize_exceptions.include?(controller: controller_name.to_sym, action: action_name.to_sym)
+    if @@authorize_exceptions.select{|e| e[:controller] == controller_name.to_sym && e[:action] == action_name.to_sym} != []
+      return
+    end
 
     header = request.headers['Authorization']
     header = header.split(' ').last if header
