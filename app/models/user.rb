@@ -42,6 +42,14 @@ class User < ApplicationRecord
     result[0].amount
   end
 
+  # system initialization has finished if table Users exists and admin account exists
+  def self.check_for_system_init_completed
+    result = Database.select_one "SELECT COUNT(*) FROM Users WHERE EMail = :email", email: 'admin'
+    raise "User 'admin' does not exist in table Users" if result == 0
+  rescue Exception => e
+    raise "System initialization not yet finished!\nPlease retry later or restart system if problem persists!\nReason: #{e.class}:#{e.message}"
+  end
+
   def increment_failed_logons
     self.failed_logons = self.failed_logons + 1 if self.failed_logons < 99      # remember only the first 99 failed logons because of number(2)
     self.yn_account_locked='Y' if self.failed_logons >= MovexCdc::Application.config.max_failed_logons_before_account_locked
