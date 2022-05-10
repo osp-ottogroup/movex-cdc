@@ -151,7 +151,8 @@ class HealthCheckController < ApplicationController
         name:         t.name,
         info:         t == Thread.current ? 'health_check request processing' : (t == Thread.main ? 'Application main thread' : ''),
         status:       t.status,
-        alive:        t.alive?
+        alive:        t.alive?,
+        stacktrace:   t&.backtrace
       }
     end
     health_data[:number_of_threads] = thread_info.count
