@@ -27,12 +27,18 @@ class Database
     @@METHODS_TO_DELEGATE.include?(method) || super
   end
 
+  # Initialize and test DB connection
   def self.initialize_connection
     case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      Database.select_one "SELECT SYSDATE FROM DUAL"                            # Check if DB connection is functional
     when 'SQLITE' then
       journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
       Rails.logger.info('Database.initialize_connection'){ "SQLITE journal mode = #{journal_mode}" }
     end
+  rescue
+    Rails.logger.error "Error executing SQL at DB. Connection to DB failed?"
+    raise
   end
 
   # sample: Database.select_all "SELECT * FROM Table WHERE ID = :id", {id: 55}

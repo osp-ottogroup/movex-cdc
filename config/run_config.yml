@@ -38,3 +38,25 @@
 
 # Number of messages to process within one bulk operation to kafka
 # KAFKA_MAX_BULK_COUNT: 1000
+
+# Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE).
+# Set only in combination with SSL or SASL_PLAIN
+# KAFKA_SSL_CA_CERTS_FROM_SYSTEM: FALSE
+
+# Username for authentication with SASL_PLAIN
+# KAFKA_SASL_PLAIN_USERNAME: kafka_user
+
+# Password for authentication with SASL_PLAIN
+# KAFKA_SASL_PLAIN_PASSWORD: kafka_password
+
+# Path to CA certificate file in pem format
+# KAFKA_SSL_CA_CERT: cert.pem
+
+# Path to client certifikate file in pem format
+# KAFKA_SSL_CLIENT_CERT: client_cert.pem
+
+# Path to client key in pem format
+# KAFKA_SSL_CLIENT_CERT_KEY: client_key.pem
+
+# Password for client key
+# KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD: password
