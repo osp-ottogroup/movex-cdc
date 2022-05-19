@@ -268,8 +268,9 @@ Ensures that API calls and js/css loads are properly extended with the used sub-
 |TZ|Sets local timezone within the Docker-container of the applikation. Must be directly set as environment of container during 'docker run' like '-e TZ="Europe/London"', does not work from config file.|Europe/Berlin
 |===
 ==== Connecting Kafka ====
+MOVEX CDC supports connections to Kafka authenticated by SASL_PLAINTEXT or SASL_SSL.
 
-===== Using SSL-connection to Kafka =====
+===== Using SASL_SSL-connection to Kafka =====
 Kafka supports encryption and authentication via SSL.
 The required setup of Kafka for SSL is described at http://kafka.apache.org/documentation.html#security_ssl.
 However, the certificates generated for Kafka are in JKS format, which the underlying library 'ruby-kafka' of MOVEX CDC does not support.
@@ -320,7 +321,7 @@ keytool -noprompt -keystore $KAFKA_CERT_DIR/kafka.client.keystore.jks -exportcer
 Now you are prepared with the four values for KAFKA_SSL_xxx needed to configure SSL connection in MOVEX CDC. +
 If KAFKA_SSL_CA_CERT is not set then KAFKA_SSL_CA_CERTS_FROM_SYSTEM should be set to TRUE to rely on system's CA certificate.
 
-===== Using PLAIN connection to Kafka =====
+===== Using SASL_PLAINTEXT connection to Kafka =====
 For the default PLAIN connection to Kafka without authentication nothing should be done.
 
 For authentication with user and password set the environment parameters KAFKA_SASL_PLAIN_USERNAME and KAFKA_SASL_PLAIN_PASSWORD. +

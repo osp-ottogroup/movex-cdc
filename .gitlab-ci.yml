@@ -142,7 +142,7 @@ generate_asciidoc:
     - gem install --no-doc asciidoctor
     - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
     - asciidoctor -o doc/movex-cdc_demo.html doc/movex-cdc_demo.adoc
-    - gem install --no-doc asciidoctor-pdf
+    - gem install --no-doc asciidoctor-pdf -v 1.6.2 # Current rel. 2.0.0 is buggy
     - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
   artifacts:
     paths:
