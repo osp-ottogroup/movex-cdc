@@ -116,6 +116,15 @@ class EventLog < ApplicationRecord
         retval[:min_partition_high_value] = min_high_value if partitions.length > 0
         retval[:max_partition_high_value] = max_high_value if partitions.length > 0
         retval
+      else
+        max_records_to_count = 50000                                            # Limit the count to have a prdictable runtime for SQL
+
+        record_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE RowNum <= :max_count", max_count: max_records_to_count)
+        retval = { record_count: record_count}
+        if record_count == max_records_to_count
+          retval[:note] = "Only the first #{max_records_to_count} rows have been counted to limit runtime of counting SQL"
+        end
+        retval
       end
     when 'SQLITE' then
       { record_count: Database.select_one("SELECT COUNT(*) FROM Event_Logs")}

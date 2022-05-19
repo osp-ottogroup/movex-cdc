@@ -41,3 +41,5 @@
 build_version
 /config/secret_key_base
 /identifier.sqlite
+/db/development.sqlite3-shm
+/db/development.sqlite3-wal

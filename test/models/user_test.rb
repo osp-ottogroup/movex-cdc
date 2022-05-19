@@ -95,4 +95,10 @@ class UserTest < ActiveSupport::TestCase
     User.find(sandro_user.id).reset_failed_logons                               # Restore original state
     MovexCdc::Application.config.max_failed_logons_before_account_locked = org_value # Restore original state
   end
+
+  test "check_for_system_init_completed" do
+    assert_nothing_raised do
+      User.check_for_system_init_completed
+    end
+  end
 end

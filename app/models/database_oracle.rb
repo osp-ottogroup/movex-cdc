@@ -131,7 +131,12 @@ class DatabaseOracle
 
   # Set context info at database session
   def self.set_application_info(action_info)
-    Database.execute "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)", binds: {module: "MOVEX Change Data Capture", action: action_info}
+    sql = "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)"
+    Database.execute sql, binds: {module: "MOVEX Change Data Capture", action: action_info}
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'DatabaseOracle.set_application_info',  additional_msg: "Erroneous SQL:\n#{sql}")
+    # only log exception here if database is not available
+    # necessary e.g. for health_check to execute even if DB is not available
   end
 
   @@cached_db_version = nil

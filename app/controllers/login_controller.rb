@@ -26,6 +26,7 @@ class LoginController < ApplicationController
     end
     @@last_call_time_do_logon = Time.now
 
+    User.check_for_system_init_completed
     user = User.find_by_email_case_insensitive email
 
     unless user                                                                 # try with db-user instead of email if email is not valid
