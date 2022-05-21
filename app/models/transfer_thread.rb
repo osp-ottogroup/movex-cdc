@@ -730,16 +730,17 @@ class TransferThread
   # how long should be waited after processing of whole DB transaction
   def calc_idle_sleep_time(processed_events_count:, current_idle_sleep_time:)
     current_idle_sleep_time = current_idle_sleep_time * 100 if Rails.env.test?  # restore comparable sleep time for following calculation
-
+    max_sleep_time = MovexCdc::Application.config.max_worker_thread_sleep_time
     new_sleep_time = case
                      when processed_events_count > @max_transaction_size/5 then 0 # Ensure also small max transactions do immediately proceed
-                     when processed_events_count < 10 && current_idle_sleep_time < 60 then current_idle_sleep_time + 10 # increase sleep time if < 10 records are processed in last loop
-                     when processed_events_count < 10 then 60                   # sleep_time for < 10 is already 60 then stay at this level
+                     when processed_events_count < 10 && current_idle_sleep_time < max_sleep_time then current_idle_sleep_time + 10 # increase sleep time if < 10 records are processed in last loop
+                     when processed_events_count < 10 then max_sleep_time       # sleep_time for < 10 is already set then stay at this level
                      when processed_events_count < 100 then 5
                      when processed_events_count < 1000 then 2
                      when processed_events_count >= 1000 then 0
-                     else 60                                                    # this line should never be reached
+                     else max_sleep_time                                        # this line should never be reached
                      end
+    new_sleep_time = max_sleep_time if new_sleep_time > max_sleep_time          # Correct to max. if current + step exceeds maximum
     new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes are fast enough, reduce sleep time
     new_sleep_time
   end

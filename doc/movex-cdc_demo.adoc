@@ -63,7 +63,7 @@ docker run --rm \
 ----
 
 === Create the Kafka topic
-Run the command within the just started Kafka Docker container ("docker exec -ti <container-ID> bash"):
+Run the command within the just started Kafka Docker container ("docker exec -ti kafka bash"):
 ----
 $KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server $IP_ADDRESS:9092 --replication-factor 1
 ----

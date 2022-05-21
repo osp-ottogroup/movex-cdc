@@ -40,20 +40,27 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:db_url,                            'Database URL')
     info << build_info_record(:db_user,                           'Database user for server operations')
     info << build_info_record(:error_max_retries,                 'Max. retries after transfer error')
+    info << build_info_record(:error_retry_start_delay,           'Seconds after error before first retry starts. Tripled for each next retry.')
     info << build_info_record(:final_errors_keep_hours,           'Time before erasing')
-    info << build_info_record(:info_contact_person,               '')
-    info << build_info_record(:initial_worker_threads,            'no. of workers for Kafka transfer')
-    info << build_info_record(:kafka_compression_codec,           '')
-    info << build_info_record(:kafka_max_bulk_count,              'max. messages in one call')
-    info << build_info_record(:kafka_ssl_ca_cert,                 'path to CA certificate')
-    info << build_info_record(:kafka_ssl_client_cert,             'path to client certificate')
-    info << build_info_record(:kafka_ssl_client_cert_key,         'path to client key')
-    info << build_info_record(:kafka_total_buffer_size_mb,        'max. buffer size per thread')
+    info << build_info_record(:info_contact_person,               'Name and email of contact person for display at GUI home screen')
+    info << build_info_record(:initial_worker_threads,            'No. of workers for Kafka transfer')
+    info << build_info_record(:kafka_compression_codec,           'Compression codec used to compress transferred events')
+    info << build_info_record(:kafka_max_bulk_count,              'Max. messages in one call')
+    info << build_info_record(:kafka_sasl_plain_username,         'Username for authentication with SASL_PLAIN')
+    info << build_info_record(:kafka_ssl_ca_cert,                 'Path to CA certificate')
+    info << build_info_record(:kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
+    info << build_info_record(:kafka_ssl_client_cert,             'Path to client certificate')
+    info << build_info_record(:kafka_ssl_client_cert_key,         'Path to client key')
+    info << build_info_record(:kafka_total_buffer_size_mb,        'Max. buffer size per thread')
     info << build_info_record(:kafka_seed_broker,                 '')
-    info << build_info_record(:log_level,                         'server side log level')
-    info << build_info_record(:max_transaction_size,              'max. messages in a transaction')
+    info << build_info_record(:log_level,                         'Server side log level')
+    info << build_info_record(:max_failed_logons_before_account_locked,  'Number of failed logons to GUI before the used user account will be locked')
+    info << build_info_record(:max_partitions_to_count_as_healthy,  'Max. number of partitions, up to which the system is considered healthy')
+    info << build_info_record(:max_transaction_size,              'Max. messages in a transaction')
     info << build_info_record(:max_simultaneous_table_initializations, '')
-    info << build_info_record(:max_simultaneous_transactions,     'for insert in EVENT_LOGS')
+    info << build_info_record(:max_simultaneous_transactions,     'For insert in EVENT_LOGS')
+    info << build_info_record(:max_worker_thread_sleep_time,      'Max. seconds an idle worker thread may sleep')
+    info << build_info_record(:partition_interval,                'For table EVENT_LOGS')
     info << {
       name: 'RAILS_MAX_THREADS',
       description: 'max. number of threads for application',
@@ -61,8 +68,8 @@ class HealthCheckController < ApplicationController
       default_value: 300,
       startup_config_value: ENV['RAILS_MAX_THREADS']
     }  # Default is set in Dockerfile
-    info << build_info_record(:run_config,                        'path to config file')
-    info << build_info_record(:partition_interval,                'for table EVENT_LOGS')
+    info << build_info_record(:run_config,                        'Path to config file')
+    info << build_info_record(:tz,                                'Local timezone within the Docker-container of the applikation')
 
     render json: { config_info: info  }, status: :ok
   end
