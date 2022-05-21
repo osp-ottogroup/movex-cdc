@@ -1,5 +1,6 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
+- control max. sleep time for idle workers by MAX_WORKER_THREAD_SLEEP_TIME (default 60 seconds)
 - Set health check result to unhealthy if number of existing partitions exceeds threshold MAX_PARTITIONS_TO_COUNT_AS_HEALTHY
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)

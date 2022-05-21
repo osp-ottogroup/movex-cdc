@@ -39,7 +39,7 @@ The Kafka-Cluster , which is supplied with events by MOVEX CDC, is responsible f
 Synchronous processing and storage of the trigger events is initially performed locally in the database, without further dependencies on external systems.
 The further transmission of the events to Kafka is asynchronous to the trigger processing.
 
-image:event_flow.svg[format=svg,opts=inline]
+image::event_flow.svg[format=svg,opts=inline]
 
 The focus is on resource-conserving yet stable and high-performance processing,
 low complexity in the operation of the solution and minimal intervention in the operation of the database.
@@ -252,6 +252,7 @@ You should ensure that this value is higher than the expected maximum number of 
 Reaching this limit with the number of simultaneous pending transactions at one DB block may lead to mismatches in processing order of events for Oracle DB
 because SELECT FOR UPDATE SKIP LOCK skips also unlocked records in DB blocks with full ITL (interested transaction list).
 |60
+|MAX_WORKER_THREAD_SLEEP_TIME|Max. seconds an idle worker thread may sleep until next lookup for events to process|60
 |PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
 Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
 Relevant only if EVENT_LOGS is used partitioned. +
@@ -636,7 +637,7 @@ Depending on table configuration Kafka messages may contain an additional key va
 
 
 === Module overview ===
-image:module_overview.svg[format=svg,opts=inline]
+image::module_overview.svg[format=svg,opts=inline]
 
 ==== Activities at application startup ====
 
@@ -798,7 +799,7 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 http://localhost:8080/server_control/set_log_level
 
 === Entity relationship model ===
-image:er_model.svg[format=svg,opts=inline]
+image::er_model.svg[format=svg,opts=inline]
 
 === Security considerations ===
 ==== Encryption of network traffic ====
