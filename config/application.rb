@@ -181,6 +181,7 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, default: 'FALSE')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)

@@ -50,6 +50,7 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:kafka_ssl_ca_cert,                 'Path to CA certificate')
     info << build_info_record(:kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
     info << build_info_record(:kafka_ssl_client_cert,             'Path to client certificate')
+    info << build_info_record(:kafka_ssl_client_cert_chain,       'Path to client certificate chain')
     info << build_info_record(:kafka_ssl_client_cert_key,         'Path to client key')
     info << build_info_record(:kafka_total_buffer_size_mb,        'Max. buffer size per thread')
     info << build_info_record(:kafka_seed_broker,                 '')

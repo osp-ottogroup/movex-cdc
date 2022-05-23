@@ -52,7 +52,10 @@
 # Path to CA certificate file in pem format
 # KAFKA_SSL_CA_CERT: cert.pem
 
-# Path to client certifikate file in pem format
+# Path to client certificate chain file in pem format
+# KAFKA_SSL_CLIENT_CERT_CHAIN: client_cert_chain.pem
+
+# Path to client certificate file in pem format
 # KAFKA_SSL_CLIENT_CERT: client_cert.pem
 
 # Path to client key in pem format
