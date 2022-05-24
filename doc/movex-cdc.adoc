@@ -13,6 +13,8 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
 TIP: This page is not yet fully completed and still under construction.
+Please open an https://gitlab.com/otto-group-solution-provider/movex-cdc/-/issues[issue] if you miss some information.
+
 
 == Introduction ==
 
@@ -53,10 +55,28 @@ Kafka has the concept of message keys for that. Kafka ensures that messages with
 
 MOVEX CDC supports four kinds of message keys for Kafka that can be defined by GUI at table level:
 
-* No message key: Messages are placed randomly in partitions
-* Fixed value: All change events of a table are placed in the same partition (makes sense only if events of multiple tables are produced to the same Kafka topic)
-* Primary key values: Ensures that the change history of a single DB record is always consumed in original sequence
-* Transaction-ID: Ensures that all events of a particular DB transaction can be consumed in original sequence
+* *No message key*: Messages are placed randomly in partitions. MOVEX CDC transmits events in multiple simultaneous threads, therefore sequential order is not guaranteed,
+even if the target topic has only one partition.
+* *Fixed value*: All change events of a table are placed in the same single partition.
+* *Primary key values*: Ensures that the change history of a single DB record is always consumed in original sequence
+* *Transaction-ID*: Ensures that all events of a particular DB transaction can be consumed in original sequence
+
+Events with the same key value are always transferred by exactly one transfer worker thread (to ensure the sequence).
+That means the strategy of key creation influences the horizontal scalability over multiple worker threads and this way the overall transfer bandwith of your MOVEX CDC instance.
+
+NOTE: For Oracle-DB: If using RAC the sequential event ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
+
+==== Uniqueness of incoming events in Kafka ====
+* MOVEX CDC works with transactions at both DB and Kafka.
+* Each change event recorded in DB is transferred to Kafka and committed there exactly once.
+* A non commited transmission to Kafka can occur several times if transfer is repeated on error. +
+Caution: Kafka distinguishes between read_uncommited and read_commited when consuming.
+* Each event has a unique sequential event ID created by a DB sequence while storing event in trigger.
+* Transactional coupling between the two resources DB and Kafka is implemented with two nested transactions inside the MOVEX CDC application.
+There is no XA or 2-phase commit coupling of the two transactions.
+
+
+
 
 
 === Differentiation from other solutions for CDC ===
@@ -128,8 +148,11 @@ If you want to limit the maximum memory used by MOVEC CDC then set JAVA_OPTS=-Xm
 
 ==== Database schema for MOVEX Change Data Cature  ====
 The application needs it's own database schema at the observed database. +
-This schema contains configuration tables which the application will create itself at first startup as well as the buffered (not yet transferred) events. +
+This schema contains configuration tables as well as the buffered (not yet transferred) events. +
 Storage quotas for this schema should allow storage of buffered events as long as the longest possibly expected outage of Kafka that should be covered without restrictions to the business transactions.
+
+Schema objects needed for operation (tables, indexes, views) are created by MOVEX CDC itself at the first startup.
+Also possible DB structure changes for future releases of MOVEX CDC are detected itself at first startup of the new release and are fixed by executing the needed transformation SQLs.
 
 ==== Rights for the owner of MOVEX CDC's DB schema ====
 The owner of the schema requires some preconditions/grants at the database as well as quota on its default tablespace.
@@ -194,7 +217,7 @@ Since the FLASHBACK grant alone does not allow the selection of data from a tabl
 |===
 
 === Configuring MOVEX Change Data Capture ===
-You can configure the application either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file via RUN_CONFIG.
+You can configure the application either by defining config settings as environment variables or by storing configuration settings in a YML file and providing the location of this config file via environment variable RUN_CONFIG.
 
 Environment variables overrides values from configuration file.
 
@@ -280,13 +303,13 @@ MOVEX CDC supports connections to Kafka authenticated by one of the following me
 ===== Using PLAINTEXT authentication for Kafka =====
 Nothing needs to be configured in MOVEX_CDC except KAFKA_SEED_BROKER. No authentication takes place.
 
-===== Using SASL_PLAIN connection to Kafka =====
+===== Using SASL_PLAIN authentication to Kafka =====
 Username and password are required for connection. Network traffic is not encrypted.
 [source]
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 
-===== Using SASL_SSL connection to Kafka =====
+===== Using SASL_SSL authentication to Kafka =====
 Username and password are required for connection. Network traffic is encrypted.
 [source]
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
@@ -299,7 +322,7 @@ KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 KAFKA_SSL_CA_CERT: /.../root-ca.pem
 
-===== Using SSL/TLS connection to Kafka with client certificate =====
+===== Using SSL/TLS authentication to Kafka with client certificate =====
 Authentication is based on client certificates.
 The required setup of Kafka for SSL is described at http://kafka.apache.org/documentation.html#security_ssl. +
 Specifying KAFKA_SSL_CLIENT_CERT_CHAIN is optional in this case.
@@ -379,6 +402,17 @@ It is recommended to place an own reverse proxy nearby for SSL encryption.
 To stop the Docker container you should provide a timeout (at "docker run" or with "docker stop") that allows MOVEX CDC to gracefully shutdown all worker threads before Docker terminates hard with "kill -9".
 
  docker stop -t 120 <container name/id>
+
+==== Fault tolerance regarding availability of DB and Kafka ====
+* At start time of the Docker instance of MOVEX CDC the database must be accessible for connections. +
+This is needed to successfully execute the schema initialization once at startup. +
+If the DB is not available at Docker instance start or the DB user lacks needed grants, quota etc. then MOVEX CDC terminates with the according error messages in log output.
+* Unavailability of Kafka service at Docker instance start can be tolerated.
+* Temporary unavailability of DB or Kafka is tolerated by MOVEX CDC without terminating the whole application. +
+Health state switches from 200 to http response code 409 in this case, all transfer worker threads are terminated.
+Each minute the application tries to successfully restart the expected number of worker threads with their connections to DB and Kafka.
+* The event capturing function of the triggers is not influenced by temporary outages of connections or of the whole MOVEX CDC application,
+only transfer of events to Kafka is interrupted in this case.
 
 ==== Uniqueness of container instances ====
 Depending on the database type you may run multiple MOVEX CDC container instances at one database or not.
@@ -499,7 +533,15 @@ The GUI URL is http://myhost/mysubpath in this case.
 
 The MOVEX CDC instance should be started in this case with PUBLIC_PATH="/mysubpath".
 
+=== Logging ===
+Logging is done via console output of the Docker container. +
+The logging level can be set in startup configuration (LOG_LEVEL) and can be changed dynamically via GUI or API.
 
+=== Monitoring ===
+The health state of the Docker container is refreshed every 5 minutes by internally calling the health_check API endpoint of the application.
+Additional health information is available by calling:
+[source]
+http://<MOVEX CDC URL>/health_check
 
 === Statistics ===
 Throughput values of the application are cumulated in the database table "Statistics".
@@ -709,13 +751,18 @@ To be 100% sure that each record is transferred either by initial transfer or by
 An consecutive ID is used to define the order of message creation at trigger level. +
 This ID allows the reconstruction of the original order of messages in Kafka even if using topics with multiple partitions.
 
-NOTE: For Oracle-DB: If using RAC this ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
-
-Message creation in Kafka is done by the application with multiple concurrent threads. +
+Event transfer to Kafka is done by MOVEX CDC with multiple concurrent threads. +
 Each transfer thread has it's own connection to source database as well as to Kafka. +
 To guarantee the original creation order of events also during transfer to Kafka,
 exactly one of MOVEX CDC's transfer threads is responsible for transfer of all events with the same key. +
 That means, events without a key can be transferred by every thread, events with a key are transferred by one particular thread determined by a hash value of the key and a modulo operation.
+
+===== Scaling transfer capacity / troughput between MOVEX CDC and Kafka =====
+Scalability is given by configurable number of worker threads (INITIAL_WORKER_THREADS) in the MOVEX CDC application, each working isolated with own DB and Kafka session. +
+Depending on the capacity of the runtime env. (DB, CPU, network, Kafka) several 100 worker threads are possible.
+
+Example throughput with Oracle DB can be up to 300,000 events per minute and worker thread
+if message size is below the magic 4K (no content storage in CLOB).
 
 ===== Error handling during transfer =====
 Transferring is done with bulk operations against database and Kafka.
@@ -733,6 +780,32 @@ Reasons for transfer errors can be for example:
 * exceeding the maximum event size for Kafka topic
 * event without key but log compaction set for Kafka topic
 
+===== Implementation details of transfer for Oracle =====
+SELECT FOR UPDATE SKIP LOCKED is used to isolate the concurrent worker threads so an event can be prcessed by one thread only. +
+The value of MAX_SIMULTANEOUS_TRANSACTIONS (default 60) controls the INI_TRANS setting for table EVENT_LOGS.
+This value defines the maximum number of concurrent transactions (trigger + worker threads) that are supported at a particular DB block before serialization takes place.
+Serialization also influences the correct event sequence at SELECT FOR UPDATE SKIP LOCKED,
+so please ensure to set this value higher than the expected maximum number of simultaneous DB transactions on table Event_Logs.
+
+====== Oracle Enterprise Edition with Partitioning Option ======
+The staging table Event_Logs uses interval partitioning with an default interval of 60 seconds.
+You can control this interval by PARTITION_INTERVAL. +
+The partitioned table Event_Logs does not have any index,
+this way eliminating a remaining risk of blocking locks during index block split operations at inserts executed by trigger. +
+The limited size of a single partition allows to read a partition by full table scan with predictable effort. +
+After beeing completely transferred to Kafka, empty partitions are deleted by the housekeeping job.
+So the total size of the table descreases after temporary burst loads in contrast to the high water mark of a common heap table.
+
+====== Oracle Standard Edition or EE without Partitioning Option ======
+For Oracle Standard Edition rsp. Enterprise Edition without Partitioning Option the staging table EVENT_LOGS is implemented as a regular heap table with an index on column ID.
+That means: several optimizations based on partitioning do not take place.
+
+* The staging table EVENT_LOGS needs an index on column ID for proper performance.
+This adds additional index maintenance load on triggering transaction and a very tiny risk of blocking between concurrent transactions at index block split operations.
+* The high water mark of table EVENT_LOGS is not automatically reduced after peak usage.
+* Additional reorganization activities on staging table EVENT_LOGS can by necessary from time to time depending on type and frequency of usage:
+** ALTER TABLE Event_Logs MOVE; to reduce the high water mark
+** ALTER INDEX Event_Logs_PK REBUILD; to reduce the size of the index
 
 ==== Houskeeping ====
 
@@ -831,23 +904,23 @@ http://localhost:8080/server_control/set_log_level
 === Entity relationship model ===
 image::er_model.svg[format=svg,opts=inline]
 
-=== Security considerations ===
-==== Encryption of network traffic ====
-===== Encrpytion of DB connection =====
+== Security considerations ==
+=== Encryption of network traffic ===
+==== Encrpytion of DB connection ====
 Connections to Oracle-DB are unencrypted until now.
 Encryption of DB connection will be default soon after release of https://github.com/rsim/oracle-enhanced/pull/2284[this pull request] for the underlying DB adapter. +
 Precondition for DB network encryption is that the DB server ist configured in sqlnet.ora with at least "SQLNET.ENCRYPTION_SERVER = ACCEPTED".
 
-===== Encrpytion of Kafka connection =====
+==== Encrpytion of Kafka connection ====
 CAUTION: TODO: Describe preconditions for encrypted traffic between MOVEX CDC and Kafka
 
-===== SSL encryption for https access on GUI =====
+==== SSL encryption for https access on GUI ====
 There is no SSL/HTTPS encryption for the GUI of MOVEX CDC out of the box. +
 To ensure encypted HTTP traffic you should place MOVEX CDC behind a reverse proxy or ingres controller with SSL encryption. +
 
 CAUTION: TODO: Example config for MOVEX CDC behind nginx with docker compose should be added
 
-==== Access authentication for GUI ====
+=== Access authentication for GUI ===
 * Users authenticate at logon with the password of the corresponding DB user
 * A JWT token is created at GUI logon and used for subsequent API calls
 * This JWT token is signed by a key that is stored in the local file config/secrets.yml.
@@ -857,20 +930,20 @@ This key can be defined by several ways:
 ** The key ist given in a file pointed to by environment variable SECRET_KEY_BASE_FILE
 * Usually the generated key should be sufficient. This key changes only at recreation of Docker container.
 
-==== Lock user account after multiple failed logons ====
+=== Lock user account after multiple failed logons ===
 User account is locked after 3 subsequent failed logon tries. +
 Unlocking a locked account is possible via GUI for admin users.
 
-==== Suppress frequent access ====
+=== Suppress frequent access ===
 * Email/password check at /login/do_logon is delayed for up to 5 seconds if subsequent logon requests occur within 5 seconds
 * Subsequent calls to /health_check are rejected within the same second
 
-==== Isolation between the production schemas of the DB and MOVEX CDC's schema ====
+=== Isolation between the production schemas of the DB and MOVEX CDC's schema ===
 MOVEX CDC requires an own schema at the database. This schema must not contain any foreign structures.
 All database changes made by MOVEX CDC are isolated to this schema (including te generated triggers).
 The owner of MOVEX CDC's DB schema requires only a minimum set of rights on foreign objects, especially no right to read the full table content (except if initialization is requested).
 
-==== Restricted definition of triggers ====
+=== Restricted definition of triggers ===
 There might be a security gap if users may define trigger on tables where they don't have read rights.
 This way they could possibly read hidden table content via Kafka. +
 Therefore only tables are accessible for trigger definition in the GUI where the DB user associated with the application user has at least read rights.
