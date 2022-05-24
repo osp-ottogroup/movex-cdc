@@ -46,7 +46,7 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:initial_worker_threads,            'No. of workers for Kafka transfer')
     info << build_info_record(:kafka_compression_codec,           'Compression codec used to compress transferred events')
     info << build_info_record(:kafka_max_bulk_count,              'Max. messages in one call')
-    info << build_info_record(:kafka_sasl_plain_username,         'Username for authentication with SASL_PLAIN')
+    info << build_info_record(:kafka_sasl_plain_username,         'Username for authentication with SASL')
     info << build_info_record(:kafka_ssl_ca_cert,                 'Path to CA certificate')
     info << build_info_record(:kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
     info << build_info_record(:kafka_ssl_client_cert,             'Path to client certificate')

@@ -12,7 +12,7 @@
 - Oracle-DB: Subselects in trigger conditions are supported now. Allows inclusion of other tables in filter conditions.
 - Optional ORDER clause for initialization. Allows guaranteed order for initial load.
 - Support for sub-paths in URL like for nginx locations. Config parameter PUBLIC_PATH introduced for this purpose.
-- Support for Kafka connections by SASL_PLAIN with user and password added.<br>
+- Support for Kafka connections by SASL_PLAIN or SASL_SSL with user and password added.<br>
   Config parameters KAFKA_SASL_PLAIN_USERNAME, KAFKA_SASL_PLAIN_PASSWORD and KAFKA_SSL_CA_CERTS_FROM_SYSTEM added for this purpose.
 
 ## 2022-04-04 Release 1.8.0
