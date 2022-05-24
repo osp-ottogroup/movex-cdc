@@ -45,7 +45,9 @@ class TransferThreadTest < ActiveSupport::TestCase
     EventLog.last.update!(payload: huge_payload)
     run_with_current_user { create_event_logs_for_test(20) }                    # create another records to ensure error is in the middle
     remaining_event_log_count = process_eventlogs(max_wait_time: 30, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
-    assert_equal 1, remaining_event_log_count, log_on_failure('One event_Log record with huge payload should cause processing error')
+    # in this case one additional record may not be processed due to Kafka transaction failure and missing retry, so 1 or 2 records may remain
+    # The next test at Event_Log_Final_Errors ensures that result of possible transaction failure is processed then
+    assert remaining_event_log_count>0 && remaining_event_log_count<3 , log_on_failure('One event_Log record with huge payload should cause processing error')
 
     MovexCdc::Application.config.error_retry_start_delay = 1                 # ensure retry processing takes place now
     MovexCdc::Application.config.error_max_retries = 3                 # ensure retry processing takes place now

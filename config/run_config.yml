@@ -40,23 +40,26 @@
 # KAFKA_MAX_BULK_COUNT: 1000
 
 # Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE).
-# Set only in combination with SSL or SASL_PLAIN
+# Set only in combination with SASL_SSL or SSL/TLS
 # KAFKA_SSL_CA_CERTS_FROM_SYSTEM: FALSE
 
-# Username for authentication with SASL_PLAIN
+# Username for authentication with SASL_PLAIN or SASL_SSL
 # KAFKA_SASL_PLAIN_USERNAME: kafka_user
 
-# Password for authentication with SASL_PLAIN
+# Password for authentication with SASL_PLAIN or SASL_SSL
 # KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 
-# Path to CA certificate file in pem format
+# Path to CA certificate file in pem format for SASL_SSL or SSL/TLS
 # KAFKA_SSL_CA_CERT: cert.pem
 
-# Path to client certifikate file in pem format
+# Path to client certificate chain file in pem format for SASL_SSL or SSL/TLS, optional / only if really needed
+# KAFKA_SSL_CLIENT_CERT_CHAIN: client_cert_chain.pem
+
+# Path to client certificate file in pem format for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT: client_cert.pem
 
-# Path to client key in pem format
+# Path to client key in pem format for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT_KEY: client_key.pem
 
-# Password for client key
+# Password for client key for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD: password

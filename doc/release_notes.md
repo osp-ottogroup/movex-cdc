@@ -1,10 +1,10 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
+- separate property for KAFKA_SSL_CLIENT_CERT_CHAIN to set the file with the client CA certificate chain if needed
 - control max. sleep time for idle workers by MAX_WORKER_THREAD_SLEEP_TIME (default 60 seconds)
 - Set health check result to unhealthy if number of existing partitions exceeds threshold MAX_PARTITIONS_TO_COUNT_AS_HEALTHY
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
-
 
 ## 2022-04-27 Release 1.9.0
 - For Oracle Standard Edition rsp. Enterprise Edition without Partitioning Option the staging table Event_Logs now has an index on column ID for appropriate performance
@@ -12,7 +12,7 @@
 - Oracle-DB: Subselects in trigger conditions are supported now. Allows inclusion of other tables in filter conditions.
 - Optional ORDER clause for initialization. Allows guaranteed order for initial load.
 - Support for sub-paths in URL like for nginx locations. Config parameter PUBLIC_PATH introduced for this purpose.
-- Support for Kafka connections by SASL_PLAIN with user and password added.<br>
+- Support for Kafka connections by SASL_PLAIN or SASL_SSL with user and password added.<br>
   Config parameters KAFKA_SASL_PLAIN_USERNAME, KAFKA_SASL_PLAIN_PASSWORD and KAFKA_SSL_CA_CERTS_FROM_SYSTEM added for this purpose.
 
 ## 2022-04-04 Release 1.8.0
