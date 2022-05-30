@@ -91,7 +91,7 @@ class InitializationJob < ApplicationJob
       begin
         Database.select_first_row "SELECT * FROM #{object_name} WHERE RowNum < 2" # read first record of result to ensure access
       rescue Exception => e
-        raise "Missing database right!!! SELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
+        raise "Missing database right???\nSELECT on #{object_name} is not possible!\n#{e.class}: #{e.message}"
       end
 
       begin
@@ -99,7 +99,7 @@ class InitializationJob < ApplicationJob
         Database.execute csql
         Database.execute "DROP View MOVEX_CDC_View_Select_Test"
       rescue Exception => e
-        raise "Missing database right!!!\n#{csql}; is not possible!\n#{e.class}: #{e.message}
+        raise "Missing database right???\n#{csql}; is not possible!\n#{e.class}: #{e.message}
 You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to select from table in view"
       end
     end
@@ -114,7 +114,7 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
     Database.execute "CREATE  TABLE MOVEX_CDC_Table_Test (ID NUMBER)"
     Database.execute "DROP TABLE MOVEX_CDC_Table_Test"
   rescue Exception => e
-    raise "Missing database right!!! CREATE TABLE is not possible!\n#{e.class}: #{e.message}"
+    raise "Missing database right???\nCREATE TABLE is not possible!\n#{e.class}: #{e.message}"
   end
 
   # check if create view is possible
@@ -125,7 +125,7 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
       Database.execute "DROP View MOVEX_CDC_View_Test"
     end
   rescue Exception => e
-    raise "Missing database right!!! CREATE VIEW is not possible!\n#{e.class}: #{e.message}"
+    raise "Missing database right???\nCREATE VIEW is not possible!\n#{e.class}: #{e.message}"
   end
 
   # Check is user is allowed to create triggers in foreign schemas
