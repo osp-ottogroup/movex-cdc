@@ -183,11 +183,13 @@ In the "Create User" dialog:
 * Choose an existing DB-user for authentication with it's password. +
 This can be every DB user including the MOVEX CDC schema owner.
 * Check "Admin User" to allow this user administrative tasks
+* Click "Create" to establish the user
+* Open the user again to add schema rights now
 * Add authorized schemas where this user is enabled to configure change tracking
   ** Select a schema from the list of schemas
   ** Check "Deployment granted" to allow creation of triggers for this user
   ** Click "Add" to add this schema to the list of enabled schemas
-* Click "Create "
+* Click "Save"
 
 image:create_user.png[format=png, width=800]
 
