@@ -80,7 +80,7 @@ class TransferThread
       sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
     end
   rescue Exception => e
-    log_exception_with_worker_state(e, 'TransferThread.process',  message: "#{@worker_id}: Terminating thread due to exception")
+    log_exception_with_worker_state(e, 'TransferThread.process',  message: "Worker #{@worker_id}: Terminating thread due to exception")
   ensure
     begin
       @kafka_producer&.shutdown                                                 # free kafka connections before terminating Thread
@@ -154,13 +154,15 @@ class TransferThread
 
         producer_options[:compression_codec]             = MovexCdc::Application.config.kafka_compression_codec.to_sym        if MovexCdc::Application.config.kafka_compression_codec != 'none'
 
+        Rails.logger.debug('TransferThread.create_kafka_producer'){"creating Kafka producer with options: #{producer_options}"}
         kafka_producer = kafka.producer(producer_options)
 
+        Rails.logger.debug('TransferThread.create_kafka_producer'){"calling kafka_producer.init_transactions"}
         kafka_producer.init_transactions                                        # Should be called once before starting transactions
         init_transactions_successfull = true                                    # no exception raise
       rescue Exception => e
         kafka_producer&.shutdown                                                # clear existing producer
-        ExceptionHelper.log_exception(e, 'kafka_producer.init_transactions', additional_msg: "retry-count = #{init_transactions_retry_count}")
+        ExceptionHelper.log_exception(e, 'TransferThread.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
         if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
           sleep 1
           init_transactions_retry_count += 1
@@ -224,12 +226,12 @@ class TransferThread
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         # Iterate over partitions starting with oldest up to @max_transaction_size records
-        Rails.logger.debug "TransferThread.read_event_logs_batch: Start iterating over partitions"
+        Rails.logger.debug('TransferThread.read_event_logs_batch'){"Start iterating over partitions"}
         partitions = Database.select_all("SELECT Partition_Name, High_Value
                                           FROM   User_Tab_Partitions
                                           WHERE  Table_Name = 'EVENT_LOGS' AND Partition_Position > 1 /* Do not check the first non-interval partition */
                                          ").sort_by{|x| x['high_value']}
-        Rails.logger.debug "TranferThread.read_event_logs_batch: Found #{partitions.count} partitions to scan"
+        Rails.logger.debug('TranferThread.read_event_logs_batch'){"Found #{partitions.count} partitions to scan"}
         @last_scanned_partitions = 0
         partitions.each_index do |i|
           remaining_records = @max_transaction_size - event_logs.count          # available space for more result records
@@ -278,7 +280,7 @@ class TransferThread
 
 
 
-    Rails.logger.debug "TransferThread.read_event_logs_steps: Start processing with @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
+    Rails.logger.debug('TransferThread.read_event_logs_steps'){"Start processing with @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"}
     key_result = []                                                             # ensure existence of variable outside loop
     max_processed_key_event_logs_id = 0                                         # Maximum ID already selected by previous loop
     max_key_event_logs_id_used_for_sql = nil                                    # initialize auto variable to be set in local block
@@ -307,10 +309,10 @@ class TransferThread
         # Discard the read result and prepare next loop execution to reach the limit key_result.count < @max_transaction_size and ensure processing of all smaller IDs
         if get_max_sorted_id_distance(partition_name) >= @max_transaction_size  # Possible to read more than @max_transaction_size records
           decrease_max_sorted_id_distance(partition_name, 2) # Reduce the distance to ensure all smaller records are catched at next run
-          Rails.logger.debug "TransferThread.read_event_logs_steps: max_sorted_id_distance decreased to #{get_max_sorted_id_distance(partition_name)} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"
+          Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance decreased to #{get_max_sorted_id_distance(partition_name)} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"}
         else                                                                    # There must exist more records in table with id < @max_key_event_logs_id + max_sorted_id_distance than @max_transaction_size
           @max_key_event_logs_id = get_min_key_id(msg_key_filter_condition, {worker_id: @worker_id}, partition_name) - 1 # Start next run with smaller max. id but ensure to catch at least one record
-          Rails.logger.debug "TransferThread.read_event_logs_steps: @max_key_event_logs_id decreased to #{@max_key_event_logs_id} because there are still to much records below @max_key_event_logs_id + max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}"
+          Rails.logger.debug('TransferThread.read_event_logs_steps'){"@max_key_event_logs_id decreased to #{@max_key_event_logs_id} because there are still to much records below @max_key_event_logs_id + max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}"}
         end
       end                                                                       # inner loop
 
@@ -320,19 +322,19 @@ class TransferThread
 
       # break loop if max. amount of record is reached. It is sufficient if more than max_records_to_read are read even if select was done with full @max_transaction_size
       if result.count >= max_records_to_read
-        Rails.logger.debug "TransferThread.read_event_logs_steps: break the loop of step 1 because number of read records (#{result.count}) > max_records_to_read (#{max_records_to_read})"
+        Rails.logger.debug('TransferThread.read_event_logs_steps'){"break the loop of step 1 because number of read records (#{result.count}) > max_records_to_read (#{max_records_to_read})"}
         break
       end
 
       # break loop if all possible values of ID have been covered by previous SQL
       if max_key_event_logs_id_used_for_sql + get_max_sorted_id_distance(partition_name) > @cached_max_event_logs_seq_id
-        Rails.logger.debug "TransferThread.read_event_logs_steps: break the loop of step 1 because max_key_event_logs_id_used_for_sql (#{max_key_event_logs_id_used_for_sql}) + get_max_sorted_id_distance('#{partition_name}') (#{get_max_sorted_id_distance(partition_name)}) > @cached_max_event_logs_seq_id (#{@cached_max_event_logs_seq_id})"
+        Rails.logger.debug('TransferThread.read_event_logs_steps'){"break the loop of step 1 because max_key_event_logs_id_used_for_sql (#{max_key_event_logs_id_used_for_sql}) + get_max_sorted_id_distance('#{partition_name}') (#{get_max_sorted_id_distance(partition_name)}) > @cached_max_event_logs_seq_id (#{@cached_max_event_logs_seq_id})"}
         break
       end
 
       # Enlarge max_sorted_id_distance up to maximum if less than 1/2 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
       if key_result.count < @max_transaction_size / 2
-        Rails.logger.debug "TransferThread.read_event_logs_steps: Check for increasing of max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}, @max_key_event_logs_id = #{@max_key_event_logs_id}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"
+        Rails.logger.debug('TransferThread.read_event_logs_steps'){"Check for increasing of max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}, @max_key_event_logs_id = #{@max_key_event_logs_id}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"}
 
         # if old distance is below max known ID then increase distance
         if @max_key_event_logs_id + get_max_sorted_id_distance(partition_name) <= @cached_max_event_logs_seq_id
@@ -341,7 +343,7 @@ class TransferThread
             increase_factor = 1 + (@max_transaction_size/2.0 - key_result.count) * 2 / (@max_transaction_size/2.0) # should result in scored value from 1 up to 3
           end
           increase_max_sorted_id_distance(partition_name, increase_factor)
-          Rails.logger.debug "TransferThread.read_event_logs_steps: max_sorted_id_distance increased by factor #{increase_factor} to #{get_max_sorted_id_distance(partition_name)}#{" for partition #{partition_name}" if partition_name}"
+          Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance increased by factor #{increase_factor} to #{get_max_sorted_id_distance(partition_name)}#{" for partition #{partition_name}" if partition_name}"}
         end
 
       end
@@ -400,9 +402,9 @@ class TransferThread
     # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
     @kafka_producer.begin_transaction
     event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
-    Rails.logger.debug "Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"
+    Rails.logger.debug('TransferThread.process_kafka_transaction'){"Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"}
     event_logs_slices.each do |event_logs_slice|
-      Rails.logger.debug "Process event_logs_slice with #{event_logs_slice.count} records"
+      Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs_slice with #{event_logs_slice.count} records"}
       begin
         event_logs_slice.each do |event_log|
           @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
@@ -443,7 +445,7 @@ class TransferThread
       if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
         sleep @concurrent_tx_retry_delay_ms/1000.0
         # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-        Rails.logger.debug "Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."
+        Rails.logger.debug('TransferThread.process_kafka_transaction'){"Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."}
         process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
       else
         Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
@@ -553,7 +555,7 @@ class TransferThread
 
   def sleep_and_watch(sleeptime)
     if sleeptime > 0                                                            # no action for sleeptime == 0
-      Rails.logger.debug "TransferThread.sleep_and_watch: Sleeping #{sleeptime} seconds"
+      Rails.logger.debug('TransferThread.sleep_and_watch'){"Sleeping #{sleeptime} seconds"}
       if sleeptime > 1
         1.upto(sleeptime) do
           sleep(1)
@@ -636,7 +638,7 @@ class TransferThread
       @record_cache[:first_access] = Time.now
     end
     if @record_cache[:first_access] + RECORD_CACHE_REFRESH_CYCLE < Time.now
-      Rails.logger.debug "TransferThread.check_record_cache_for_aging: Reset record cache after #{RECORD_CACHE_REFRESH_CYCLE} seconds"
+      Rails.logger.debug('TransferThread.check_record_cache_for_aging'){"Reset record cache after #{RECORD_CACHE_REFRESH_CYCLE} seconds"}
       @record_cache = {}                                                        # reset record cache after 1 minute to reread possibly changed topic names
     end
   end
@@ -677,7 +679,7 @@ class TransferThread
     @max_sorted_id_distances.each do |key, value|
       if key != 'default' && !partition_names.include?(key)
         @max_sorted_id_distances.delete(key)
-        Rails.logger.debug("TransferThread.housekeep_max_sorted_id_distance: Removed entry for partition #{key}")
+        Rails.logger.debug('TransferThread.housekeep_max_sorted_id_distance'){"Removed entry for partition #{key}"}
       end
     end
   end
