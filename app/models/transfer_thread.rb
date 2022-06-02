@@ -160,7 +160,7 @@ class TransferThread
         init_transactions_successfull = true                                    # no exception raise
       rescue Exception => e
         kafka_producer&.shutdown                                                # clear existing producer
-        ExceptionHelper.log_exception(e, 'kafka_producer.init_transactions', additional_msg: "retry-count = #{init_transactions_retry_count}")
+        ExceptionHelper.log_exception(e, 'kafka_producer.init_transactions', additional_msg: "Transactional-ID = '#{@transactional_id}', retry count = #{init_transactions_retry_count}")
         if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
           sleep 1
           init_transactions_retry_count += 1
