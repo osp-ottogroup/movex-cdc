@@ -80,7 +80,7 @@ class TransferThread
       sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
     end
   rescue Exception => e
-    log_exception_with_worker_state(e, 'TransferThread.process',  message: "#{@worker_id}: Terminating thread due to exception")
+    log_exception_with_worker_state(e, 'TransferThread.process',  message: "Worker #{@worker_id}: Terminating thread due to exception")
   ensure
     begin
       @kafka_producer&.shutdown                                                 # free kafka connections before terminating Thread

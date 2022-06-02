@@ -10,7 +10,9 @@ module KafkaHelper
         logger: Rails.logger
     }
     kafka_options[:ssl_ca_certs_from_system]      = true if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a? (TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE'
-    kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)           if MovexCdc::Application.config.kafka_ssl_ca_cert
+    # kafka_options[:ssl_ca_cert]                   = File.read(MovexCdc::Application.config.kafka_ssl_ca_cert)           if MovexCdc::Application.config.kafka_ssl_ca_cert
+    # config.kafka_ssl_ca_cert may be a single file path or a comma-separated list of file paths
+    kafka_options[:ssl_ca_cert_file_path]         = MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip}  if MovexCdc::Application.config.kafka_ssl_ca_cert
     kafka_options[:ssl_client_cert_chain]         = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain) if MovexCdc::Application.config.kafka_ssl_client_cert_chain
     kafka_options[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)       if MovexCdc::Application.config.kafka_ssl_client_cert
     kafka_options[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)   if MovexCdc::Application.config.kafka_ssl_client_cert_key
