@@ -63,6 +63,30 @@ class KafkaMock
     end
   end
 
+  def partitions_for(topic)
+    if EXISTING_TOPICS.include? topic
+      2
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
+  def replica_count_for(topic)
+    if EXISTING_TOPICS.include? topic
+      1
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
+  def last_offsets_for(topic)
+    if EXISTING_TOPICS.include? topic
+      { topic => {'0': 5, '1': 8} }
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
   def has_topic?(topic)
     EXISTING_TOPICS.include? topic
   end
