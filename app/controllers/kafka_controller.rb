@@ -12,6 +12,12 @@ class KafkaController < ApplicationController
   def describe_topic
     kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
     topic = params.permit(:topic)[:topic]
+    result = {}
+
+    result[:partitions]   = kafka.partitions_for(topic)
+    result[:replicas]     = kafka.replica_count_for(topic)
+    result[:last_offsets] = kafka.last_offsets_for(topic)[topic]
+
     configs = [
         'cleanup.policy', 'compression.type', 'delete.retention.ms', 'file.delete.delay.ms', 'flush.messages', 'flush.ms', 'follower.replication.throttled.replicas',
         'index.interval.bytes', 'leader.replication.throttled.replicas', 'max.compaction.lag.ms', 'max.message.bytes', 'message.format.version',
@@ -19,7 +25,12 @@ class KafkaController < ApplicationController
         'preallocate', 'retention.bytes', 'retention.ms', 'segment.bytes', 'segment.index.bytes', 'segment.jitter.ms', 'segment.ms',
         'unclean.leader.election.enable', 'message.downconversion.enable'
     ]
-    render json: kafka.describe_topic(topic, configs)
+    begin
+      result[:config] = kafka.describe_topic(topic, configs)
+    rescue Exception => e
+      result[:config] = "Exception: #{e.class}:#{e.message}"
+    end
+    render json: result
   end
 
   # Check if topic exists
