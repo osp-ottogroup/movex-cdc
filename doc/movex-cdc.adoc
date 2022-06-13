@@ -240,6 +240,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |===
 |Variable|Description|Default value
 
+|DB_DEFAULT_TIMEZONE|Timezone value for internal DB timestamp, used for correct timezone setting of event timestamp. Default should be overwritten only if DB timezone settings are incorrect. E.g. "+00:00" for GMT.|Internal time zone setting of DB
 |DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user)|
 |ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5

@@ -228,5 +228,18 @@ module MovexCdc
       end
       @db_partitioning
     end
+
+    # used to express the correct DB timezone in event timestamps without transporting it in each Event_logs-record
+    # can be called only after DB connection is initialized
+    def set_and_log_db_timezone
+      db_default_timezone = case MovexCdc::Application.config.db_type
+                            when 'ORACLE' then
+                              Database.select_one "SELECT TO_CHAR(SYSTIMESTAMP, 'TZH:TZM') FROM DUAL"
+                            else
+                              '+00:00'
+                            end
+      MovexCdc::Application.set_and_log_attrib_from_env(:db_default_timezone, default: db_default_timezone)
+    end
+
   end
 end
