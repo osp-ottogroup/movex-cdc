@@ -287,27 +287,25 @@ END #{build_trigger_name(table, operation)};
   end
 
   def create_load_sql(table)
-    # current SCN directly after creation of insert trigger
-    scn = Database.select_one "SELECT current_scn FROM V$DATABASE"
     table_config    = @expected_triggers[table.name]
     operation       = 'i'                                                       # Lower case for initialization to distinguish between new inserts (I) and initial load (i)
     trigger_config  = table_config[operation.upcase]                            # Loads columns declared for insert trigger
     columns         = trigger_config[:columns]
 
     where = ''                                                                  # optional conditions
-    where << "WHERE " if table.initialization_filter || trigger_config[:condition]
+    where << "\nWHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
     where << "\nAND " if table.initialization_filter && trigger_config[:condition]
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
 
     load_sql = "DECLARE\n"
     load_sql << generate_declare_section(table, operation, :load, trigger_config) # use operation 'i' for event generation
+    # use current SCN directly after creation of insert trigger if requested
     load_sql << "
 BEGIN
   FOR rec IN (SELECT #{columns.map{|x| x[:column_name]}.join(',')}
-              FROM   #{table.schema.name}.#{table.name} AS OF SCN #{scn}
-              #{where}
-              #{"ORDER BY #{table.initialization_order_by}" if table.initialization_order_by}
+              FROM   #{table.schema.name}.#{table.name} #{"AS OF SCN #{Database.select_one "SELECT current_scn FROM V$DATABASE"}" if table.yn_initialize_with_flashback == 'Y'}\
+              #{where}#{"\nORDER BY #{table.initialization_order_by}" if table.initialization_order_by}
              ) LOOP
 "
     trigger_row_section = generate_row_section(table_config, operation.upcase)  # generate columns for insert operation (I)

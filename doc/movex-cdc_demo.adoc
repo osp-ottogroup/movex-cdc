@@ -208,7 +208,9 @@ Select a table from the list, then:
  * Decide wether to include the Oracle transaction ID into the event or not
  * Choose the kind of message key handling https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html#_using_kafka_keys_to_ensure_sequential_order_of_messages[(See documentation for details)]
  * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
+ ** Decide if flashback query should by used to initialize with existing records only up to the SCN of trigger creation
  ** Optionally place a filter condition to the initialization
+ ** Optionally define the order of records for initialization
 
 image:add_table.png[format=png, width=600]
 

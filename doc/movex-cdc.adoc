@@ -739,11 +739,12 @@ Precondition for initial transfer of table data is that MOVEX CDC's DB user is a
 |===
 |Database|Technique
 
-|Oracle|Flashback table by SCN is used to select from the table in it's state directly after insert trigger check/creation.
+|Oracle|Flashback query by SCN can be used to select from the table in it's state directly after insert trigger check/creation.
 
 To be 100% sure that each record is transferred either by initial transfer or by trigger event the following conditions must be valid: +
 - There should not be pending transactions for this table at the time of trigger creation because this uncommited records are not catched later by "SELECT ... AS OF SCN" +
-- There should not be insert operations during the trigger creation because this may result in duplicate insert events from initialization and trigger
+- There should not be insert operations during the trigger creation because this may result in duplicate insert events from initialization and trigger +
+- The SCN targets to the generation timestamp of the initial load job (directly after trigger creation if triggers have to be deployed)
 
 |===
 
