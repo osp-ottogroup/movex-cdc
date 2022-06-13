@@ -73,7 +73,7 @@ class TablesController < ApplicationController
   def table_params
     result = params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key,
                                              :lock_version, :yn_record_txid, :yn_initialization, :initialization_filter,
-                                             :initialization_order_by)
+                                             :initialization_order_by, :yn_initialize_with_flashback)
     result[:initialization_filter]    = nil if result[:initialization_filter]&.strip   == ''  # catch empty strings with blanks
     result[:initialization_order_by]  = nil if result[:initialization_order_by]&.strip == ''
     result

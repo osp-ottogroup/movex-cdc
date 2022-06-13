@@ -9,6 +9,7 @@ class KafkaMock
     def produce(message, options)
       raise "KafkaMock::MessageSizeTooLargeException" if message.bytesize > 1024*1024 # identical behavior like Kafka default for message.max.size
       msg_hash = JSON.parse message                                             # ensure correct JSON notation
+      # Rails.logger.debug('KafkaMock.produce'){msg_hash}                         # only for special tests, may be commented out
       if options[:key]                                                          # for keyed messages ID should be ascending
         # suspended until decision about fixing JSON error in PK keys
         JSON.parse options[:key] if options[:key][0] == '{'                     # key should contain valid JSON if Key contains JSON (e.g. for primary key)
@@ -58,6 +59,30 @@ class KafkaMock
   def describe_topic(topic, configs = [])
     if EXISTING_TOPICS.include? topic
       {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
+  def partitions_for(topic)
+    if EXISTING_TOPICS.include? topic
+      2
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
+  def replica_count_for(topic)
+    if EXISTING_TOPICS.include? topic
+      1
+    else
+      raise "Not existing topic '#{topic}'"
+    end
+  end
+
+  def last_offsets_for(topic)
+    if EXISTING_TOPICS.include? topic
+      { topic => {'0': 5, '1': 8} }
     else
       raise "Not existing topic '#{topic}'"
     end

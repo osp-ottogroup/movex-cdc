@@ -38,10 +38,12 @@
         </b-field>
 
         <b-field label="Record Transaction-ID">
-          <b-switch v-model="internalTable.yn_record_txid"
-                    @input="onRecordTxIdChanged"
-                    true-value="Y"
-                    false-value="N"/>
+          <b-tooltip label="Add DB transaction ID to JSON data of event?" position="is-right" size="is-small">
+            <b-switch v-model="internalTable.yn_record_txid"
+            @input="onRecordTxIdChanged"
+            true-value="Y"
+            false-value="N"/>
+          </b-tooltip>
         </b-field>
 
         <b-field label="Kafka Key Handling">
@@ -67,13 +69,26 @@
                    validation-message="Add an info text why this table is used in MOVEX Change Data Capture"/>
         </b-field>
 
-        <b-field label="Initialize data">
-          <b-tooltip label="Initially transfer all table records as insert events to Kafka at next deployment?" position="is-right">
-            <b-switch v-model="internalTable.yn_initialization"
-                      true-value="Y"
-                      false-value="N"/>
-          </b-tooltip>
-        </b-field>
+          <div class="columns is-1 is-variable">
+            <div class="column">
+              <b-field label="Initialize data">
+                <b-tooltip label="Initially transfer existing records as insert events at next deployment?" position="is-right" size="is-small">
+                  <b-switch v-model="internalTable.yn_initialization"
+                            true-value="Y"
+                            false-value="N"/>
+                </b-tooltip>
+              </b-field>
+            </div>
+            <div class="column">
+              <b-field label="Use flashback query" v-if="internalTable.yn_initialization === 'Y'">
+                <b-tooltip label="Use flashback query up to the create trigger SCN?" position="is-bottom" size="is-small">
+                  <b-switch v-model="internalTable.yn_initialize_with_flashback"
+                            true-value="Y"
+                            false-value="N"/>
+                </b-tooltip>
+              </b-field>
+            </div>
+          </div>
 
         <b-field label="Optional filter expression for initial transfer" v-if="internalTable.yn_initialization === 'Y'">
           <b-input type="textarea"
@@ -119,8 +134,9 @@
         </b-button>
         <b-button id="save-table-button"
                   type="is-primary"
-                  @click="onSave">
-          Save
+                  @click="onSave"
+                  :loading="isSaving">
+  Save
         </b-button>
       </footer>
     </div>
@@ -141,6 +157,7 @@ export default {
   data() {
     return {
       isLoading: false,
+      isSaving: false,
       internalTable: { ...this.table },
       triggerDates: {},
       kafkaKeyHandlingOptions: [
@@ -217,6 +234,7 @@ export default {
       }
 
       try {
+        this.isSaving = true;
         if (this.internalTable.id) {
           const updatedTable = await CRUDService.tables.update(this.internalTable.id, { table: this.internalTable });
           this.$emit('updated', updatedTable);
@@ -231,6 +249,8 @@ export default {
           indefinite: true,
           position: 'is-top',
         });
+      } finally {
+        this.isSaving = false;
       }
     },
   },

@@ -3,6 +3,11 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2022-06-13 Release 1.10.1
+- Bugfix: Correct timezone set for event timestamp if DB timezone is not GMT
+- Configuration parameter DB_DEFAULT_TIMEZONE added to change the DB timezone under rare conditions
+- Flashback query for topic initialization is optional now
+
 ## 2022-06-02 Release 1.10.0
 - Configuration parameter KAFKA_SSL_CA_CERT supports file(s) with multiple pem-formatted certificates now as well as a comma-separated list of multiple file paths.<br>
   This way correct authentication with SASL_SSL is possible without system certicates.  

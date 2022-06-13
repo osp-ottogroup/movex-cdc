@@ -550,7 +550,7 @@ class TransferThread
         else
           timestamp
         end
-    timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"
+    "#{timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N"}#{MovexCdc::Application.config.db_default_timezone}"
   end
 
   def sleep_and_watch(sleeptime)

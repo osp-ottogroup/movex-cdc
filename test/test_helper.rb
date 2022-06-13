@@ -47,7 +47,7 @@ class ActiveSupport::TestCase
 
   setup do
     JdbcInfo.log_version
-    Database.initialize_connection                                              # do some init actions for DB connection before use
+    Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
   end
 
@@ -264,7 +264,7 @@ class ActiveSupport::TestCase
       date_val  = "SYSDATE"
       ts_val    = "LOCALTIMESTAMP"
       raw_val   = "HexToRaw('FFFF')"
-      tstz_val  = "SYSTIMESTAMP"
+      tstz_val  = "SYSTIMESTAMP  AT TIME ZONE '+03:00'"                         # Ensure valid time zone is exported
       rownum    = "RowNum"
     when 'SQLITE' then
       date_val  = "'2020-02-01T12:20:22'"
@@ -413,7 +413,7 @@ class ActionDispatch::IntegrationTest
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
     JdbcInfo.log_version
-    Database.initialize_connection                                              # do some init actions for DB connection before use
+    Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
 
     # create JWT token for following tests
@@ -446,7 +446,7 @@ class JdbcInfo
   def self.log_version
     unless @@jdbc_driver_logged
       case MovexCdc::Application.config.db_type
-      when 'ORACLE' then puts "Oracle JDBC driver version = #{ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion}"
+      when 'ORACLE' then MovexCdc::Application.log_attribute("Oracle JDBC driver version", ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion)
       else puts "No JDBC version checked"
       end
 

@@ -240,6 +240,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |===
 |Variable|Description|Default value
 
+|DB_DEFAULT_TIMEZONE|Timezone value for internal DB timestamp, used for correct timezone setting of event timestamp. Default should be overwritten only if DB timezone settings are incorrect. E.g. "+00:00" for GMT.|Internal time zone setting of DB
 |DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user)|
 |ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
@@ -738,11 +739,12 @@ Precondition for initial transfer of table data is that MOVEX CDC's DB user is a
 |===
 |Database|Technique
 
-|Oracle|Flashback table by SCN is used to select from the table in it's state directly after insert trigger check/creation.
+|Oracle|Flashback query by SCN can be used to select from the table in it's state directly after insert trigger check/creation.
 
 To be 100% sure that each record is transferred either by initial transfer or by trigger event the following conditions must be valid: +
 - There should not be pending transactions for this table at the time of trigger creation because this uncommited records are not catched later by "SELECT ... AS OF SCN" +
-- There should not be insert operations during the trigger creation because this may result in duplicate insert events from initialization and trigger
+- There should not be insert operations during the trigger creation because this may result in duplicate insert events from initialization and trigger +
+- The SCN targets to the generation timestamp of the initial load job (directly after trigger creation if triggers have to be deployed)
 
 |===
 

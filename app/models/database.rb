@@ -28,7 +28,7 @@ class Database
   end
 
   # Initialize and test DB connection
-  def self.initialize_connection
+  def self.initialize_db_connection
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       Database.select_one "SELECT SYSDATE FROM DUAL"                            # Check if DB connection is functional
@@ -36,6 +36,7 @@ class Database
       journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
       Rails.logger.info('Database.initialize_connection'){ "SQLITE journal mode = #{journal_mode}" }
     end
+    MovexCdc::Application.set_and_log_db_timezone                               # The DB-internal timezone delay
   rescue
     Rails.logger.error "Error executing SQL at DB. Connection to DB failed?"
     raise

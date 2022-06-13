@@ -63,6 +63,7 @@ class Table < ApplicationRecord
     validate_yn_column :yn_record_txid
     validate_yn_column :yn_hidden
     validate_yn_column :yn_initialization
+    validate_yn_column :yn_initialize_with_flashback
   end
 
   def validate_unchanged_attributes
@@ -71,7 +72,7 @@ class Table < ApplicationRecord
   end
 
   def validate_yn_initialization
-    if yn_initialization_changed? && yn_initialization == 'Y'
+    if yn_initialization == 'Y' && (yn_initialization_changed? || yn_initialize_with_flashback_changed?)
       begin
         raise_if_table_not_readable_by_movex_cdc
       rescue Exception => e
@@ -106,13 +107,19 @@ class Table < ApplicationRecord
     sql           = ''
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
-      Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
+      if yn_initialize_with_flashback == 'Y'
+        # if current SCN is the same as after last DDL on table then ORA-01466 is raised at "SELECT FROM Tables AS OF SCN ..."
+        Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                        # ensure SCN is incremented at least once to prevent from ORA-01466
 
-      scn = Database.select_one "SELECT current_scn FROM V$DATABASE"            # Check if read and flashback is possible
-      sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
-      Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                          # ensure SCN is incremented at least once to prevent from ORA-01466
-      error_msg_add = "FLASHBACK grant on table #{self.schema.name}.#{self.name} or FLASHBACK ANY TABLE is needed for MOVEX CDC's DB user!"
+        scn = Database.select_one "SELECT current_scn FROM V$DATABASE"          # Check if read and flashback is possible
+        sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} AS OF SCN #{scn} WHERE ROWNUM < 2"  # one row should be read physically
+        Database.execute "BEGIN\nCOMMIT;\nCOMMIT;\nEND;"                        # ensure SCN is incremented at least once to prevent from ORA-01466
+        error_msg_add = "FLASHBACK grant on table #{self.schema.name}.#{self.name} or FLASHBACK ANY TABLE is needed for MOVEX CDC's DB user!"
+      else
+        sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} WHERE ROWNUM < 2"  # one row should be read physically
+        error_msg_add = "SELECT grant on table #{self.schema.name}.#{self.name} or SELECT ANY TABLE is needed for MOVEX CDC's DB user!"
+      end
+
     when 'SQLITE' then
       sql = "SELECT COUNT(*) FROM #{self.schema.name}.#{self.name} LIMIT 1"
     end
