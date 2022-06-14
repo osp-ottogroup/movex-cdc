@@ -20,6 +20,7 @@ class TableInitializationThread
 
   # Method process called in own thread
   def process
+    @thread = Thread.current
     Rails.logger.info('TableInitializationThread.process'){"New table initialization worker thread created with Table_ID=#{@table_id}, Thread-ID=#{Thread.current.object_id}"}
     Database.set_application_info("table init worker #{@table_id}/process")
     ApplicationController.set_current_user(@current_user)                       # set thread-specific info for the new thread
@@ -49,7 +50,7 @@ class TableInitializationThread
   def thread_state(options = {})
     retval = {
       table_id:                       @table_id,
-      thread_id:                      Thread.current.object_id,
+      thread_id:                      @thread&.object_id,
       table_name:                     @table_name,
       db_session_info:                @db_session_info,
       start_time:                     @start_time,
@@ -65,11 +66,12 @@ class TableInitializationThread
     @table_id               = request[:table_id]
     @table_name             = request[:table_name]
     @sql                    = request[:sql]
-    @db_session_info        = 'set later in new thread'                 # Session ID etc.
+    @db_session_info        = 'set later in new thread'                         # Session ID etc.
     @start_time             = Time.now
     @table                  = Table.find(@table_id)
     @current_user           = request[:current_user]
     @current_client_ip_info = request[:current_client_ip_info]
+    @thread                 = nil                                               # set in process
   end
 
 end

@@ -153,7 +153,7 @@ class HealthCheckController < ApplicationController
 
     Rails.logger.debug "HealthCheckController.index: Start getting thread list"
     thread_info = []
-    Thread.list.each do |t|
+    Thread.list.sort_by{|t| t.object_id}.each do |t|
       thread_info << {
         object_id:    t.object_id,
         name:         t.name,
