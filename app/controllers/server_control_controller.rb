@@ -84,6 +84,83 @@ class ServerControlController < ApplicationController
     end
   end
 
+  # POST /server_control/reprocess_final_errors
+  #
+  def reprocess_final_errors
+    if ApplicationController.current_user.yn_admin != 'Y'
+      render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
+    else
+      permitted_params = params.permit(:schema, :table_name)
+      schema_name = prepare_param(permitted_params, :schema)
+      table_name  = prepare_param(permitted_params, :table_name)
+      raise "ServerControlController.reprocess_final_errors: Parameter 'schema' required if 'table_name' specified" if schema_name.nil?  && !table_name.nil?
+
+      join = ''
+      where_string = ''
+      where_values = {}
+
+      if schema_name
+        schema  = Schema.where(name: schema_name.upcase).first
+        raise "Schema '#{schema_name}' does not exist in MOVEX CDC's config" if schema.nil?
+        join = "JOIN Tables t ON t.ID = f.Table_ID"
+        where_string = "WHERE t.Schema_ID = :schema_id"
+        where_values = { schema_id: schema.id }
+
+        if table_name
+          table   = Table.where(schema_id: schema.id, name: table_name.upcase).first
+          raise "Table '#{table_name}' in schema '#{schema.name}' does not exist in MOVEX CDC's config" if table.nil?
+          join = ''                                                             # not needed anymore if table is specified
+          where_string = "WHERE f.Table_ID = :table_id"
+          where_values = { table_id: table.id }
+        end
+      end
+
+      reprocess_count = 0
+      partitions = [nil]                                                        # default one loop without partitions
+      remaining_final_errors = []                                               # Ensure variable is declared outside transaction
+      if MovexCdc::Application.partitioning?
+        partitions = case MovexCdc::Application.config.db_type
+                     when 'ORACLE' then
+                       Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOG_FINAL_ERRORS' ORDER BY Partition_Position")
+                     else
+                       raise "Missing rule for #{MovexCdc::Application.config.db_type}"
+                     end.map{|p| p.partition_name}
+      end
+      partitions.each do |partition_name|
+        begin
+          ActiveRecord::Base.transaction do
+            remaining_final_errors = case MovexCdc::Application.config.db_type
+                                     when 'ORACLE' then
+                                       DatabaseOracle.select_all_limit("SELECT f.*, CAST(f.RowID AS VARCHAR2(30)) Row_ID
+                                                                        FROM   Event_Log_Final_Errors#{" PARTITION (#{partition_name})" if partition_name} f
+                                                                        #{join}
+                                                                        #{where_string}
+                                                                        ORDER BY f.ID
+                                                                       ", where_values, {fetch_limit: MovexCdc::Application.config.max_transaction_size})
+                                     when 'SQLITE' then
+                                       Database.select_all("SELECT f.*
+                                                            FROM   Event_Log_Final_Errors f
+                                                            #{join}
+                                                            #{where_string}
+                                                            ORDER BY f.ID
+                                                            LIMIT #{MovexCdc::Application.config.max_transaction_size}
+                                                           ", where_values)
+                                     else
+                                       raise "Missing rule for #{MovexCdc::Application.config.db_type}"
+                                     end
+            unless remaining_final_errors.empty?
+              insert_final_errors_batch(remaining_final_errors)
+              delete_final_errors_batch(remaining_final_errors)
+              reprocess_count += remaining_final_errors.count
+            end
+          end
+        end while !remaining_final_errors.empty?
+      end
+
+      render json: { reprocess_count:  reprocess_count}
+    end
+  end
+
   private
   @@restart_worker_threads_active = nil
 
@@ -109,4 +186,49 @@ class ServerControlController < ApplicationController
       end
     end
   end
+
+  # Delete a batch of records from table
+  # called inside a DB transaction
+  # @param final_errors Array of records
+  def delete_final_errors_batch(final_errors)
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      DatabaseOracle.execute_for_rowid_list(
+        stmt: "DELETE /*+ ROWID */ FROM Event_Log_Final_Errors WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)",
+        rowid_array: final_errors.map{|f| f['row_id']},
+        name: "delete_final_errors_batch with #{final_errors.count} records"
+      )
+    when 'SQLITE' then
+      final_errors.each do |f|
+        rows = Database.execute("DELETE FROM Event_Logs_Final_Errors WHERE ID=:id", binds: {id: f.id})
+        raise "Error in delete_final_errors_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
+      end
+    else
+      raise "Missing rule for #{MovexCdc::Application.config.db_type}"
+    end
+  end
+
+  # Insert a batch of records from table Event_Log_Final_Errors into Event_Logs
+  # called inside a DB transaction
+  # @param final_errors Array of records
+  def insert_final_errors_batch(final_errors)
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      DatabaseOracle.execute_for_rowid_list(
+        stmt: "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, PayLoad, Msg_Key, Created_At, Transaction_ID)
+               SELECT ID, Table_ID, Operation, DBUser, PayLoad, Msg_Key, Created_At, Transaction_ID
+               FROM   Event_Log_Final_Errors
+               WHERE  RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)",
+        rowid_array: final_errors.map{|f| f['row_id']},
+        name: "insert_final_errors_batch with #{final_errors.count} records"
+      )
+    when 'SQLITE' then
+      final_errors.each do |f|
+        EventLog.new(f.to_h).save!
+      end
+    else
+      raise "Missing rule for #{MovexCdc::Application.config.db_type}"
+    end
+  end
+
 end

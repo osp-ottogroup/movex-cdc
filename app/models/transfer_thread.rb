@@ -474,24 +474,11 @@ class TransferThread
   def delete_event_logs_batch(event_logs)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      begin
-        sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)"
-        jdbc_conn = ActiveRecord::Base.connection.raw_connection
-        cursor = jdbc_conn.prepareStatement sql
-        ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
-          array = jdbc_conn.createARRAY("#{MovexCdc::Application.config.db_user}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
-          cursor.setArray(1, array)
-          result = cursor.executeUpdate
-          if result != event_logs.length
-            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}."
-          end
-        end
-      rescue Exception => e
-        ExceptionHelper.log_exception(e, 'TransferThread.delete_event_logs_batch', additional_msg: "Erroneous SQL:\n#{sql}")
-        raise
-      ensure
-        cursor.close if defined? cursor && !cursor.nil?
-      end
+      DatabaseOracle.execute_for_rowid_list(
+        stmt: "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)",
+        rowid_array: event_logs.map{|e| e['row_id']},
+        name: "TransferThread DELETE with #{event_logs.count} records"
+      )
     when 'SQLITE' then
       event_logs.each do |e|
         rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", binds: { id: e['id']}  # No known way for SQLite to execute in array binding

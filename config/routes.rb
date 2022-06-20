@@ -41,6 +41,7 @@ Rails.application.routes.draw do
   post '/server_control/set_max_transaction_size',    to: 'server_control#set_max_transaction_size'
   get  '/server_control/get_worker_threads_count',    to: 'server_control#get_worker_threads_count'
   post '/server_control/set_worker_threads_count',    to: 'server_control#set_worker_threads_count'
+  post '/server_control/reprocess_final_errors',      to: 'server_control#reprocess_final_errors'
   post '/server_control/terminate',                   to: 'server_control#terminate'
 
   resources :tables

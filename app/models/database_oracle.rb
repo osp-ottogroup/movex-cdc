@@ -129,6 +129,27 @@ class DatabaseOracle
     end
   end
 
+  # Exec SQL with bound list of rowids
+  # @param stmt SQL-Statement
+  # @param rowid_array Array of rowids
+  def self.execute_for_rowid_list(stmt:, rowid_array:, name: "DatabaseOracle.execute_for_rowid_list")
+    jdbc_conn = ActiveRecord::Base.connection.raw_connection
+    cursor = jdbc_conn.prepareStatement stmt
+    ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: stmt, name: name) do
+      array = jdbc_conn.createARRAY("#{MovexCdc::Application.config.db_user}.ROWID_TABLE".to_java, rowid_array.to_java);
+      cursor.setArray(1, array)
+      result = cursor.executeUpdate
+      if result != rowid_array.length
+        raise "DatabaseOracle.execute_for_rowid_list: Only #{result} records hit instead of #{rowid_array.length}. SQL:\n#{stmt}"
+      end
+    end
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}")
+    raise
+  ensure
+    cursor.close if defined? cursor && !cursor.nil?
+  end
+
   # Set context info at database session
   def self.set_application_info(action_info)
     sql = "CALL DBMS_APPLICATION_INFO.Set_Module(:module, :action)"
