@@ -100,14 +100,14 @@ class ServerControlController < ApplicationController
       where_values = {}
 
       if schema_name
-        schema  = Schema.where(name: schema_name.upcase).first
+        schema  = Schema.where(name: schema_name).first
         raise "Schema '#{schema_name}' does not exist in MOVEX CDC's config" if schema.nil?
         join = "JOIN Tables t ON t.ID = f.Table_ID"
         where_string = "WHERE t.Schema_ID = :schema_id"
         where_values = { schema_id: schema.id }
 
         if table_name
-          table   = Table.where(schema_id: schema.id, name: table_name.upcase).first
+          table   = Table.where(schema_id: schema.id, name: table_name).first
           raise "Table '#{table_name}' in schema '#{schema.name}' does not exist in MOVEX CDC's config" if table.nil?
           join = ''                                                             # not needed anymore if table is specified
           where_string = "WHERE f.Table_ID = :table_id"
@@ -138,6 +138,7 @@ class ServerControlController < ApplicationController
                                                                         ORDER BY f.ID
                                                                        ", where_values, {fetch_limit: MovexCdc::Application.config.max_transaction_size})
                                      when 'SQLITE' then
+                                       ActiveRecord::Base.connection.query_cache.clear  # suppress reading wrong result
                                        Database.select_all("SELECT f.*
                                                             FROM   Event_Log_Final_Errors f
                                                             #{join}
@@ -200,7 +201,7 @@ class ServerControlController < ApplicationController
       )
     when 'SQLITE' then
       final_errors.each do |f|
-        rows = Database.execute("DELETE FROM Event_Logs_Final_Errors WHERE ID=:id", binds: {id: f.id})
+        rows = Database.execute("DELETE FROM Event_Log_Final_Errors WHERE ID=:id", binds: {id: f.id})
         raise "Error in delete_final_errors_batch: Only #{rows} records hit by DELETE instead of exactly one" if rows != 1
       end
     else
@@ -224,7 +225,10 @@ class ServerControlController < ApplicationController
       )
     when 'SQLITE' then
       final_errors.each do |f|
-        EventLog.new(f.to_h).save!
+        Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, PayLoad, Msg_Key, Created_At, Transaction_ID)
+                          SELECT ID, Table_ID, Operation, DBUser, PayLoad, Msg_Key, Created_At, Transaction_ID
+                          FROM   Event_Log_Final_Errors
+                          WHERE  ID = :id", binds: { id: f['id'] }
       end
     else
       raise "Missing rule for #{MovexCdc::Application.config.db_type}"
