@@ -89,8 +89,8 @@ class TransferThread
     end
     begin
       @statistic_counter.flush                                                    # Write cumulated statistics to singleton memory
-      Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
-      Rails.logger.info JSON.pretty_generate(thread_state(without_stacktrace: true))
+      Rails.logger.info('TransferThread.process') { "Worker #{@worker_id}: stopped" }
+      Rails.logger.info('TransferThread.process') { JSON.pretty_generate(thread_state(without_stacktrace: true)) }
       ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
 
       # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
@@ -104,7 +104,7 @@ class TransferThread
   end # process
 
   def stop_thread                                                               # called from main thread / job
-    Rails.logger.info "TransferThread.stop_thread #{@worker_id}: stop request forced"
+    Rails.logger.info('TransferThread.stop_thread') { "Worker #{@worker_id}: stop request forced" }
     @thread_mutex.synchronize { @stop_requested = true }
   end
 
@@ -579,7 +579,7 @@ class TransferThread
     topic_info.each do |key, value|
       current_max_message_bytes = kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
 
-      Rails.logger.info "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}"
+      Rails.logger.info('TransferThread.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
 
       if current_max_message_bytes && value[:max_message_value_size] > current_max_message_bytes.to_i * 0.8
         # new max.message.bytes based on current value or largest msg size, depending on the larger one

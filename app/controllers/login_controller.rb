@@ -21,7 +21,7 @@ class LoginController < ApplicationController
     # prevent logon attacks
     if Time.now - LOGON_DELAY_LIMIT.seconds < @@last_call_time_do_logon   # suppress DOS attacks
       sleep_time = LOGON_DELAY_LIMIT - (Time.now - @@last_call_time_do_logon)
-      Rails.logger.warn("Logon delayed by #{sleep_time} seconds due to subsequent logons within less than #{LOGON_DELAY_LIMIT} seconds for user = '#{email}'")
+      Rails.logger.warn('LoginController.do_logon') { "Logon delayed by #{sleep_time} seconds due to subsequent logons within less than #{LOGON_DELAY_LIMIT} seconds for user = '#{email}'" }
       sleep sleep_time unless Rails.env.test?
     end
     @@last_call_time_do_logon = Time.now
@@ -32,11 +32,11 @@ class LoginController < ApplicationController
     unless user                                                                 # try with db-user instead of email if email is not valid
       case User.count_by_db_user_case_insensitive email
       when 0 then
-        Rails.logger.error "Logon request with not existing email/db-user='#{email}': #{request_log_attributes}"
+        Rails.logger.error('LoginController.do_logon') { "Logon request with not existing email/db-user='#{email}': #{request_log_attributes}" }
         error_msg = "No user found for email / db-user = '#{email}'"
       when 1 then user = User.find_by_db_user_case_insensitive email
       else
-        Rails.logger.error "Logon request with multiple registered db-user='#{email}': #{request_log_attributes}"
+        Rails.logger.error('LoginController.do_logon') { "Logon request with multiple registered db-user='#{email}': #{request_log_attributes}" }
         error_msg = "Multiple users are registered for db-user = '#{email}'! Please login with mail address."
       end
     end
@@ -59,7 +59,7 @@ class LoginController < ApplicationController
         time = Time.now + token_lifetime_hours.hours.to_i
         render json: { token: token, exp: time.strftime("%m-%d-%Y %H:%M")}, status: :ok
       else
-        Rails.logger.error "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}"
+        Rails.logger.error('LoginController.do_logon') { "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}" }
         user.increment_failed_logons
         render json: { errors: [auth_error] }, status: :unauthorized
       end

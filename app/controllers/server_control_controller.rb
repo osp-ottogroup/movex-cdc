@@ -41,7 +41,7 @@ class ServerControlController < ApplicationController
       raise_if_restart_active                                                   # protect from multiple executions
       Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       if worker_threads_count == ThreadHandling.get_instance.thread_count
-        Rails.logger.info "ServerControl.set_worker_threads_count: Nothing to do because #{worker_threads_count} workers are still active"
+        Rails.logger.info('ServerControlController.set_worker_threads_count'){ ": Nothing to do because #{worker_threads_count} workers are still active" }
       else
         MovexCdc::Application.config.initial_worker_threads = worker_threads_count
         restart_worker_threads "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"

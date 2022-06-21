@@ -115,6 +115,7 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, log_on_failure('All final errors should be processed')
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors"), log_on_failure('All final errors should be removed from Event_Log_Final_Errors now')
     assert_equal @final_errors_victim1+@final_errors_victim2+@final_errors_tables, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All final errors should be in Event_Logs now')
+    assert_equal @final_errors_victim1+@final_errors_victim2+@final_errors_tables, JSON.parse(@response.body)['reprocess_count'], log_on_failure('All final errors moved')
 
     create_final_errors
     expected_event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors f JOIN Tables t ON t.ID = f.Table_ID WHERE t.Schema_ID = :schema_id", {schema_id: victim1_table.schema_id})
@@ -122,12 +123,14 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, log_on_failure('All final errors of schema should be processed')
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors f JOIN Tables t ON t.ID = f.Table_ID WHERE t.Schema_ID = :schema_id", {schema_id: victim1_table.schema_id}), log_on_failure('All final errors of schema should be removed from Event_Log_Final_Errors now')
     assert_equal expected_event_logs, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All final errors of schema should be in Event_Logs now')
+    assert_equal expected_event_logs, JSON.parse(@response.body)['reprocess_count'], log_on_failure('All final errors of schema moved')
 
     create_final_errors
     post "/server_control/reprocess_final_errors", headers: jwt_header(@jwt_admin_token), params: {schema: victim1_table.schema.name, table_name: victim1_table.name}, as: :json
     assert_response :success, log_on_failure('All final errors of table should be processed')
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors WHERE Table_ID = :table_id", {table_id: victim1_table.id}), log_on_failure('All final errors of table should be removed from Event_Log_Final_Errors now')
     assert_equal @final_errors_victim1, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All final errors of table should be in Event_Logs now')
+    assert_equal @final_errors_victim1, JSON.parse(@response.body)['reprocess_count'], log_on_failure('All final errors of table moved')
 
     Database.execute "DELETE FROM Event_Logs"                                   # Remove unprocessable events
   end

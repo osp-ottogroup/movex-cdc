@@ -95,7 +95,7 @@ class Table < ApplicationRecord
       begin
         Database.select_one sql, {limit: 0}
       rescue Exception => e
-        Rails.logger.debug "#{e.class}:#{e.message} in Table.validate_initialization_filter for SQL:\n#{sql}"
+        Rails.logger.debug('Table.validate_initialization_filter') { "#{e.class}:#{e.message} in Table.validate_initialization_filter for SQL:\n#{sql}" }
         errors.add(:initialization_filter, "Error '#{e.class}:#{e.message}' at check of initialization filter with '#{sql}'")
       end
     end

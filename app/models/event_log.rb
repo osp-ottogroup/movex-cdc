@@ -21,7 +21,7 @@ class EventLog < ApplicationRecord
         current_value =  Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
         if current_value != expected_value
           workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
-          Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
+          Rails.logger.info('EventLog.adjust_max_simultaneous_transactions'){ "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}" }
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs MODIFY DEFAULT ATTRIBUTES INITRANS #{expected_value}"
         end
@@ -29,7 +29,7 @@ class EventLog < ApplicationRecord
         current_value = Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
         if current_value != expected_value
           workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value}"
-          Rails.logger.info "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}"
+          Rails.logger.info('EventLog.adjust_max_simultaneous_transactions'){ "Change INI_TRANS of table EVENT_LOGS from #{current_value} to #{expected_value}" }
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
           begin
@@ -48,7 +48,7 @@ class EventLog < ApplicationRecord
         current_value = Database.select_one "SELECT ini_trans from User_Indexes WHERE Index_Name ='EVENT_LOGS_PK'"
         if current_value != expected_value
           workaround_hint = "MAX_SIMULTANEOUS_TRANSACTIONS = #{current_value} for index"
-          Rails.logger.info "Change INI_TRANS of index EVENT_LOGS_PK from #{current_value} to #{expected_value}"
+          Rails.logger.info('EventLog.adjust_max_simultaneous_transactions'){ "Change INI_TRANS of index EVENT_LOGS_PK from #{current_value} to #{expected_value}" }
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           begin
             Database.execute "ALTER INDEX Event_Logs_PK REBUILD ONLINE INITRANS #{expected_value}", options: { no_exception_logging: true}
@@ -85,7 +85,7 @@ class EventLog < ApplicationRecord
         current_interval = current_interval_seconds
         if current_interval.nil? || current_interval != expected_interval
           workaround_hint = "PARTITION_INTERVAL = #{current_interval}"
-          Rails.logger.info "EventLog.adjust_interval: Change partition interval from #{current_interval} to #{expected_interval} seconds "
+          Rails.logger.info('EventLog.adjust_interval'){ "Change partition interval from #{current_interval} to #{expected_interval} seconds" }
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs SET INTERVAL(NUMTODSINTERVAL(#{expected_interval},'SECOND'))"
         end
@@ -145,9 +145,9 @@ class EventLog < ApplicationRecord
                                         AND    Partition_Name = :partition_name
                                        ", partition_name: partition_name
       if self.partition_allowed_for_drop?(partition_name, part.partition_position, part.high_value, caller, lock_already_checked: lock_already_checked)
-        Rails.logger.info "#{caller}: Execute drop partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}"
+        Rails.logger.info(caller) { "Execute drop partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
         Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
-        Rails.logger.info "#{caller}: Successful dropped partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}"
+        Rails.logger.info(caller) { "Successful dropped partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
         true                                                                    # status relevant for test only
       else
         false                                                                   # status relevant for test only
@@ -162,7 +162,7 @@ class EventLog < ApplicationRecord
   # @param {String} caller
   # @param {TrueClass|FalseClass} lock_already_checked: signal if partition is already checked for pending transactions
   def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller, lock_already_checked: false)
-    Rails.logger.debug "#{caller}: Check partition #{partition_name} with high value #{high_value} for deletion"
+    Rails.logger.debug(caller) { "Check partition #{partition_name} with high value #{high_value} for deletion" }
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
@@ -191,7 +191,7 @@ class EventLog < ApplicationRecord
                                                AND    Partition_Position = 2
                                               "
         unless self.partition_empty?(next_part.partition_name, next_part.partition_position, next_part.high_value, caller)
-          Rails.logger.error "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because next partition #{next_part.partition_name} with high_value #{next_part.high_value} at position #{next_part.partition_position} is not empty!"
+          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because next partition #{next_part.partition_name} with high_value #{next_part.high_value} at position #{next_part.partition_position} is not empty!" }
           return false
         end
       end
@@ -219,14 +219,14 @@ class EventLog < ApplicationRecord
               ", partition_name: partition_name
         )
         if pending_transactions > 0
-          Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{pending_transactions} pending transactions"
+          Rails.logger.info(caller) { "Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{pending_transactions} pending transactions" }
           return false
         end
       end
 
       existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{partition_name}) WHERE Rownum < 2"
       if existing_records > 0
-        Rails.logger.info "#{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are one or more records remaining"
+        Rails.logger.info(caller) { "Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are one or more records remaining" }
         return false
       end
     end
@@ -236,12 +236,12 @@ class EventLog < ApplicationRecord
 
   # log current partitions of table on error conditions
   def self.error_log_partitions
-    Rails.logger.error "Current existing partitions are:"
+    Rails.logger.error('EventLog.error_log_partitions') { "Current existing partitions are:" }
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         Database.select_all("SELECT Partition_Position, Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
-          Rails.logger.error "Pos=#{p.partition_position}, name=#{p.partition_name}, high_value=#{p.high_value}, interval=#{p.interval}"
+          Rails.logger.error('EventLog.error_log_partitions') { "Pos=#{p.partition_position}, name=#{p.partition_name}, high_value=#{p.high_value}, interval=#{p.interval}" }
         end
       end
     end
@@ -251,11 +251,11 @@ class EventLog < ApplicationRecord
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if exception.message['ORA-00054']
-        Rails.logger.warn '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
-        Rails.logger.warn "Table EVENT_LOGS must not be locked by any other transactions during startup of MOVEX CDC to allow this transformation!"
-        Rails.logger.warn "Possible workaround: set '#{workaround_hint}' in startup configuration to start without transformation on EVENT_LOGS."
-        Rails.logger.warn "Restart the application at a later time with the adjusted configuration, if no transactions are active on the table then."
-        Rails.logger.warn '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!'
+        Rails.logger.warn('Event_log.log_resource_busy_error_helper') { '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' }
+        Rails.logger.warn('Event_log.log_resource_busy_error_helper') {  "Table EVENT_LOGS must not be locked by any other transactions during startup of MOVEX CDC to allow this transformation!" }
+        Rails.logger.warn('Event_log.log_resource_busy_error_helper') {  "Possible workaround: set '#{workaround_hint}' in startup configuration to start without transformation on EVENT_LOGS." }
+        Rails.logger.warn('Event_log.log_resource_busy_error_helper') {  "Restart the application at a later time with the adjusted configuration, if no transactions are active on the table then." }
+        Rails.logger.warn('Event_log.log_resource_busy_error_helper') {  '!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!' }
       end
     end
   end

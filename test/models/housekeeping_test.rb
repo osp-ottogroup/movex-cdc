@@ -23,6 +23,32 @@ class HousekeepingTest < ActiveSupport::TestCase
     assure_last_partition
   end
 
+  test "do_housekeeping with locked partition" do
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      if MovexCdc::Application.partitioning?
+        Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
+        Housekeeping.get_instance.do_housekeeping                               # Ensure old partitions are removed
+        assure_last_partition
+        start_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+        ActiveRecord::Base.transaction do                                       # Hold insert lock on partition until rollback
+          # create a partition 20 days back that should not exists before
+          Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
+                   ", binds: {table_id: victim1_table.id, created_at: 20.day.ago}
+
+          hk_thread = Thread.new do
+            Housekeeping.get_instance.do_housekeeping
+          end
+
+          raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
+          end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+          assert_equal start_partition_count+1, end_partition_count, log_on_failure('Temporary partition with pending insert should not be deleted')
+        end
+      end
+    end
+  end
+
   test "check_partition_interval" do
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then

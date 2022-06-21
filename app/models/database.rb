@@ -38,7 +38,7 @@ class Database
     end
     MovexCdc::Application.set_and_log_db_timezone                               # The DB-internal timezone delay
   rescue
-    Rails.logger.error "Error executing SQL at DB. Connection to DB failed?"
+    Rails.logger.error('Database.initialize_db_connection') { "Error executing SQL at DB. Connection to DB failed?" }
     raise
   end
 
