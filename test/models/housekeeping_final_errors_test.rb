@@ -19,6 +19,7 @@ class HousekeepingFinalErrorsTest < ActiveSupport::TestCase
 
     record_count = Database.select_one "SELECT COUNT(*) FROM Event_Log_Final_Errors"
     assert_equal 1, record_count, log_on_failure('Only younger record from fixtures should survive housekeeping')
+    Database.execute "DELETE FROM Event_Log_Final_Errors"
   end
 
 end

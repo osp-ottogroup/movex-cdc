@@ -45,6 +45,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           assert_equal start_partition_count+1, end_partition_count, log_on_failure('Temporary partition with pending insert should not be deleted')
         end
+        Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessabe records are removed
       end
     end
   end
