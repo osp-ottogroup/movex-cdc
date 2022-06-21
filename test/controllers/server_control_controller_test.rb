@@ -129,5 +129,6 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Log_Final_Errors WHERE Table_ID = :table_id", {table_id: victim1_table.id}), log_on_failure('All final errors of table should be removed from Event_Log_Final_Errors now')
     assert_equal @final_errors_victim1, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All final errors of table should be in Event_Logs now')
 
+    Database.execute "DELETE FROM Event_Logs"                                   # Remove unprocessable events
   end
 end
