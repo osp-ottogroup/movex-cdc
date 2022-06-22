@@ -35,7 +35,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           # create a partition 20 days back that should not exists before
           Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
                     VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: 20.day.ago}
+                   ", binds: {table_id: victim1_table.id, created_at: 10.minutes.ago}
 
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
