@@ -59,6 +59,7 @@ class TableInitialization
         result << i
       end
     end
+    result
   end
 
   # get health check status from all initialization threads

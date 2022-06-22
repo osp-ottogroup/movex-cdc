@@ -89,8 +89,8 @@ class TransferThread
     end
     begin
       @statistic_counter.flush                                                    # Write cumulated statistics to singleton memory
-      Rails.logger.info "TransferThread.process #{@worker_id}: stopped"
-      Rails.logger.info JSON.pretty_generate(thread_state(without_stacktrace: true))
+      Rails.logger.info('TransferThread.process') { "Worker #{@worker_id}: stopped" }
+      Rails.logger.info('TransferThread.process') { JSON.pretty_generate(thread_state(without_stacktrace: true)) }
       ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
 
       # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
@@ -104,7 +104,7 @@ class TransferThread
   end # process
 
   def stop_thread                                                               # called from main thread / job
-    Rails.logger.info "TransferThread.stop_thread #{@worker_id}: stop request forced"
+    Rails.logger.info('TransferThread.stop_thread') { "Worker #{@worker_id}: stop request forced" }
     @thread_mutex.synchronize { @stop_requested = true }
   end
 
@@ -474,24 +474,11 @@ class TransferThread
   def delete_event_logs_batch(event_logs)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      begin
-        sql = "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)"
-        jdbc_conn = ActiveRecord::Base.connection.raw_connection
-        cursor = jdbc_conn.prepareStatement sql
-        ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: sql, name: "TransferThread DELETE with #{event_logs.count} records") do
-          array = jdbc_conn.createARRAY("#{MovexCdc::Application.config.db_user}.ROWID_TABLE".to_java, event_logs.map{|e| e['row_id']}.to_java);
-          cursor.setArray(1, array)
-          result = cursor.executeUpdate
-          if result != event_logs.length
-            raise "Error in TransferThread.delete_event_logs_batch: Only #{result} records hit by DELETE instead of #{event_logs.length}."
-          end
-        end
-      rescue Exception => e
-        ExceptionHelper.log_exception(e, 'TransferThread.delete_event_logs_batch', additional_msg: "Erroneous SQL:\n#{sql}")
-        raise
-      ensure
-        cursor.close if defined? cursor && !cursor.nil?
-      end
+      DatabaseOracle.execute_for_rowid_list(
+        stmt: "DELETE /*+ ROWID */ FROM Event_Logs WHERE RowID IN (SELECT /*+ CARDINALITY(d, 1) \"Hint should lead to nested loop and rowid access on Event_Logs \"*/ Column_Value FROM TABLE(?) d)",
+        rowid_array: event_logs.map{|e| e['row_id']},
+        name: "TransferThread DELETE with #{event_logs.count} records"
+      )
     when 'SQLITE' then
       event_logs.each do |e|
         rows = Database.execute "DELETE FROM Event_Logs WHERE ID = :id", binds: { id: e['id']}  # No known way for SQLite to execute in array binding
@@ -592,7 +579,7 @@ class TransferThread
     topic_info.each do |key, value|
       current_max_message_bytes = kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
 
-      Rails.logger.info "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}"
+      Rails.logger.info('TransferThread.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
 
       if current_max_message_bytes && value[:max_message_value_size] > current_max_message_bytes.to_i * 0.8
         # new max.message.bytes based on current value or largest msg size, depending on the larger one

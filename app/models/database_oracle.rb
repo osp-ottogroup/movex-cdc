@@ -121,12 +121,33 @@ class DatabaseOracle
     if e.message['ORA-02149'] ||                                                # Specified partition does not exist
       e.message['ORA-08103']  ||                                                # Object No Longer Exists
       e.message['ORA-14766']                                                    # Unable To Obtain A Stable Metadata Snapshot
-      Rails.logger.info "DatabaseOracle.select_all_limit: Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}"
+      Rails.logger.info('DatabaseOracle.select_all_limit'){ "Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}" }
       []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
     else
       ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt}") # force exception other than ORA-xxx
       raise
     end
+  end
+
+  # Exec SQL with bound list of rowids
+  # @param stmt SQL-Statement
+  # @param rowid_array Array of rowids
+  def self.execute_for_rowid_list(stmt:, rowid_array:, name: "DatabaseOracle.execute_for_rowid_list")
+    jdbc_conn = ActiveRecord::Base.connection.raw_connection
+    cursor = jdbc_conn.prepareStatement stmt
+    ActiveSupport::Notifications.instrumenter.instrument('sql.active_record', sql: stmt, name: name) do
+      array = jdbc_conn.createARRAY("#{MovexCdc::Application.config.db_user}.ROWID_TABLE".to_java, rowid_array.to_java);
+      cursor.setArray(1, array)
+      result = cursor.executeUpdate
+      if result != rowid_array.length
+        raise "DatabaseOracle.execute_for_rowid_list: Only #{result} records hit instead of #{rowid_array.length}. SQL:\n#{stmt}"
+      end
+    end
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}")
+    raise
+  ensure
+    cursor.close if defined? cursor && !cursor.nil?
   end
 
   # Set context info at database session

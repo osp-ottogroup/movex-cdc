@@ -873,17 +873,18 @@ API Responses are JSON objects.
 |===
 |Verb|URL|Parameter|Response|Description
 
-|POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
 |GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
+|GET|/import_export/export|schema (Limit export to a single schema, optional)|JSON object|Export configuration data of all or a particular schema (users, schemas, tables, columns, conditions, schema rights, users) as JSON object
+|POST|/import_export/import|JSON object, schema (Limit exports to a single schema, optional)|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in the applications config tables
+|POST|/import_export/import_all_users|JSON object|no|Import the complete configuration data for users from JSON object. The schema import in contrast imports only the users that are necessary for dependencies with locked account.
+|POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
+|POST|/server_control/reprocess_final_errors|schema_name, table_name (optional)|reprocess_count: Number of rescheduled events|Move stored erroneous events from table Event_Log_Final_Errors to table Event_Logs for repeated transfer to Kafka
 |POST|/server_control/set_log_level|log_level (DEBUG, INFO, WARN, ERROR, FATAL)|no|Set log level of server instance, requires valid admin JWT in request header
 |POST|/server_control/set_max_transaction_size|max_transaction_size (1..infinity)|no|Set the number of events to process within on DB and Kafka transaction, requires valid admin JWT in request header
 |POST|/server_control/set_worker_threads_count|worker_threads_count (0..200)|no|Set number of active worker threads, requires valid admin JWT in request header
 |POST|/server_control/terminate|no|no|Graceful shut down the current container instance of MOVEX CDC by sending SIGTERM to the application, requires valid admin JWT in request header
-|GET|/import_export/export|schema (Limit export to a single schema, optional)|JSON object|Export configuration data of all or a particular schema (users, schemas, tables, columns, conditions, schema rights, users) as JSON object
-|POST|/import_export/import|JSON object, schema (Limit exports to a single schema, optional)|no|Import configuration data for users and schemas. Each user / schema contained in JSON object creates/replaces the configuration data in the applications config tables
-|POST|/import_export/import_all_users|JSON object|no|Import the complete configuration data for users from JSON object. The schema import in contrast imports only the users that are necessary for dependencies with locked account.
 |===
 
 ==== Using API endpoints from command line ====

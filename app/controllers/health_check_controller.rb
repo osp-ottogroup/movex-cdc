@@ -12,7 +12,7 @@ class HealthCheckController < ApplicationController
     @@last_call_time = Time.now
 
     pretty_health_data, return_status = health_check_content
-    Rails.logger.info(pretty_health_data)
+    Rails.logger.info('HealthCheckController.index'){ pretty_health_data }
     render json: pretty_health_data, status: return_status
   end
 
@@ -110,7 +110,7 @@ class HealthCheckController < ApplicationController
     end
 
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting current thread count"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting current thread count" }
       current_thread_count = ThreadHandling.get_instance.thread_count(raise_exception_if_locked: true)
       health_data[:current_number_of_worker_threads]  = current_thread_count
       if MovexCdc::Application.config.initial_worker_threads != current_thread_count
@@ -123,14 +123,14 @@ class HealthCheckController < ApplicationController
     health_data[:expected_number_of_worker_threads] = MovexCdc::Application.config.initial_worker_threads
 
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting ThreadHandling.health_check_data"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting ThreadHandling.health_check_data" }
       health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
     rescue Exception=>e
       health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
     end
 
     connection_info = []
-    Rails.logger.debug "HealthCheckController.health_check_content: Start getting connection pool data"
+    Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting connection pool data" }
     connections = nil
     begin
       connections = ActiveRecord::Base.connection_pool.connections
@@ -151,9 +151,9 @@ class HealthCheckController < ApplicationController
     health_data[:connection_pool_stat] = ActiveRecord::Base.connection_pool.stat
     health_data[:connection_pool] = connection_info.sort_by {|c| "#{c[:owner_name]} #{c[:owner_thread]}" }
 
-    Rails.logger.debug "HealthCheckController.index: Start getting thread list"
+    Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting thread list" }
     thread_info = []
-    Thread.list.each do |t|
+    Thread.list.sort_by{|t| t.object_id}.each do |t|
       thread_info << {
         object_id:    t.object_id,
         name:         t.name,
@@ -168,28 +168,28 @@ class HealthCheckController < ApplicationController
 
 
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.init_requests_count"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.init_requests_count" }
       current_init_requests_count = TableInitialization.get_instance.init_requests_count(raise_exception_if_locked: true)
       health_data[:current_number_of_table_initialization_requests]  = current_init_requests_count
     rescue Exception=>e
       health_data[:warnings] << "\nError reading current_number_of_table_initialization_requests: #{e.class}:#{e.message}"
     end
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.health_check_data_requests"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.health_check_data_requests" }
       health_data[:table_initialization_requests] = TableInitialization.get_instance.health_check_data_requests
     rescue Exception=>e
       health_data[:warnings] << "\nError reading table_initialization_requests: #{e.class}:#{e.message}"
     end
 
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.running_threads_count"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.running_threads_count" }
       current_init_thread_count = TableInitialization.get_instance.running_threads_count(raise_exception_if_locked: true)
       health_data[:current_number_of_table_initialization_threads]  = current_init_thread_count
     rescue Exception=>e
       health_data[:warnings] << "\nError reading current_number_of_table_initialization_threads: #{e.class}:#{e.message}"
     end
     begin
-      Rails.logger.debug "HealthCheckController.index: Start getting TableInitialization.health_check_data_threads"
+      Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.health_check_data_threads" }
       health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads
     rescue Exception=>e
       health_data[:warnings] << "\nError reading table_initialization_threads: #{e.class}:#{e.message}"

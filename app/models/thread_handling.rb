@@ -66,7 +66,7 @@ class ThreadHandling
       break if shutdown_wait_time > SHUTDOWN_TIMEOUT_SECS
     end
     if @thread_pool_mutex.synchronize { @thread_pool.count } == 0
-      Rails.logger.info "All TransferThread worker are stopped now, shutting down"
+      Rails.logger.info('ThreadHandling.shutdown_processing') { "All TransferThread worker are stopped now, shutting down" }
       @shutdown_requested = false                                               # Reset state so next ensure_processing may start again
     else
       Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless" }
