@@ -3,6 +3,7 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 - Optimization: Test for DB-locks/pending transactions on partitions of Event_Logs only once instead for each partition
+- New feature: API method for rescheduling final errors for transfer to Kafka (all, events of particular schema, eventts of particular table)
 
 ## 2022-06-13 Release 1.10.1
 - Bugfix: Correct timezone set for event timestamp if DB timezone is not GMT
