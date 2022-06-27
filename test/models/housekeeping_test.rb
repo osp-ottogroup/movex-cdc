@@ -27,6 +27,15 @@ class HousekeepingTest < ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
+        # Drop all partitiones except the first one (possibly there are only two range partitions at this point)
+        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position > 1").each do |p|
+          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+        end
+        # Ensure that a current interval partition exists
+        Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
+                   ", binds: {table_id: victim1_table.id, created_at: Time.now}
+
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
         Housekeeping.get_instance.do_housekeeping                               # Ensure old partitions are removed
         assure_last_partition
@@ -43,7 +52,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-          assert_equal start_partition_count+1, end_partition_count, log_on_failure('Temporary partition with pending insert should not be deleted')
+          assert_equal start_partition_count+1, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessabe records are removed
       end
@@ -54,6 +63,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
+        original_interval = MovexCdc::Application.config.partition_interval     # remember the original setting to restore after test
         log_state = proc do |console|
           Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
             msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
@@ -130,6 +140,8 @@ class HousekeepingTest < ActiveSupport::TestCase
           log_state.call(true)                                                  # log partitions
           raise
         end
+        MovexCdc::Application.config.partition_interval = original_interval     # Restore the original setting before the test
+        EventLog.adjust_interval                                                # Restore the original interval in table
       end
     end
     assure_last_partition
