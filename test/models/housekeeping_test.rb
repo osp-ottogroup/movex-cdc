@@ -28,13 +28,16 @@ class HousekeepingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         # Drop all partitiones except the first one (possibly there are only two range partitions at this point)
-        Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position > 1").each do |p|
-          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
-        end
+        last_part = Database.select_first_row("SELECT Partition_Name, High_Value
+                             FROM   User_Tab_Partitions
+                             WHERE  Table_Name = 'EVENT_LOGS'
+                             ORDER BY Partition_Position DESC")
+        last_part_hv = Housekeeping.get_time_from_oracle_high_value(last_part.high_value)
+        last_part_hv = last_part_hv.change(offset: '+00:00')                    # Ensure local time as GMT to be sure no conversion happens at parameter binding
         # Ensure that a current interval partition exists
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
                     VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: Time.now}
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+600}
 
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
         Housekeeping.get_instance.do_housekeeping                               # Ensure old partitions are removed
@@ -44,7 +47,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           # create a partition 20 days back that should not exists before
           Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
                     VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: 10.minutes.ago}
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+300}
 
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
