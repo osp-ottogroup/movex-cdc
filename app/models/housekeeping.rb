@@ -6,6 +6,15 @@ class Housekeeping
     @@instance
   end
 
+  # public class helper methods
+  # extract the time from high value string of Oracle partition
+  def self.get_time_from_oracle_high_value(high_value)
+    raise "Housekeeping.get_time_from_oracle_high_value: Parameter high_value should not be nil" if high_value.nil?
+    hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
+    Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
+  end
+
+
   def do_housekeeping
     if @last_housekeeping_started.nil?
       Rails.logger.debug('Housekeeping.do_housekeeping') { "Start housekeeping" }
@@ -89,19 +98,13 @@ class Housekeeping
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
 
-        get_time_from_high_value = proc do |high_value|
-          raise "Housekeeping.get_time_from_high_value: Parameter high_value should not be nil" if high_value.nil?
-          hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
-          Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
-        end
-
         max_possible_partition_count = 1024*1024-1
         max_distance_seconds = max_possible_partition_count * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
         max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
         raise "No oldest partition found for table Event_Logs" if part1.nil?
-        min_time =  get_time_from_high_value.call(part1.high_value)
+        min_time =  Housekeeping.get_time_from_oracle_high_value(part1.high_value)
         Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "High value of oldest partition for Event_Logs is #{min_time}" }
         compare_time = Time.now - 100*86400                                     # 100 days back
         second_hv = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
@@ -109,7 +112,7 @@ class Housekeeping
           Rails.logger.warn('Housekeeping.check_partition_interval_internal') { "Only one partition exists for table EVENT_LOGS! This should never happen except at initial start of application!" }
           return
         end
-        second_hv_time = get_time_from_high_value.call(second_hv)
+        second_hv_time = Housekeeping.get_time_from_oracle_high_value(second_hv)
         compare_time = second_hv_time if second_hv_time < compare_time          # get oldest partition high value
 
         Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "High value of second oldest partition for Event_Logs is #{second_hv_time}, compare_time is #{compare_time}" }
