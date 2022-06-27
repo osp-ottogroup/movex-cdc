@@ -300,7 +300,7 @@ class ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
-        Database.select_all("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'").each do |p|
+        Database.select_all("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
           msg = "Partition #{p['partition_name']}: position= #{p.partition_position} high_value = '#{p['high_value']}', #{record_count} records"
           puts msg if options[:console_output]

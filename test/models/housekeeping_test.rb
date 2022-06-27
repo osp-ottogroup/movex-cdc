@@ -37,7 +37,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         # Ensure that a current interval partition exists
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
                     VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+600}
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+122}
 
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
         Housekeeping.get_instance.do_housekeeping                               # Ensure old partitions are removed
@@ -47,7 +47,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           # create a partition 20 days back that should not exists before
           Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
                     VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+300}
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+61}
 
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
@@ -58,6 +58,18 @@ class HousekeepingTest < ActiveSupport::TestCase
           assert_equal start_partition_count+1, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessabe records are removed
+        # Remove all possible partitions
+        Database.select_all("WITH Interval_Partitions AS (SELECT Partition_Name, Partition_Position
+                                                           FROM   User_Tab_Partitions
+                                                           WHERE  Table_Name = 'EVENT_LOGS'
+                                                           AND    Interval = 'YES'
+                                                          )
+                             SELECT Partition_Name
+                             FROM   Interval_Partitions
+                             WHERE  Partition_Position > (SELECT MIN(Partition_Position) FROM   Interval_Partitions)
+                            ").each do |p|
+          Database.execute "ALTER TABLE Event_Logs DROP Partition #{p.partition_name}"
+        end
       end
     end
   end
