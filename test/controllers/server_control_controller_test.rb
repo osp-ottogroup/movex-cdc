@@ -100,7 +100,7 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
       ].each do |p|
         1.upto(p[:amount]) do |v|
           Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
-                    VALUES (:id, :table_id, 'I', 'HUGO', '{}', :created_at, :error_time, 'Test-Error to delete')
+                    VALUES (:id, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Test-Error to delete')
                    ", binds: {id: final_errors_id+=1, table_id: p[:table_id], created_at: (p[:amount]-v).day.ago, error_time: (p[:amount]-v).day.ago}
         end
       end

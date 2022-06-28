@@ -200,7 +200,7 @@ class EventLog < ApplicationRecord
           return false
         end
         if next_part.high_value >= next_part.high_value_compare
-          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because high value is not older than sysdate! Next partition #{next_part.partition_name}, high_value: #{next_part.high_value}, position #{next_part.partition_position}, compare high value: #{next_part.high_value_compare} !" }
+          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because high value of next partition is not older than sysdate! Next partition #{next_part.partition_name}, high_value: #{next_part.high_value}, position #{next_part.partition_position}, compare high value: #{next_part.high_value_compare} !" }
           return false
         end
       end

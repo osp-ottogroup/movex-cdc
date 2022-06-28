@@ -43,7 +43,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         end
         # Ensure that a interval partition is created again
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', SYSDATE)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '', SYSDATE)
                    ", binds: {table_id: victim1_table.id }
         assure_last_partition
       end
@@ -68,7 +68,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         last_part_hv = last_part_hv.change(offset: '+00:00')                    # Ensure local time as GMT to be sure no conversion happens at parameter binding
         # Ensure that a current interval partition exists
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at)
                    ", binds: {table_id: victim1_table.id, created_at: last_part_hv+122}
 
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
@@ -78,7 +78,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         ActiveRecord::Base.transaction do                                       # Hold insert lock on partition until rollback
           # create a partition 20 days back that should not exists before
           Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at)
                    ", binds: {table_id: victim1_table.id, created_at: last_part_hv+61}
 
           hk_thread = Thread.new do
