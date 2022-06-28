@@ -300,23 +300,23 @@ class ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
-        Database.select_all("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
+        Database.select_all("SELECT Partition_Name, Partition_Position, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
           record_count = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{p['partition_name']})"
-          msg = "Partition #{p['partition_name']}: position= #{p.partition_position} high_value = '#{p['high_value']}', #{record_count} records"
+          msg = "Partition #{p['partition_name']}: position=#{p.partition_position} high_value='#{p.high_value}' interval=#{p.interval}, #{record_count} records"
           puts msg if options[:console_output]
           Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ msg }
         end
       end
     end
 
-    msg = "First 100 remaining events in table Event_Logs:"
+    msg = "First 20 remaining events in table Event_Logs:"
     puts msg if options[:console_output]
     Rails.logger.debug('ActiveSupport::TestCase.log_event_logs_content'){ msg }
 
     counter = 0
     Database.select_all("SELECT * FROM Event_Logs ORDER BY ID").each do |e|
       counter += 1
-      if counter <= 100
+      if counter <= 20
         clone = e.clone
         clone['payload'] = clone['payload'][0, 1000]                            # Limit output to fist 1000 chars
         clone['payload'] << "... [content reduced to 1000 chars]" if clone['payload'].length == 1000
