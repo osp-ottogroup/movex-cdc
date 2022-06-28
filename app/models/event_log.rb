@@ -185,13 +185,22 @@ class EventLog < ApplicationRecord
       return false unless self.partition_empty?(partition_name, partition_position, high_value, caller, lock_already_checked: lock_already_checked)
 
       if partition_position == 1                                                  # next partition must be empty because first partition is not scanned by workers
-        next_part = Database.select_first_row "SELECT Partition_Name, Partition_Position, High_Value
+        next_part = Database.select_first_row "SELECT Partition_Name, Partition_Position, High_Value,
+                                                      'TIMESTAMP'' '||TO_CHAR(SYSDATE, 'YYYY-MM-DD HH24:MI:SS')||'''' High_Value_Compare
                                                FROM   User_Tab_Partitions
                                                WHERE  Table_Name = 'EVENT_LOGS'
                                                AND    Partition_Position = 2
                                               "
+        if next_part.nil?
+          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because it is the last partition!" }
+          return false
+        end
         unless self.partition_empty?(next_part.partition_name, next_part.partition_position, next_part.high_value, caller)
-          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because next partition #{next_part.partition_name} with high_value #{next_part.high_value} at position #{next_part.partition_position} is not empty!" }
+          Rails.logger.warn('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because next partition #{next_part.partition_name} with high_value #{next_part.high_value} at position #{next_part.partition_position} is not empty!" }
+          return false
+        end
+        if next_part.high_value >= next_part.high_value_compare
+          Rails.logger.error('EventLog.partition_allowed_for_drop?') { "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} cannot be dropped because high value of next partition is not older than sysdate! Next partition #{next_part.partition_name}, high_value: #{next_part.high_value}, position #{next_part.partition_position}, compare high value: #{next_part.high_value_compare} !" }
           return false
         end
       end

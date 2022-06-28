@@ -12,8 +12,40 @@ class HousekeepingTest < ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
-        assert 2 <= Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"),
-               log_on_failure("There should remain at least two partitions")
+        part_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+        if part_count < 2
+          Database.select_all("SELECT Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |part|
+            Rails.logger.debug('HousekeepingTest.assure_last_partition') {"Partition #{part.part_name} high value: #{part.high_value} interval:#{part.interval}"}
+          end
+          assert false, log_on_failure("There should remain at least two partitions")
+        end
+      end
+    end
+  end
+
+  # Remove partitions that are not matching the needed high_value in the past
+  def restore_partitioning
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      if MovexCdc::Application.partitioning?
+        Database.select_all("SELECT Partition_Name, High_Value, Interval
+                             FROM   User_Tab_Partitions
+                             WHERE  Table_Name = 'EVENT_LOGS'
+                             AND    Partition_Position > 1
+                             ORDER BY Partition_Position DESC
+                            ").each do |part|
+          begin
+            Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Try to drop partition #{part.partition_name} with high value #{part.high_value}"}
+            Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{part.partition_name}"
+          rescue Exception => e
+            Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Error during DROP PARTITION #{part.partition_name} #{e.class}:#{e.message}"}
+          end
+        end
+        # Ensure that a interval partition is created again
+        Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', SYSDATE)
+                   ", binds: {table_id: victim1_table.id }
+        assure_last_partition
       end
     end
   end
@@ -36,8 +68,8 @@ class HousekeepingTest < ActiveSupport::TestCase
         last_part_hv = last_part_hv.change(offset: '+00:00')                    # Ensure local time as GMT to be sure no conversion happens at parameter binding
         # Ensure that a current interval partition exists
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+600}
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at)
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+122}
 
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all partitions are empty
         Housekeeping.get_instance.do_housekeeping                               # Ensure old partitions are removed
@@ -46,8 +78,8 @@ class HousekeepingTest < ActiveSupport::TestCase
         ActiveRecord::Base.transaction do                                       # Hold insert lock on partition until rollback
           # create a partition 20 days back that should not exists before
           Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+300}
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at)
+                   ", binds: {table_id: victim1_table.id, created_at: last_part_hv+61}
 
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
@@ -58,6 +90,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           assert_equal start_partition_count+1, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessabe records are removed
+        restore_partitioning
       end
     end
   end
@@ -107,7 +140,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
             # ensure existence of at least one interval partition
             ActiveRecord::Base.transaction do
-              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', '\"new\": { \"ID\": 1}')",
                                binds: { created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S') }  # Don't use Time directly as bind variable because of timezone drift
               raise ActiveRecord::Rollback
             end
@@ -145,8 +178,8 @@ class HousekeepingTest < ActiveSupport::TestCase
         end
         MovexCdc::Application.config.partition_interval = original_interval     # Restore the original setting before the test
         EventLog.adjust_interval                                                # Restore the original interval in table
+        restore_partitioning
       end
     end
-    assure_last_partition
   end
 end

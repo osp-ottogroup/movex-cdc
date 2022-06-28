@@ -85,7 +85,7 @@ class Database
       local_binds << ActiveRecord::Relation::QueryAttribute.new(key, value, ActiveRecord::Type::Value.new)
     end
 
-    ActiveRecord::Base.connection.exec_update(sql, "Database.execute Thread=#{Thread.current.object_id}", local_binds)  # returns the number of affected rows
+    ActiveRecord::Base.connection.exec_update(sql, "Database.execute", local_binds)  # returns the number of affected rows
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
     raise
