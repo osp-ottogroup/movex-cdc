@@ -43,8 +43,8 @@ class HousekeepingTest < ActiveSupport::TestCase
         end
         # Ensure that a interval partition is created again
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', :created_at)
-                   ", binds: {table_id: victim1_table.id, created_at: Time.now.change(offset: '+00:00')}
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '{}', SYSDATE)
+                   ", binds: {table_id: victim1_table.id }
         assure_last_partition
       end
     end
