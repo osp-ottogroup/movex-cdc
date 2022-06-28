@@ -43,7 +43,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         end
         # Ensure that a interval partition is created again
         Database.execute "INSERT INTO Event_Logs (ID, Table_ID, Operation, DBUser, Payload, Created_At)
-                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '', SYSDATE)
+                    VALUES (Event_Logs_Seq.NextVal, :table_id, 'I', 'HUGO', '\"new\": { \"ID\": 1}', SYSDATE)
                    ", binds: {table_id: victim1_table.id }
         assure_last_partition
       end
@@ -140,7 +140,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
             # ensure existence of at least one interval partition
             ActiveRecord::Base.transaction do
-              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+              Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', '\"new\": { \"ID\": 1}')",
                                binds: { created_at: Time.now.strftime('%Y-%m-%d %H:%M:%S') }  # Don't use Time directly as bind variable because of timezone drift
               raise ActiveRecord::Rollback
             end
