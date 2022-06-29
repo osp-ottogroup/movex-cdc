@@ -86,8 +86,13 @@ fi
 export PUBLIC_PATH
 (
   cd public
-  # regular hit should be index.html only
-  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" index.html
+  # TODO: move material design icons to npm, up to then adjust the path for link and font files
+  # Replace the public path in generated md_css and js links of index.html and in js files
+  sed -i "
+    s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g
+    s/md_css\//$PUBLIC_PATH\/md_css\//g
+    " index.html
+  sed -i "s/\.\.\/fonts/$PUBLIC_PATH\/fonts/g" md_css/materialdesignicons_5.4.55.min.css
   cd js
   sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" *
 )
