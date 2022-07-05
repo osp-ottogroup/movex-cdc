@@ -84,7 +84,8 @@ RUN   echo "### microdnf update" && \
       echo "### set .gemrc" && \
       echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
       echo "### cleanup and list installed gems" && \
-      gem cleanup && gem list
+      gem cleanup && gem list && \
+      microdnf clean all
 
 WORKDIR /app
 
