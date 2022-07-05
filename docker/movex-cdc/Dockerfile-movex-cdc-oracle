@@ -86,7 +86,7 @@ RUN   echo "### microdnf update" && \
       echo "### cleanup and list installed gems" && \
       gem cleanup && gem list && \
       microdnf clean all && \
-      rm -rf $HOME/.bundle.cache
+      rm -rf $HOME/.bundle/cache
 
 WORKDIR /app
 
