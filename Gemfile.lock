@@ -94,18 +94,18 @@ GEM
     marcel (1.0.2)
     method_source (1.0.0)
     mini_mime (1.1.2)
-    minitest (5.15.0)
+    minitest (5.16.2)
     nio4r (2.5.8-java)
     nokogiri (1.13.6-java)
       racc (~> 1.4)
     puma (5.6.4-java)
       nio4r (~> 2.0)
     racc (1.6.0-java)
-    rack (2.2.3.1)
+    rack (2.2.4)
     rack-cors (1.1.1)
       rack (>= 2.0.0)
-    rack-test (1.1.0)
-      rack (>= 1.0, < 3)
+    rack-test (2.0.2)
+      rack (>= 1.3)
     rails (6.1.6)
       actioncable (= 6.1.6)
       actionmailbox (= 6.1.6)
@@ -124,7 +124,7 @@ GEM
     rails-dom-testing (2.0.3)
       activesupport (>= 4.2.0)
       nokogiri (>= 1.6)
-    rails-html-sanitizer (1.4.2)
+    rails-html-sanitizer (1.4.3)
       loofah (~> 2.3)
     railties (6.1.6)
       actionpack (= 6.1.6)
@@ -149,7 +149,7 @@ GEM
     snappy (0.3.0-java)
       snappy-jars (~> 1.1.0)
     snappy-jars (1.1.0.1.2-java)
-    sprockets (4.0.3)
+    sprockets (4.1.1)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)
     sprockets-rails (3.4.2)
@@ -164,7 +164,7 @@ GEM
     websocket-driver (0.7.5-java)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
-    zeitwerk (2.5.4)
+    zeitwerk (2.6.0)
 
 PLATFORMS
   universal-java-18
@@ -183,7 +183,7 @@ DEPENDENCIES
   tzinfo-data
 
 RUBY VERSION
-   ruby 2.6.8p0 (jruby 9.3.4.0)
+   ruby 2.6.8p0 (jruby 9.3.6.0)
 
 BUNDLED WITH
-   2.3.15
+   2.3.17

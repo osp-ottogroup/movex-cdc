@@ -31,7 +31,20 @@ RUN npm run build
 # Ensure no known vulnerabilities are in dependencies of frontend packages
 RUN npm audit --production
 
-# STAGE 2: build movex-cdc backend
+# STAGE 2: JRE build
+FROM openjdk:18 as openjdk
+
+# Build small JRE image
+RUN $JAVA_HOME/bin/jlink \
+         --verbose \
+         --add-modules ALL-MODULE-PATH \
+         --strip-debug \
+         --no-man-pages \
+         --no-header-files \
+         --compress=2 \
+         --output /customjre
+
+# STAGE 3: build movex-cdc backend
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
@@ -39,16 +52,17 @@ MAINTAINER Peter.Ramm@ottogroup.com
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
 ENV RAILS_MAX_THREADS=300
-ENV JRUBY_VERSION=9.3.4.0
-ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
+ENV JRUBY_VERSION=9.3.6.0
+ENV JAVA_HOME=/opt/jre
+ENV PATH "${JAVA_HOME}/bin:/opt/jruby-$JRUBY_VERSION/bin:$PATH"
+
+COPY --from=openjdk /customjre $JAVA_HOME
 
 RUN   echo "### microdnf update" && \
       microdnf update && \
       echo "### apk add missing tools" && \
       microdnf install curl bash tar wget gzip procps findutils vim tzdata && \
       echo "### install java" && \
-      wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.rpm && \
-      rpm -Uvh jdk-17_linux-x64_bin.rpm && rm jdk-17_linux-x64_bin.rpm && \
       echo "### get jRuby" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
       echo "### untar jRuby" && \
