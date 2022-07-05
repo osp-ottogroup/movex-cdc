@@ -3,24 +3,42 @@
 # Peter Ramm, 2021-03-02
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.4.0-jdk17 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/otto-group-solution-provider/movex-cdc/kafka-jruby:9.3.6.0-jdk18 .
+
+# base image to build a JRE
+FROM openjdk:18 as openjdk
+
+# Build small JRE image
+RUN $JAVA_HOME/bin/jlink \
+         --verbose \
+         --add-modules ALL-MODULE-PATH \
+         --strip-debug \
+         --no-man-pages \
+         --no-header-files \
+         --compress=2 \
+         --output /customjre
 
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
-ARG JRUBY_VERSION=9.3.4.0
-ARG KAFKA_VERSION=3.1.0
+ARG JRUBY_VERSION=9.3.6.0
+ARG KAFKA_VERSION=3.2.0
 ARG SCALA_VERSION=2.13
+ARG JAVA_VERSION=18
 ENV JRUBY_VERSION=$JRUBY_VERSION
 ENV KAFKA_VERSION=$KAFKA_VERSION
 ENV SCALA_VERSION=$SCALA_VERSION
+ENV JAVA_VERSION=$JAVA_VERSION
 ENV KAFKA_HOME=/opt/kafka
-ENV PATH "$PATH:/opt/jruby-$JRUBY_VERSION/bin"
+ENV JAVA_HOME=/opt/jre
+ENV PATH "${JAVA_HOME}/bin:/opt/jruby-$JRUBY_VERSION/bin:$PATH"
 
 #EXPOSE 2181/tcp 9092/tcp
 # Allow chromedriver to use this port at all interfaces
 EXPOSE  9515
 
+# copy JRE from the base image
+COPY --from=openjdk /customjre $JAVA_HOME
 # RUN-Steps:
 # - update system
 # - install tools
@@ -28,8 +46,6 @@ EXPOSE  9515
 # - install Kafka
 RUN  microdnf update && \
      microdnf install procps wget tar gzip vim util-linux findutils podman jq bc && \
-     wget https://download.oracle.com/java/17/latest/jdk-17_linux-x64_bin.rpm && \
-     rpm -Uvh jdk-17_linux-x64_bin.rpm && rm jdk-17_linux-x64_bin.rpm && \
      wget "https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} && \
