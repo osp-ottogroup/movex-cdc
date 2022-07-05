@@ -85,15 +85,16 @@ RUN   echo "### microdnf update" && \
       echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
       echo "### cleanup and list installed gems" && \
       gem cleanup && gem list && \
-      microdnf clean all
+      microdnf clean all && \
+      rm -rf $HOME/.bundle.cache
 
 WORKDIR /app
 
-COPY ${BACKEND_SRC_PATH}/Gemfile* ./
+COPY ${BACKEND_SRC_PATH} .
+#COPY ${BACKEND_SRC_PATH}/Gemfile* ./
 
 RUN  bundle config set deployment 'true' && bundle install --jobs 4
 
-COPY ${BACKEND_SRC_PATH} .
 
 # Copy Frontend-Build into Rails-Project for static serve
 COPY --from=frontend_build /app/dist public/
