@@ -3,7 +3,7 @@
 
 # Usage:
 # Build image:      > docker pull jruby:x.x.x.x
-#                   > docker build -f docker/movex-cdc/Dockerfile-movex-cdc-oracle --no-cache --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t movex-cdc .
+#                   > docker build -f docker/movex-cdc/Dockerfile-movex-cdc-oracle --no-cache --progress=plain --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t movex-cdc .
 # Run container:    > docker run -p 8080:8080 -e DB_PASSWORD=movex -e DB_USER=movex -e LOG_LEVEL=debug movex-cdc
 
 # STAGE 1: build movex-cdc frontend
@@ -84,15 +84,17 @@ RUN   echo "### microdnf update" && \
       echo "### set .gemrc" && \
       echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
       echo "### cleanup and list installed gems" && \
-      gem cleanup && gem list
+      gem cleanup && gem list && \
+      microdnf clean all && \
+      rm -rf $HOME/.bundle/cache
 
 WORKDIR /app
 
-COPY ${BACKEND_SRC_PATH}/Gemfile* ./
+COPY ${BACKEND_SRC_PATH} .
+#COPY ${BACKEND_SRC_PATH}/Gemfile* ./
 
 RUN  bundle config set deployment 'true' && bundle install --jobs 4
 
-COPY ${BACKEND_SRC_PATH} .
 
 # Copy Frontend-Build into Rails-Project for static serve
 COPY --from=frontend_build /app/dist public/

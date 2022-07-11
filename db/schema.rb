@@ -13,7 +13,7 @@
 ActiveRecord::Schema.define(version: 2022_06_13_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
-    t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
+    t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
     t.string "schema_name", limit: 256, comment: "Name of schema"
     t.string "table_name", limit: 256, comment: "Name of table"
     t.string "column_name", limit: 256, comment: "Name of column"
@@ -26,7 +26,7 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
   end
 
   create_table "columns", comment: "Columns with flags for DML operation to trigger", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "name", limit: 256, null: false, comment: "Column name of database table"
     t.string "info", limit: 1000, comment: "Additional info"
     t.string "yn_log_insert", limit: 1, default: "N", null: false, comment: "Log this column at insert operation (Y/N)"
@@ -40,7 +40,7 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
   end
 
   create_table "conditions", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "operation", limit: 1, null: false, comment: "Type of operation: I=insert, U=update, D=delete"
     t.string "filter", limit: 4000, null: false, comment: "Filter expression for WHEN-clause of trigger"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
@@ -77,8 +77,8 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
   end
 
   create_table "schema_rights", force: :cascade do |t|
-    t.integer "user_id", limit: 19, precision: 19, null: false, comment: "Reference to user"
-    t.integer "schema_id", limit: 19, precision: 19, null: false, comment: "Reference to schema"
+    t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
+    t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
     t.string "info", limit: 1000, comment: "Additional info"
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
     t.datetime "created_at", precision: 6, null: false
@@ -100,7 +100,7 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
   end
 
   create_table "statistics", comment: "Throughput statistics", force: :cascade do |t|
-    t.integer "table_id", limit: 19, precision: 19, null: false, comment: "Reference to table"
+    t.integer "table_id", precision: 38, null: false, comment: "Reference to table"
     t.string "operation", limit: 1, null: false, comment: "Operation (I=Insert, U=Update, D=Delete)"
     t.integer "events_success", precision: 38, null: false, comment: "Number of successful processed events"
     t.datetime "end_timestamp", precision: 6, null: false, comment: "End of period where events are processed"
@@ -113,7 +113,7 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
   end
 
   create_table "tables", comment: "Tables planned for triger creation", force: :cascade do |t|
-    t.integer "schema_id", limit: 19, precision: 19, null: false, comment: "Reference to schema"
+    t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
     t.string "name", limit: 256, null: false, comment: "Table name of database table"
     t.string "info", limit: 1000, comment: "Additional info like responsible team"
     t.string "topic", comment: "Topic name for table. Topic name of schema is used s default if Null"
@@ -130,11 +130,6 @@ ActiveRecord::Schema.define(version: 2022_06_13_000000) do
     t.string "yn_initialize_with_flashback", limit: 1, default: "Y", null: false, comment: "Should flashback query used to init only records before create trigger SCN"
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
-  end
-
-  create_table "test", id: false, force: :cascade do |t|
-    t.timestamptz "ts", precision: 6
-    t.string "json_ts", limit: 200
   end
 
   create_table "users", comment: "Users allowed to login", force: :cascade do |t|
