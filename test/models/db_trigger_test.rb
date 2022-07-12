@@ -28,6 +28,13 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate_triggers" do
     run_with_current_user do
+      # Remove existing triggers before first loop, next loops are executed with existing triggers
+      [victim1_table, victim2_table].each do |table|
+        Database.select_all("SELECT Trigger_Name FROM User_Triggers WHERE Table_Name = :table_name", { table_name: table.name.upcase}).each do |trig|
+          Database.execute "DROP TRIGGER #{trig.trigger_name}"
+        end
+      end
+
       # Execute test for each key handling type
       [
         {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},
