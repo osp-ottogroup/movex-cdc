@@ -874,10 +874,10 @@ API Responses are JSON objects.
 |Verb|URL|Parameter|Response|Description
 
 |POST|/db_triggers/generate|schema_name: limit deployment to this schema+
-dry_run=true: optional, checks only for differences without executing DDL +
-table_id_list: optional, array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
-|POST|/db_triggers/generate_all|dry_run=true: optional, checks only for differences without executing DDL +
-table_id_list: optional, array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
+dry_run=true: optional (default=false), checks only for differences without executing DDL +
+table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
+|POST|/db_triggers/generate_all|dry_run=true: optional (default=false), checks only for differences without executing DDL +
+table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
 |GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
