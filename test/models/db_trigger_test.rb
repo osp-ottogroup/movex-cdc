@@ -40,8 +40,8 @@ class DbTriggerTest < ActiveSupport::TestCase
             Database.execute "DROP TRIGGER #{trig.trigger_name}"
           end
         when 'SQLITE' then
-          Database.select_all("SELECT Trigger_Name FROM SQLite_Master WHERE Type = 'trigger' AND tbl_name = :table_name", { table_name: table.name}).each do |trig|
-            Database.execute "DROP TRIGGER #{trig.trigger_name}"
+          Database.select_all("SELECT Name FROM SQLite_Master WHERE Type = 'trigger' AND tbl_name = :table_name", { table_name: table.name}).each do |trig|
+            Database.execute "DROP TRIGGER #{trig.name}"
           end
         end
       end
