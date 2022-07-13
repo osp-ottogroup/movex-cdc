@@ -8,7 +8,7 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "find_all_by_schema_id" do
-    real_count = case MovexCdc::Application.db_type
+    real_count = case MovexCdc::Application.config.db_type
                  when 'ORACLE' then Database.select_one "SELECT COUNT(*) FROM All_Triggers WHERE Owner = :owner AND Table_Owner = :table_owner", { owner: MovexCdc::Application.config.db_user, table_owner: victim_schema.name}
                  when 'SQLITE' then Database.select_one "SELECT COUNT(*) FROM SQLite_Master WHERE  Type = 'trigger'"
     end
