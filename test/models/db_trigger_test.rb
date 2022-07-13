@@ -8,8 +8,9 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "find_all_by_schema_id" do
+    real_count = Database.select_one "SELECT COUNT(*) FROM All_Triggers WHERE Owner = :owner AND Table_Owner = :table_owner", { owner: MovexCdc::Application.config.db_user, table_owner: victim_schema.name}
     triggers = DbTrigger.find_all_by_schema_id(victim_schema.id)
-    assert_equal 2, triggers.count, log_on_failure('Should find the number of triggers in victim schema')
+    assert_equal real_count, triggers.count, log_on_failure('Should find the number of triggers in victim schema')
   end
 
   test "find_all_by_table" do
