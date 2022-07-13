@@ -34,8 +34,15 @@ class DbTriggerTest < ActiveSupport::TestCase
     run_with_current_user do
       # Remove existing triggers before first loop, next loops are executed with existing triggers
       [victim1_table, victim2_table].each do |table|
-        Database.select_all("SELECT Trigger_Name FROM User_Triggers WHERE Table_Name = :table_name", { table_name: table.name.upcase}).each do |trig|
-          Database.execute "DROP TRIGGER #{trig.trigger_name}"
+        case MovexCdc::Application.config.db_type
+        when 'ORACLE'
+          Database.select_all("SELECT Trigger_Name FROM User_Triggers WHERE Table_Name = :table_name", { table_name: table.name.upcase}).each do |trig|
+            Database.execute "DROP TRIGGER #{trig.trigger_name}"
+          end
+        when 'SQLITE' then
+          Database.select_all("SELECT Trigger_Name FROM SQLite_Master WHERE Type = 'trigger' AND tbl_name = :table_name", { table_name: table.name}).each do |trig|
+            Database.execute "DROP TRIGGER #{trig.trigger_name}"
+          end
         end
       end
 
