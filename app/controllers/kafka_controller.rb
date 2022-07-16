@@ -24,6 +24,7 @@ class KafkaController < ApplicationController
     rescue Exception => e
       result[:leaders][p.to_s] = "Exception: #{e.class}:#{e.message}"
     end
+    # Available config items according to: https://docs.confluent.io/platform/current/installation/configuration/topic-configs.html
     configs = [
         'cleanup.policy', 'compression.type', 'delete.retention.ms', 'file.delete.delay.ms', 'flush.messages', 'flush.ms', 'follower.replication.throttled.replicas',
         'index.interval.bytes', 'leader.replication.throttled.replicas', 'max.compaction.lag.ms', 'max.message.bytes', 'message.format.version',

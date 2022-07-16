@@ -98,7 +98,7 @@ test_oracle_12.1:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: harbor.osp-dd.de/pramm/oracle/database_prebuilt:12.1.0.2-ee
+    - name: registry.gitlab.com/otto-group-solution-provider/movex-cdc/database_prebuilt:12.1.0.2-ee
       alias: oracle-db
 
 test_oracle_12.1_SE:
