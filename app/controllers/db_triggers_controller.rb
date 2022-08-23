@@ -81,6 +81,9 @@ class DbTriggersController < ApplicationController
 
   def prepare_generate_params
     @dry_run = params[:dry_run]
+    @dry_run = @dry_run.strip.upcase == 'TRUE' if @dry_run.class == String      # curl and others encapsulates parameters in quotes
+    @dry_run = false if @dry_run.nil?                                           # ensure boolean type
+
     @table_id_list = params[:table_id_list]
     @table_id_list = nil if @table_id_list == ''
     if @table_id_list

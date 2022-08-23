@@ -28,8 +28,11 @@ class DbTriggerGeneratorBase < Database
 
   ### instance methods following
 
+  # @param schema_id [Integer] ID in table schemas
+  # @param dry_run [TrueClass | FalseClass] suppress DML execution?
   def initialize(schema_id:, dry_run:)
     @schema             = Schema.find schema_id
+    raise "Parameter dry_run should be of boolean type, not '#{dry_run.class}'" if dry_run.class != TrueClass && dry_run.class != FalseClass
     @dry_run            = dry_run
     @successes          = []                                                    # created triggers
     @errors             = []                                                    # errors during trigger creation

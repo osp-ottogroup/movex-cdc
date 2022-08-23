@@ -524,16 +524,18 @@ END Flush;
       }
     else
       Database.execute "DROP TRIGGER #{trigger_name}"                           # Remove erroneous trigger to ensure proper DML on table
+      error_text = ''
       errors.each do |error|
-        @errors << {
-          table_id:           table.id,
-          table_name:         table.name,
-          trigger_name:       trigger_name,
-          exception_class:    "Compile error line #{error['line']} position #{error['position']}",
-          exception_message:  error['text'],
-          sql:                sql
-        }
+        error_text << "Line #{error['line']} position #{error['position']}: #{error['text']}\n"
       end
+      @errors << {
+        table_id:           table.id,
+        table_name:         table.name,
+        trigger_name:       trigger_name,
+        exception_class:    "PL/SQL compile error",
+        exception_message:  error_text,
+        sql:                sql
+      }
     end
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'DbTriggerGeneratorOracle.exec_trigger_sql', additional_msg: "Executing SQL:\n#{sql}")

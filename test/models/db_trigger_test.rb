@@ -8,8 +8,12 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "find_all_by_schema_id" do
+    real_count = case MovexCdc::Application.config.db_type
+                 when 'ORACLE' then Database.select_one "SELECT COUNT(*) FROM All_Triggers WHERE Owner = :owner AND Table_Owner = :table_owner", { owner: MovexCdc::Application.config.db_user, table_owner: victim_schema.name}
+                 when 'SQLITE' then Database.select_one "SELECT COUNT(*) FROM SQLite_Master WHERE  Type = 'trigger'"
+    end
     triggers = DbTrigger.find_all_by_schema_id(victim_schema.id)
-    assert_equal 2, triggers.count, log_on_failure('Should find the number of triggers in victim schema')
+    assert_equal real_count, triggers.count, log_on_failure('Should find the number of triggers in victim schema')
   end
 
   test "find_all_by_table" do
@@ -28,6 +32,20 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate_triggers" do
     run_with_current_user do
+      # Remove existing triggers before first loop, next loops are executed with existing triggers
+      [victim1_table, victim2_table].each do |table|
+        case MovexCdc::Application.config.db_type
+        when 'ORACLE'
+          Database.select_all("SELECT Trigger_Name FROM User_Triggers WHERE Table_Name = :table_name", { table_name: table.name.upcase}).each do |trig|
+            Database.execute "DROP TRIGGER #{trig.trigger_name}"
+          end
+        when 'SQLITE' then
+          Database.select_all("SELECT Name FROM SQLite_Master WHERE Type = 'trigger' AND tbl_name = :table_name", { table_name: table.name}).each do |trig|
+            Database.execute "DROP TRIGGER #{trig.name}"
+          end
+        end
+      end
+
       # Execute test for each key handling type
       [
         {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},

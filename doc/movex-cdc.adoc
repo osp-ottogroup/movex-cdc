@@ -873,6 +873,11 @@ API Responses are JSON objects.
 |===
 |Verb|URL|Parameter|Response|Description
 
+|POST|/db_triggers/generate|schema_name: limit deployment to this schema+
+dry_run=true: optional (default=false), checks only for differences without executing DDL +
+table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
+|POST|/db_triggers/generate_all|dry_run=true: optional (default=false), checks only for differences without executing DDL +
+table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
 |GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
@@ -889,20 +894,30 @@ Requires valid user JWT in request header.
 
 ==== Using API endpoints from command line ====
 You can use curl or wget to call API funktions with valid autorization by email and password. +
-Example is for setting log level to DEBUG, adjust hostname, port, email and password to your needs. +
-Needed tools are curl, jq, sed. +
 Steps are:
 
 * authenticate with valid user and get JWT token for next steps
 * call API methode with use of JWT
 
-To use this example replace the values for email, password, host and port with yours:
+To use this examples replace the values for email, password, host and port with yours. +
+Needed tools are curl, jq, sed. +
+
+===== API example for setting log level to DEBUG =====
 [source]
 curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \
 http://localhost:8080/server_control/set_log_level
+
+===== API example for trigger deployment without executing DDL =====
+```
+JWT=`curl -s -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | \
+sed -e 's/^"//' -e 's/"$//'`
+
+curl -s -X POST -H "Authorization: $JWT" -d "dry_run=true" http://localhost:8080/db_triggers/generate_all
+```
 
 === Entity relationship model ===
 image::er_model.svg[format=svg,opts=inline]
