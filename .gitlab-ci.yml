@@ -188,6 +188,7 @@ trivy_scan:
     - time trivy image --clear-cache
     # update vulnerabilities db
     #- time trivy --no-progress --cache-dir .trivycache/
+    - pwd
     - ls -lisa
     - echo "Content of .trivyignore" && cat .trivyignore
     # Builds report and puts it in the default workdir $CI_PROJECT_DIR, so `artifacts:` can take it from there
