@@ -2,6 +2,13 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+
+## 2022-08-22 Release 1.10.5
+- Bugfix: support insert conditions with subselects for initial import
+
+## 2022-08-22 Release 1.10.4
+- Update Rails to current version 
+- Bugfix: Show GUI icons in all cases
 - Bugfix: support deployment parameter "dry_run" as string ("dry_run"="false") like it is used by curl
 
 ## 2022-07-11 Release 1.10.3
