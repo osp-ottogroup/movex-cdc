@@ -1,8 +1,5 @@
 # possible vulnerabilities to ignore
 
-# Nokogiri 1.12.5 is installed, but with -java
-# CVE-2021-41098
-
 # Newer version of rdoc installed, but complained version is installed in jRubys default gems
 CVE-2021-31799
 
