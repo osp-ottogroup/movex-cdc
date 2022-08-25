@@ -42,6 +42,10 @@ export default {
   methods: {
     async setMaxTransactionSize() {
       try {
+        this.$buefy.toast.open({
+          message: `Setting max. transaction size to '${this.maxTransactionSize}' requested. You'll be informed after completion.`,
+          type: 'is-info',
+        });
         this.isLoading = true;
         await CRUDService.serverControl.setMaxTransactionSize({ max_transaction_size: this.maxTransactionSize });
         this.$buefy.toast.open({

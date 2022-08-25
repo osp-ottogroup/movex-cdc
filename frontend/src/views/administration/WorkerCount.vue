@@ -42,6 +42,10 @@ export default {
   methods: {
     async setWorkerCount() {
       try {
+        this.$buefy.toast.open({
+          message: `Setting worker count to '${this.workerCount}' requested. You'll be informed after completion.`,
+          type: 'is-info',
+        });
         this.isLoading = true;
         await CRUDService.serverControl.setWorkerCount({ worker_threads_count: this.workerCount });
         this.$buefy.toast.open({
