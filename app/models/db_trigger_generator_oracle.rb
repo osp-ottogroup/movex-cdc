@@ -296,7 +296,8 @@ END #{build_trigger_name(table, operation)};
     where << "\nWHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
     where << "\nAND " if table.initialization_filter && trigger_config[:condition]
-    where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
+    # replace trigger specific :new. qualifier from in trigger condition with the full table name
+    where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, "#{table.schema.name}.#{table.name}.")})" if trigger_config[:condition]
 
     load_sql = "DECLARE\n"
     load_sql << generate_declare_section(table, operation, :load, trigger_config) # use operation 'i' for event generation
