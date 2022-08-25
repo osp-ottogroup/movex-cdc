@@ -258,20 +258,26 @@ class DbTriggerTest < ActiveSupport::TestCase
       victim_record_count = Database.select_one "SELECT COUNT(*) FROM #{victim_schema_prefix}#{victim1_table.name}" # requires select-Grant
       max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name}"
       second_max_victim_id = Database.select_one "SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != :max_id", max_id: max_victim_id
-      insert_condition = case MovexCdc::Application.config.db_type
+      insert_condition1 = case MovexCdc::Application.config.db_type
                          when 'ORACLE' then ":new.ID != #{second_max_victim_id}"
                          when 'SQLITE' then "new.ID != #{second_max_victim_id}"
-                         end
-      sleep(4)                                                                    # avoid ORA-01466
-      msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false)
+                          end
+      # ensure that also combination of condition with subsselect is tested
+      insert_condition2 = case MovexCdc::Application.config.db_type
+                          when 'ORACLE' then ":new.ID != (SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != #{max_victim_id})"
+                          when 'SQLITE' then "new.ID != (SELECT MAX(ID) FROM #{victim_schema_prefix}#{victim1_table.name} WHERE ID != #{max_victim_id})"
+                          end
+      sleep(4)                                                                  # avoid ORA-01466
+      msgkeys = []                                                              # all valid keys are added again if list is empty
 
       [nil, "ID != #{max_victim_id}"].each do |init_filter|
         init_order_by   = init_filter ? 'ID' : nil
         init_flashback  = init_filter ? 'Y' : 'N'
-        [nil, insert_condition].each do |condition_filter|  # condition filter should be valid for execution inside trigger
+        [nil, insert_condition1, insert_condition2].each do |condition_filter|  # condition filter should be valid for execution inside trigger
           Rails.logger.debug('DbTriggerTest.generate trigger with initialization'){ "Run test for init_filer='#{init_filter}' and condition_filter='#{condition_filter}'" }
 
-          raise "Other test process necessary because there are more key types than test loops" if msgkeys.count == 0
+          # Start again with using next key for next test
+          msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false) if msgkeys.count == 0
           kafka_key_handling = msgkeys.delete_at(0)                               # Remove used key handling so next test loop will use the next one for test
           fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo' : nil
           yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'

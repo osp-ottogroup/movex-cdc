@@ -296,7 +296,8 @@ END #{build_trigger_name(table, operation)};
     where << "\nWHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
     where << "\nAND " if table.initialization_filter && trigger_config[:condition]
-    where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, '')})" if trigger_config[:condition] # remove trigger specific :new. qualifier from insert trigger condition
+    # replace trigger specific :new. qualifier from in trigger condition with the full table name
+    where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, "#{table.schema.name}.#{table.name}.")})" if trigger_config[:condition]
 
     load_sql = "DECLARE\n"
     load_sql << generate_declare_section(table, operation, :load, trigger_config) # use operation 'i' for event generation
@@ -308,7 +309,8 @@ BEGIN
               #{where}#{"\nORDER BY #{table.initialization_order_by}" if table.initialization_order_by}
              ) LOOP
 "
-    trigger_row_section = generate_row_section(table_config, operation.upcase)  # generate columns for insert operation (I)
+    # Conditions must not be included in row section because they are already part of the driving SQL
+    trigger_row_section = generate_row_section(table_config, operation.upcase, include_conditions: false)  # generate columns for insert operation (I)
     load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
     load_sql << "
   END LOOP;
@@ -369,8 +371,11 @@ END Flush;
 "
   end
 
-  #
-  def generate_row_section(table_config, operation)
+  # generate the row level code for trigger as well as for load sql
+  # @param table_config
+  # @param operation
+  # @param include_conditions: Conditions should not be coded for load SQL because they are already checked as part of the driving SQL in this case
+  def generate_row_section(table_config, operation, include_conditions: true)
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent
     update_indent    = operation == 'U' ? '  ' : ''
@@ -382,15 +387,17 @@ END Flush;
   END IF;
 
 "
-    row_section << "  SELECT COUNT(*) INTO Condition_Result FROM Dual WHERE #{trigger_config[:condition]};\n" if separate_condition_sql_needed?(trigger_config[:condition])
-    row_section << "  IF #{condition_if_expression(trigger_config[:condition])} THEN\n" if trigger_config[:condition]
+    if include_conditions
+      row_section << "  SELECT COUNT(*) INTO Condition_Result FROM Dual WHERE #{trigger_config[:condition]};\n" if separate_condition_sql_needed?(trigger_config[:condition])
+      row_section << "  IF #{condition_if_expression(trigger_config[:condition])} THEN\n" if trigger_config[:condition]
+    end
     row_section << "  #{condition_indent}IF #{old_new_compare(trigger_config[:columns])} THEN\n" if operation == 'U'
     row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
     row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
     row_section << "  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};\n"
     row_section << "  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;\n"
     row_section << "  #{condition_indent}END IF;\n" if operation == 'U'
-    row_section << "  END IF;\n" if trigger_config[:condition]
+    row_section << "  END IF;\n" if trigger_config[:condition] && include_conditions
     row_section
   end
 
