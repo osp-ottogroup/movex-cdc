@@ -111,7 +111,8 @@ class ApplicationController < ActionController::API
       render json: { errors: [msg] }, status: :unauthorized
     rescue JWT::DecodeError => e
       msg = "Unauthorized request with invalid token: #{request_log_attributes}\n#{e.class} #{e.message}"
-      Rails.logger.error msg
+      # for method LoginController.check_jwt it is quite usual that check fails at first login, so don't log it
+      Rails.logger.error msg unless controller_name == 'login' && action_name == 'check_jwt'
       # raise ApplicationController::NotAuthorized.new(msg)
       render json: { errors: [msg] }, status: :unauthorized
     end
