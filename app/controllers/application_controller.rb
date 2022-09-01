@@ -106,6 +106,8 @@ class ApplicationController < ActionController::API
       unless controller_name == 'login' && action_name == 'check_jwt'
         Rails.logger.error('ApplicationController.authorize_request') { err_msg }
       end
+      self.class.unset_current_user                                             # Ensure that there are no fragments in thread from previous call
+      self.class.unset_current_client_ip_info                                   # Ensure that there are no fragments in thread from previous call
       render json: { errors: [err_msg] }, status: :unauthorized
     end
   end
