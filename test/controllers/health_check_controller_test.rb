@@ -27,6 +27,8 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, log_on_failure('This request should succeed')
     get "/health_check", as: :json
     assert_response :internal_server_error, log_on_failure('second check should fail within same second')
+    get "/health_check", headers: jwt_header, as: :json                                              # warmup health check to ensure next response within one second
+    assert_response :success, log_on_failure('This request within the same second should succeed because it is authorized with valid JWT')
 
     sleep 2                                                                     # prevent from double call exception
     begin

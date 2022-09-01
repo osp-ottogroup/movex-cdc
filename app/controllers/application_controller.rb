@@ -90,6 +90,9 @@ class ApplicationController < ActionController::API
   def authorize_request
     # register DB session only if DB is really needed for action
     # ensure that e.g. health_check also works if DB is down
+
+    self.class.set_current_client_ip_info(client_ip_info)
+
     if @@authorize_exceptions.select{|e| e[:controller] == controller_name.to_sym && e[:action] == action_name.to_sym && e[:without_set_application_info]} == []
       Database.set_application_info("#{controller_name}/#{action_name}")
     end
@@ -98,23 +101,29 @@ class ApplicationController < ActionController::API
       return
     end
 
+    err_msg = validate_jwt
+    unless err_msg.nil?
+      unless controller_name == 'login' && action_name == 'check_jwt'
+        Rails.logger.error('ApplicationController.authorize_request') { err_msg }
+      end
+      render json: { errors: [err_msg] }, status: :unauthorized
+    end
+  end
+
+  # Check if jwt of current request is valid
+  # @return: nil if JWT is valid or error message
+  def validate_jwt
     header = request.headers['Authorization']
     header = header.split(' ').last if header
     begin
       @decoded = JsonWebToken.decode(header)
       self.class.set_current_user(User.find(@decoded[:user_id]))
-      self.class.set_current_client_ip_info(client_ip_info)
     rescue ActiveRecord::RecordNotFound => e
-      msg = "Unauthorized request with valid token but not existing user: #{request_log_attributes}\n#{e.class} #{e.message}"
-      Rails.logger.error msg
-      # raise ApplicationController::NotAuthorized.new(msg)
-      render json: { errors: [msg] }, status: :unauthorized
+      return "Unauthorized request with valid token but not existing user: #{request_log_attributes}\n#{e.class} #{e.message}"
     rescue JWT::DecodeError => e
-      msg = "Unauthorized request with invalid token: #{request_log_attributes}\n#{e.class} #{e.message}"
-      Rails.logger.error msg
-      # raise ApplicationController::NotAuthorized.new(msg)
-      render json: { errors: [msg] }, status: :unauthorized
+      return "Unauthorized request with invalid token: #{request_log_attributes}\n#{e.class} #{e.message}"
     end
+    nil                                                                         # Mark JWT as valid
   end
 
   # Action is executed after successful execution of request
