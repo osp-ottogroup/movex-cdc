@@ -8,8 +8,11 @@ class HealthCheckController < ApplicationController
   # Should not contain internal secrets
   # called from outside like Docker health check
   def index
-    raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
-    @@last_call_time = Time.now
+    # Check for DOS on health check only if not called with valid JWT
+    unless validate_jwt.nil?
+      raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
+      @@last_call_time = Time.now
+    end
 
     pretty_health_data, return_status = health_check_content
     Rails.logger.info('HealthCheckController.index'){ pretty_health_data }
