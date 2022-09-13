@@ -283,4 +283,25 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       user.destroy!
     end
   end
+
+  test 'import config with missing structure elements' do
+    # Excpect raise of RuntimeError due to explicit raise "String" in code
+    def expect_raise(msg, data)
+      assert_raise(RuntimeError, "Missing #{msg} should raise own raised RuntimeError exception") do
+        run_with_current_user { ImportExportConfig.new.import_schemas(data) }
+      rescue Exception => e
+        puts "#{e.class}:#{e.message}" unless e.instance_of? RuntimeError
+        raise
+      end
+    end
+
+    expect_raise('schemas and users', {})
+    expect_raise('schemas', {'users' => []})
+    run_with_current_user { ImportExportConfig.new.import_schemas({'schemas' => [], 'users' => []}) } # Should not raise an exception
+
+    expect_raise('schema name', {'schemas'=>[{}], 'users'=>[]})
+    expect_raise('tables array', {'schemas'=>[{ 'name'=>'HUGO'}], 'users'=>[]})
+    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>victim_schema.name, 'tables'=>[]}], 'users'=>[]})  # Existing schema
+    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>'HUGO', 'tables'=>[]}], 'users'=>[]})  # new schema
+  end
 end

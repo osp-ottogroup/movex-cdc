@@ -67,16 +67,19 @@ class ImportExportConfig
   end
 
   # import schema data
-  # @param json_data            Hash with list of schema objects and list of user objects
-  # @param schema_name_to_pick  Single schema name which should be imported out of the whole list of schemas, nil = import all schemas in list
+  # @param [Hash] import_hash Hash with list of schema objects and list of user objects
+  # @param [String] schema_name_to_pick  Single schema name which should be imported out of the whole list of schemas, nil = import all schemas in list
   def import_schemas(import_hash, schema_name_to_pick: nil)
-    raise "Parameter import_hash is not a Hash"   unless import_hash.is_a? Hash
-    raise "Object users is not an array"   unless import_hash['users'].instance_of? Array
-    raise "Object schemas is not an array" unless import_hash['schemas'].instance_of? Array
+    raise "Parameter import_hash is not a Hash"     unless import_hash.is_a? Hash
+    raise "Object users is not an array"            unless import_hash['users'].instance_of? Array
+    raise "Object schemas is not an array"          unless import_hash['schemas'].instance_of? Array
     raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
 
     # Ensure all users exist in DB that are referenced in schema_rights
     import_hash['schemas']&.each do |schema_hash|
+      raise "Schema does not have an String element 'name'"                                   unless schema_hash['name'].instance_of? String
+      raise "Schema '#{schema_hash['name']}' does not have an Array element 'tables'"         unless schema_hash['tables'].instance_of? Array
+      raise "Schema '#{schema_hash['name']}' does not have an Array element 'schema_rights'"  unless schema_hash['schema_rights'].instance_of? Array
       schema_hash['schema_rights']&.each do |schema_right_hash|
         if User.where(email: schema_right_hash['email']).count == 0             # User does not exists in DB
           user_hash = import_hash['users'].find{|u| u['email'] == schema_right_hash['email']}
