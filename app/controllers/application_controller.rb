@@ -45,7 +45,7 @@ class ApplicationController < ActionController::API
     unless Thread.current[:current_user].nil?
       Rails.logger.error("#{self.class}.set_current_user"){ "Current thread already contains a corresponding user with email='#{Thread.current[:current_user].email}', but should not" }
     end
-    Rails.logger.debug('ApplicationController.set_current_user'){ "Set current user to #{current_user}#{" but previous user #{Thread.current[:current_user]}is still existing" unless Thread.current[:current_user].nil?}" }
+    Rails.logger.debug('ApplicationController.set_current_user'){ "Set current user to #{current_user.email}#{" but previous user #{Thread.current[:current_user]}is still existing" unless Thread.current[:current_user].nil?}" }
     Thread.current[:current_user] = current_user
   end
 
@@ -59,7 +59,7 @@ class ApplicationController < ActionController::API
 
   # Remove user setting in current thread
   def self.unset_current_user
-    Rails.logger.debug('ApplicationController.unset_current_user'){ "Unset current user from #{Thread.current[:current_user]}" }
+    Rails.logger.debug('ApplicationController.unset_current_user'){ "Unset current user from '#{Thread.current[:current_user]&.email}'" }
     Thread.current[:current_user] = nil
   end
 
@@ -144,7 +144,13 @@ class ApplicationController < ActionController::API
     retval
   end
 
+  # read clients IP address from http request
+  # if nginx reverse proxy is used, you should have set these header entries:
+  #       proxy_set_header X-Real-IP $remote_addr;
+  #       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  #       proxy_set_header X-Forwarded-Proto $scheme;
   def client_ip_info
+    Rails.logger.debug('ApplicationController.client_ip_info') { "HTTP_X_FORWARDED_FOR=#{request.env['HTTP_X_FORWARDED_FOR']}, HTTP_X_REAL_IP=#{request.env['HTTP_X_REAL_IP']}, remote IP=#{request.remote_ip}"}
     request.env['HTTP_X_FORWARDED_FOR'] || request.env['HTTP_X_REAL_IP']  || request.remote_ip
   end
 

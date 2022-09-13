@@ -76,8 +76,8 @@ class ImportExportConfig
     raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
 
     # Ensure all users exist in DB that are referenced in schema_rights
-    import_hash['schemas'].each do |schema_hash|
-      schema_hash['schema_rights'].each do |schema_right_hash|
+    import_hash['schemas']&.each do |schema_hash|
+      schema_hash['schema_rights']&.each do |schema_right_hash|
         if User.where(email: schema_right_hash['email']).count == 0             # User does not exists in DB
           user_hash = import_hash['users'].find{|u| u['email'] == schema_right_hash['email']}
           raise "User with email '#{schema_right_hash['email']}' doesn't exist neither in the DB nor in the user list of import data!" if user_hash.nil?
@@ -119,7 +119,7 @@ class ImportExportConfig
     raise "Parameter users is not an array" unless import_data['users'].instance_of? Array
 
     Rails.logger.info('ImportExportConfig'){'Importing Users'}
-    import_data['users'].each do |user_hash|
+    import_data['users']&.each do |user_hash|
       existing_user = User.find_by_email_case_insensitive user_hash['email']
       if existing_user
         Rails.logger.info('ImportExportConfig'){ "Updating User #{user_hash.inspect}" }
@@ -205,10 +205,10 @@ class ImportExportConfig
   def import_new_schema(schema_hash)
     schema = Schema.new(relevant_import_data(schema_hash, Schema))
     schema.save!
-    schema_hash['tables'].each do |table_hash|
+    schema_hash['tables']&.each do |table_hash|
       insert_new_table(table_hash, schema)
     end
-    schema_hash['schema_rights'].each do |schema_right_hash|
+    schema_hash['schema_rights']&.each do |schema_right_hash|
       user_id = User.where(email: schema_right_hash['email']).first&.id
       SchemaRight.new(relevant_import_data(schema_right_hash, SchemaRight).merge('schema_id' => schema.id, 'user_id' => user_id)).save!
     end
@@ -225,7 +225,7 @@ class ImportExportConfig
       end
     end
 
-    schema_hash['tables'].each do |table_hash|
+    schema_hash['tables']&.each do |table_hash|
       raise "Table element of schema '#{schema_hash['name']}' should be of type Hash but is a #{table_hash.class} with content '#{table_hash}'" unless table_hash.is_a? Hash
       existing_table = Table.where(schema_id: existing_schema.id, name: table_hash['name']).first
       if existing_table.nil?
@@ -243,7 +243,7 @@ class ImportExportConfig
     end
 
     # Insert or update schema_rights
-    schema_hash['schema_rights'].each do |schema_right_hash|
+    schema_hash['schema_rights']&.each do |schema_right_hash|
       raise "Schema_Right element of schema '#{schema_hash['name']}' should be of type Hash but is a #{schema_right_hash.class} with content '#{schema_right_hash}'" unless schema_right_hash.is_a? Hash
       user = User.where( email: schema_right_hash['email']).first
       raise "User with email = '#{schema_right_hash['email']}' does not exist in table Users" if user.nil?
@@ -262,11 +262,11 @@ class ImportExportConfig
   def insert_new_table(table_hash, schema)
     table = Table.new(relevant_import_data(table_hash, Table).merge('schema_id' => schema.id))
     table.save!
-    table_hash['columns'].each do |column_hash|
+    table_hash['columns']&.each do |column_hash|
       raise "Column element of table '#{table_hash['name']}' should be of type Hash but is a #{column_hash.class} with content '#{column_hash}'" unless column_hash.is_a? Hash
       Column.new(relevant_import_data(column_hash, Column).merge('table_id' => table.id)).save!
     end
-    table_hash['conditions'].each do |condition_hash|
+    table_hash['conditions']&.each do |condition_hash|
       raise "Condition element of table '#{table_hash['name']}' should be of type Hash but is a #{condition_hash.class} with content '#{condition_hash}'" unless condition_hash.is_a? Hash
       Condition.new(relevant_import_data(condition_hash, Condition).merge('table_id' => table.id)).save!
     end
@@ -286,7 +286,7 @@ class ImportExportConfig
     end
 
     # Insert or update columns
-    table_hash['columns'].each do |column_hash|
+    table_hash['columns']&.each do |column_hash|
       raise "Column element of table '#{table_hash['name']}' should be of type Hash but is a #{column_hash.class} with content '#{column_hash}'" unless column_hash.is_a? Hash
       existing_column = Column.where(table_id: table.id, name: column_hash['name']).first
       if existing_column.nil?
@@ -304,7 +304,7 @@ class ImportExportConfig
     end
 
     # Insert or update conditions
-    table_hash['conditions'].each do |condition_hash|
+    table_hash['conditions']&.each do |condition_hash|
       raise "Condition element of table '#{table_hash['name']}' should be of type Hash but is a #{condition_hash.class} with content '#{condition_hash}'" unless condition_hash.is_a? Hash
       existing_condition = Condition.where(table_id: table.id, operation: condition_hash['operation']).first
       if existing_condition.nil?

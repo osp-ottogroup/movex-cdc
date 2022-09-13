@@ -3,6 +3,9 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2022-09-13 Release 1.10.7
+- Bugfix: Assume missing relations as empty in config file at config import
+
 ## 2022-09-01 Release 1.10.6
 - Bugfix: Accept multiple calls to health check within a second if authorized with valid JWT
 - Updated jRuby runtime

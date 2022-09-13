@@ -56,6 +56,11 @@ class User < ApplicationRecord
     save!
   end
 
+  def lock_account
+    self.yn_account_locked='Y'
+    save!
+  end
+
   def reset_failed_logons
     self.failed_logons = 0
     save!

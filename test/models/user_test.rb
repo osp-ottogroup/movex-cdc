@@ -85,15 +85,22 @@ class UserTest < ActiveSupport::TestCase
     end
   end
 
-  test "usr should be locked after x failed logons" do
-    org_value = MovexCdc::Application.config.max_failed_logons_before_account_locked
-    MovexCdc::Application.config.max_failed_logons_before_account_locked = 3
-    sandro_user.increment_failed_logons
-    sandro_user.increment_failed_logons
-    sandro_user.increment_failed_logons
-    assert_equal 'Y', User.find(sandro_user.id).yn_account_locked, 'Account should be locked now'
-    User.find(sandro_user.id).reset_failed_logons                               # Restore original state
-    MovexCdc::Application.config.max_failed_logons_before_account_locked = org_value # Restore original state
+  test "increment failed logons" do
+    user = User.find(sandro_user.id)
+    original_count = user.failed_logons
+    user.increment_failed_logons
+    user = User.find(sandro_user.id)                                            # Reload from DB
+    assert_equal original_count+1, user.failed_logons, 'Failed logons should be incremented by 1'
+    user.reset_failed_logons # Restore original state
+  end
+
+  test "lock account" do
+    User.find(sandro_user.id).lock_account
+    reloaded_user = User.find(sandro_user.id)
+    assert_equal 'Y', reloaded_user.yn_account_locked, 'User should be locked now'
+    # Restore original state
+    reloaded_user.yn_account_locked = 'N'
+    reloaded_user.save!
   end
 
   test "check_for_system_init_completed" do

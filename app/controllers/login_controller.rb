@@ -44,7 +44,7 @@ class LoginController < ApplicationController
     if user
       auth_error = authenticate(user, password)
       if auth_error.nil?
-        user.reset_failed_logons
+        user.reset_failed_logons                                                # a successful logon resets the counter
         token_lifetime_hours = 24                                               # one day
         token = JsonWebToken.encode(
           {
@@ -61,6 +61,10 @@ class LoginController < ApplicationController
       else
         Rails.logger.error('LoginController.do_logon') { "Authentication error '#{auth_error}' for '#{user.attributes}': #{request_log_attributes}" }
         user.increment_failed_logons
+        if user.failed_logons >= MovexCdc::Application.config.max_failed_logons_before_account_locked
+          user.lock_account
+          Rails.logger.error('LoginController.do_logon') { "User account is locked now after #{user.failed_logons} failed attempts. '#{user.attributes}'" }
+        end
         render json: { errors: [auth_error] }, status: :unauthorized
       end
     else
