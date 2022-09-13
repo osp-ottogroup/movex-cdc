@@ -71,6 +71,7 @@ Rails.application.configure do
   config.active_support.deprecation = :notify
 
   # Remove ANSI color controls from log file
+  # TODO: can be removed if ANSI codes are transferred to <span style="text-color:..."> in "show log"
   config.colorize_logging = false
 
   # Use default logging formatter so that PID and timestamp are not suppressed.

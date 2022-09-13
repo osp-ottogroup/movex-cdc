@@ -379,13 +379,13 @@ class ActiveSupport::TestCase
   def assert_activity_log(user_id: nil, schema_name:nil, table_name:nil, column_name:nil)
     sql = "SELECT COUNT(*) FROM Activity_Logs WHERE Created_At > "
     sql << case MovexCdc::Application.config.db_type
-           when 'ORACLE' then "SYSTIMESTAMP - 2/86400"
-           when 'SQLITE' then "DATETIME(DATETIME('now'), '-2 seconds')"
+           when 'ORACLE' then ":ts"
+           when 'SQLITE' then ":ts"
            end
     sql << " AND "
 
     where = []
-    filter = {}
+    filter = { ts: Time.now-2}
     if user_id
       where << "user_id = :user_id"
       filter[:user_id]  = user_id
@@ -403,6 +403,7 @@ class ActiveSupport::TestCase
       filter[:column_name] = column_name
     end
     sql << where.join(' AND ')
+    Rails.logger.debug('TestHelper.assert_activity_log') { "Max created_at in Activity_Logs is #{Database.select_one("SELECT Max(created_at) FROM Activity_Logs")}"}
     assert Database.select_one(sql, filter) > 0, log_on_failure("Previous operation should have created a record in Activity_Logs for #{filter}")
   end
 end
