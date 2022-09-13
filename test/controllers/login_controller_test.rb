@@ -80,6 +80,8 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
   test "lock account after 5 attempts" do
     if MovexCdc::Application.config.db_type != 'SQLITE'
+      org_value = MovexCdc::Application.config.max_failed_logons_before_account_locked
+      MovexCdc::Application.config.max_failed_logons_before_account_locked = 3
       # try wrong password until account is locked for user 'admin'
       3.downto(1) do
         post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: 'wrong password'}
@@ -92,6 +94,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
       post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
       assert_response :success, log_on_failure('After unlock user logon should be possible again')
+      MovexCdc::Application.config.max_failed_logons_before_account_locked = org_value # Restore original state
     end
 
   end

@@ -954,7 +954,7 @@ Unlocking a locked account is possible via GUI for admin users.
 
 === Suppress frequent access ===
 * Email/password check at /login/do_logon is delayed for up to 5 seconds if subsequent logon requests occur within 5 seconds
-* Subsequent calls to /health_check are rejected within the same second
+* Subsequent calls to /health_check are rejected within the same second if the caller did not authenticate with a valid token
 
 === Isolation between the production schemas of the DB and MOVEX CDC's schema ===
 MOVEX CDC requires an own schema at the database. This schema must not contain any foreign structures.

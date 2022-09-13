@@ -45,6 +45,9 @@ module MovexCdc
     # Skip views, helpers and assets when generating a new resource.
     config.api_only = true
 
+    # Ensure that values stored in DB in the same timezone as the application uses
+    config.active_record.default_timezone = :local
+
     config.middleware.insert_before 0, Rack::Cors do
       allow do
         origins '*'
