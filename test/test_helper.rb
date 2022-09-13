@@ -607,6 +607,11 @@ class GlobalFixtures
     end
   end
 
+  # Repeat the initialization at start of the next text
+  def self.repeat_initialization
+    @@global_fixtures_initialized = false
+  end
+
   def self.user_schema;       @@user_schema;        end
   def self.victim_schema;     @@victim_schema;      end
   def self.peter_user;        @@peter_user;         end

@@ -305,7 +305,6 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>'HUGO', 'tables'=>[]}], 'users'=>[]})  # new schema
 
     # restore original state, recreate needed elements
-    @@global_fixtures_initialized = false                                       # trigger repeated initialization in next call
-    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, but here once after particular test
+    GlobalFixtures.repeat_initialization                                        # Create fixtures again at start of the next test
   end
 end
