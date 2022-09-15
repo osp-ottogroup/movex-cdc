@@ -456,7 +456,7 @@ class TransferThread
         raise
       end
     else
-      Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction due to #{e.class}:#{e.message}"}
+      ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: "Aborting Kafka transaction due to #{e.class}:#{e.message}")
       raise
     end
   end
@@ -612,7 +612,7 @@ class TransferThread
 
   def table_cache(table_id)
     check_record_cache_for_aging
-    cache_key = "Table #{table_id}"
+    cache_key = "Table_#{table_id}"
     unless @record_cache.has_key? cache_key
       @record_cache[cache_key] = Table.joins(:schema).find(table_id)
     end
@@ -672,6 +672,7 @@ class TransferThread
   end
 
   # get summary text message for event_logs array
+  # @param [Array] event_logs Array of records from table Event_Logs
   def event_logs_debug_info(event_logs)
     topics = {}
     event_logs.each do |event_log|
@@ -693,7 +694,7 @@ class TransferThread
     msg = "Number of records to deliver to kafka = #{event_logs.count}\n"
     topics.each do |topic_name, topic_values|
       msg << "#{topic_values[:events_with_key] + topic_values[:events_without_key]} records for topic '#{topic_name}' (#{topic_values[:events_with_key]} records with key, #{topic_values[:events_without_key]} records without key)\n"
-      topic_values[:tables] = topic_values[:tables].sort{|a,b| "#{a[:schema_name]}.#{a[:table_name]}" <=> "#{b[:schema_name]}.#{b[:table_name]}"}.to_h
+      topic_values[:tables] = topic_values[:tables].sort_by { |_key,value| "#{value[:schema_name]}.#{value[:table_name]}" }.to_h
       topic_values[:tables].each do |table_id, table_values|
         msg << "#{table_values[:events_with_key] + table_values[:events_without_key]} records in topic '#{topic_name}' for table #{table_values[:schema_name]}.#{table_values[:table_name]} (#{table_values[:events_with_key]} records with key, #{table_values[:events_without_key]} records without key)\n"
       end
