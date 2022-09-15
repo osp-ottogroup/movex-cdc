@@ -215,10 +215,7 @@ class TransferThread
       event_logs_debug_info(event_logs)
       raise
     end
-
   end
-
-
 
   def read_event_logs_batch
     event_logs = []

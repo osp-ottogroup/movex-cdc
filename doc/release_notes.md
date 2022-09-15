@@ -3,6 +3,9 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2022-09-15 Release 1.10.8
+- Bugfix: TypeError:no implicit conversion of Symbol into Integer in debug output
+
 ## 2022-09-13 Release 1.10.7
 - Bugfix: Assume missing relations as empty in config file at config import
 
