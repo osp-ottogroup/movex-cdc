@@ -51,8 +51,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
 
     # Unlock account for further use
     user = User.find_by_email_case_insensitive('Peter.Ramm@ottogroup.com')
-    user.yn_account_locked = 'N'
-    user.save!
+    run_with_current_user { user.update(yn_account_locked: 'N') }
 
     # login  existing user with db-user (admin) in downcase
     post login_do_logon_url, params: { email: MovexCdc::Application.config.db_user.downcase, password: MovexCdc::Application.config.db_password}
