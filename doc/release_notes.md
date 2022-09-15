@@ -5,6 +5,7 @@
 
 ## 2022-09-15 Release 1.10.8
 - Bugfix: TypeError:no implicit conversion of Symbol into Integer in debug output
+- Log also original attributes before updated in Activity_Logs
 
 ## 2022-09-13 Release 1.10.7
 - Bugfix: Assume missing relations as empty in config file at config import

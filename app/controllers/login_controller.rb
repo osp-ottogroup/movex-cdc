@@ -42,6 +42,7 @@ class LoginController < ApplicationController
     end
 
     if user
+      ApplicationController.set_current_user(user)                              # Log all activities with this user from now
       auth_error = authenticate(user, password)
       if auth_error.nil?
         user.reset_failed_logons                                                # a successful logon resets the counter

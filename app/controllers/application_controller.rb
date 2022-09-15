@@ -59,7 +59,7 @@ class ApplicationController < ActionController::API
 
   # Remove user setting in current thread
   def self.unset_current_user
-    Rails.logger.debug('ApplicationController.unset_current_user'){ "Unset current user from '#{Thread.current[:current_user]&.email}'" }
+    Rails.logger.debug('ApplicationController.unset_current_user'){ "Unset current user from '#{(Thread.current[:current_user])&.email}'" }
     Thread.current[:current_user] = nil
   end
 

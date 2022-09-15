@@ -53,17 +53,15 @@ class User < ApplicationRecord
   def increment_failed_logons
     self.failed_logons = self.failed_logons + 1 if self.failed_logons < 99      # remember only the first 99 failed logons because of number(2)
     self.yn_account_locked='Y' if self.failed_logons >= MovexCdc::Application.config.max_failed_logons_before_account_locked
-    save!
+    save!                                                                       # explicite usage of save! instead of update!
   end
 
   def lock_account
-    self.yn_account_locked='Y'
-    save!
+    update!(yn_account_locked: 'Y')
   end
 
   def reset_failed_logons
-    self.failed_logons = 0
-    save!
+    update!(failed_logons: 0)
   end
 
   def destroy

@@ -1,6 +1,6 @@
 class ApplicationRecord < ActiveRecord::Base
   self.abstract_class = true
-  attr_accessor :activity_logged
+  attr_accessor :original_attributes
 
   # Ensure column contains Y or N
   # @param [Symbol] column_name column name to check
@@ -17,31 +17,35 @@ class ApplicationRecord < ActiveRecord::Base
 
   def save(**)
     new_record = new_record?                                                    # call of super toggles the flag
+    changed = changed?                                                          # changed? only valid before excution of super
     retval = super
     log_activity('inserted', self.attributes) if retval && new_record
+    log_activity('updated', { old: @original_attributes, new: self.attributes}) if retval && !new_record && changed
+    @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
     retval
   end
 
   def save!(**)
     new_record = new_record?                                                    # call of super toggles the flag
+    changed = changed?                                                          # changed? only valid before excution of super
     retval = super
     log_activity('inserted', self.attributes) if new_record
+    log_activity('updated', { old: @original_attributes, new: self.attributes}) if !new_record && changed
+    @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
     retval
   end
 
   def update(attributes)
-    retval = super
-    log_activity('updated', attributes) if retval
-    retval
+    @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
+    super
   end
 
   def update!(attributes)
-    retval = super
-    log_activity('updated', attributes)
-    retval
+    @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
+    super
   end
 
-  # destroy! itself calles destroy, so one hook is enough
+  # destroy! itself calls destroy, so one hook is enough
   def destroy
     retval = super
     log_activity('deleted', self.attributes) if retval
