@@ -3,8 +3,8 @@
 This product captures data change events (Insert/Update/Delete) in relational databases by database triggers and immediately transfers the data changes to a Kafka event hub.
 
 The full documentation of this product you may find here:
-- HTML: http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
-- PDF: http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.pdf
+- HTML: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
+- PDF: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.pdf
 
 ![](doc/images/event_flow.svg)
 
@@ -18,7 +18,7 @@ MOVEX Change Data Capture is offered as one single compact Docker image.<br>
 
 ## Quick start demo
 Establish change data capture on Oracle DB including event transfer to Kafka within 10 minutes.<br/>
-[Here you find the howto guide to quickly get up and running.](http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc_demo.html)
+[Here you find the howto guide to quickly get up and running.](https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc_demo.html)
 
 ## Releases
 Production-ready releases are tagged with release number and can be pulled from Docker hub by:<br/>

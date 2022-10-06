@@ -206,7 +206,7 @@ Select a table from the list, then:
 
  * Set the name of the previously created Kafka topic 'hugo'
  * Decide wether to include the Oracle transaction ID into the event or not
- * Choose the kind of message key handling http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html#_using_kafka_keys_to_ensure_sequential_order_of_messages[(See documentation for details)]
+ * Choose the kind of message key handling https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html#_using_kafka_keys_to_ensure_sequential_order_of_messages[(See documentation for details)]
  * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
  ** Decide if flashback query should by used to initialize with existing records only up to the SCN of trigger creation
  ** Optionally place a filter condition to the initialization
@@ -244,7 +244,7 @@ You can evaluate the incoming events in Kafka at your already waiting consumer s
 That's it, enjoy the success (hopefully).
 
 The full story and documentation of MOVEX Change Data Capture you may find here: +
-http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
+https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
 
 == Add ksqlDB
 This is an additional task that's not really necessary for this showcase itself. +
