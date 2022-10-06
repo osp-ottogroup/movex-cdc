@@ -90,7 +90,7 @@ export PUBLIC_PATH
   # Replace the public path in generated md_css and js links of index.html and in js files
   sed -i "
     s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g
-    s/md_css\//$PUBLIC_PATH\/md_css\//g
+    s/md_css\/material/$PUBLIC_PATH\/md_css\/material/g
     " index.html
   sed -i "s/\.\.\/fonts/$PUBLIC_PATH\/fonts/g" md_css/materialdesignicons_5.4.55.min.css
   cd js
