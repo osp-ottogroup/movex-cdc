@@ -6,7 +6,7 @@ ruby '2.6.8'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
-gem 'rails', '6.1.6.1'
+gem 'rails', '6.1.7.0'
 # Use jdbcsqlite3 as the database for Active Record
 gem 'activerecord-jdbcsqlite3-adapter'
 gem 'activerecord-oracle_enhanced-adapter'
