@@ -16,10 +16,11 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
+  - build
   - deploy
 
 generate_asciidoc:
-  stage: deploy
+  stage: build
   script:
     - gem install --no-doc asciidoctor
     - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
