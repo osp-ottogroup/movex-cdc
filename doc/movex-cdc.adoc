@@ -13,12 +13,12 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 :keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
 TIP: This page is not yet fully completed and still under construction.
-Please open an https://gitlab.com/otto-group-solution-provider/movex-cdc/-/issues[issue] if you miss some information.
+Please open an https://gitlab.com/osp-silver/oss/movex-cdc/-/issues[issue] if you miss some information.
 
 
 == Introduction ==
 
-This documentation describes the product MOVEX Change Data Capture which is hosted at https://gitlab.com/otto-group-solution-provider/movex-cdc.
+This documentation describes the product MOVEX Change Data Capture which is hosted at https://gitlab.com/osp-silver/oss/movex-cdc.
 
 === Purpose ===
 **********************************************************************

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.html</loc>
+    <loc>http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html</loc>
   </url>
 
   <url>
-    <loc>https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc.pdf</loc>
+    <loc>http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.pdf</loc>
   </url>
 
   <url>
-    <loc>https://otto-group-solution-provider.gitlab.io/movex-cdc/movex-cdc_demo.html</loc>
+    <loc>http://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc_demo.html</loc>
   </url>
 </urlset>
