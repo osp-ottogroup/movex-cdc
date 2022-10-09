@@ -8,13 +8,14 @@ class HealthCheckController < ApplicationController
   # Should not contain internal secrets
   # called from outside like Docker health check
   def index
+    jwt_validated = validate_jwt.nil?                                           # Does request has been called with valid JWT
     # Check for DOS on health check only if not called with valid JWT
-    unless validate_jwt.nil?
+    unless jwt_validated
       raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
       @@last_call_time = Time.now
     end
 
-    pretty_health_data, return_status = health_check_content
+    pretty_health_data, return_status = health_check_content(jwt_validated: jwt_validated)
     Rails.logger.info('HealthCheckController.index'){ pretty_health_data }
     render json: pretty_health_data, status: return_status
   end
@@ -22,7 +23,7 @@ class HealthCheckController < ApplicationController
   # GET /health_check/status
   # Called by frontend with valid JWT
   def status
-    pretty_health_data, return_status = health_check_content
+    pretty_health_data, return_status = health_check_content(jwt_validated: true)
     render json: pretty_health_data, status: :ok
   end
 
@@ -80,7 +81,9 @@ class HealthCheckController < ApplicationController
 
   private
   # get Hash with health check and return code
-  def health_check_content
+  # @param [TrueClass, FalseClass] jwt_validated Is request called with valid JWT, then additional content becomes visible
+  # @return [Hash, Symbol] Several health check info and status (:ok or :conflict)
+  def health_check_content(jwt_validated:)
     memory_info_hash = ExceptionHelper.memory_info_hash
     health_data = {
       health_check_timestamp:       Time.now,
@@ -127,7 +130,7 @@ class HealthCheckController < ApplicationController
 
     begin
       Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting ThreadHandling.health_check_data" }
-      health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data
+      health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data(jwt_validated: jwt_validated)
     rescue Exception=>e
       health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
     end
@@ -157,14 +160,15 @@ class HealthCheckController < ApplicationController
     Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting thread list" }
     thread_info = []
     Thread.list.sort_by{|t| t.object_id}.each do |t|
-      thread_info << {
+      thread_state = {
         object_id:    t.object_id,
         name:         t.name,
         info:         t == Thread.current ? 'health_check request processing' : (t == Thread.main ? 'Application main thread' : ''),
         status:       t.status,
-        alive:        t.alive?,
-        stacktrace:   t&.backtrace
+        alive:        t.alive?
       }
+      thread_state[:stacktrace] = t&.backtrace if jwt_validated
+      thread_info << thread_state
     end
     health_data[:number_of_threads] = thread_info.count
     health_data[:threads] = thread_info.sort_by {|t| t[:object_id] }
@@ -193,7 +197,7 @@ class HealthCheckController < ApplicationController
     end
     begin
       Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.health_check_data_threads" }
-      health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads
+      health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads(jwt_validated: jwt_validated)
     rescue Exception=>e
       health_data[:warnings] << "\nError reading table_initialization_threads: #{e.class}:#{e.message}"
     end
