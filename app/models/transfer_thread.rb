@@ -285,9 +285,9 @@ class TransferThread
     loop do                                                                     # loop until all records read or max_records_to_read reached
       loop_count += 1
       loop do                                                                   # loop until records read at once are < @max_transaction_size to ensure sorted order
-        loop_count += 1                                                         # count inner loop like outer loop in sum
+        loop_count += 1                                                              # count inner loop like outer loop in sum
 
-        if loop_count > 1000                                                    # protect against infinite loop
+        if loop_count > 1000                                                         # protect against infinite loop
           msg = "TransferThread.read_event_logs_steps: risk of infinite loop. Cancelled now! @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{get_max_sorted_id_distance(partition_name)}, max_records_to_read = #{max_records_to_read}, result.count = #{result.count}"
           Rails.logger.error msg
           raise msg
@@ -305,8 +305,15 @@ class TransferThread
 
         # Discard the read result and prepare next loop execution to reach the limit key_result.count < @max_transaction_size and ensure processing of all smaller IDs
         if get_max_sorted_id_distance(partition_name) >= @max_transaction_size  # Possible to read more than @max_transaction_size records
-          decrease_max_sorted_id_distance(partition_name, 2) # Reduce the distance to ensure all smaller records are catched at next run
-          Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance decreased to #{get_max_sorted_id_distance(partition_name)} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"}
+          # set @max_sorted_id_distances[partition_name] to a value that ensures:
+          # - no more than @max_transaction_size records are read by next read
+          # - more than 0 records are read by next read
+          lowest_key_result_id = nil
+          key_result.each do |r|
+            lowest_key_result_id = r['id'] if lowest_key_result_id.nil? || r['id'] < lowest_key_result_id  # remember the lowest ID
+          end
+          @max_sorted_id_distances[partition_name] = lowest_key_result_id + @max_transaction_size - max_key_event_logs_id_used_for_sql - 1
+          Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance decreased to #{@max_sorted_id_distances[partition_name]} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"}
         else                                                                    # There must exist more records in table with id < @max_key_event_logs_id + max_sorted_id_distance than @max_transaction_size
           @max_key_event_logs_id = get_min_key_id(msg_key_filter_condition, {worker_id: @worker_id}, partition_name) - 1 # Start next run with smaller max. id but ensure to catch at least one record
           Rails.logger.debug('TransferThread.read_event_logs_steps'){"@max_key_event_logs_id decreased to #{@max_key_event_logs_id} because there are still to much records below @max_key_event_logs_id + max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}"}
@@ -329,8 +336,8 @@ class TransferThread
         break
       end
 
-      # Enlarge max_sorted_id_distance up to maximum if less than 1/2 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
-      if key_result.count < @max_transaction_size / 2
+      # Enlarge max_sorted_id_distance up to maximum if less than 1/3 of @max_transaction_size is used, but don't increase distance for possibly empty older partitions
+      if key_result.count < @max_transaction_size / 3
         Rails.logger.debug('TransferThread.read_event_logs_steps'){"Check for increasing of max_sorted_id_distance (#{get_max_sorted_id_distance(partition_name)})#{" for partition #{partition_name}" if partition_name}, @max_key_event_logs_id = #{@max_key_event_logs_id}, @cached_max_event_logs_seq_id = #{@cached_max_event_logs_seq_id}"}
 
         # if old distance is below max known ID then increase distance
@@ -342,7 +349,6 @@ class TransferThread
           increase_max_sorted_id_distance(partition_name, increase_factor)
           Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance increased by factor #{increase_factor} to #{get_max_sorted_id_distance(partition_name)}#{" for partition #{partition_name}" if partition_name}"}
         end
-
       end
     end                                                                         # outer loop
 
@@ -356,6 +362,7 @@ class TransferThread
                   )
 
     # 3. look for records without key value and with larger ID than largest of last run (newer records)
+    # the order does not matter because without a key Kafka uses random partitions
     remaining_records = max_records_to_read - result.count                      # available space for more result records
     # fill rest of buffer with all unlocked records not read by the first SQL (ID>=max_id)
     result.concat read_event_logs_single(fetch_limit:     remaining_records,
@@ -637,33 +644,33 @@ class TransferThread
     max_event_logs_id_from_sequence
   end
 
-  # Set the value per partition
+  # Increase the expected amount of records at read
+  # @param [String] partition_name Name of partitioned of nil (if unpartitioned)
+  # @param [Integer] factor Multiply factor for current value
   def increase_max_sorted_id_distance(partition_name, factor)
-    key = check_max_sorted_id_distance_for_init partition_name
-    @max_sorted_id_distances[key] = ((@max_sorted_id_distances[key] + 1) * factor).to_i
-  end
-
-  def decrease_max_sorted_id_distance(partition_name, factor)
-    key = check_max_sorted_id_distance_for_init partition_name
-    @max_sorted_id_distances[key] = (@max_sorted_id_distances[key] / factor).to_i
+    check_max_sorted_id_distance_for_init partition_name
+    @max_sorted_id_distances[partition_name] = ((@max_sorted_id_distances[partition_name] + 1) * factor).to_i
   end
 
   def get_max_sorted_id_distance(partition_name)
-    key = check_max_sorted_id_distance_for_init partition_name
-    @max_sorted_id_distances[key]
+    check_max_sorted_id_distance_for_init partition_name
+    @max_sorted_id_distances[partition_name]
   end
 
-  def check_max_sorted_id_distance_for_init(external_key)
-    key = external_key ? external_key : 'default'
-    @max_sorted_id_distances[key] = @max_transaction_size * MovexCdc::Application.config.initial_worker_threads unless @max_sorted_id_distances.has_key? key # Initialization
-    key
+  # set the initial size for ID range to select at first usage of external key (startup of thread or first occurrence of a new partition)
+  # @param [String] partition_name Separation criteria for values, partition name or nil if not partitioned
+  def check_max_sorted_id_distance_for_init(partition_name)
+    unless @max_sorted_id_distances.has_key? partition_name # Initialization not already occurred?
+      @max_sorted_id_distances[partition_name] = @max_transaction_size-1        # Ensure less than @max_transaction_size records are read with next read attempt
+      Rails.logger.debug('TransferThread.check_max_sorted_id_distance_for_init') { "Initializing @max_sorted_id_distances for partition = '#{partition_name}' to #{@max_sorted_id_distances[partition_name]}"}
+    end
   end
 
   def housekeep_max_sorted_id_distance(partition_names)
     @max_sorted_id_distances.each do |key, value|
-      if key != 'default' && !partition_names.include?(key)
+      if !key.nil? && !partition_names.include?(key)
         @max_sorted_id_distances.delete(key)
-        Rails.logger.debug('TransferThread.housekeep_max_sorted_id_distance'){"Removed entry for partition #{key}"}
+        Rails.logger.debug('TransferThread.housekeep_max_sorted_id_distance'){"Removed entry for partition '#{key}'"}
       end
     end
   end

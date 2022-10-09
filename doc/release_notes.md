@@ -3,6 +3,11 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2022-10-09 Release 1.10.9
+- Update to OpenJDK 19, jRuby 9.3.8.0, Kafka 3.2.3, Rails 6.1.7
+- Bugfix: constant public path for materialdesignicons_5.4.55.min.css even after multiple docker start
+- Bugfix: 'risk of infinite loop. Cancelled now!': Calculation of selected range adjusted for resilience accoring to this error
+
 ## 2022-09-15 Release 1.10.8
 - Bugfix: TypeError:no implicit conversion of Symbol into Integer in debug output
 - Log also original attributes before updated in Activity_Logs

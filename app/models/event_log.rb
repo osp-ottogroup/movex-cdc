@@ -134,7 +134,7 @@ class EventLog < ApplicationRecord
   # Drop the partition if it is empty and no transactions are pending
   # @param partition_name: Partition to process
   # @param caller: Name of calling module
-  # @param {TrueClass|FalseClass} lock_already_checked: signal if partition is already checked for pending transactions
+  # @param [TrueClass] lock_already_checked: signal if partition is already checked for pending transactions
   def self.check_and_drop_partition(partition_name, caller, lock_already_checked: false)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
@@ -156,11 +156,11 @@ class EventLog < ApplicationRecord
   end
 
   # Is partition in a state that it can be dropped
-  # @param {String} partition_name
-  # @param {Integer} partition_position
-  # @param {String} high_value
-  # @param {String} caller
-  # @param {TrueClass|FalseClass} lock_already_checked: signal if partition is already checked for pending transactions
+  # @param [String] partition_name
+  # @param [Integer] partition_position
+  # @param [String] high_value
+  # @param [String] caller
+  # @param [TrueClass] lock_already_checked signal if partition is already checked for pending transactions
   def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller, lock_already_checked: false)
     Rails.logger.debug(caller) { "Check partition #{partition_name} with high value #{high_value} for deletion" }
 
