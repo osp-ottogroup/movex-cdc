@@ -66,7 +66,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     # Check if the number of processed messages matches with amount to process
     successful_messages_processed   = 0
     message_processing_errors       = 0
-    health_check_data = ThreadHandling.get_instance.health_check_data
+    health_check_data = ThreadHandling.get_instance.health_check_data(jwt_validated: true)
     Rails.logger.info('ThreadHandlingTest.process'){ "Health check data: #{health_check_data}" }
     health_check_data.each do |hd|
       successful_messages_processed  += hd[:successful_messages_processed]
