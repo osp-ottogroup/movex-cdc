@@ -68,6 +68,10 @@ class Database
     result[0]
   end
 
+  # Select a single scalar value from DB
+  # @param [String] sql the SQL statement with aliases as :alias
+  # @param [Hash] filter the used filtes als key/value pairs "alias: value"
+  # @return [Any] the selected value
   def self.select_one(sql, filter = {})
     result = select_first_row(sql, filter)
     return nil if result.nil?
