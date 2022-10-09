@@ -32,7 +32,7 @@ RUN npm run build
 RUN npm audit --production
 
 # STAGE 2: JRE build
-FROM openjdk:18 as openjdk
+FROM openjdk:19 as openjdk
 
 # Build small JRE image
 RUN $JAVA_HOME/bin/jlink \
