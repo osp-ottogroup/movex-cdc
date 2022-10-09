@@ -312,7 +312,7 @@ class TransferThread
           key_result.each do |r|
             lowest_key_result_id = r['id'] if lowest_key_result_id.nil? || r['id'] < lowest_key_result_id  # remember the lowest ID
           end
-          @max_sorted_id_distances[partition_name] = lowest_key_result_id + @max_transaction_size - max_key_event_logs_id_used_for_sql -1
+          @max_sorted_id_distances[partition_name] = lowest_key_result_id + @max_transaction_size - max_key_event_logs_id_used_for_sql - 1
           Rails.logger.debug('TransferThread.read_event_logs_steps'){"max_sorted_id_distance decreased to #{@max_sorted_id_distances[partition_name]} #{"for partition #{partition_name} " if partition_name}because the number of read events should be less than #{key_result.count}"}
         else                                                                    # There must exist more records in table with id < @max_key_event_logs_id + max_sorted_id_distance than @max_transaction_size
           @max_key_event_logs_id = get_min_key_id(msg_key_filter_condition, {worker_id: @worker_id}, partition_name) - 1 # Start next run with smaller max. id but ensure to catch at least one record
