@@ -65,12 +65,12 @@ class TableInitialization
   # get health check status from all initialization threads
   # @param [TrueClass, FalseClass] jwt_validated Is request called with valid JWT, then additional content becomes visible
   # @return [Array] Array with health state hash of all initialization threads
-  def health_check_data_threads(jwt_validate:)
+  def health_check_data_threads(jwt_validated:)
     result = []
     ExceptionHelper.limited_wait_for_mutex(mutex: @thread_pool_mutex, raise_exception: true)
     @thread_pool_mutex.synchronize do
       @thread_pool.each do |t|
-        result << t.thread_state(without_stacktrace: !jwt_validate)
+        result << t.thread_state(without_stacktrace: !jwt_validated)
       end
     end
     result.sort_by {|e| e[:table_id]}
