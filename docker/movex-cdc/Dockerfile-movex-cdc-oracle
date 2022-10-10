@@ -7,7 +7,7 @@
 # Run container:    > docker run -p 8080:8080 -e DB_PASSWORD=movex -e DB_USER=movex -e LOG_LEVEL=debug movex-cdc
 
 # STAGE 1: build movex-cdc frontend
-FROM node:14-alpine AS frontend_build
+FROM node:16-alpine AS frontend_build
 
 ENV FRONTEND_SRC_PATH=frontend
 
@@ -45,7 +45,7 @@ RUN $JAVA_HOME/bin/jlink \
          --output /customjre
 
 # STAGE 3: build movex-cdc backend
-FROM oraclelinux:8-slim
+FROM oraclelinux:9-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
@@ -59,9 +59,9 @@ ENV PATH "${JAVA_HOME}/bin:/opt/jruby-$JRUBY_VERSION/bin:$PATH"
 COPY --from=openjdk /customjre $JAVA_HOME
 
 RUN   echo "### microdnf update" && \
-      microdnf update && \
+      microdnf -y update && \
       echo "### apk add missing tools" && \
-      microdnf install curl bash tar wget gzip procps findutils vim tzdata && \
+      microdnf -y install curl bash tar wget gzip procps findutils vim tzdata && \
       echo "### install java" && \
       echo "### get jRuby" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
