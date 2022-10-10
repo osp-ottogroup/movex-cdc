@@ -58,7 +58,7 @@ class Database
     end
     result
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}\nUsed binds: #{filter}")
     raise
   end
 
