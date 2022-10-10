@@ -124,7 +124,7 @@ class DatabaseOracle
       Rails.logger.info('DatabaseOracle.select_all_limit'){ "Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}" }
       []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
     else
-      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt}") # force exception other than ORA-xxx
+      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt};\nUsed binds: #{filter}") # force exception other than ORA-xxx
       raise
     end
   end
