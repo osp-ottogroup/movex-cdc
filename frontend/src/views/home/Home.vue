@@ -17,6 +17,8 @@
 <script>
 import ContactPerson from '@/components/ContactPerson.vue';
 import HttpService from '@/services/HttpService';
+import TokenService from '@/services/TokenService';
+import LoginService from '@/services/LoginService';
 import Config from '@/config/config';
 
 export default {
@@ -31,6 +33,11 @@ export default {
     };
   },
   async created() {
+    // Directly call login page at first start instead of calling backoffice service without JWT which produces an error event there
+    if (TokenService.getAccessToken() === null) {
+      LoginService.logout();
+    }
+
     try {
       this.isLoading = true;
       const response = await HttpService.get(`${Config.backendUrl}/health_check/config_info`);
