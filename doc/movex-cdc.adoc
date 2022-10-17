@@ -168,7 +168,9 @@ To ensure sufficient user rights the schema owner for MOVEX CDC can also be crea
 |Grant|Description
 
 |CONNECT|Allows establishing session
-|CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
+|CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database. +
+ +
+If it will be impossible to get the CREATE ANY TRIGGER privilege, then MOVEX CDC can also be run inside the observed schema. Set DB_USER to the name of the schema to observe in this case. MOVEX CDC's function is then restricted to this particular schema.
 |CREATE VIEW|Allows creation of views in MOVEX CDC's DB schema
 |RESOURCE|Allows creation of tables in own schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
