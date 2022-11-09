@@ -432,7 +432,8 @@ class TransferThread
           topic = table.topic_to_use
           @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
           begin
-            @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key']) # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
+            # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
+            @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key'], headers: create_message_headers(event_log, table))
           rescue Kafka::BufferOverflow => e
             handle_kafka_buffer_overflow(e, kafka_message, topic, table)
             raise                                                               # Ensure transaction is rolled back an retried
@@ -732,6 +733,25 @@ class TransferThread
     new_sleep_time = max_sleep_time if new_sleep_time > max_sleep_time          # Correct to max. if current + step exceeds maximum
     new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes are fast enough, reduce sleep time
     new_sleep_time
+  end
+
+  # Create header hash for an event if requested
+  # @param [EventLog] event_log the message to process
+  # @param [Table] table cached table record
+  # @return [Hash]
+  def create_message_headers(event_log, table)
+    if table.yn_add_cloudevents_header == 'N'
+      {}
+    else
+      {
+        ce_id:              event_log['id'].to_s,
+        ce_source:          MovexCdc::Application.config.cloudevents_source,
+        ce_specversion:     '1.0',
+        ce_type:            "MOVEX-CDC:#{MovexCdc::Application.config.build_version}",
+        ce_time:            timestamp_as_iso_string(event_log['created_at']),
+        ce_datacontenttype: 'application/json'
+      }
+    end
   end
 
 end

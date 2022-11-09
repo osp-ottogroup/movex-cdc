@@ -6,24 +6,31 @@ class KafkaMock
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
     end
 
-    def produce(message, options)
+    def produce(message, key: nil, topic: nil, headers: {})
       raise "KafkaMock::MessageSizeTooLargeException" if message.bytesize > 1024*1024 # identical behavior like Kafka default for message.max.size
+      raise 'Topic should not be null' if topic.nil?
       msg_hash = JSON.parse message                                             # ensure correct JSON notation
-      # Rails.logger.debug('KafkaMock.produce'){msg_hash}                         # only for special tests, may be commented out
-      if options[:key]                                                          # for keyed messages ID should be ascending
+      # Rails.logger.debug('KafkaMock.produce'){msg_hash}                       # only for special tests, may be commented out
+      if key                                                                    # for keyed messages ID should be ascending
         # suspended until decision about fixing JSON error in PK keys
-        JSON.parse options[:key] if options[:key][0] == '{'                     # key should contain valid JSON if Key contains JSON (e.g. for primary key)
+        JSON.parse key if key[0] == '{'                     # key should contain valid JSON if Key contains JSON (e.g. for primary key)
         next_id = msg_hash['id'].to_i
         if next_id <= @last_produced_id
           raise "KafkaMock::Producer.produce: Ascending order of IDs violated for messages with key! Current ID = #{next_id}, Last used ID = #{@last_produced_id}"
         end
         @last_produced_id = next_id
       end
+
+      case msg_hash['tablename']
+      when 'VICTIM1' then
+        raise 'Events for table VICTIM1 should have event headers! Missing header ce_id' if !headers.has_key?(:ce_id)
+      when 'VICTIM2' then
+        raise 'Events for table VICTIM2 should not have event headers' if headers.count > 0
+      end
     rescue JSON::ParserError => e
       msg = "#{e.class} #{e.message} while parsing #{message}"
       Rails.logger.error('KafkaMock.produce'){ msg }
       raise msg
-#      Rails.logger.debug('KafkaMock.produce'){ "options = #{options}, message=\n#{message}" }
     end
 
     def deliver_messages

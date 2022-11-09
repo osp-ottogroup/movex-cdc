@@ -87,12 +87,7 @@ class LoginController < ApplicationController
     raise "Release info called too frequently" if Time.now - 1.seconds < @@last_call_time_release_info   # suppress DOS attacks
     @@last_call_time_release_info = Time.now
 
-    begin
-      release_info = File.read('/app/build_version')
-    rescue Exception => e
-      release_info = "No docker release info to read: #{e.class} #{e.message}"
-    end
-    render json: { release_info: release_info}, status: :ok
+    render json: { release_info: MovexCdc::Application.config.build_version}, status: :ok
   end
 
   private
