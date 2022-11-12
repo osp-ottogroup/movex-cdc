@@ -37,14 +37,27 @@
                    v-model="internalTable.topic"/>
         </b-field>
 
-        <b-field label="Record Transaction-ID">
-          <b-tooltip label="Add DB transaction ID to JSON data of event?" position="is-right" size="is-small">
-            <b-switch v-model="internalTable.yn_record_txid"
-            @input="onRecordTxIdChanged"
-            true-value="Y"
-            false-value="N"/>
-          </b-tooltip>
-        </b-field>
+        <div class="columns is-1 is-variable">
+          <div class="column">
+            <b-field label="Record Transaction-ID">
+              <b-tooltip label="Add DB transaction ID to JSON data of event?" position="is-right" size="is-small">
+                <b-switch v-model="internalTable.yn_record_txid"
+                @input="onRecordTxIdChanged"
+                true-value="Y"
+                false-value="N"/>
+              </b-tooltip>
+            </b-field>
+          </div>
+          <div class="column">
+            <b-field label="CloudEvents header">
+              <b-tooltip label="Add CloudEvents header to each event?" position="is-bottom" size="is-small">
+                <b-switch v-model="internalTable.yn_add_cloudevents_header"
+                true-value="Y"
+                false-value="N"/>
+              </b-tooltip>
+            </b-field>
+          </div>
+        </div>
 
         <b-field label="Kafka Key Handling">
           <b-field>

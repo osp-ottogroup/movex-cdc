@@ -17,6 +17,7 @@ require "rails/test_unit/railtie"
 
 require 'yaml'
 require 'java'
+require 'socket'
 
 
 # Require the gems listed in Gemfile, including any gems
@@ -162,7 +163,15 @@ module MovexCdc
       raise "unsupported DB type '#{config.db_type}'"
     end
 
+    build_version = ''
+    begin
+      build_version = File.read(Rails.root.join('build_version'))&.delete("\n")
+    rescue Errno::ENOENT
+      build_version = 'File ./build_version does not exist'
+    end
 
+    MovexCdc::Application.set_and_log_attrib_from_env(:build_version, default: build_version)
+    MovexCdc::Application.set_and_log_attrib_from_env(:cloudevents_source, default: "MOVEX-CDC-#{Socket.gethostname}")
     MovexCdc::Application.set_and_log_attrib_from_env(:db_password)
     MovexCdc::Application.set_and_log_attrib_from_env(:db_query_timeout, default: 600, integer: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:db_url, accept_empty: config.db_type == 'SQLITE')

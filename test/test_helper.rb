@@ -520,7 +520,8 @@ class GlobalFixtures
         @@victim1_table = Table.new(schema_id:  @@victim_schema.id,
                                     name:       'VICTIM1',
                                     info:       'Victim table in separate schema for use with triggers. Does not contain CLOB column.',
-                                    topic:      KafkaHelper.existing_topic_for_test
+                                    topic:      KafkaHelper.existing_topic_for_test,
+                                    yn_add_cloudevents_header: 'Y'
         )
         @@victim1_table.save!
 
@@ -528,7 +529,8 @@ class GlobalFixtures
         @@victim2_table = Table.new(schema_id:  @@victim_schema.id,
                                     name:       'VICTIM2',
                                     info:       'Victim table in separate schema for use with triggers. Contains CLOB column.',
-                                    topic:      KafkaHelper.existing_topic_for_test
+                                    topic:      KafkaHelper.existing_topic_for_test,
+                                    yn_add_cloudevents_header: 'N'
         )
         @@victim2_table.save!
 

@@ -2,6 +2,7 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+- CloudEvents header at Kafka events possible per source table
 
 ## 2022-10-09 Release 1.10.9
 - Update to OpenJDK 19, jRuby 9.3.8.0, Kafka 3.2.3, Rails 6.1.7

@@ -10,17 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2022_09_15_000000) do
+ActiveRecord::Schema.define(version: 2022_11_03_000000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
     t.string "schema_name", limit: 256, comment: "Name of schema"
     t.string "table_name", limit: 256, comment: "Name of table"
     t.string "column_name", limit: 256, comment: "Name of column"
+    t.text "action", null: false, comment: "Executed action / activity"
     t.string "client_ip", limit: 40, comment: "Client IP address for request"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.text "action"
     t.index ["schema_name", "table_name", "column_name"], name: "ix_activity_log_tabcol"
     t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
@@ -128,6 +128,7 @@ ActiveRecord::Schema.define(version: 2022_09_15_000000) do
     t.string "initialization_filter", limit: 4000, comment: "SQL filter expression to filter current content of table before transferred to Kafka as insert events at next trigger generation"
     t.string "initialization_order_by", limit: 4000, comment: "Optionally sort current content of table before transferred to Kafka as insert events at next trigger generation"
     t.string "yn_initialize_with_flashback", limit: 1, default: "Y", null: false, comment: "Should flashback query used to init only records before create trigger SCN"
+    t.string "yn_add_cloudevents_header", limit: 1, default: "N", null: false, comment: "Should Kafka message headers be added according to CloudEvents standard"
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end

@@ -87,7 +87,7 @@ class HealthCheckController < ApplicationController
     memory_info_hash = ExceptionHelper.memory_info_hash
     health_data = {
       health_check_timestamp:       Time.now,
-      build_version:                'unknown',
+      build_version:                MovexCdc::Application.config.build_version,
       database_url:                 MovexCdc::Application.config.db_url,
       kafka_seed_broker:            MovexCdc::Application.config.kafka_seed_broker,
       start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
@@ -97,12 +97,6 @@ class HealthCheckController < ApplicationController
       kafka_max_bulk_count:         MovexCdc::Application.config.kafka_max_bulk_count,
       max_transaction_size:   MovexCdc::Application.config.max_transaction_size
     }
-
-    begin
-      health_data[:build_version] = File.read(Rails.root.join('build_version'))&.delete("\n")
-    rescue Errno::ENOENT
-      health_data[:build_version] = 'File ./build_version does not exist'
-    end
 
     begin
       if memory_info_hash[:available_memory][:value] / memory_info_hash[:total_memory][:value] < 0.1

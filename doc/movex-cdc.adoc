@@ -168,7 +168,9 @@ To ensure sufficient user rights the schema owner for MOVEX CDC can also be crea
 |Grant|Description
 
 |CONNECT|Allows establishing session
-|CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database
+|CREATE ANY TRIGGER|Allows creation and dropping of triggers in foreign schemas of database. +
+ +
+If it will be impossible to get the CREATE ANY TRIGGER privilege, then MOVEX CDC can also be run inside the observed schema. Set DB_USER to the name of the schema to observe in this case. MOVEX CDC's function is then restricted to this particular schema.
 |CREATE VIEW|Allows creation of views in MOVEX CDC's DB schema
 |RESOURCE|Allows creation of tables in own schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
@@ -240,6 +242,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |===
 |Variable|Description|Default value
 
+|CLOUDEVENTS_SOURCE|Fixed value for event header 'ce_source' if CloudEvents headers are requested for a table|MOVEX-CDC-<hostname>
 |DB_DEFAULT_TIMEZONE|Timezone value for internal DB timestamp, used for correct timezone setting of event timestamp. Default should be overwritten only if DB timezone settings are incorrect. E.g. "+00:00" for GMT.|Internal time zone setting of DB
 |DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user)|
@@ -460,6 +463,7 @@ Possible configuration actions are:
 ** modify topic name per table
 ** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
 ** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
+** decide if header values according to CloudEvents standard shout be set for each event
 ** decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
 * modify triggering of change events per column
 ** Define the operations (insert/update(delete) to capture for a column
