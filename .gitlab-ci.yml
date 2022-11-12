@@ -296,7 +296,7 @@ docker_test_oracle_12.1:
   stage: post_build
   extends: .docker_test
   services:
-    - name: git.osp-dd.de:5005/pramm/panorama_gem_ci/database_prebuilt:12.2.0.1-ee
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
   variables:
     DB_TYPE: ORACLE
