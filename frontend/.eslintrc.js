@@ -7,13 +7,18 @@ module.exports = {
     'plugin:vue/essential',
     '@vue/airbnb',
   ],
+  parserOptions: {
+    parser: '@babel/eslint-parser',
+  },
   rules: {
     'no-console': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
     'max-len': ['error', 150],
-  },
-  parserOptions: {
-    parser: 'babel-eslint',
+    // disabel accessibility rules for the time being
+    'vuejs-accessibility/aria-props': 'off',
+    'vuejs-accessibility/label-has-for': 'off',
+    'vuejs-accessibility/click-events-have-key-events': 'off',
+    'vuejs-accessibility/anchor-has-content': 'off',
   },
   overrides: [
     {
