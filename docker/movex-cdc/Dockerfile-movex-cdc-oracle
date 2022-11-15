@@ -52,7 +52,7 @@ MAINTAINER Peter.Ramm@ottogroup.com
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
 ENV RAILS_MAX_THREADS=300
-ENV JRUBY_VERSION=9.3.8.0
+ARG JRUBY_VERSION
 ENV JAVA_HOME=/opt/jre
 ENV PATH "${JAVA_HOME}/bin:/opt/jruby-$JRUBY_VERSION/bin:$PATH"
 
