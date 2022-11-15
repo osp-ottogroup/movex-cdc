@@ -606,6 +606,25 @@ Depending on table configuration Kafka messages may contain an additional key va
 |new|values of observed columns after triggering event
 |===
 
+==== Optional CloudEvents header values
+If requested by table configuration, additional header information can be added to each Kafka event according to the https://cloudevents.io[CloudEvents] standard.
+
+.used CloudEvents header attributes
+[cols="~,~"]
+|===
+|Header key|Explanation
+
+|ce_id|The ID of the event
+|ce_source|The source system name according to environment entry CLOUDEVENTS_SOURCE
+|ce_specversion|CloudEvents specification version: fixed value '1.0'
+|ce_type|MOVEX CDC's release number
+|ce_time|The creation timestamp of the database event
+|ce_datacontenttype| Fixed value 'application/json',
+|ce_schema|The schema name of the source table of the event in the database
+|ce_tablename|The name of the source table of the event in the database
+|===
+
+
 ==== Example of initial load message ====
 
 [source, json]

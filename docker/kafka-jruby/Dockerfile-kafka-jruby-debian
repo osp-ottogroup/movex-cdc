@@ -4,8 +4,8 @@
 # Peter Ramm, 2020-03-17
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-jruby-debian --no-cache -t git.osp-dd.de:5005/main/movex-cdc/kafka-jruby:9.2.15.0-jre11 .
-# Run container:    > docker run  git.osp-dd.de:5005/main/movex-cdc/kafka-jruby:9.2.15.0-jre11
+# Build image:      > docker build -f Dockerfile-kafka-jruby-debian --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.3.9.0-jre11 .
+# Run container:    > docker run  registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.3.9.0-jre11
 # Use
 
 ARG JRUBY_VERSION=9.2.15.0
