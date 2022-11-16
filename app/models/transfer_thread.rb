@@ -751,7 +751,8 @@ class TransferThread
         ce_time:            timestamp_as_iso_string(event_log['created_at']),
         ce_datacontenttype: 'application/json',
         ce_schema:          table.schema.name,
-        ce_tablename:       table.name
+        ce_tablename:       table.name,
+        ce_operation:       KeyHelper.long_operation_from_short(event_log['operation'])
       }
     end
   end
