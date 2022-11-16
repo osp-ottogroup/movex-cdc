@@ -120,3 +120,4 @@ fi
 # "exec ..." ensures that rails server runs in the same process like shell script before
 # this ensures that MOVEX CDC application is gracefully shut down at docker stop
 exec bundle exec rails server --port 8080 --environment production
+echo "run-movex-cdc.sh: server process terminated with RC=$?"

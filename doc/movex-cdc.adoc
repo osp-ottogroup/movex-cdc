@@ -622,6 +622,7 @@ If requested by table configuration, additional header information can be added 
 |ce_datacontenttype| Fixed value 'application/json',
 |ce_schema|The schema name of the source table of the event in the database
 |ce_tablename|The name of the source table of the event in the database
+|ce_operation|The operation type (INSERT, UPDATE, DELETE, INIT)
 |===
 
 
@@ -752,6 +753,7 @@ If requested in table config, after generation of trigger a job will be created 
 For each record in the table existing at the time of trigger creation an insert-like event will be transferred to Kafka.
 The field 'operation' is marked INIT instead of INSERT to be able to distinguish between real insert events and initial load events.
 The table's filter condition for insert operation as well as the filter condition for initialization are considered. +
+Columns of the originating table can be reference in initialization filter condition by "<tablename>.<columnname>".
 This jobs are queued and processed deferred asynchronously.
 The maximum number of simultaneously processed table initialization jobs is limited by the environment setting MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS.
 
