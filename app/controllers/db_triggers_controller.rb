@@ -46,8 +46,8 @@ class DbTriggersController < ApplicationController
   # POST /db_triggers/generate_all
   # Generate triggers for all schema the user has rights for
   # Parameter: dry_run (true|false), table_id_list ( [] )
-  # returns with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
-  # returns with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
+  # @return [Hash] with status :ok { results: [ { schema_name:, successes: [], errors: []}, ... ]}
+  #   with status :internal_server_error { results: [ { schema_name:, successes: [], errors: []}, ... ], errors: []}
   def generate_all
     prepare_generate_params
     schema_rights = SchemaRight.where(user_id: ApplicationController.current_user.id, yn_deployment_granted: 'Y')
