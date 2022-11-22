@@ -1006,5 +1006,6 @@ If want to exactly define the timestamp of change, then: +
 - Wait until all worker threads have finished. You can check this by health check. +
 - change the topic in GUI +
 - set the worker count to > 0. Now the new topic is used for transfer to Kafka.
+|The Docker container quits unexpected with return code 137|Out of memory event reached inside the container. Mostly due to Java heap evolution. Solution: Reduce the amount of memory that is available for Java by setting `JAVA_OPTS=-Xmx...m` in environment (for example `JAVA_OPTS=-Xmx4096m` limits to 4 GB)
 
 |===
