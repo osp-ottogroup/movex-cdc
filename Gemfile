@@ -22,6 +22,9 @@ gem 'ruby-kafka', '1.5.0'
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible
 gem 'rack-cors'
 
+# Avoid error "env: 'jruby_executable_hooks': No such file or directory" at startup in Docker image
+# gem 'executable-hooks'
+
 # Compression tools valid for Kafka
 gem 'snappy'
 # 'extlz4' and 'zstd-ruby' causes install errors due to missing development tools / not supported by jRuby
