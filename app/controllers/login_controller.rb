@@ -14,7 +14,7 @@ class LoginController < ApplicationController
   @@last_call_time_do_logon = Time.now-100.seconds                              # ensure enough distance at startup
   def do_logon
     permitted = params.permit(:email, :password)
-    email     = prepare_param permitted, :email
+    email     = defuse_email(prepare_param(permitted, :email))
     password  = prepare_param permitted, :password
     error_msg = ''
 
@@ -93,6 +93,9 @@ class LoginController < ApplicationController
   private
 
   # do authenticate against database, return nil for success or error message
+  # @param [String] user
+  # @param [String] password
+  # @return [NilClass] nil if user is successfully authenticated or exception
   def authenticate(user, password)
     raise "Account is locked for '#{user.email}'" if user.yn_account_locked == 'Y'
     case MovexCdc::Application.config.db_type
@@ -114,4 +117,21 @@ class LoginController < ApplicationController
     e.message
   end
 
+  MAX_ACCEPTED_EMAIL_LENGTH = 30                                                # Suppress forcing of logfile rotation with huge parameters
+  # remove potential security risks from email or user name
+  # @param [String] original_email
+  # @return [String] defused email or user name
+  def defuse_email(original_email)
+    retval = original_email
+    if retval.length > MAX_ACCEPTED_EMAIL_LENGTH                                # Suppress forcing of logfile rotation with huge parameters
+      Rails.logger.error('LoginController.do_logon') { "Logon attempt with too large email length = #{retval.length} : #{request_log_attributes}"}
+      retval = retval[0, MAX_ACCEPTED_EMAIL_LENGTH] + '..'
+    end
+    match_str = /\n|\r/
+    if retval.match(match_str)
+      Rails.logger.error('LoginController.do_logon') { "Logon attempt with email containing line feeds: #{request_log_attributes}"}
+      retval.gsub!(match_str, '_')
+    end
+    retval
+  end
 end

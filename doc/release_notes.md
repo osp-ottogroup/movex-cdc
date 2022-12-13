@@ -3,6 +3,9 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2022-12-13 Release 1.10.11
+- Bugfix: wrong URL for css file after docker start with suffixed URL
+
 ## 2022-11-14 Release 1.10.10
 - CloudEvents header at Kafka events possible per source table
 

@@ -85,16 +85,20 @@ else
 fi
 export PUBLIC_PATH
 (
-  cd public
-  # TODO: move material design icons to npm, up to then adjust the path for link and font files
-  # Replace the public path in generated md_css and js links of index.html and in js files
-  sed -i "
-    s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g
-    s/md_css\/material/$PUBLIC_PATH\/md_css\/material/g
-    " index.html
-  sed -i "s/\.\.\/fonts/$PUBLIC_PATH\/fonts/g" md_css/materialdesignicons_5.4.55.min.css
-  cd js
-  sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" *
+  if [ ! -f  public_path_replaced ]; then
+    # Ensure that this step is executed at "docker run" only and not repeated at every "docker start"
+    touch public_path_replaced
+    cd public
+    # TODO: move material design icons to npm, up to then adjust the path for link and font files
+    # Replace the public path in generated md_css and js links of index.html and in js files
+    sed -i "
+      s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g
+      s/md_css\/material/$PUBLIC_PATH\/md_css\/material/g
+      " index.html
+    sed -i "s/\.\.\/fonts/$PUBLIC_PATH\/fonts/g" md_css/materialdesignicons_5.4.55.min.css
+    cd js
+    sed -i "s/\/REPLACE_PUBLIC_PATH_BEFORE/$PUBLIC_PATH/g" *
+  fi
 )
 
 # Default setting Java heap if not already set by JAVA_OPTS: Set to 75% of available mem

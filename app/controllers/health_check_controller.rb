@@ -39,6 +39,7 @@ class HealthCheckController < ApplicationController
     # array with info-hashes to display at home screen { name: xxx, value: yyy }
     info = []
     # info << { name: 'LOG_LEVEL: ',            value: KeyHelper.log_level_as_string}
+    info << build_info_record(:cloudevents_source,                'Source info for CloudEvents header ce_source')
     info << build_info_record(:db_query_timeout,                  'Timeout for DB selections')
     info << build_info_record(:db_type,                           'Database type')
     info << build_info_record(:db_url,                            'Database URL')

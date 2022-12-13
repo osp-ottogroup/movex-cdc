@@ -23,7 +23,7 @@ gem 'ruby-kafka', '1.5.0'
 gem 'rack-cors'
 
 # Avoid error "env: 'jruby_executable_hooks': No such file or directory" at startup in Docker image
-# gem 'executable-hooks'
+#   gem 'executable-hooks'
 
 # Compression tools valid for Kafka
 gem 'snappy'
