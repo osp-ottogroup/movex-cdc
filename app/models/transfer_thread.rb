@@ -155,7 +155,8 @@ class TransferThread
         producer_options[:compression_codec]             = MovexCdc::Application.config.kafka_compression_codec.to_sym        if MovexCdc::Application.config.kafka_compression_codec != 'none'
 
         Rails.logger.debug('TransferThread.create_kafka_producer'){"creating Kafka producer with options: #{producer_options}"}
-        kafka_producer = kafka.producer(producer_options)
+        # **producer_options instead of producer_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
+        kafka_producer = kafka.producer(**producer_options)
 
         Rails.logger.debug('TransferThread.create_kafka_producer'){"calling kafka_producer.init_transactions"}
         kafka_producer.init_transactions                                        # Should be called once before starting transactions

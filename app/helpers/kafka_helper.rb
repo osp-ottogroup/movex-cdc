@@ -20,7 +20,8 @@ module KafkaHelper
     # kafka_options[:ssl_verify_hostname]           = false
     kafka_options[:sasl_plain_username]  = MovexCdc::Application.config.kafka_sasl_plain_username if MovexCdc::Application.config.kafka_sasl_plain_username
     kafka_options[:sasl_plain_password]  = MovexCdc::Application.config.kafka_sasl_plain_password if MovexCdc::Application.config.kafka_sasl_plain_password
-    kafka_class.new(seed_brokers, kafka_options)                                # return instance of Kafka
+    # **kafka_options instead of kafka_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
+    kafka_class.new(seed_brokers, **kafka_options)                                # return instance of Kafka
   end
 
   # Check topic for existence at Kafka
