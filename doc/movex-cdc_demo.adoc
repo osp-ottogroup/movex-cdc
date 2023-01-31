@@ -17,7 +17,8 @@ Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
 
 == Introduction ==
 
-This demo describes how to use the product *MOVEX Change Data Capture* which is hosted at https://gitlab.com/osp-silver/oss/movex-cdc.
+This demo describes how to use the product *MOVEX Change Data Capture* which is hosted at https://gitlab.com/osp-silver/oss/movex-cdc. +
+A detailed documentation of this product you find at: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html.
 
 == Preconditions
 - A running local Oracle database with an existing user to observe
@@ -50,7 +51,7 @@ export SOURCE_DB_PASSWORD=my_observed_schema_pw
 == Prepare Kafka
 
 === Run Kafka container
-We use an own Docker image that combines Zookeeper and Kafka in one image.
+For demo purposes we use an own Docker image that combines Zookeeper and Kafka in one image.
 The command will log the Kafka console output and block until termination by Ctrl-C.
 ----
 docker run --rm \
