@@ -50,7 +50,7 @@ export SOURCE_DB_PASSWORD=my_observed_schema_pw
 == Prepare Kafka
 
 === Run Kafka container
-We use an own Docker image that combines Zookeeper and Kafka in one image.
+For demo purposes we use an own Docker image that combines Zookeeper and Kafka in one image.
 The command will log the Kafka console output and block until termination by Ctrl-C.
 ----
 docker run --rm \
