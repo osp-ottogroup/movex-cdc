@@ -23,6 +23,9 @@ class ApplicationRecord < ActiveRecord::Base
     log_activity('updated', { old: @original_attributes, new: self.attributes}) if retval && !new_record && changed
     @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
     retval
+  rescue Exception => e
+    Rails.logger.error('ApplicationRecord.save') { "#{e.message}, attributes: #{self.attributes}" }
+    raise
   end
 
   def save!(**)
@@ -33,16 +36,25 @@ class ApplicationRecord < ActiveRecord::Base
     log_activity('updated', { old: @original_attributes, new: self.attributes}) if !new_record && changed
     @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
     retval
+  rescue Exception => e
+    Rails.logger.error('ApplicationRecord.save!') { "#{e.message}, attributes: #{self.attributes}" }
+    raise
   end
 
   def update(attributes)
     @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
     super
+  rescue Exception => e
+    Rails.logger.error('ApplicationRecord.update') { "#{e.message}, attributes: #{self.attributes}" }
+    raise
   end
 
   def update!(attributes)
     @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
     super
+  rescue Exception => e
+    Rails.logger.error('ApplicationRecord.update!') { "#{e.message}, attributes: #{self.attributes}" }
+    raise
   end
 
   # destroy! itself calls destroy, so one hook is enough
@@ -50,6 +62,9 @@ class ApplicationRecord < ActiveRecord::Base
     retval = super
     log_activity('deleted', self.attributes) if retval
     retval
+  rescue Exception => e
+    Rails.logger.error('ApplicationRecord.destroy') { "#{e.message}, attributes: #{self.attributes}" }
+    raise
   end
 
 

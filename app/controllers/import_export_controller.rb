@@ -34,19 +34,14 @@ class ImportExportController < ApplicationController
     # following function removes this empty string element from arrays
     check_array_for_empty_string_element(json_data['schemas'])
     check_array_for_empty_string_element(json_data['users'])
-
-    ActiveRecord::Base.transaction do
-      ImportExportConfig.new.import_schemas(json_data, schema_name_to_pick: single_schema_name)
-    end
+    ImportExportConfig.new.import_schemas(json_data, schema_name_to_pick: single_schema_name)
   end
 
   # Import all users as they are incl. admin rights
   # post 'import_export/import_all_users'
   def import_all_users
     params.require([:json_data])
-    ActiveRecord::Base.transaction do
-      ImportExportConfig.new.import_users(convert_json_data_param_to_h(params.permit![:json_data]))
-    end
+    ImportExportConfig.new.import_users(convert_json_data_param_to_h(params.permit![:json_data]))
   end
 
   private
