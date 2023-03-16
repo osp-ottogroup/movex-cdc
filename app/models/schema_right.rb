@@ -1,6 +1,6 @@
 class SchemaRight < ApplicationRecord
-  belongs_to  :user
-  belongs_to  :schema
+  belongs_to  :user, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
+  belongs_to  :schema, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   validate    :validate_yn_columns
 
   def validate_yn_columns
