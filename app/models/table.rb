@@ -1,5 +1,5 @@
 class Table < ApplicationRecord
-  belongs_to  :schema
+  belongs_to  :schema, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   has_many    :columns
   has_many    :conditions
 

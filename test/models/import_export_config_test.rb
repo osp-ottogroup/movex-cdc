@@ -307,4 +307,40 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     # restore original state, recreate needed elements
     GlobalFixtures.repeat_initialization                                        # Create fixtures again at start of the next test
   end
+
+  test 'import config with initialization' do
+    exported_data = ImportExportConfig.new.export
+    # Ensure that initialization is set for TEST_MOVEX.TABLES
+    exported_schema_tables = exported_data['schemas'].select{|s| s['name'] == user_schema.name}.first['tables']
+    export_schema_table = exported_schema_tables.select{|t| t['name'] == tables_table.name}.first
+    export_schema_table['yn_initialization'] = 'Y'
+    # Should fail because no column logs insert
+    assert_raise("Should raise ActiveRecord::RecordInvalid: Validation failed: Yn initialization Table #{user_schema.name}.#{tables_table.name} should have at least one column registered for insert trigger to execute initialization!") do
+      run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    end
+
+    # Should not fail on existing table
+    export_schema_table['columns'].first['yn_log_insert'] = 'Y'                                  # Fix previous error condition
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    existing_table = Table.find(tables_table.id)
+    assert_equal('Y', existing_table.yn_initialization, log_on_failure('YN_Initialization should be set in DB for existing table'))
+
+    # Should not fail on new table, use a table that really exists in test schema
+    exported_schema_tables << {
+      'name'              => 'STATISTICS',
+      'yn_initialization' => 'Y',
+      'columns'           => [{ 'name' => 'OPERATION', 'yn_log_insert' => 'Y'}],
+    }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    added_table = Table.where(schema_id: user_schema.id, name: 'STATISTICS').first
+    assert_equal('Y', added_table.yn_initialization, log_on_failure('YN_Initialization should be set in DB for added table'))
+
+    # restore previous test data state
+    run_with_current_user do
+      existing_table = Table.find(tables_table.id)                              # reread to ensure current content
+      existing_table.update!(yn_initialization: 'N')
+      existing_table.columns.first.update!(yn_log_insert: 'N')
+      destroy_table_with_dependencies(added_table)
+    end
+  end
 end

@@ -75,22 +75,24 @@ class ImportExportConfig
     raise "Object schemas is not an array"          unless import_hash['schemas'].instance_of? Array
     raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
 
-    # Ensure all users exist in DB that are referenced in schema_rights
-    import_hash['schemas']&.each do |schema_hash|
-      raise "Schema does not have an String element 'name'"                                   unless schema_hash['name'].instance_of? String
-      raise "Schema '#{schema_hash['name']}' does not have an Array element 'tables'"         unless schema_hash['tables'].instance_of? Array
-      raise "Schema '#{schema_hash['name']}' does not have an Array element 'schema_rights'"  unless schema_hash['schema_rights'].instance_of? Array
-      schema_hash['schema_rights']&.each do |schema_right_hash|
-        if User.where(email: schema_right_hash['email']).count == 0             # User does not exists in DB
-          user_hash = import_hash['users'].find{|u| u['email'] == schema_right_hash['email']}
-          raise "User with email '#{schema_right_hash['email']}' doesn't exist neither in the DB nor in the user list of import data!" if user_hash.nil?
-          User.new(
-            email:      user_hash['email'],
-            db_user:    user_hash['db_user'],
-            first_name: user_hash['first_name'],
-            last_name:  user_hash['last_name'],
-            yn_account_locked: 'Y'
-          ).save! # create as locked user for reference
+    ActiveRecord::Base.transaction do
+      # Ensure all users exist in DB that are referenced in schema_rights
+      import_hash['schemas']&.each do |schema_hash|
+        raise "Schema does not have an String element 'name'"                                   unless schema_hash['name'].instance_of? String
+        raise "Schema '#{schema_hash['name']}' does not have an Array element 'tables'"         unless schema_hash['tables'].instance_of? Array
+        raise "Schema '#{schema_hash['name']}' does not have an Array element 'schema_rights'"  unless schema_hash['schema_rights'].instance_of? Array
+        schema_hash['schema_rights']&.each do |schema_right_hash|
+          if User.where(email: schema_right_hash['email']).count == 0             # User does not exists in DB
+            user_hash = import_hash['users'].find{|u| u['email'] == schema_right_hash['email']}
+            raise "User with email '#{schema_right_hash['email']}' doesn't exist neither in the DB nor in the user list of import data!" if user_hash.nil?
+            User.new(
+              email:      user_hash['email'],
+              db_user:    user_hash['db_user'],
+              first_name: user_hash['first_name'],
+              last_name:  user_hash['last_name'],
+              yn_account_locked: 'Y'
+            ).save! # create as locked user for reference
+          end
         end
       end
     end
@@ -122,14 +124,16 @@ class ImportExportConfig
     raise "Parameter users is not an array" unless import_data['users'].instance_of? Array
 
     Rails.logger.info('ImportExportConfig'){'Importing Users'}
-    import_data['users']&.each do |user_hash|
-      existing_user = User.find_by_email_case_insensitive user_hash['email']
-      if existing_user
-        Rails.logger.info('ImportExportConfig'){ "Updating User #{user_hash.inspect}" }
-        existing_user.update! user_hash
-      else
-        Rails.logger.info('ImportExportConfig'){ "New User #{user_hash.inspect}" }
-        User.new(user_hash).save!
+    ActiveRecord::Base.transaction do
+      import_data['users']&.each do |user_hash|
+        existing_user = User.find_by_email_case_insensitive user_hash['email']
+        if existing_user
+          Rails.logger.info('ImportExportConfig'){ "Updating User #{user_hash.inspect}" }
+          existing_user.update! user_hash
+        else
+          Rails.logger.info('ImportExportConfig'){ "New User #{user_hash.inspect}" }
+          User.new(user_hash).save!
+        end
       end
     end
   end
@@ -263,6 +267,9 @@ class ImportExportConfig
   # @param table_hash   Fragment of import data for one table
   # @schema             Existing Schema record
   def insert_new_table(table_hash, schema)
+    Rails.logger.debug('ImportExportConfig.insert_new_table') { 'Start function processing'}
+    yn_initialization = table_hash['yn_initialization']
+    table_hash['yn_initialization'] = 'N' if yn_initialization == 'Y'           # Ensure validation of yn_initialization = Y is postponed after column creation
     table = Table.new(relevant_import_data(table_hash, Table).merge('schema_id' => schema.id))
     table.save!
     table_hash['columns']&.each do |column_hash|
@@ -273,12 +280,21 @@ class ImportExportConfig
       raise "Condition element of table '#{table_hash['name']}' should be of type Hash but is a #{condition_hash.class} with content '#{condition_hash}'" unless condition_hash.is_a? Hash
       Condition.new(relevant_import_data(condition_hash, Condition).merge('table_id' => table.id)).save!
     end
+    if yn_initialization == 'Y'                                                 # Exeute postponed setting
+      table_hash['yn_initialization'] = 'Y'                                     # restore previous state of config data to prevent from confusion is reused later
+      table.update!(yn_initialization: 'Y')
+    end
+    Rails.logger.debug('ImportExportConfig.insert_new_table') { 'Finish function processing'}
   end
 
   # update an existing table
   # @param table_hash   Fragment of import data for one table
   # @schema             Existing Schema record
   def update_table(table_hash, table)
+    Rails.logger.debug('ImportExportConfig.update_table') { 'Start function processing'}
+    Rails.logger.debug('ImportExportConfig.update_table') { "table_hash: #{table_hash}, table: #{table.attributes}"}
+    yn_initialization = table_hash['yn_initialization']
+    table_hash['yn_initialization'] = 'N' if yn_initialization == 'Y'           # Ensure validation of yn_initialization = Y is postponed after column creation
     table.update!(relevant_import_data(table_hash, Table))
 
     # delete columns of table missed in current import data
@@ -316,5 +332,10 @@ class ImportExportConfig
         existing_condition.update!(relevant_import_data(condition_hash, Condition))
       end
     end
+    if yn_initialization == 'Y'                                                 # Exeute postponed setting
+      table_hash['yn_initialization'] = 'Y'                                     # restore previous state of config data to prevent from confusion is reused later
+      table.update!(yn_initialization: 'Y')
+    end
+    Rails.logger.debug('ImportExportConfig.update_table') { 'Finish function processing'}
   end
 end

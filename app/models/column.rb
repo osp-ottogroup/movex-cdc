@@ -1,5 +1,5 @@
 class Column < ApplicationRecord
-  belongs_to :table
+  belongs_to :table, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   attribute   :yn_pending, :string, limit: 1, default: 'N'  # is changed column value waiting for being activated in new generated trigger
   validate    :validate_yn_columns
   validate    :validate_unchanged_attributes

@@ -110,6 +110,7 @@ Commercial solution, processes redo log files.
 Commercial solution, based on Logminer function.
 Not yet functioning for Oracle 19c.
 Requires supplemental logging in Oracle DB.
+|https://github.com/inqueryio/inquery|Trigger-based open source solution for Postgres
 |===
 
 === Supported databases ===

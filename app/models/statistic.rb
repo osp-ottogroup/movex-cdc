@@ -1,5 +1,5 @@
 class Statistic < ApplicationRecord
-  belongs_to  :table
+  belongs_to  :table, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
 
   def self.write_record(attribs)
     attribs[:events_success]          = 0 if attribs[:events_success].nil?

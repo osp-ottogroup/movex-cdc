@@ -1,5 +1,5 @@
 class Condition < ApplicationRecord
-  belongs_to :table
+  belongs_to :table, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   validate    :validate_unchanged_attributes
 
   def validate_unchanged_attributes
