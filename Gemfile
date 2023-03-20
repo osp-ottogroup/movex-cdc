@@ -2,8 +2,8 @@ source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
 # According to JRuby-Version (movex-cdc/.ruby-version)
-ruby '2.6.8'
-#ruby '3.1.0'
+#ruby '2.6.8'
+ruby '3.1.0'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
