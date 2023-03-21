@@ -76,7 +76,7 @@ class LoginControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized, log_on_failure('Redundant DB user should not used to login')
 
     # not allowed content
-    post login_do_logon_url, params: { email: 'too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_', password: 'hugo'}
+    post login_do_logon_url, params: { email: 'too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_too_large_', password: 'hugo'}
     assert_response :unauthorized, log_on_failure('Too large content')
   end
 
