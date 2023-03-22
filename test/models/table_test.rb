@@ -26,6 +26,16 @@ class TableTest < ActiveSupport::TestCase
     assert tables.count > 0, log_on_failure('Should return at least one table of schema')
   end
 
+  test "mark hidden" do
+    run_with_current_user do
+      t1 = Table.new(schema_id: user_schema.id, name: 'CONDITIONS',  info: 'info', yn_initialization: 'Y')  # Real existing table
+      t1.save!
+      t1.mark_hidden
+      assert_equal('Y', Table.find(t1.id).yn_hidden, 'Table should be hidden now')
+      t1.destroy!
+    end
+  end
+
   # Check if non existing tables are also part of result
   test "all_allowed_tables_for_schema" do
     run_with_current_user do

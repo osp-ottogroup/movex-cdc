@@ -117,7 +117,7 @@ class LoginController < ApplicationController
     e.message
   end
 
-  MAX_ACCEPTED_EMAIL_LENGTH = 30                                                # Suppress forcing of logfile rotation with huge parameters
+  MAX_ACCEPTED_EMAIL_LENGTH = 100                                                # Suppress forcing of logfile rotation with huge parameters
   # remove potential security risks from email or user name
   # @param [String] original_email
   # @return [String] defused email or user name
@@ -125,7 +125,7 @@ class LoginController < ApplicationController
     retval = original_email
     if retval.length > MAX_ACCEPTED_EMAIL_LENGTH                                # Suppress forcing of logfile rotation with huge parameters
       Rails.logger.error('LoginController.do_logon') { "Logon attempt with too large email length = #{retval.length} : #{request_log_attributes}"}
-      retval = retval[0, MAX_ACCEPTED_EMAIL_LENGTH] + '..'
+      raise "Email is larger than accepted"
     end
     match_str = /\n|\r/
     if retval.match(match_str)

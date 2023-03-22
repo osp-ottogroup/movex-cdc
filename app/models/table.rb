@@ -82,7 +82,8 @@ class Table < ApplicationRecord
   end
 
   def validate_yn_initialization_update
-    if yn_initialization == 'Y'
+    # Validation should not be tested at update when table is marked as hidden
+    if yn_initialization == 'Y' && yn_hidden == 'N'
       if Column.where(table_id: self.id, yn_log_insert: 'Y').count == 0
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} should have at least one column registered for insert trigger to execute initialization!")
       end
