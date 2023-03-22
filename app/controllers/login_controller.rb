@@ -117,7 +117,7 @@ class LoginController < ApplicationController
     e.message
   end
 
-  MAX_ACCEPTED_EMAIL_LENGTH = 100                                                # Suppress forcing of logfile rotation with huge parameters
+  MAX_ACCEPTED_EMAIL_LENGTH = 200                                                # Suppress forcing of logfile rotation with huge parameters
   # remove potential security risks from email or user name
   # @param [String] original_email
   # @return [String] defused email or user name
