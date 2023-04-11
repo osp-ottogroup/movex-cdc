@@ -90,6 +90,12 @@ export default {
         topic: '',
         kafka_key_handling: 'N',
         fixed_message_key: '',
+        yn_record_txid: 'N',
+        yn_add_cloudevents_header: 'N',
+        yn_initialization: 'N',
+        yn_initialize_with_flashback: 'N',
+        initialization_filter: '',
+        initialization_order_by: '',
       };
       this.modal.show = true;
     },
