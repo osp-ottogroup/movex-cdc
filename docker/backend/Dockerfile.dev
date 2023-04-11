@@ -1,4 +1,4 @@
-FROM jruby:9.3.3.0-jre11
+FROM jruby:9.4.2.0-jdk11
 WORKDIR /app
 
 COPY Gemfile* ./
