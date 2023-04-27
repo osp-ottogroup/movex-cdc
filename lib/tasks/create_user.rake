@@ -48,10 +48,35 @@ namespace :ci_preparation do
       exec(conn, "GRANT SELECT ON DBA_Tables TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tab_Columns TO #{username}")
       exec(conn, "GRANT SELECT ON DBA_Tab_Privs TO #{username}")
-      exec(conn, "GRANT SELECT ON gv_$Lock TO #{username}")
-      exec(conn, "GRANT SELECT ON v_$Database TO #{username}")
-      exec(conn, "GRANT SELECT ON v_$Instance TO #{username}")
-      exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
+      begin
+        exec(conn, "GRANT SELECT ON gv_$Lock TO #{username}")
+      rescue Exception => e
+        puts "GRANT SELECT ON gv_$Lock TO #{username} failed with #{e.message}"
+        puts "Trying gv$Lock instead"
+        exec(conn, "GRANT SELECT ON gv$Lock TO #{username}")
+      end
+      begin
+        exec(conn, "GRANT SELECT ON v_$Database TO #{username}")
+      rescue Exception => e
+        puts "GRANT SELECT ON v_$Database TO #{username} failed with #{e.message}"
+        puts "Trying v$Database instead"
+        exec(conn, "GRANT SELECT ON v$Database TO #{username}")
+      end
+
+      begin
+        exec(conn, "GRANT SELECT ON v_$Instance TO #{username}")
+      rescue Exception => e
+        puts "GRANT SELECT ON v_$Instance TO #{username} failed with #{e.message}"
+        puts "Trying v$Instance instead"
+        exec(conn, "GRANT SELECT ON v$Instance TO #{username}")
+      end
+      begin
+        exec(conn, "GRANT SELECT ON v_$Session TO #{username}")
+      rescue Exception => e
+        puts "GRANT SELECT ON v_$Session TO #{username} failed with #{e.message}"
+        puts "Trying v$Session instead"
+        exec(conn, "GRANT SELECT ON v$Session TO #{username}")
+      end
 
       # For test-users to fix slow access on All_Synonyms
       exec(conn, "CREATE OR REPLACE VIEW #{username}.Dummy AS SELECT null Owner, null table_owner, null table_name, null Synonym_name FROM DUAL WHERE 1=2")
@@ -62,10 +87,15 @@ namespace :ci_preparation do
     puts "Running ci_preparation:create_user for db_type = #{MovexCdc::Application.config.db_type }"
     if MovexCdc::Application.config.db_type == 'ORACLE'
       raise "Value for DB_SYS_PASSWORD required to create users" if !MovexCdc::Application.config.respond_to?(:db_sys_password)
+
+      db_sys_user = if MovexCdc::Application.config.respond_to?(:db_sys_user)
+                      MovexCdc::Application.config.db_sys_user
+                    else 'sys'
+                    end
       properties = java.util.Properties.new
-      properties.put("user", 'sys')
+      properties.put("user", db_sys_user)
       properties.put("password", MovexCdc::Application.config.db_sys_password)
-      properties.put("internal_logon", "SYSDBA")
+      properties.put("internal_logon", "SYSDBA") if db_sys_user == 'sys'
       url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
       begin
         conn = java.sql.DriverManager.getConnection(url, properties)

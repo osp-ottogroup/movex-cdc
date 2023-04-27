@@ -82,7 +82,10 @@ module MovexCdc
       puts "#{key.ljust(40, ' ')} #{outval}"
     end
 
-    # Return print value to log
+    # Set the value of a configuration attribute from environment variable if it exists, otherwise from config file
+    # @param key [Symbol] Name of configuration attribute
+    # @param options [Hash] Options for setting the configuration attribute [:default, :upcase, :downcase, :integer, :maximum, :minimum, :accept_empty]
+    # @return [String] The value of the configuration attribute to be used as log output
     def self.set_attrib_from_env(key, options={})
       up_key = key.to_s.upcase
       value = options[:default]
@@ -147,6 +150,7 @@ module MovexCdc
 
     case config.db_type
     when 'ORACLE' then
+      MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_user, default: 'sys', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_user) || ENV['DB_SYS_USER']
       MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_password) || ENV['DB_SYS_PASSWORD']
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
         config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'trixx'}"
