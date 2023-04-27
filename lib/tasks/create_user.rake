@@ -1,3 +1,5 @@
+require_relative '../../app/models/database_oracle'
+
 namespace :ci_preparation do
   desc "Prepare preconditions for running tests in CI pipeline"
 
@@ -86,28 +88,7 @@ namespace :ci_preparation do
 
     puts "Running ci_preparation:create_user for db_type = #{MovexCdc::Application.config.db_type }"
     if MovexCdc::Application.config.db_type == 'ORACLE'
-      raise "Value for DB_SYS_PASSWORD required to create users" if !MovexCdc::Application.config.respond_to?(:db_sys_password)
-
-      db_sys_user = if MovexCdc::Application.config.respond_to?(:db_sys_user)
-                      MovexCdc::Application.config.db_sys_user
-                    else 'sys'
-                    end
-      properties = java.util.Properties.new
-      properties.put("user", db_sys_user)
-      properties.put("password", MovexCdc::Application.config.db_sys_password)
-      properties.put("internal_logon", "SYSDBA") if db_sys_user == 'sys'
-      url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
-      begin
-        conn = java.sql.DriverManager.getConnection(url, properties)
-      rescue
-        # bypass DriverManager to work in cases where ojdbc*.jar
-        # is added to the load path at runtime and not on the
-        # system classpath
-        # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
-        # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
-        # java.sql.DriverManager.registerDriver ORACLE_DRIVER
-        conn = ORACLE_DRIVER.connect(url, properties)
-      end
+      conn = DatabaseOracle.connect_as_sys_user
 
       ensure_user_existence(conn, MovexCdc::Application.config.db_user, MovexCdc::Application.config.db_password)          # Schema for MOVEX CDC data structure
       if Rails.env.test?

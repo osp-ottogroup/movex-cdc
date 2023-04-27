@@ -1,3 +1,5 @@
+require_relative '../../app/models/database_oracle'
+
 namespace :ci_preparation do
   desc "Wait for DB to become available in CI pipeline"
 
@@ -14,22 +16,7 @@ namespace :ci_preparation do
         raise "DB not available after waiting #{max_wait_minutes} minutes! Aborting!\nReason: #{exception_text}\n" if Time.now > start_time + max_wait_minutes.minutes
 
         begin
-          properties = java.util.Properties.new
-          properties.put("user", 'sys')
-          properties.put("password", MovexCdc::Application.config.db_sys_password)
-          properties.put("internal_logon", "SYSDBA")
-          url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
-          begin
-            conn = java.sql.DriverManager.getConnection(url, properties)
-          rescue
-            # bypass DriverManager to work in cases where ojdbc*.jar
-            # is added to the load path at runtime and not on the
-            # system classpath
-            # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
-            # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
-            # java.sql.DriverManager.registerDriver ORACLE_DRIVER
-            conn = ORACLE_DRIVER.connect(url, properties)
-          end
+          conn = DatabaseOracle.connect_as_sys_user
 
           stmt = conn.prepareStatement("SELECT 1 FROM DUAL");
           resultSet = stmt.executeQuery;
