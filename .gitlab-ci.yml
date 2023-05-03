@@ -67,7 +67,10 @@ test_frontend:
     # Wait max. 10 minutes for DB available
     - bundle exec rake "ci_preparation:wait_for_db_available[10]"
     # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
-    - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
+    - >
+      if [ "$CI_JOB_NAME" != "test_oracle_autonomous" ]; then
+        bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
+      fi
     - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - >
