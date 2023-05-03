@@ -110,6 +110,7 @@ test_oracle_autonomous:
     DB_TYPE: "ORACLE"
     DB_SYS_PASSWORD: $ORACLE_AUTONOMOUS_ADMIN_PASSWORD
     DB_URL: "PANORAMATEST_TPURGENT"
+    DB_USER: "MOVEX"
     TNS_ADMIN: "./test/oracle_autonomous"
 
 test_oracle_12.1:
