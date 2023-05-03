@@ -56,7 +56,8 @@ test_frontend:
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
-    - if [ "$CI_JOB_NAME" == "test_oracle_autonomous" ]; then
+    - >
+      if [ "$CI_JOB_NAME" == "test_oracle_autonomous" ]; then
         (
           cd test/oracle_autonomous
           # uses secret GPG_KEY_FOR_DB_WALLET_ENCRYPTION
@@ -69,7 +70,8 @@ test_frontend:
     - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
     - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
-    - if [ "$DB_TYPE" == "ORACLE" ]; then
+    - >
+      if [ "$DB_TYPE" == "ORACLE" ]; then
         # Check if db:rollback is functional + restore migration
         # SQLite does not support remove_foreign_key although it is implemented
         bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
