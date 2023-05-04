@@ -144,8 +144,8 @@ module MovexCdc
     raise "Unsupported value '#{config.db_type}' for configuration attribute 'DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.db_type)
 
     if Rails.env.test?
-      MovexCdc::Application.set_attrib_from_env(:db_password, default: 'trixx')
-      MovexCdc::Application.set_attrib_from_env(:db_victim_password, default: 'trixx_victim')
+      MovexCdc::Application.set_attrib_from_env(:db_password, default: 'tjskfs88323#HDG3')
+      MovexCdc::Application.set_attrib_from_env(:db_victim_password, default: 'ksfaaH#Elcf2342')
     end
 
     case config.db_type
@@ -153,8 +153,8 @@ module MovexCdc
       MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_user, default: 'sys', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_user) || ENV['DB_SYS_USER']
       MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_password) || ENV['DB_SYS_PASSWORD']
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
-        config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'trixx'}"
-        MovexCdc::Application.set_attrib_from_env(:db_victim_user, default: 'trixx_victim')
+        config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'movex_cdc'}"
+        MovexCdc::Application.set_attrib_from_env(:db_victim_user, default: 'movex_cdc_victim')
         config.db_victim_user = config.db_victim_user.upcase
         MovexCdc::Application.log_attribute(:db_victim_user.to_s.upcase, config.db_victim_user)
       end
