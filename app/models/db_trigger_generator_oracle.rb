@@ -430,7 +430,7 @@ END Flush;
   def payload_command_internal(trigger_config, old_new, indent)
     if @use_json_object
       result = "'\"#{old_new}\": ' ||\n#{indent}JSON_OBJECT(\n"
-      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE :#{old_new}.#{c[:column_name]}"}.join(",\n")
+      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_4_json_object(c, old_new)}"}.join(",\n")
       result << "\n#{indent})"
     else
       result = "'\"#{old_new}\": {'||\n"
@@ -441,12 +441,15 @@ END Flush;
   end
 
   # convert values to string in PL/SQL, replaced by JSON_OBJECT for old/new but still used for primary key conversion
+  # @param [Hash] column column definition {:column_name, :data_type, :nullable, :data_length, :data_precision, :data_scale}
+  # @param [String] old_new 'old' or 'new'
+  # @return [String] PL/SQL expression to convert column value to string
   def convert_col(column, old_new)
     column_name = ":#{old_new}.#{column[:column_name]}"
     result = ''
     result << "CASE WHEN #{column_name} IS NULL THEN 'null' ELSE " if column[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
     result << case column[:data_type]
-              when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'                 # character data types
+              when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'VARCHAR2'                 # character data types
               then "'\"'||REPLACE(#{column_name}, '\"', '\\\"')||'\"'"                        # place between double quotes "xxx" and escape double quote to \"
               when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                   # Numeric data types
               then "CASE
@@ -455,6 +458,7 @@ END Flush;
                     ELSE TO_CHAR(#{column_name}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')
                     END"
               when 'DATE'                         then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
+              when 'ROWID', 'UROWID'              then "'\"'||ROWIDTOCHAR(#{column_name})||'\"'"
               when 'RAW'                          then "'\"'||RAWTOHEX(#{column_name})||'\"'"
               when /^TIMESTAMP\([0-9]\)$/
               then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
@@ -465,6 +469,18 @@ END Flush;
               end
     result << " END" if column[:nullable] == 'Y'
     result
+  end
+
+  # Convert column values into type that is accepted by JSON_OBJECT
+  # @param [Hash] column column definition {:column_name, :data_type, :nullable, :data_length, :data_precision, :data_scale}
+  # @param [String] old_new 'old' or 'new'
+  # @return [String] PL/SQL expression to convert column value to string
+  def convert_col_4_json_object(column, old_new)
+    case column[:data_type]
+    when 'ROWID', 'UROWID' then "ROWIDTOCHAR(:#{old_new}.#{column[:column_name]})" # Catch PLS-00306: wrong number or types of arguments
+    when 'RAW' then "RAWTOHEX(:#{old_new}.#{column[:column_name]})" # Catch PLS-00306: wrong number or types of arguments
+    else ":#{old_new}.#{column[:column_name]}"
+    end
   end
 
   # Build SQL expression for message key
