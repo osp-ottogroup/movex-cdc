@@ -9,7 +9,7 @@ namespace :ci_preparation do
     raise "Parameter wait time in minutes expected" if args.count == 0 || max_wait_minutes == 0
     puts "Waiting max. #{max_wait_minutes} minutes for database to become available"
     start_time = Time.now
-
+    result = ''
     if MovexCdc::Application.config.db_type == 'ORACLE'
       exception_text = nil
       loop do
@@ -18,10 +18,10 @@ namespace :ci_preparation do
         begin
           conn = DatabaseOracle.connect_as_sys_user
 
-          stmt = conn.prepareStatement("SELECT 1 FROM DUAL");
+          stmt = conn.prepareStatement("SELECT Instance_name||' ('||Host_Name||') '||Version_Full FROM v$Instance")
           resultSet = stmt.executeQuery;
           resultSet.next
-          result = resultSet.getInt(1)
+          result = resultSet.getString(1)
           break                                                                 # finished successful
         rescue Exception=> e
           exception_text = "#{e.class}: #{e.message}"
@@ -33,7 +33,7 @@ namespace :ci_preparation do
           conn&.close
         end
       end
-      puts "\n#{Time.now}: DB is available now"
+      puts "\n#{Time.now}: DB is available now: #{result}"
     end
   end
 end
