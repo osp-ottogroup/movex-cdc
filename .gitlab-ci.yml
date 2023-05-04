@@ -109,12 +109,10 @@ test_oracle_autonomous:
   stage: test
   extends: .tests
   variables:
-    DB_PASSWORD: $ORACLE_AUTONOMOUS_MOVEX_PASSWORD
     DB_TYPE: "ORACLE"
     DB_SYS_PASSWORD: $ORACLE_AUTONOMOUS_ADMIN_PASSWORD
     DB_SYS_USER: "ADMIN"
     DB_URL: "PANORAMATEST_TPURGENT"
-    DB_VICTIM_PASSWORD: $ORACLE_AUTONOMOUS_MOVEX_PASSWORD
     TNS_ADMIN: "./test/oracle_autonomous"
 
 test_oracle_12.1:
