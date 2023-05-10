@@ -53,6 +53,8 @@ test_frontend:
     - java -version
     - gem install --no-doc bundler
     - bundle config set deployment 'true'
+    # All runners should use the same path
+    - bundle config path '/tmp'
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
