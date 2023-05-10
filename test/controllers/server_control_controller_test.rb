@@ -53,11 +53,11 @@ class ServerControlControllerTest < ActionDispatch::IntegrationTest
     end
     sleep 0.2                                                                   # let thread start but be fast enough before thread has finished
     post "/server_control/set_worker_threads_count", headers: jwt_header(@jwt_admin_token), params: { worker_threads_count: 4}, as: :json
-    assert_response :internal_server_error
+    assert_response :internal_server_error, 'Should not be able to change worker count while another request is running'
 
     # Wait until the async setting of expected_worker_count has finished
     waited_loop = 0
-    while ThreadHandling.get_instance.thread_count != expected_worker_count && waited_loop < 10
+    while ThreadHandling.get_instance.thread_count != expected_worker_count && waited_loop < 60
       waited_loop += 1
       Rails.logger.debug('ServerControllerTest.should post set_worker_threads_count') { "Waiting for ThreadHandling.get_instance.thread_count to be expected"}
       sleep 1

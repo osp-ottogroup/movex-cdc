@@ -23,7 +23,7 @@ A detailed documentation of this product you find at: https://osp-silver.gitlab.
 == Preconditions
 - A running local Oracle database with an existing user to observe
 
-== Prepare Environment
+== Prepare environment in OS
 Please adjust the values according to your setup.
 ----
 # Physical IP address of the Docker host running Kafka and MOVEX Change Data Capture
@@ -38,6 +38,8 @@ export DB_URL=$IP_ADDRESS:1521/ORCLPDB1
 export MOVEX_DB_USER=movex
 export MOVEX_DB_PASSWORD=movex
 
+# Change if SYS cannot be used for MOVEX schema owner creation( like 'admin' for autonomous DB)
+export DB_SYS_USER=sys
 # SYS password of Oracle instance if MOVEX schema owner should be created by MOVEX itself
 export DB_SYS_PASSWORD=oracle
 

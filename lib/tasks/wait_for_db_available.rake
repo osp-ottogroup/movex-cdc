@@ -1,3 +1,7 @@
+
+# This task is used in the CI pipeline to wait for the database to become available.
+require 'database_oracle'
+
 namespace :ci_preparation do
   desc "Wait for DB to become available in CI pipeline"
 
@@ -7,34 +11,20 @@ namespace :ci_preparation do
     raise "Parameter wait time in minutes expected" if args.count == 0 || max_wait_minutes == 0
     puts "Waiting max. #{max_wait_minutes} minutes for database to become available"
     start_time = Time.now
-
-    if MovexCdc::Application.config.db_type == 'ORACLE'
+    result = ''
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
       exception_text = nil
       loop do
         raise "DB not available after waiting #{max_wait_minutes} minutes! Aborting!\nReason: #{exception_text}\n" if Time.now > start_time + max_wait_minutes.minutes
 
         begin
-          properties = java.util.Properties.new
-          properties.put("user", 'sys')
-          properties.put("password", MovexCdc::Application.config.db_sys_password)
-          properties.put("internal_logon", "SYSDBA")
-          url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
-          begin
-            conn = java.sql.DriverManager.getConnection(url, properties)
-          rescue
-            # bypass DriverManager to work in cases where ojdbc*.jar
-            # is added to the load path at runtime and not on the
-            # system classpath
-            # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
-            # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
-            # java.sql.DriverManager.registerDriver ORACLE_DRIVER
-            conn = ORACLE_DRIVER.connect(url, properties)
-          end
+          conn = DatabaseOracle.connect_as_sys_user
 
-          stmt = conn.prepareStatement("SELECT 1 FROM DUAL");
+          stmt = conn.prepareStatement("SELECT Instance_name||' ('||Host_Name||') '||Version FROM v$Instance")
           resultSet = stmt.executeQuery;
           resultSet.next
-          result = resultSet.getInt(1)
+          result = resultSet.getString(1)
           break                                                                 # finished successful
         rescue Exception=> e
           exception_text = "#{e.class}: #{e.message}"
@@ -46,7 +36,10 @@ namespace :ci_preparation do
           conn&.close
         end
       end
-      puts "\n#{Time.now}: DB is available now"
+
+      puts "\n#{Time.now}: DB is available now: #{result}"
+    else
+      puts "No action for db_type = #{MovexCdc::Application.config.db_type }"
     end
   end
 end

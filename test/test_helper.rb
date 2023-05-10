@@ -447,7 +447,7 @@ class JdbcInfo
   def self.log_version
     unless @@jdbc_driver_logged
       case MovexCdc::Application.config.db_type
-      when 'ORACLE' then MovexCdc::Application.log_attribute("Oracle JDBC driver version", ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion)
+      when 'ORACLE' then MovexCdc::Application.log_attribute("Oracle JDBC driver version", DatabaseOracle.jdbc_driver_version)
       else puts "No JDBC version checked"
       end
 

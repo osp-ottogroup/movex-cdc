@@ -2,6 +2,7 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+- ROWID values encapsulated in ROWIDTOCHAR() function for before JSON_OBJECT
 
 ## 2022-12-13 Release 1.10.11
 - Bugfix: wrong URL for css file after docker start with suffixed URL

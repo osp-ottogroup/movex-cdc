@@ -72,6 +72,10 @@ module MovexCdc
       retval
     end
 
+    # Log a configuration attribute
+    # @param key [String] Name of configuration attribute, should be upper case
+    # @param value [String] Value of configuration attribute
+    # @return [void]
     def self.log_attribute(key, value)
       return if value.nil? || value == ''
       if key['PASSWORD']
@@ -82,7 +86,10 @@ module MovexCdc
       puts "#{key.ljust(40, ' ')} #{outval}"
     end
 
-    # Return print value to log
+    # Set the value of a configuration attribute from environment variable if it exists, otherwise from config file
+    # @param key [Symbol] Name of configuration attribute
+    # @param options [Hash] Options for setting the configuration attribute [:default, :upcase, :downcase, :integer, :maximum, :minimum, :accept_empty]
+    # @return [String] The value of the configuration attribute to be used as log output
     def self.set_attrib_from_env(key, options={})
       up_key = key.to_s.upcase
       value = options[:default]
@@ -141,16 +148,17 @@ module MovexCdc
     raise "Unsupported value '#{config.db_type}' for configuration attribute 'DB_TYPE'! Supported values are #{supported_db_types}" unless supported_db_types.include?(config.db_type)
 
     if Rails.env.test?
-      MovexCdc::Application.set_attrib_from_env(:db_password, default: 'trixx')
-      MovexCdc::Application.set_attrib_from_env(:db_victim_password, default: 'trixx_victim')
+      MovexCdc::Application.set_attrib_from_env(:db_password, default: 'tjskfs88323#HDG3')
+      MovexCdc::Application.set_attrib_from_env(:db_victim_password, default: 'ksfaaH#Elcf2342')
     end
 
     case config.db_type
     when 'ORACLE' then
+      MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_user, default: 'sys', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_user) || ENV['DB_SYS_USER']
       MovexCdc::Application.set_and_log_attrib_from_env(:db_sys_password, default: 'oracle', accept_empty: !Rails.env.test?) if MovexCdc::Application.config.respond_to?(:db_sys_password) || ENV['DB_SYS_PASSWORD']
       if Rails.env.test?                                                        # prevent test-user from overwriting development or production structures in DB
-        config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'trixx'}"
-        MovexCdc::Application.set_attrib_from_env(:db_victim_user, default: 'trixx_victim')
+        config.db_user            = "test_#{config.respond_to?(:db_user) ? config.db_user : 'movex_cdc'}"
+        MovexCdc::Application.set_attrib_from_env(:db_victim_user, default: 'movex_cdc_victim')
         config.db_victim_user = config.db_victim_user.upcase
         MovexCdc::Application.log_attribute(:db_victim_user.to_s.upcase, config.db_victim_user)
       end
@@ -240,20 +248,5 @@ module MovexCdc
       end
       @db_partitioning
     end
-
-    # used to express the correct DB timezone in event timestamps without transporting it in each Event_logs-record
-    # can be called only after DB connection is initialized
-    def set_and_log_db_timezone
-      unless MovexCdc::Application.config.respond_to?(:db_default_timezone) # Set only once especially for tests
-        db_default_timezone = case MovexCdc::Application.config.db_type
-                              when 'ORACLE' then
-                                Database.select_one "SELECT TO_CHAR(SYSTIMESTAMP, 'TZH:TZM') FROM DUAL"
-                              else
-                                '+00:00'
-                              end
-        MovexCdc::Application.set_and_log_attrib_from_env(:db_default_timezone, default: db_default_timezone)
-      end
-    end
-
   end
 end

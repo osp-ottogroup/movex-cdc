@@ -12,6 +12,8 @@ class DatabaseSqlite
   def self.jdbc_driver_version
     'SQLite driver'
   end
+
+  def self.db_default_timezone
+    '+00:00'
+  end
 end
-
-
