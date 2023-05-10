@@ -7,7 +7,8 @@ class Database
   @@METHODS_TO_DELEGATE = [
       :set_application_info,
       :db_version,
-      :jdbc_driver_version
+      :jdbc_driver_version,
+      :db_default_timezone,
   ]
 
   def self.method_missing(method, *args, &block)
@@ -37,9 +38,18 @@ class Database
       journal_mode = select_one("PRAGMA journal_mode=WAL")                      # Ensure that concurrent operations are allowed for SQLITE
       Rails.logger.info('Database.initialize_connection'){ "SQLITE journal mode = #{journal_mode}" }
     end
-    MovexCdc::Application.set_and_log_db_timezone                               # The DB-internal timezone delay
-    MovexCdc::Application.log_attribute('DB VERSION', self.db_version)
-    MovexCdc::Application.log_attribute('JDBC DRIVER VERSION', self.jdbc_driver_version)
+
+    # used to express the correct DB timezone in event timestamps without transporting it in each Event_logs-record
+    unless MovexCdc::Application.config.respond_to?(:db_default_timezone)       # Set only once especially for tests
+      MovexCdc::Application.set_and_log_attrib_from_env(:db_default_timezone, default: self.db_default_timezone)
+    end
+
+    unless MovexCdc::Application.config.respond_to?(:db_version)                # Set only once especially for tests
+      MovexCdc::Application.set_and_log_attrib_from_env(:db_version, default: self.db_version)
+    end
+    unless MovexCdc::Application.config.respond_to?(:jdbc_driver_version)       # Set only once especially for tests
+      MovexCdc::Application.set_and_log_attrib_from_env(:jdbc_driver_version, default: self.jdbc_driver_version)
+    end
   rescue
     Rails.logger.error('Database.initialize_db_connection') { "Error executing SQL at DB. Connection to DB failed?" }
     raise

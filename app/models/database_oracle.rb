@@ -177,6 +177,10 @@ class DatabaseOracle
     ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
   end
 
+  def self.db_default_timezone
+    Database.select_one "SELECT TO_CHAR(SYSTIMESTAMP, 'TZH:TZM') FROM DUAL"
+  end
+
   # Connect as SYS user to execute SQL statements in rake tasks
   # @return [] JDBC Connection
   def self.connect_as_sys_user
