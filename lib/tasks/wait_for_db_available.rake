@@ -1,3 +1,4 @@
+require_relative '../../app/models/database'
 require_relative '../../app/models/database_oracle'
 
 namespace :ci_preparation do
