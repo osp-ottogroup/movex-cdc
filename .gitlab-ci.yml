@@ -101,6 +101,7 @@ test_frontend:
   variables:
     DB_TYPE: "ORACLE"
     DB_SYS_PASSWORD: "oracle"
+    DB_SYS_USER: "SYS"
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
 test_sqlite:

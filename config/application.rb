@@ -72,6 +72,10 @@ module MovexCdc
       retval
     end
 
+    # Log a configuration attribute
+    # @param key [String] Name of configuration attribute, should be upper case
+    # @param value [String] Value of configuration attribute
+    # @return [void]
     def self.log_attribute(key, value)
       return if value.nil? || value == ''
       if key['PASSWORD']

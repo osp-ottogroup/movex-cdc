@@ -38,6 +38,8 @@ class Database
       Rails.logger.info('Database.initialize_connection'){ "SQLITE journal mode = #{journal_mode}" }
     end
     MovexCdc::Application.set_and_log_db_timezone                               # The DB-internal timezone delay
+    MovexCdc::Application.log_attribute('DB VERSION', self.db_version)
+    MovexCdc::Application.log_attribute('JDBC DRIVER VERSION', self.jdbc_driver_version)
   rescue
     Rails.logger.error('Database.initialize_db_connection') { "Error executing SQL at DB. Connection to DB failed?" }
     raise

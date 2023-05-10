@@ -161,6 +161,8 @@ class DatabaseOracle
   end
 
   @@cached_db_version = nil
+  # Return the DB version as string
+  # @return [String] DB version
   def self.db_version
     if @@cached_db_version.nil?
       @@cached_db_version = Database.select_one "SELECT Version FROM v$Instance"
@@ -169,6 +171,8 @@ class DatabaseOracle
     @@cached_db_version
   end
 
+  # Return the JDBC driver version as string
+  # @return [String] JDBC driver version
   def self.jdbc_driver_version
     ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
   end
