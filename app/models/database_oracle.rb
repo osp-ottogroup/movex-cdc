@@ -194,7 +194,7 @@ class DatabaseOracle
     properties = java.util.Properties.new
     properties.put("user", db_sys_user)
     properties.put("password", MovexCdc::Application.config.db_sys_password)
-    properties.put("internal_logon", "SYSDBA") if db_sys_user == 'sys'        # admin for autonomous db cannot connect as sysdba
+    properties.put("internal_logon", "SYSDBA") if db_sys_user.downcase == 'sys' # admin for autonomous db cannot connect as sysdba
     url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
     begin
       conn = java.sql.DriverManager.getConnection(url, properties)
