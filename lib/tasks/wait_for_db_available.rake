@@ -1,5 +1,6 @@
-require_relative '../../app/models/database'
-require_relative '../../app/models/database_oracle'
+
+# This task is used in the CI pipeline to wait for the database to become available.
+require 'database_oracle'
 
 namespace :ci_preparation do
   desc "Wait for DB to become available in CI pipeline"
@@ -11,7 +12,8 @@ namespace :ci_preparation do
     puts "Waiting max. #{max_wait_minutes} minutes for database to become available"
     start_time = Time.now
     result = ''
-    if MovexCdc::Application.config.db_type == 'ORACLE'
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
       exception_text = nil
       loop do
         raise "DB not available after waiting #{max_wait_minutes} minutes! Aborting!\nReason: #{exception_text}\n" if Time.now > start_time + max_wait_minutes.minutes
@@ -19,7 +21,7 @@ namespace :ci_preparation do
         begin
           conn = DatabaseOracle.connect_as_sys_user
 
-          stmt = conn.prepareStatement("SELECT Instance_name||' ('||Host_Name||') ' FROM v$Instance")
+          stmt = conn.prepareStatement("SELECT Instance_name||' ('||Host_Name||') '||Version FROM v$Instance")
           resultSet = stmt.executeQuery;
           resultSet.next
           result = resultSet.getString(1)
@@ -34,7 +36,10 @@ namespace :ci_preparation do
           conn&.close
         end
       end
-      puts "\n#{Time.now}: DB is available now: #{result} DB: #{DatabaseOracle.db_version} JDBC: #{DatabaseOracle.jdbc_driver_version}"
+
+      puts "\n#{Time.now}: DB is available now: #{result}"
+    else
+      puts "No action for db_type = #{MovexCdc::Application.config.db_type }"
     end
   end
 end

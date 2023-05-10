@@ -1,5 +1,6 @@
 # Base class for models without DB table but using ActiveRecord::Base
 require 'select_hash_helper'
+require 'exception_helper'
 class Database
 
   # delegate method calls to DB-specific implementation classes

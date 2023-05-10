@@ -1,4 +1,4 @@
-require_relative '../../app/models/database_oracle'
+require 'database_oracle'
 
 namespace :ci_preparation do
   desc "Prepare preconditions for running tests in CI pipeline"
