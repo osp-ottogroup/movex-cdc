@@ -8,7 +8,6 @@ image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.2.0-jdk19
 
 variables:
   RAILS_MAX_THREADS: 100
-  CI_DEBUG_SERVICES: trace
   KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
