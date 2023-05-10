@@ -6,6 +6,7 @@ require 'active_record/connection_adapters/oracle_enhanced/connection'
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'active_record/connection_adapters/oracle_enhanced/quoting'
 require 'java'
+require 'database'
 
 # get access to private JDBC-Connection
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
