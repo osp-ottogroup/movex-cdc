@@ -6,6 +6,8 @@ class ImportExportConfig
   end
 
   # get relevant column names for a AR class
+  # @param [Class] ar_class ActiveRecord class
+  # @return [Array] array of column names
   def self.extract_column_names(ar_class)
     # extract column names without id, *_id, timestamps and lock_version
     ar_class
@@ -19,6 +21,7 @@ class ImportExportConfig
   # @param single_schema_name nil for all schemas or limited for one schema
   def export(single_schema_name: nil)
     schema_columns        = self.class.extract_column_names(Schema)
+    schema_columns        = schema_columns.select{|c| c != 'last_trigger_deployment'} # remove column "last_trigger_deployment" from export
     table_columns         = self.class.extract_column_names(Table)
     column_columns        = self.class.extract_column_names(Column)
     condition_columns     = self.class.extract_column_names(Condition)
