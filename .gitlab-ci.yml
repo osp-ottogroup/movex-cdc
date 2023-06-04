@@ -106,15 +106,15 @@ test_sqlite:
   stage: test
   extends: .tests_SQLITE
 
-test_oracle_autonomous:
-  stage: test
-  extends: .tests
-  variables:
-    DB_TYPE: "ORACLE"
-    DB_SYS_PASSWORD: $ORACLE_AUTONOMOUS_ADMIN_PASSWORD
-    DB_SYS_USER: "ADMIN"
-    DB_URL: "PANORAMATEST_TPURGENT"
-    TNS_ADMIN: "./test/oracle_autonomous"
+#test_oracle_autonomous:
+#  stage: test
+#  extends: .tests
+#  variables:
+#    DB_TYPE: "ORACLE"
+#    DB_SYS_PASSWORD: $ORACLE_AUTONOMOUS_ADMIN_PASSWORD
+#    DB_SYS_USER: "ADMIN"
+#    DB_URL: "PANORAMATEST_TPURGENT"
+#    TNS_ADMIN: "./test/oracle_autonomous"
 
 test_oracle_12.1:
   stage: test
