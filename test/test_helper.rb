@@ -46,7 +46,6 @@ class ActiveSupport::TestCase
   fixtures :all
 
   setup do
-    JdbcInfo.log_version
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
   end
@@ -413,7 +412,6 @@ class ActionDispatch::IntegrationTest
 
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
-    JdbcInfo.log_version
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
 
@@ -440,20 +438,6 @@ class ActionDispatch::IntegrationTest
     { 'Authorization' => token}
   end
 
-end
-
-class JdbcInfo
-  @@jdbc_driver_logged = false
-  def self.log_version
-    unless @@jdbc_driver_logged
-      case MovexCdc::Application.config.db_type
-      when 'ORACLE' then MovexCdc::Application.log_attribute("Oracle JDBC driver version", DatabaseOracle.jdbc_driver_version)
-      else puts "No JDBC version checked"
-      end
-
-      @@jdbc_driver_logged = true
-    end
-  end
 end
 
 class GlobalFixtures
