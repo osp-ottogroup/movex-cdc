@@ -461,9 +461,9 @@ END Flush;
               when 'ROWID', 'UROWID'              then "'\"'||ROWIDTOCHAR(#{column_name})||'\"'"
               when 'RAW'                          then "'\"'||RAWTOHEX(#{column_name})||'\"'"
               when /^TIMESTAMP\([0-9]\)$/
-              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF', 'NLS_NUMERIC_CHARACTERS=''.,''')||'\"'"
               when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
-              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||'\"'"
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR', 'NLS_NUMERIC_CHARACTERS=''.,''')||'\"'"
               else
                 raise "Unsupported column type '#{column[:data_type]}' for column '#{column[:column_name]}'"
               end

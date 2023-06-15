@@ -4,6 +4,9 @@
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 - ROWID values encapsulated in ROWIDTOCHAR() function for before JSON_OBJECT
 
+## 2023-06-15 Release 1.10.15
+- Bugfix: Ensure timestamp fraction delimiter for Oracle release < 19.1 is always a dot no matter which language setting is active
+
 ## 2022-12-13 Release 1.10.11
 - Bugfix: wrong URL for css file after docker start with suffixed URL
 
