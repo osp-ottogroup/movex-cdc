@@ -5,7 +5,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   # get the relevant column names for export
   def extract_column_names(ar_class)
     # extract column names without id, *_id, timestamps and lock_version
-    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
+    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version', 'last_trigger_deployment'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
   end
 
   def compare_hash_with_ar_record(export_hash, ar_record)
@@ -23,6 +23,12 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     table.conditions.each{|c| c.destroy!}
     table.destroy!
   end
+
+  setup do
+    # Ensure config data is loaded
+    create_victim_structures
+  end
+
 
   test "export_users" do
     run_with_current_user do
