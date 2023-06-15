@@ -11,6 +11,7 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     actual = JSON.parse(@response.body)                                         # Ensure result is valid JSON
 
     assert(actual['schemas'].count == Schema.all.count, "All schemas should be exported")
+    assert(!actual['schemas'][0]&.has_key?('last_trigger_deployment'), "Column last_trigger_deployment should not be exported")
     assert(actual['users'].count == User.all.count, "All users should be exported")
 
     get "/import_export/export", headers: jwt_header(@jwt_token)
