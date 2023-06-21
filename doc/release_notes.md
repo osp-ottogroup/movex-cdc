@@ -3,7 +3,7 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
-## 2023-06-15 Release 1.10.15
+## 2023-06-15 Release 1.10.16
 - API functions /db_triggers/generate and /db_triggers/generate_all return http status code 207 (Multi-Status) if DB errors occur at trigger generation
 
 ## 2023-06-15 Release 1.10.15
