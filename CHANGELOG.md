@@ -36,7 +36,7 @@
 - Bugfix: support insert conditions with subselects for initial import
 
 ## 2022-08-22 Release 1.10.4
-- Update Rails to current version 
+- Update Rails to current version
 - Bugfix: Show GUI icons in all cases
 - Bugfix: support deployment parameter "dry_run" as string ("dry_run"="false") like it is used by curl
 
@@ -47,7 +47,7 @@
 ## 2022-06-27 Release 1.10.2
 - Optimization: Test for DB-locks/pending transactions on partitions of Event_Logs only once instead for each partition
 - New feature: API method for rescheduling final errors for transfer to Kafka (all, events of particular schema, eventts of particular table)
-- Bugfix: Load of css file from external URL removed 
+- Bugfix: Load of css file from external URL removed
 
 ## 2022-06-13 Release 1.10.1
 - Bugfix: Correct timezone set for event timestamp if DB timezone is not GMT
@@ -56,7 +56,7 @@
 
 ## 2022-06-02 Release 1.10.0
 - Configuration parameter KAFKA_SSL_CA_CERT supports file(s) with multiple pem-formatted certificates now as well as a comma-separated list of multiple file paths.<br>
-  This way correct authentication with SASL_SSL is possible without system certicates.  
+  This way correct authentication with SASL_SSL is possible without system certicates.
 
 ## 2022-05-24 Release 1.9.1
 - separate property for KAFKA_SSL_CLIENT_CERT_CHAIN to set the file with the client CA certificate chain if needed
