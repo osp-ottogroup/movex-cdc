@@ -8,3 +8,7 @@ CVE-2021-28965
 
 # 2022-08-15 There's no fixed version for xalan in Java JDK 18
 CVE-2022-34169
+
+# 2023-06-26 SQLite adapter for Rails 6 requires jdbc-sqlite3 (~> 3.8, < 3.30) which is vulnerable, used for test only
+# could be removed after update to Rails 7.1
+CVE-2023-32697
