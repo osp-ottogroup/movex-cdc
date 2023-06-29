@@ -345,7 +345,7 @@ class ActiveSupport::TestCase
         loop_count += 1
         event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
         Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "#{event_logs} records remaining in Event_Logs" }
-        break if event_logs == options[:expected_remaining_records]           # All records processed, no need to wait anymore
+        break if event_logs <= options[:expected_remaining_records]           # All records processed, no need to wait anymore
         sleep 1
       end
       worker.stop_thread

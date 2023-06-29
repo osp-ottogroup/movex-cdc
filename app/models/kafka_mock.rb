@@ -4,9 +4,13 @@ EXISTING_TOPICS = ['Topic1', 'Topic2']
 
 class KafkaMock < KafkaBase
   class Producer < KafkaBase::Producer
-    def initialize(transactional_id:)
+    # Create producer instance
+    # @param [KafkaMock] kafka Instance of KafkaMock
+    # @param [String] transactional_id Transactional id for the producer
+    # @return [void]
+    def initialize(kafka, transactional_id:)
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
-      super(transactional_id: transactional_id)
+      super(kafka, transactional_id: transactional_id)
     end
 
     def begin_transaction
@@ -130,7 +134,7 @@ class KafkaMock < KafkaBase
   # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer
   def create_producer(transactional_id:)
     if @producer.nil?
-      @producer = Producer.new(transactional_id: transactional_id)
+      @producer = Producer.new(self, transactional_id: transactional_id)
     else
       raise "KafkaRuby::create_producer: producer already initialized! Only one producer per instance allowed."
     end

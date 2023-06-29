@@ -9,7 +9,11 @@ class KafkaBase
   # Producer class with generic functions independent from used library
   class Producer
     attr_reader :max_message_bulk_count
-    def initialize(transactional_id:)
+
+    # @param kafka [KafkaBase] Kafka object inherited from KafkaBase
+    # @param transactional_id [String] Transactional ID for Kafka producer
+    def initialize(kafka, transactional_id:)
+      @kafka                      = kafka
       @max_message_bulk_count     = MovexCdc::Application.config.kafka_max_bulk_count   # Keep this value for the lifetime of the producer, event if the config changes
       @max_buffer_bytesize        = MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024
       @transactional_id           = transactional_id
@@ -30,7 +34,39 @@ class KafkaBase
         end
       end
     end
-  end
+
+    # fix Exception Kafka::MessageSizeTooLarge
+    # enlarge Topic property "max.message.bytes" to needed value
+    def fix_message_size_too_large
+
+      @topic_infos.each do |key, value|
+        Rails.logger.warn('KafkaRuby::Producer.fix_message_size_too_large') { "Messages for topic '#{key}' have max. size per message of #{value[:max_produced_message_size]} bytes for transfer" }
+      end
+
+      # get current max.message.byte per topic
+      @topic_infos.each do |key, value|
+        current_max_message_bytes = @kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
+
+        Rails.logger.info('KafkaBase::Producer.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_produced_message_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
+
+        if current_max_message_bytes && value[:max_produced_message_size] > current_max_message_bytes.to_i * 0.8
+          # new max.message.bytes based on current value or largest msg size, depending on the larger one
+          new_max_message_bytes = value[:max_produced_message_size]
+          new_max_message_bytes = current_max_message_bytes.to_i if current_max_message_bytes.to_i > new_max_message_bytes
+          new_max_message_bytes = (new_max_message_bytes * 1.2).to_i              # Enlarge by 20%
+
+          response = @kafka.alter_topic(key, "max.message.bytes" => new_max_message_bytes.to_s)
+          unless response.nil?
+            Rails.logger.error('KafkaBase::Producer.fix_message_size_too_large') { alter topic "#{response.class} #{response}:" }
+          else
+            Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge" }
+          end
+        end
+      rescue Exception => e
+        Rails.logger.error('KafkaBase::Producer.fix_message_size_too_large') { "#{e.class}: #{e.message} while getting or setting topic property max.message.bytes" }
+      end
+    end
+  end # class Producer
 
   # Factory method to create a Kafka producer object
   # @return [KafkaBase] Kafka producer object of derived class

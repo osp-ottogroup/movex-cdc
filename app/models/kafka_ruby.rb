@@ -1,14 +1,14 @@
 # Implementation for Kafka producer functions using Ruby-Kafka gem
 class KafkaRuby < KafkaBase
-
+  attr_reader :internal_kafka
   class Producer < KafkaBase::Producer
 
     # Create producer instance
     # @param [KafkaRuby] kafka Instance of KafkaRuby
-    # @param [Hash] options Options for the producer
+    # @param [String] transactional_id Transactional id for the producer
+    # @return [void]
     def initialize(kafka, transactional_id:)
-      super(transactional_id: transactional_id)
-      @kafka                      = kafka
+      super(kafka, transactional_id: transactional_id)
       @kafka_producer             = nil
       @topic_infos                = {}                                          # Max message size produced so far per topic
       create_kafka_producer
@@ -52,7 +52,7 @@ class KafkaRuby < KafkaBase
     def deliver_messages
       @kafka_producer.deliver_messages
     rescue Kafka::MessageSizeTooLarge => e
-      Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
+      Rails.logger.warn('KafkaRuby::Producer.deliver_Messages') { "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       fix_message_size_too_large
       raise
     rescue Kafka::ConcurrentTransactionError => e
@@ -67,7 +67,7 @@ class KafkaRuby < KafkaBase
     end
 
     def shutdown
-      Rails.logger.info "KafkaRuby::Producer.shutdown"
+      Rails.logger.info('KafkaRuby::Producer,shutdown') { "Shutdown the Kafka producer" }
       @kafka_producer&.shutdown                                                 # free kafka connections if != nil
     end
 
@@ -92,11 +92,11 @@ class KafkaRuby < KafkaBase
 
           producer_options[:compression_codec]             = MovexCdc::Application.config.kafka_compression_codec.to_sym        if MovexCdc::Application.config.kafka_compression_codec != 'none'
 
-          Rails.logger.debug('TransferThread.create_kafka_producer'){"creating Kafka producer with options: #{producer_options}"}
+          Rails.logger.debug('KafkaRuby::Producer.create_kafka_producer'){"creating Kafka producer with options: #{producer_options}"}
           # **producer_options instead of producer_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
-          @kafka_producer = @kafka.producer(**producer_options)
+          @kafka_producer = @kafka.internal_kafka.producer(**producer_options)
 
-          Rails.logger.debug('TransferThread.create_kafka_producer'){"calling kafka_producer.init_transactions"}
+          Rails.logger.debug('KafkaRuby::Producer.create_kafka_producer'){"calling kafka_producer.init_transactions"}
           @kafka_producer.init_transactions                                        # Should be called once before starting transactions
           init_transactions_successfull = true                                    # no exception raise
         rescue Exception => e
@@ -112,39 +112,6 @@ class KafkaRuby < KafkaBase
         end
       end
     end
-
-    # fix Exception Kafka::MessageSizeTooLarge
-    # enlarge Topic property "max.message.bytes" to needed value
-    def fix_message_size_too_large
-
-      @topic_infos.each do |key, value|
-        Rails.logger.warn "TransferThread.fix_message_size_too_large: Messages for topic '#{key}' have max. size per message of #{value[:max_produced_message_size]} bytes for transfer"
-      end
-
-      # get current max.message.byte per topic
-      @topic_infos.each do |key, value|
-        current_max_message_bytes = @kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
-
-        Rails.logger.info('TransferThread.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_produced_message_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
-
-        if current_max_message_bytes && value[:max_produced_message_size] > current_max_message_bytes.to_i * 0.8
-          # new max.message.bytes based on current value or largest msg size, depending on the larger one
-          new_max_message_bytes = value[:max_produced_message_size]
-          new_max_message_bytes = current_max_message_bytes.to_i if current_max_message_bytes.to_i > new_max_message_bytes
-          new_max_message_bytes = (new_max_message_bytes * 1.2).to_i              # Enlarge by 20%
-
-          response = @kafka.alter_topic(key, "max.message.bytes" => new_max_message_bytes.to_s)
-          unless response.nil?
-            Rails.logger.error "#{response.class} #{response}:"
-          else
-            Rails.logger.warn "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge"
-          end
-        end
-      rescue Exception => e
-        Rails.logger.error "TransferThread.fix_message_size_too_large: #{e.class}: #{e.message} while getting or setting topic property max.message.bytes"
-      end
-    end
-
   end # class Producer
 
   private
@@ -165,7 +132,7 @@ class KafkaRuby < KafkaBase
     }
 
     # **kafka_options instead of kafka_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
-    @kafka = Kafka.new(config[:seed_brokers], **kafka_options)                  # return instance of Kafka
+    @internal_kafka = Kafka.new(config[:seed_brokers], **kafka_options)                  # return instance of Kafka
     @producer = nil                                                             # KafkaRuby::Producer is not initialized until needed
   end
 
@@ -173,32 +140,32 @@ class KafkaRuby < KafkaBase
 
   # @return [Array] List of Kafka topic names
   def topics
-    @kafka.topics.sort
+    @internal_kafka.topics.sort
   end
 
   # @param topic [String] Kafka topic name to check for existence
   # @return [Boolean] True if the topic exists
   def has_topic?(topic)
     # @kafka.has_topic?(topic)  # not used, because it creates the topic if it does not exist, so second call returns true
-    @kafka.topics.include?(topic)
+    @internal_kafka.topics.include?(topic)
   end
 
   # @param topic [String] Kafka topic name to describe
   # @param configs [Array] List of Kafka topic attributes to describe
   # @return [Hash] Description of the Kafka topic
   def describe_topic(topic, configs = [])
-    @kafka.describe_topic(topic, configs)
+    @internal_kafka.describe_topic(topic, configs)
   end
 
   # @param topic [String] Kafka topic name to describe with all attributes
   # @return [Hash] Description of the Kafka topic
   def describe_topic_complete(topic)
-    cluster = @kafka.instance_variable_get('@cluster')                           # possibly instable access on internal structures
+    cluster = @internal_kafka.instance_variable_get('@cluster')                           # possibly instable access on internal structures
     result = {}
 
-    result[:partitions]   = @kafka.partitions_for(topic)
-    result[:replicas]     = @kafka.replica_count_for(topic)
-    result[:last_offsets] = @kafka.last_offsets_for(topic)[topic]
+    result[:partitions]   = @internal_kafka.partitions_for(topic)
+    result[:replicas]     = @internal_kafka.replica_count_for(topic)
+    result[:last_offsets] = @internal_kafka.last_offsets_for(topic)[topic]
     result[:leaders]      = {}
     0.upto(result[:partitions]-1) do |p|
       result[:leaders][p.to_s] = cluster.get_leader(topic, p).to_s
@@ -206,7 +173,7 @@ class KafkaRuby < KafkaBase
       result[:leaders][p.to_s] = "Exception: #{e.class}:#{e.message}"
     end
     begin
-      config_values = @kafka.describe_topic(topic, topic_attributes_for_describe.map{|key, _value| key})
+      config_values = @internal_kafka.describe_topic(topic, topic_attributes_for_describe.map{|key, _value| key})
       result_config = topic_attributes_for_describe
       config_values.each do |key, value|
         result_config[key][:value] = value
@@ -222,19 +189,19 @@ class KafkaRuby < KafkaBase
   # @param topic [String] Kafka topic name to change
   # @param settings [Hash] Settings to change
   def  alter_topic(topic, settings)
-    @kafka.alter_topic(topic, settings)
+    @internal_kafka.alter_topic(topic, settings)
   end
 
   # @return [Array] List of Kafka group names
   def groups
-    @kafka.groups
+    @internal_kafka.groups
   end
 
   # Get the description of a Kafka group (consumer group)
   # @param group_id [Integer] Kafka group id
   # @return [Hash] Description of the Kafka group
   def describe_group(group_id)
-    @kafka.describe_group(group_id)
+    @internal_kafka.describe_group(group_id)
   end
 
   # Create instance of KafkaRuby::Producer
@@ -242,7 +209,7 @@ class KafkaRuby < KafkaBase
   # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer
   def create_producer(transactional_id:)
     if @producer.nil?
-      @producer = Producer.new(@kafka, transactional_id: transactional_id)
+      @producer = Producer.new(self, transactional_id: transactional_id)
     else
       raise "KafkaRuby::create_producer: producer already initialized! Only one producer per instance allowed."
     end
