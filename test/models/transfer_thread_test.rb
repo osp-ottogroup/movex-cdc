@@ -9,7 +9,7 @@ class TransferThreadTest < ActiveSupport::TestCase
   # Not necessary because tested by ThreadHandling
   # This test is problematic because Thread remains working after worker.stop_thread
   #test "create worker" do
-  #  worker = TransferThread.create_worker(2, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000) # Async. thread
+  #  worker = TransferThread.create_worker(2, max_transaction_size: 10000) # Async. thread
   #  sleep(1)
   #  worker.stop_thread
   #end

@@ -34,8 +34,7 @@ module KafkaHelper
   # get name of existing topic and cache for lifetime
   def self.existing_topic_for_test
     if @@existing_topic_for_test.nil?
-      kafka = KafkaHelper.connect_kafka                                         # gets instance of class Kafka
-      topics = kafka.topics
+      topics = KafkaBase.create.topics
       raise "No topic configured yet at Kafka" if topics.length == 0
       test_topics = topics.select {|t| !t['__']}                                # discard all topics with '__' like '__consumer_offsets', '__transaction_state' etc.
       @@existing_topic_for_test = test_topics[0]                                # use first remaining topic as sample
