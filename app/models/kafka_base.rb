@@ -72,7 +72,7 @@ class KafkaBase
   # @return [KafkaBase] Kafka producer object of derived class
   def self.create
     if MovexCdc::Application.config.kafka_seed_broker == '/dev/null'
-      KafkaMock.new(MovexCdc::Application.config.kafka_seed_broker, {})
+      KafkaMock.new
     else
       KafkaRuby.new
     end

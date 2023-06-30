@@ -35,10 +35,9 @@ class KafkaRuby < KafkaBase
 
     # Create a single Kafka message
     # @param [String] message Message to send
-    # @param [String] topic Topic to send message to
+    # @param [Table] table Table object of the message
     # @param [String] key Key of the message
     # @param [Hash] headers Headers of the message
-    # @param [Table] table Table object of the message
     def produce(message:, table:, key:, headers:)
       topic = table.topic_to_use
       # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer

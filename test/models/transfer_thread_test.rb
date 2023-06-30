@@ -54,7 +54,7 @@ class TransferThreadTest < ActiveSupport::TestCase
     run_with_current_user { create_event_logs_for_test(20) }                    # create another records to ensure error is in the middle
     remaining_event_log_count = process_eventlogs(max_wait_time: 30, expected_remaining_records: 1, title: 'Process all eventlogs except one with huge payload')
     log_event_logs_content(console_output: true) if remaining_event_log_count <= 0 || remaining_event_log_count >= 3 # List remaining events from table
-    assert remaining_event_log_count>0 && remaining_event_log_count<3 , log_on_failure("One event_Log record with huge payload should cause processing error! remaining_event_log_count = #{remaining_event_log_count}")
+    assert remaining_event_log_count>0 && remaining_event_log_count<3 , log_on_failure("One event_Log record with non existing topic should cause processing error! remaining_event_log_count = #{remaining_event_log_count}")
 
     MovexCdc::Application.config.error_retry_start_delay = 1                 # ensure retry processing takes place now
     MovexCdc::Application.config.error_max_retries = 3                 # ensure retry processing takes place now

@@ -11,6 +11,7 @@ class KafkaMock < KafkaBase
     def initialize(kafka, transactional_id:)
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
       super(kafka, transactional_id: transactional_id)
+      @events = []
     end
 
     def begin_transaction
@@ -25,6 +26,11 @@ class KafkaMock < KafkaBase
     def clear_buffer
     end
 
+    # Create a single Kafka message
+    # @param [String] message Message to send
+    # @param [Table] table Table object of the message
+    # @param [String] key Key of the message
+    # @param [Hash] headers Headers of the message
     def produce(message:, table:, key:, headers:)
       raise "KafkaMock::MessageSizeTooLargeException" if message.bytesize > 1024*1024 # identical behavior like Kafka default for message.max.size
       msg_hash = JSON.parse message                                             # ensure correct JSON notation
@@ -45,6 +51,7 @@ class KafkaMock < KafkaBase
       when 'VICTIM2' then
         raise 'Events for table VICTIM2 should not have event headers' if headers.count > 0
       end
+      @events << { message: message, topic: table.topic_to_use, key: key, headers: headers}
     rescue JSON::ParserError => e
       msg = "#{e.class} #{e.message} while parsing #{message}"
       Rails.logger.error('KafkaMock.produce'){ msg }
@@ -52,6 +59,10 @@ class KafkaMock < KafkaBase
     end
 
     def deliver_messages
+      @events.each do |event|
+        raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}" unless @kafka.has_topic?(event[:topic])
+      end
+      @events = []
     end
 
     def reset_kafka_producer
@@ -150,10 +161,6 @@ class KafkaMock < KafkaBase
     end
   end
 
-
-
-
-
   def partitions_for(topic)
     if EXISTING_TOPICS.include? topic
       2
@@ -176,10 +183,6 @@ class KafkaMock < KafkaBase
     else
       raise "Not existing topic '#{topic}'"
     end
-  end
-
-  def has_topic?(topic)
-    EXISTING_TOPICS.include? topic
   end
 
   EXISTING_GROUPS = ['Group1', 'Group2']
