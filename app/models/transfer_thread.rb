@@ -518,49 +518,6 @@ class TransferThread
     end
   end
 
-  # fix Exception Kafka::MessageSizeTooLarge
-  # enlarge Topic property "max.message.bytes" to needed value
-  def fix_message_size_too_large(kafka, event_logs)
-
-    # get max. message value sizes per topic
-    topic_info = {}
-    event_logs.each do |event_log|
-      table = table_cache(event_log['table_id'])
-      kafka_message = prepare_message_from_event_log(event_log, table)
-      topic = table.topic_to_use
-
-      topic_info[topic] = { max_message_value_size: 0} unless topic_info.has_key?(topic)
-      topic_info[topic][:max_message_value_size] = kafka_message.bytesize if kafka_message.bytesize > topic_info[topic][:max_message_value_size]
-    end
-
-    topic_info.each do |key, value|
-      Rails.logger.warn "TransferThread.fix_message_size_too_large: Messages for topic '#{key}' have max. size per message of #{value[:max_message_value_size]} bytes for transfer"
-    end
-
-    # get current max.message.byte per topic
-    topic_info.each do |key, value|
-      current_max_message_bytes = kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
-
-      Rails.logger.info('TransferThread.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
-
-      if current_max_message_bytes && value[:max_message_value_size] > current_max_message_bytes.to_i * 0.8
-        # new max.message.bytes based on current value or largest msg size, depending on the larger one
-        new_max_message_bytes = value[:max_message_value_size]
-        new_max_message_bytes = current_max_message_bytes.to_i if current_max_message_bytes.to_i > new_max_message_bytes
-        new_max_message_bytes = (new_max_message_bytes * 1.2).to_i              # Enlarge by 20%
-
-        response = kafka.alter_topic(key, "max.message.bytes" => new_max_message_bytes.to_s)
-        unless response.nil?
-          Rails.logger.error "#{response.class} #{response}:"
-        else
-          Rails.logger.warn "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge"
-        end
-      end
-    rescue Exception => e
-      Rails.logger.error "TransferThread.fix_message_size_too_large: #{e.class}: #{e.message} while getting or setting topic property max.message.bytes"
-    end
-  end
-
   def require_option(options, option_name)
     raise "Option ':#{option_name}' required!" unless options[option_name]
     options[option_name]

@@ -104,6 +104,14 @@ class KafkaMock < KafkaBase
     end
   end
 
+  # Describe a single Kafka topic attribute
+  # @param topic [String] Kafka topic name to describe
+  # @param attribute [String] Kafka topic attribute to describe
+  # @return [String] Value of the Kafka topic attribute
+  def describe_topic_attr(topic, attribute)
+    describe_topic(topic, [attribute])[attribute]
+  end
+
   # @param topic [String] Kafka topic name to describe with all attributes
   # @return [Hash] Description of the Kafka topic
   def describe_topic_complete(topic)

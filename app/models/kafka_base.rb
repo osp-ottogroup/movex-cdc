@@ -45,14 +45,14 @@ class KafkaBase
 
       # get current max.message.byte per topic
       @topic_infos.each do |key, value|
-        current_max_message_bytes = @kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
+        current_max_message_bytes = @kafka.describe_topic_attr(key, 'max.message.bytes').to_i
 
         Rails.logger.info('KafkaBase::Producer.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_produced_message_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
 
-        if current_max_message_bytes && value[:max_produced_message_size] > current_max_message_bytes.to_i * 0.8
+        if current_max_message_bytes && value[:max_produced_message_size] > current_max_message_bytes * 0.8
           # new max.message.bytes based on current value or largest msg size, depending on the larger one
           new_max_message_bytes = value[:max_produced_message_size]
-          new_max_message_bytes = current_max_message_bytes.to_i if current_max_message_bytes.to_i > new_max_message_bytes
+          new_max_message_bytes = current_max_message_bytes if current_max_message_bytes > new_max_message_bytes
           new_max_message_bytes = (new_max_message_bytes * 1.2).to_i              # Enlarge by 20%
 
           response = @kafka.alter_topic(key, "max.message.bytes" => new_max_message_bytes.to_s)
