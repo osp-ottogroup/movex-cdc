@@ -34,9 +34,7 @@ class ThreadHandling
         current_thread_pool_size.upto(required_number_of_threads-1) do          # increase the number of threads if necessary
           Rails.logger.debug('ThreadHandling.ensure_processing'){ "starting worker thread because there are not enough" }
           @thread_pool << TransferThread.create_worker(next_free_worker_id, {
-              max_transaction_size:     MovexCdc::Application.config.max_transaction_size,
-              max_message_bulk_count:   MovexCdc::Application.config.kafka_max_bulk_count,
-              max_buffer_bytesize:      MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024
+              max_transaction_size:     MovexCdc::Application.config.max_transaction_size
           }
           )  # add worker to pool
           sleep 1                                                               # don't start all workers at once

@@ -26,8 +26,6 @@ class TransferThread
   def initialize(worker_id, options)
     @worker_id = worker_id
     @max_transaction_size           = require_option(options, :max_transaction_size)     # Maximum number of message in transaction
-    @max_message_bulk_count         = require_option(options, :max_message_bulk_count)   # Maximum number of message in buffer before delivery to kafka
-    @max_buffer_bytesize            = require_option(options, :max_buffer_bytesize)      # Maximum size of Kafka buffer in bytes
     # Maximum distance between first and greatest ID to ensure that number of read events is less than maximum number of messages to read at once
     # this value is dynamically adjusted at runtime so that the number of read records is as high as possible but below @max_transaction_size
     @max_sorted_id_distances        = {}                                        # This values are maintained by increase/decrease_max_sorted_id_distance
@@ -61,7 +59,7 @@ class TransferThread
     Database.set_current_session_network_timeout(timeout_seconds: MovexCdc::Application.config.db_query_timeout * 2) # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
-    @kafka_producer = create_kafka_producer                                     # Initial creation
+    @kafka_producer = KafkaBase.create.create_producer(transactional_id: @transactional_id)
 
     # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
@@ -133,54 +131,8 @@ class TransferThread
 
   private
 
-  MAX_INIT_TRANSACTION_RETRY=3                                                  # max. number of retries after Kafka::ConcurrentTransactionError
-  # Connect to Kafka and create producer instance
-  def create_kafka_producer
-    kafka = KafkaHelper.connect_kafka                                           # gets instance of class Kafka
-
-    init_transactions_successfull = false
-    init_transactions_retry_count = 0
-
-    while !init_transactions_successfull
-
-      begin
-        producer_options = {
-            max_buffer_size:      @max_message_bulk_count,
-            max_buffer_bytesize:  @max_buffer_bytesize,
-            transactional:        true,
-            transactional_id:     @transactional_id,
-            max_retries: 0                                                      # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
-        }
-
-        producer_options[:compression_codec]             = MovexCdc::Application.config.kafka_compression_codec.to_sym        if MovexCdc::Application.config.kafka_compression_codec != 'none'
-
-        Rails.logger.debug('TransferThread.create_kafka_producer'){"creating Kafka producer with options: #{producer_options}"}
-        # **producer_options instead of producer_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
-        kafka_producer = kafka.producer(**producer_options)
-
-        Rails.logger.debug('TransferThread.create_kafka_producer'){"calling kafka_producer.init_transactions"}
-        kafka_producer.init_transactions                                        # Should be called once before starting transactions
-        init_transactions_successfull = true                                    # no exception raise
-      rescue Exception => e
-        kafka_producer&.shutdown                                                # clear existing producer
-        ExceptionHelper.log_exception(e, 'TransferThread.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
-        if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
-          sleep 1
-          init_transactions_retry_count += 1
-          @transactional_id << '-' if e.class == Kafka::ConcurrentTransactionError # change @transactional_id as workaround for Kafka::ConcurrentTransactionError
-        else
-          raise
-        end
-      end
-    end
-    kafka_producer
-  end
 
   # Cancel previous producer and recreate again
-  def reset_kafka_producer
-    @kafka_producer&.shutdown                                                   # free kafka connections of current producer if != nil
-    @kafka_producer = create_kafka_producer                                     # get fresh producer
-  end
 
   # Process the event_logs array within the AR transaction
   # Method is called recursive on error until event_logs.size = 1
@@ -197,7 +149,7 @@ class TransferThread
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      reset_kafka_producer                                                      # After transaction error in Kafka the current producer ends up in Kafka::InvalidTxnStateError if trying to continue with begin_transaction
+      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in Kafka::InvalidTxnStateError if trying to continue with begin_transaction
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
         max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
@@ -421,7 +373,7 @@ class TransferThread
   def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
     # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
     @kafka_producer.begin_transaction
-    event_logs_slices = event_logs.each_slice(@max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
+    event_logs_slices = event_logs.each_slice(@kafka_producer.max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
     Rails.logger.debug('TransferThread.process_kafka_transaction'){"Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"}
     event_logs_slices.each do |event_logs_slice|
       Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs_slice with #{event_logs_slice.count} records"}
@@ -430,21 +382,10 @@ class TransferThread
           @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
           table = table_cache(event_log['table_id'])
           kafka_message = prepare_message_from_event_log(event_log, table)
-          topic = table.topic_to_use
           @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
-          begin
-            # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
-            @kafka_producer.produce(kafka_message, topic: topic, key: event_log['msg_key'], headers: create_message_headers(event_log, table))
-          rescue Kafka::BufferOverflow => e
-            handle_kafka_buffer_overflow(e, kafka_message, topic, table)
-            raise                                                               # Ensure transaction is rolled back an retried
-          end
+          @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
         end
         @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka
-      rescue Kafka::MessageSizeTooLarge => e
-        Rails.logger.warn "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}"
-        fix_message_size_too_large(kafka, event_logs_slice)
-        raise                                                                   # Ensure transaction is rolled back an retried
       rescue Exception => e
         msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
         msg << event_logs_debug_info(event_logs_slice)
@@ -462,11 +403,11 @@ class TransferThread
 
     max_concurrent_transaction_error_retries = 1
     # Kafka::ConcurrentTransactionError is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
-    if e.class == Kafka::ConcurrentTransactionError
+    if e.class == KafkaBase::ConcurrentTransactionError
       if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
         sleep @concurrent_tx_retry_delay_ms/1000.0
         # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-        Rails.logger.debug('TransferThread.process_kafka_transaction'){"Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."}
+        Rails.logger.info('TransferThread.process_kafka_transaction'){"Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."}
         process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
       else
         Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
@@ -577,49 +518,6 @@ class TransferThread
     end
   end
 
-  # fix Exception Kafka::MessageSizeTooLarge
-  # enlarge Topic property "max.message.bytes" to needed value
-  def fix_message_size_too_large(kafka, event_logs)
-
-    # get max. message value sizes per topic
-    topic_info = {}
-    event_logs.each do |event_log|
-      table = table_cache(event_log['table_id'])
-      kafka_message = prepare_message_from_event_log(event_log, table)
-      topic = table.topic_to_use
-
-      topic_info[topic] = { max_message_value_size: 0} unless topic_info.has_key?(topic)
-      topic_info[topic][:max_message_value_size] = kafka_message.bytesize if kafka_message.bytesize > topic_info[topic][:max_message_value_size]
-    end
-
-    topic_info.each do |key, value|
-      Rails.logger.warn "TransferThread.fix_message_size_too_large: Messages for topic '#{key}' have max. size per message of #{value[:max_message_value_size]} bytes for transfer"
-    end
-
-    # get current max.message.byte per topic
-    topic_info.each do |key, value|
-      current_max_message_bytes = kafka.describe_topic(key, ['max.message.bytes'])['max.message.bytes']
-
-      Rails.logger.info('TransferThread.fix_message_size_too_large') { "Topic='#{key}', largest msg size in buffer = #{value[:max_message_value_size]}, topic-config max.message.bytes = #{current_max_message_bytes}" }
-
-      if current_max_message_bytes && value[:max_message_value_size] > current_max_message_bytes.to_i * 0.8
-        # new max.message.bytes based on current value or largest msg size, depending on the larger one
-        new_max_message_bytes = value[:max_message_value_size]
-        new_max_message_bytes = current_max_message_bytes.to_i if current_max_message_bytes.to_i > new_max_message_bytes
-        new_max_message_bytes = (new_max_message_bytes * 1.2).to_i              # Enlarge by 20%
-
-        response = kafka.alter_topic(key, "max.message.bytes" => new_max_message_bytes.to_s)
-        unless response.nil?
-          Rails.logger.error "#{response.class} #{response}:"
-        else
-          Rails.logger.warn "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge"
-        end
-      end
-    rescue Exception => e
-      Rails.logger.error "TransferThread.fix_message_size_too_large: #{e.class}: #{e.message} while getting or setting topic property max.message.bytes"
-    end
-  end
-
   def require_option(options, option_name)
     raise "Option ':#{option_name}' required!" unless options[option_name]
     options[option_name]
@@ -701,21 +599,6 @@ class TransferThread
       end
     end
     msg
-  end
-
-  # Reduce the number of messages in bulk if exception occurs
-  def handle_kafka_buffer_overflow(exception, kafka_message, topic, table)
-    Rails.logger.warn "#{exception.class} #{exception.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{table.schema.name}, table = #{table.name}"
-    if kafka_message.bytesize > @max_buffer_bytesize / 3
-      Rails.logger.error('TransferThread.handle_kafka_buffer_overflow'){"Single message size exceeds 1/3 of the Kafka buffer size! No automatic action called! Possibly increase KAFKA_TOTAL_BUFFER_SIZE_MB to fix this issue."}
-    else
-      reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
-      if @max_message_bulk_count > reduce_step + 1
-        @max_message_bulk_count -= reduce_step
-        MovexCdc::Application.config.kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
-        Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
-      end
-    end
   end
 
   # how long should be waited after processing of whole DB transaction
