@@ -78,6 +78,7 @@ class KafkaMock < KafkaBase
   def initialize
     super()
     @producer = nil                                                             # KafkaMock::Producer is not initialized until needed
+    @topic_attrs = {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
   end
 
   public
@@ -93,23 +94,12 @@ class KafkaMock < KafkaBase
     topics.include?(topic)
   end
 
-  # @param topic [String] Kafka topic name to describe
-  # @param configs [Array] List of Kafka topic attributes to describe
-  # @return [Hash] Description of the Kafka topic
-  def describe_topic(topic, configs = [])
-    if EXISTING_TOPICS.include? topic
-      {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
-    else
-      raise "Not existing topic '#{topic}'"
-    end
-  end
-
   # Describe a single Kafka topic attribute
   # @param topic [String] Kafka topic name to describe
   # @param attribute [String] Kafka topic attribute to describe
   # @return [String] Value of the Kafka topic attribute
   def describe_topic_attr(topic, attribute)
-    describe_topic(topic, [attribute])[attribute]
+    @topic_attrs[attribute].to_s
   end
 
   # @param topic [String] Kafka topic name to describe with all attributes
@@ -121,7 +111,7 @@ class KafkaMock < KafkaBase
         replicas: 2,
         last_offsets: { topic => { '0': 5, '1': 8 }},
         leaders: { '0': '1', '1': '1' },
-        config: { 'max.message.bytes': { value: 100000, info: 'Hugo'}, 'retention.ms': { value: "604800000", info: 'Hugo' }}
+        config: { 'max.message.bytes': { value: @topic_attrs['max.message.bytes'], info: 'Hugo'}, 'retention.ms': { value: @topic_attrs['retention.ms'], info: 'Hugo' }}
       }
     else
       raise "Not existing topic '#{topic}'"

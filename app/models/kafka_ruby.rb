@@ -100,7 +100,7 @@ class KafkaRuby < KafkaBase
           init_transactions_successfull = true                                    # no exception raise
         rescue Exception => e
           @kafka_producer&.shutdown                                                # clear existing producer
-          ExceptionHelper.log_exception(e, 'TransferThread.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
+          ExceptionHelper.log_exception(e, 'KafkaRuby.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
@@ -147,13 +147,6 @@ class KafkaRuby < KafkaBase
   def has_topic?(topic)
     # @kafka.has_topic?(topic)  # not used, because it creates the topic if it does not exist, so second call returns true
     @internal_kafka.topics.include?(topic)
-  end
-
-  # @param topic [String] Kafka topic name to describe
-  # @param configs [Array] List of Kafka topic attributes to describe
-  # @return [Hash] Description of the Kafka topic
-  def describe_topic(topic, configs = [])
-    @internal_kafka.describe_topic(topic, configs)
   end
 
   # Describe a single Kafka topic attribute
@@ -206,7 +199,7 @@ class KafkaRuby < KafkaBase
 
   # Get the description of a Kafka group (consumer group)
   # @param group_id [Integer] Kafka group id
-  # @return [Hash] Description of the Kafka group
+  # @return [Object] Description of the Kafka group that can be transformed to JSON by to_json
   def describe_group(group_id)
     @internal_kafka.describe_group(group_id)
   end
@@ -231,4 +224,5 @@ class KafkaRuby < KafkaBase
       @producer
     end
   end
+
 end

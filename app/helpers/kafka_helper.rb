@@ -1,5 +1,6 @@
 module KafkaHelper
 
+  # TODO: move to test_helper.rb
   @@existing_topic_for_test = nil
   # get name of existing topic and cache for lifetime
   def self.existing_topic_for_test
