@@ -50,6 +50,10 @@ class KafkaJava < KafkaBase
       Rails.logger.error('KafkaJava::Producer.abort_transaction') { "There is no pending_transaction" } if @pending_transaction.nil?
       Rails.logger.debug('KafkaJava::Producer.abort_transaction') { "Aborting transaction" }
       @kafka_producer&.abortTransaction
+    rescue Exception => e
+      Rails.logger.error('KafkaJava::Producer.abort_transaction') { "#{e.class} #{e.message} during abort of transaction" }
+      raise
+    ensure
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
@@ -95,7 +99,7 @@ class KafkaJava < KafkaBase
     # Cancel previous producer and recreate again
 
     def reset_kafka_producer
-      @kafka_producer&.close                                                    # free kafka connections of current producer if != nil
+      shutdown                                                                  # free kafka connections of current producer if != nil
       create_kafka_producer                                                     # get fresh producer
     end
 
