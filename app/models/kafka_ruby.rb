@@ -10,12 +10,12 @@ class KafkaRuby < KafkaBase
     def initialize(kafka, transactional_id:)
       super(kafka, transactional_id: transactional_id)
       @kafka_producer             = nil
-      @topic_infos                = {}                                          # Max message size produced so far per topic
       create_kafka_producer
     end
 
     def begin_transaction
       @kafka_producer&.begin_transaction
+      @topic_infos.clear                                                        # Clear topic_infos to get new max_produced_message_size
     end
 
     def commit_transaction
@@ -51,7 +51,7 @@ class KafkaRuby < KafkaBase
     def deliver_messages
       @kafka_producer.deliver_messages
     rescue Kafka::MessageSizeTooLarge => e
-      Rails.logger.warn('KafkaRuby::Producer.deliver_Messages') { "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.warn('KafkaRuby::Producer.deliver_Messages') { "#{e.class} #{e.message}: max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       fix_message_size_too_large
       raise
     rescue Kafka::ConcurrentTransactionError => e
@@ -142,13 +142,6 @@ class KafkaRuby < KafkaBase
     @internal_kafka.topics.sort
   end
 
-  # @param topic [String] Kafka topic name to check for existence
-  # @return [Boolean] True if the topic exists
-  def has_topic?(topic)
-    # @kafka.has_topic?(topic)  # not used, because it creates the topic if it does not exist, so second call returns true
-    @internal_kafka.topics.include?(topic)
-  end
-
   # Describe a single Kafka topic attribute
   # @param topic [String] Kafka topic name to describe
   # @param attribute [String] Kafka topic attribute to describe
@@ -190,6 +183,13 @@ class KafkaRuby < KafkaBase
   # @param settings [Hash] Settings to change
   def  alter_topic(topic, settings)
     @internal_kafka.alter_topic(topic, settings)
+  end
+
+  # Create a new Kafka topic
+  # @param topic [String] Kafka topic name to create
+  # @return [void]
+  def create_topic(topic)
+    @internal_kafka.create_topic(topic)
   end
 
   # @return [Array] List of Kafka group names

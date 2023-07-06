@@ -22,30 +22,35 @@ class KafkaJava < KafkaBase
     # @return [void]
     def initialize(kafka, transactional_id:)
       super(kafka, transactional_id: transactional_id)
-      @kafka_producer             = nil
-      @topic_infos                = {}                                          # Max message size produced so far per topic
+      @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
+      @kafka_producer            = nil
       create_kafka_producer
     end
 
     def begin_transaction
+      Rails.logger.error('KafkaJava::Producer.begin_transaction') { "There is already a pending_transaction since #{@pending_transaction}" } unless @pending_transaction.nil?
+      Rails.logger.debug('KafkaJava::Producer.begin_transaction') { "Starting transaction" }
       @kafka_producer&.beginTransaction
+      @pending_transaction = Time.now                                           # Mark transaction as active/pending by setting timestamp
+      @topic_infos.clear                                                        # Clear topic_infos to get new max_produced_message_size
     end
 
     def commit_transaction
+      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "There is no pending_transaction" } if @pending_transaction.nil?
+      Rails.logger.debug('KafkaJava::Producer.commit_transaction') { "Committing transaction" }
       @kafka_producer&.commitTransaction
+      @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     rescue Exception => e
-      if e.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
-        Rails.logger.warn('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
-        fix_message_size_too_large
-      end
-      if e.class == Kafka::ConcurrentTransactionError
-        raise KafkaBase::ConcurrentTransactionError.new(e.message)                # Use generic error class to avoid dependency on Ruby-Kafka gem
-      end
+      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      handle_kafka_server_exception(e)
       raise
     end
 
     def abort_transaction
+      Rails.logger.error('KafkaJava::Producer.abort_transaction') { "There is no pending_transaction" } if @pending_transaction.nil?
+      Rails.logger.debug('KafkaJava::Producer.abort_transaction') { "Aborting transaction" }
       @kafka_producer&.abortTransaction
+      @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
     # remove all pending (not processed by kafka) messages from producer buffer
@@ -73,17 +78,11 @@ class KafkaJava < KafkaBase
       @kafka_producer.send(record)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
-    rescue Kafka::BufferOverflow => e
-      handle_kafka_buffer_overflow(e, message, topic, table)
-      raise                                                               # Ensure transaction is rolled back an retried
-    rescue Kafka::MessageSizeTooLarge => e
-      Rails.logger.warn('KafkaRuby::Producer.produce') { "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
-      fix_message_size_too_large
-      raise
-    rescue Kafka::ConcurrentTransactionError => e
-      raise KafkaBase::ConcurrentTransactionError.new(e.message)                # Use generic error class to avoid dependency on Ruby-Kafka gem
     rescue Exception => e
-      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message} max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      handle_kafka_server_exception(e)
+      handle_kafka_buffer_overflow(e, message, topic, table) if e.class == Kafka::BufferOverflow
+      # TODO: find corresponding Java exception for Kafka::BufferOverflow
       raise
     end
 
@@ -101,7 +100,7 @@ class KafkaJava < KafkaBase
     end
 
     def shutdown
-      Rails.logger.info('KafkaJava::Producer,shutdown') { "Shutdown the Kafka producer" }
+      Rails.logger.info('KafkaJava::Producer.shutdown') { "Shutdown the Kafka producer" }
       @kafka_producer&.close                                                    # free kafka connections if != nil
     end
 
@@ -156,6 +155,18 @@ class KafkaJava < KafkaBase
         end
       end
     end
+
+    # Handle exceptions at message production. Can be raised by producer.send and producer.commit_transaction
+    # Reraise of exception should be done by caller
+    # @param exception [Exception] Exception raised by producer
+    # @param caller [String] Name of the calling method
+    def handle_kafka_server_exception(exception)
+      fix_message_size_too_large if exception.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
+
+      if exception.class == Kafka::ConcurrentTransactionError
+        raise KafkaBase::ConcurrentTransactionError.new(exception.message)              # Use generic error class to avoid dependency on Ruby-Kafka gem
+      end
+    end
   end # class Producer
 
   private
@@ -173,12 +184,6 @@ class KafkaJava < KafkaBase
       topics = admin.listTopics # returns a Java::OrgApacheKafkaClientsAdmin::ListTopicsResult
       topics.names.get.to_a.sort
     end
-  end
-
-  # @param topic [String] Kafka topic name to check for existence
-  # @return [Boolean] True if the topic exists
-  def has_topic?(topic)
-    topics.include?(topic)
   end
 
   # Describe a single Kafka topic attribute
