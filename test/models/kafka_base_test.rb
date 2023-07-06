@@ -6,6 +6,7 @@ class KafkaBaseTest < ActiveSupport::TestCase
     producer = kafka.create_producer(transactional_id: 'hugo2')
     producer.begin_transaction
     producer.produce(message: '{ "content": "Dummes zeug" }', table: victim1_table, key: nil, headers: {})
+    producer.produce(message: '{ "content": "Dummes zeug 2" }', table: victim1_table, key: 'Hugo', headers: {Addition: 'Hugo'})
     producer.deliver_messages
     producer.commit_transaction
   rescue Exception => e
@@ -72,22 +73,25 @@ class KafkaBaseTest < ActiveSupport::TestCase
     if MovexCdc::Application.config.kafka_seed_broker != '/dev/null'            # real Kafka connected
       kafka = KafkaBase.create
       org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
-      kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10')                         # Set a minimal value
-      producer = kafka.create_producer(transactional_id: 'hugo14')
-      producer.begin_transaction
-      assert_raise do
-        begin
-          producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
-          producer.deliver_messages
-          producer.commit_transaction
-        ensure
-          producer.abort_transaction
-          producer.shutdown
+      begin
+        kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10')                         # Set a minimal value
+        producer = kafka.create_producer(transactional_id: 'hugo14')
+        producer.begin_transaction
+        assert_raise do
+          begin
+            producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
+            producer.deliver_messages
+            producer.commit_transaction
+          ensure
+            producer.abort_transaction
+            producer.shutdown
+          end
         end
+        current_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes').to_i
+        assert(current_max_message_bytes > 10, log_on_failure("Should have increased max.message.bytes to more than 10 (#{current_max_message_bytes})"))
+      ensure
+        kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => org_max_message_bytes)       # Restore original value
       end
-      current_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes').to_i
-      assert(current_max_message_bytes > 10, log_on_failure("Should have increased max.message.bytes to more than 10 (#{current_max_message_bytes})"))
-      kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => org_max_message_bytes)       # Restore original value
     end
   end
 end

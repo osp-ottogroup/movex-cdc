@@ -13,7 +13,7 @@ FROM amazoncorretto:20-al2-jdk
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG KAFKA_VERSION=3.5.0
+ARG KAFKA_VERSION=3.2.3
 ARG SCALA_VERSION=2.13
 ENV KAFKA_VERSION=$KAFKA_VERSION
 ENV SCALA_VERSION=$SCALA_VERSION
@@ -29,7 +29,7 @@ EXPOSE 2181/tcp 9092/tcp
 
 RUN yum install -y wget tar gzip bash
 
-RUN wget "https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+RUN wget "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 
 RUN ls -l /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \

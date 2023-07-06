@@ -76,7 +76,7 @@ class KafkaJava < KafkaBase
                  org.apache.kafka.clients.producer.ProducerRecord.new(topic, message) :
                  org.apache.kafka.clients.producer.ProducerRecord.new(topic, key, message)
       headers.each do | hkey, hvalue|
-        record.headers.add(org.apache.kafka.clients.producer.RecordHeader.new(hkey, hvalue))
+        record.headers.add(org.apache.kafka.common.header.internals.RecordHeader.new(hkey.to_s, java.lang.String.new(hvalue.to_s).getBytes))
       end
 
       @kafka_producer.send(record)                                              # Send message to Kafka
