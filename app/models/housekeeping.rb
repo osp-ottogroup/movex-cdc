@@ -132,7 +132,7 @@ class Housekeeping
             current_interval = EventLog.current_interval_seconds
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Current partition interval is #{current_interval} seconds" }
             # create dummy record with following rollback to enforce creation of two interval partitions with exact time difference of current_interval
-            split_partition_force_create_time1 = compare_time - current_interval - 2   # smaller than expected high_value with 1 second rounding failure
+            split_partition_force_create_time1 = compare_time - (current_interval - 2)   # smaller than expected high_value with 1 second rounding failure
             split_partition_force_create_time2 = split_partition_force_create_time1 - current_interval
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}" }
             ActiveRecord::Base.transaction do
