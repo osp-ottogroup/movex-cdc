@@ -15,7 +15,7 @@ class KafkaBase
     def initialize(kafka, transactional_id:)
       @kafka                      = kafka
       @max_message_bulk_count     = MovexCdc::Application.config.kafka_max_bulk_count   # Keep this value for the lifetime of the producer, event if the config changes
-      @max_buffer_bytesize        = MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024
+      @max_buffer_bytesize        = (MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024).to_i
       @transactional_id           = transactional_id
       @topic_infos                = {}                                          # Max message size produced within a transaction so far per topic
     end

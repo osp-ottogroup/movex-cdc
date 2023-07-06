@@ -85,7 +85,8 @@ class KafkaBaseTest < ActiveSupport::TestCase
           producer.shutdown
         end
       end
-      assert(kafka.describe_topic_attr(KafkaHelper.existing_topic_for_test, 'max.message.bytes').to_i > 10, log_on_failure('Should have increased max.message.bytes'))
+      current_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes').to_i
+      assert(current_max_message_bytes > 10, log_on_failure("Should have increased max.message.bytes to more than 10 (#{current_max_message_bytes})"))
       kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => org_max_message_bytes)       # Restore original value
     end
   end

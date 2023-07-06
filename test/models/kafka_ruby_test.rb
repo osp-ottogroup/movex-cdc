@@ -12,7 +12,7 @@ class KafkaRubyTest < ActiveSupport::TestCase
       producer.begin_transaction
       assert_raise(Kafka::BufferOverflow) do
         1.upto(10) do |i|
-          producer.produce(message: 'a' * 500, table: victim1_table, key: nil, headers: nil)
+          producer.produce(message: 'a' * 500, table: victim1_table)
         end
       end
       assert(MovexCdc::Application.config.kafka_max_bulk_count == org_kafka_max_bulk_count, log_on_failure('kafka_max_bulk_count should not be changed'))
@@ -23,7 +23,7 @@ class KafkaRubyTest < ActiveSupport::TestCase
       producer.begin_transaction
       assert_raise(Kafka::BufferOverflow) do
         1.upto(100) do |i|
-          producer.produce(message: 'a' * 1000, table: victim1_table, key: nil, headers: nil)
+          producer.produce(message: 'a' * 1000, table: victim1_table)
         end
       end
       assert(MovexCdc::Application.config.kafka_max_bulk_count < org_kafka_max_bulk_count, log_on_failure('kafka_max_bulk_count should be reduced'))

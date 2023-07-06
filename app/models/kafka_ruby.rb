@@ -38,7 +38,7 @@ class KafkaRuby < KafkaBase
     # @param [Table] table Table object of the message
     # @param [String] key Key of the message
     # @param [Hash] headers Headers of the message
-    def produce(message:, table:, key:, headers:)
+    def produce(message:, table:, key: nil, headers: {})
       topic = table.topic_to_use
       # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
       @kafka_producer.produce(message, topic: topic, key: key, headers: headers)
@@ -199,9 +199,10 @@ class KafkaRuby < KafkaBase
 
   # Get the description of a Kafka group (consumer group)
   # @param group_id [Integer] Kafka group id
-  # @return [Object] Description of the Kafka group that can be transformed to JSON by to_json
+  # @return [Hash] Description of the Kafka group
   def describe_group(group_id)
-    @internal_kafka.describe_group(group_id)
+    # Kafka::Protocol::DescribeGroupsResponse::Group can be transformed to JSON by to_json
+    JSON.parse(@internal_kafka.describe_group(group_id).to_json)
   end
 
   # Create instance of KafkaRuby::Producer

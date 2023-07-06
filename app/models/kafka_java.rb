@@ -66,7 +66,7 @@ class KafkaJava < KafkaBase
     # @param [String] key Key of the message, may be nil
     # @param [Hash] headers Headers of the message, may not be nil
     # @return [void]
-    def produce(message:, table:, key:, headers: )
+    def produce(message:, table:, key: nil, headers: {})
       topic = table.topic_to_use
       record = key.nil? ?
                  org.apache.kafka.clients.producer.ProducerRecord.new(topic, message) :
