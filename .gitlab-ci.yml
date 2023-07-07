@@ -94,6 +94,7 @@ test_frontend:
   extends: .tests
   variables:
     DB_TYPE: "SQLITE"
+    KAFKA_CLIENT_LIBRARY: java
 
 .tests_ORACLE:
   extends: .tests
@@ -102,10 +103,18 @@ test_frontend:
     DB_SYS_PASSWORD: "oracle"
     DB_SYS_USER: "SYS"
     DB_URL: "oracle-db:1521/ORCLPDB1"
+    KAFKA_CLIENT_LIBRARY: ruby
 
 test_sqlite:
   stage: test
   extends: .tests_SQLITE
+
+# Use mock implementation for Kafka, checks JSON conformity
+test_sqlite_mock:
+  stage: test
+  extends: .tests_SQLITE
+  variables:
+    KAFKA_SEED_BROKER: "/dev/null"
 
 #test_oracle_autonomous:
 #  stage: test

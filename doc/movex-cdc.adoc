@@ -255,6 +255,11 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
 |INITIAL_WORKER_THREADS|Initial number of worker threads. Each worker threads has it's own connection to database and Kafka and operates independent on transferring events from local DB table to Kafka.|3
 |JAVA_OPTS|Set Java options for jRuby runtime of the application. For example set to '-Xmx8192m' to allow MOVEX CDC to use up to 8GB of memory for Java heap memory.|'-Xmx<n>m' where n is 75% of the available memory
+|KAFKA_CLIENT_LIBRARY|Library used for Kafka connection. +
+Valid values are: +
+'ruby' - The initially used Ruby library for Kafka (https://github.com/zendesk/ruby-kafka) which is no longer maintained +
+'java' - The Apache Kafka client library for Java as the primary lib for the future +
+The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|ruby
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
