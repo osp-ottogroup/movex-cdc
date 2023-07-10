@@ -10,6 +10,7 @@ class KafkaMock < KafkaBase
     # @return [void]
     def initialize(kafka, transactional_id:)
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
+      @last_successfully_delivered_id = 0
       super(kafka, transactional_id: transactional_id)
       @events = []
     end
@@ -60,8 +61,12 @@ class KafkaMock < KafkaBase
 
     def deliver_messages
       @events.each do |event|
-        raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}" unless @kafka.has_topic?(event[:topic])
+        unless @kafka.has_topic?(event[:topic])
+          @last_produced_id = @last_successfully_delivered_id                   # reset last produced ID because events will occur again
+          raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}"
+        end
       end
+      @last_successfully_delivered_id = @last_produced_id                       # remember last successfully delivered ID
     ensure
       @events = []                                                              # ensure to start with empty event list even after repeated errors
     end
