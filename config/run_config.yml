@@ -24,7 +24,10 @@
 # Set max. Java heap size. Default is 75% of available memory
 # JAVA_OPTS:-Xmx2048m
 
-# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
+# which client library should be used for Kafka connection (java, ruby, mock)
+# KAFKA_CLIENT_LIBRARY: java
+
+# Comma separated list of seed brokers for Kafka logon
 # KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
 
 # Initial number of worker threads

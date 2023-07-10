@@ -192,7 +192,6 @@ If suitable an alternative for the detailed single grants may also be to grant '
 Instead of manually creating the DB user you can let MOVEX CDC itself create the schema owner for Oracle with all required grants by issuing:
 [source]
 docker run --rm \
-  -e KAFKA_SEED_BROKER=/dev/null \
   -e DB_TYPE=ORACLE \
   -e DB_USER=hugo \
   -e DB_PASSWORD=hugo \
@@ -236,7 +235,6 @@ Environment variables overrides values from configuration file.
 Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |DB_USER|Username of MOVEX CDC's DB schema in the observed database
 |KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
-"/dev/null" for mocking of Kafka connection in tests (discard events instead of transfer to Kafka).
 |===
 
 .Optional environment parameters for evaluation at appliction start
@@ -259,7 +257,7 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 Valid values are: +
 'ruby' - The initially used Ruby library for Kafka (https://github.com/zendesk/ruby-kafka) which is no longer maintained +
 'java' - The Apache Kafka client library for Java as the primary lib for the future +
-'mock' - A mock library only for testing purposes without a Kafka connection (events are processed / removed from queue but not transferred to a Kafka target) +
+'mock' - A mock library only for testing purposes without a Kafka connection (events are discarded and not transferred to a Kafka target) +
 The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|ruby
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000

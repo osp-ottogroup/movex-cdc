@@ -2,7 +2,7 @@ require 'test_helper'
 
 class KafkaRubyTest < ActiveSupport::TestCase
   test "produce with Kafka::BufferOverflow" do
-    if MovexCdc::Application.config.kafka_seed_broker != '/dev/null'  && KafkaBase.create.class == KafkaRuby          # real Kafka connected
+    if KafkaBase.create.class == KafkaRuby          # real Kafka connected
       org_kafka_total_buffer_size_mb  = MovexCdc::Application.config.kafka_total_buffer_size_mb
       org_kafka_max_bulk_count        = MovexCdc::Application.config.kafka_max_bulk_count
 

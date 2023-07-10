@@ -72,14 +72,11 @@ class KafkaBase
   # Factory method to create a Kafka producer object
   # @return [KafkaBase] Kafka producer object of derived class
   def self.create
-    if MovexCdc::Application.config.kafka_seed_broker == '/dev/null'
-      KafkaMock.new
-    else
-      if MovexCdc::Application.config.respond_to?(:kafka_client_library) && MovexCdc::Application.config.kafka_client_library == 'java'
-        KafkaJava.new
-      else
-        KafkaRuby.new
-      end
+    case MovexCdc::Application.config.kafka_client_library
+    when 'java' then KafkaJava.new
+    when 'ruby' then KafkaRuby.new
+    when 'mock' then KafkaMock.new
+    else raise "Unsupported value '#{MovexCdc::Application.config.kafka_client_library}' for KAFKA_CLIENT_LIBRARY"
     end
   end
 

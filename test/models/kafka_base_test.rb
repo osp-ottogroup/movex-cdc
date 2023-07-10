@@ -70,7 +70,7 @@ class KafkaBaseTest < ActiveSupport::TestCase
   end
 
   test "deliver_messages with Kafka::MessageSizeTooLarge" do
-    if MovexCdc::Application.config.kafka_seed_broker != '/dev/null'            # real Kafka connected
+    if MovexCdc::Application.config.kafka_client_library != 'mock'            # real Kafka connected
       kafka = KafkaBase.create
       org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
       begin

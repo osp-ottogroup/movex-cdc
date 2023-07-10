@@ -114,7 +114,7 @@ test_sqlite_mock:
   stage: test
   extends: .tests_SQLITE
   variables:
-    KAFKA_SEED_BROKER: "/dev/null"
+    KAFKA_CLIENT_LIBRARY: mock
 
 #test_oracle_autonomous:
 #  stage: test
