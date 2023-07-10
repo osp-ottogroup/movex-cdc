@@ -62,7 +62,8 @@ class KafkaMock < KafkaBase
       @events.each do |event|
         raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}" unless @kafka.has_topic?(event[:topic])
       end
-      @events = []
+    ensure
+      @events = []                                                              # ensure to start with empty event list even after repeated errors
     end
 
     def reset_kafka_producer
@@ -79,6 +80,10 @@ class KafkaMock < KafkaBase
     super()
     @producer = nil                                                             # KafkaMock::Producer is not initialized until needed
     @topic_attrs = {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
+    @groups = [
+      { group_id: 'group1', state: 'Stable', protocol_type: 'consumer', protocol: 'roundrobin', members: [{ member_id: 'member1', client_id: 'client1', client_host: 'host1', metadata: 'metadata1', assignment: 'assignment1' }]},
+      { group_id: 'group2', state: 'Stable', protocol_type: 'consumer', protocol: 'roundrobin', members: [{ member_id: 'member1', client_id: 'client1', client_host: 'host1', metadata: 'metadata1', assignment: 'assignment1' }]},
+    ]
   end
 
   public
@@ -122,19 +127,19 @@ class KafkaMock < KafkaBase
   # @param topic [String] Kafka topic name to change
   # @param settings [Hash] Settings to change
   def  alter_topic(topic, settings)
-    @kafka.alter_topic(topic, settings)
+    @topic_attrs.merge!(settings)
   end
 
   # @return [Array] List of Kafka group names
   def groups
-    @kafka.groups
+    @groups.map{|g| g[:group_id]}
   end
 
   # Get the description of a Kafka group (consumer group)
   # @param group_id [Integer] Kafka group id
   # @return [Hash] Description of the Kafka group
   def describe_group(group_id)
-    @kafka.describe_group(group_id)
+    @groups.find{|g| g[:group_id] == group_id}
   end
 
 

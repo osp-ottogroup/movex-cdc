@@ -5,8 +5,8 @@ class KafkaBaseTest < ActiveSupport::TestCase
     kafka = KafkaBase.create
     producer = kafka.create_producer(transactional_id: 'hugo2')
     producer.begin_transaction
-    producer.produce(message: '{ "content": "Dummes zeug" }', table: victim1_table, key: nil, headers: {})
-    producer.produce(message: '{ "content": "Dummes zeug 2" }', table: victim1_table, key: 'Hugo', headers: {Addition: 'Hugo'})
+    producer.produce(message: '{ "id": 1, "content": "Dummes zeug" }', table: victim1_table, key: nil, headers: {})
+    producer.produce(message: '{ "id": 2, "content": "Dummes zeug 2" }', table: victim1_table, key: 'Hugo', headers: {Addition: 'Hugo'})
     producer.deliver_messages
     producer.commit_transaction
   rescue Exception => e

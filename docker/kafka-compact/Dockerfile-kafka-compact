@@ -3,8 +3,8 @@
 # Peter Ramm, 2020-03-09
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.5.0 .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.5.0
+# Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.4.1 .
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.4.1
 # Use
 
 
@@ -13,7 +13,8 @@ FROM amazoncorretto:20-al2-jdk
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG KAFKA_VERSION=3.2.3
+# 3.5.0 has problems working with single node cluster
+ARG KAFKA_VERSION=3.4.1
 ARG SCALA_VERSION=2.13
 ENV KAFKA_VERSION=$KAFKA_VERSION
 ENV SCALA_VERSION=$SCALA_VERSION
