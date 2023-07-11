@@ -205,4 +205,10 @@ class KafkaMock < KafkaBase
       raise "Not existing group '#{group_id}'"
     end
   end
+
+  # Validate the connection properties at startup
+  # @raise [Exception] if connection properties are invalid
+  def validate_connect_properties
+
+  end
 end

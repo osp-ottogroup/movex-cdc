@@ -198,15 +198,27 @@ module MovexCdc
     supported_compression_codecs = ['none', 'snappy', 'gzip', 'lz4', 'zstd']
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count, default: 1000, integer: true, minimum: 1)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_properties_file, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_security_protocol, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, default: 'FALSE')
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, accept_empty: true)  # nil defaults to false
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true) # deprecated, use kafka_ssl_key_password instead
+    if config.kafka_ssl_client_cert_key_password
+      puts "WARNING: KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD is deprecated, use KAFKA_SSL_KEY_PASSWORD instead for configuration"
+    end
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_location, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_password, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_type, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_key_password, accept_empty: true, default: config.kafka_ssl_client_cert_key_password) # Use deprecated config as default
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_location, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_password, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_type, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb, default: 100, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_failed_logons_before_account_locked, default: 3, integer: true, minimum: 0, maximum:99)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_partitions_to_count_as_healthy, default: 15, integer: true, minimum: 1)

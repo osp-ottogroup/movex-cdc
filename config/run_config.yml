@@ -1,10 +1,8 @@
 # Runtime configuration for MOVEX Change Data Capture application
 # Tell the location of configfile for MovexCdc by environment variable RUN_CONFIG
+# This template file at config/run_config.yml is used if no other config file is specified by RUN_CONFIG
 
 # Parameters to define: comment or uncomment for usage
-
-# Log level for application (debug, info, warn, error)
-# LOG_LEVEL: warn
 
 # Type of used database (SQLITE, ORACLE)
 # DB_TYPE: ORACLE
@@ -18,8 +16,8 @@
 # Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" oder "machine:port/service"
 # DB_URL: machine:port/service
 
-# optional directory for tnsnames.ora for resolution if Oracle DB aliases
-# TNS_ADMIN: /etc
+# Initial number of worker threads
+# INITIAL_WORKER_THREADS: 3
 
 # Set max. Java heap size. Default is 75% of available memory
 # JAVA_OPTS:-Xmx2048m
@@ -27,42 +25,49 @@
 # which client library should be used for Kafka connection (java, ruby, mock)
 # KAFKA_CLIENT_LIBRARY: java
 
-# Comma separated list of seed brokers for Kafka logon
-# KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
-
-# Initial number of worker threads
-# INITIAL_WORKER_THREADS: 3
-
-# Max. size of Kafka message buffer per thread
-# KAFKA_TOTAL_BUFFER_SIZE_MB: 100
-
-# Number of messages to process within one transaction
-# MAX_TRANSACTION_SIZE: 10000
-
 # Number of messages to process within one bulk operation to kafka
 # KAFKA_MAX_BULK_COUNT: 1000
-
-# Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE).
-# Set only in combination with SASL_SSL or SSL/TLS
-# KAFKA_SSL_CA_CERTS_FROM_SYSTEM: FALSE
-
-# Username for authentication with SASL_PLAIN or SASL_SSL
-# KAFKA_SASL_PLAIN_USERNAME: kafka_user
-
-# Password for authentication with SASL_PLAIN or SASL_SSL
-# KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 
 # Path to CA certificate file in pem format for SASL_SSL or SSL/TLS
 # KAFKA_SSL_CA_CERT: cert.pem
 
-# Path to client certificate chain file in pem format for SASL_SSL or SSL/TLS, optional / only if really needed
-# KAFKA_SSL_CLIENT_CERT_CHAIN: client_cert_chain.pem
 
 # Path to client certificate file in pem format for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT: client_cert.pem
+
+# Path to client certificate chain file in pem format for SASL_SSL or SSL/TLS, optional / only if really needed
+# KAFKA_SSL_CLIENT_CERT_CHAIN: client_cert_chain.pem
 
 # Path to client key in pem format for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT_KEY: client_key.pem
 
 # Password for client key for SSL/TLS
-# KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD: password
+# KAFKA_SSL_KEY_PASSWORD: password
+
+# Password for authentication with SASL_PLAIN or SASL_SSL
+# KAFKA_SASL_PLAIN_PASSWORD: kafka_password
+
+# Username for authentication with SASL_PLAIN or SASL_SSL
+# KAFKA_SASL_PLAIN_USERNAME: kafka_user
+
+# Security protocol for Kafka connection. Valid values are: 'PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'
+# KAFKA_SECURITY_PROTOCOL: PLAINTEXT
+
+# Comma separated list of seed brokers for Kafka logon
+# KAFKA_SEED_BROKER: kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092
+
+# Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE).
+# Set only in combination with SASL_SSL or SSL/TLS
+# KAFKA_SSL_CA_CERTS_FROM_SYSTEM: FALSE
+
+# Max. size of Kafka message buffer per thread
+# KAFKA_TOTAL_BUFFER_SIZE_MB: 100
+
+# Log level for application (debug, info, warn, error)
+# LOG_LEVEL: warn
+
+# Number of messages to process within one transaction
+# MAX_TRANSACTION_SIZE: 10000
+
+# optional directory for tnsnames.ora for resolution if Oracle DB aliases
+# TNS_ADMIN: /etc

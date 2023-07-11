@@ -19,6 +19,8 @@ gem 'puma'
 # Use Json Web Token (JWT) for token based authentication
 gem 'jwt'
 
+gem 'java-properties'
+
 gem 'ruby-kafka', '1.5.0'
 
 # Use Rack CORS for handling Cross-Origin Resource Sharing (CORS), making cross-origin AJAX possible

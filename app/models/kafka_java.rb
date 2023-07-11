@@ -1,6 +1,7 @@
 # Implementation for Kafka producer functions using the Java client libs
 
 require 'java'
+require 'java-properties'
 
 
 # make Kafka libs available
@@ -303,24 +304,90 @@ class KafkaJava < KafkaBase
   # @return [java.util.Properties] Basic Kafka options for connection to cluster
   def connect_properties
     props = java.util.Properties.new
-    props.put('bootstrap.servers',  config[:seed_brokers])
+    props.put('bootstrap.servers',  config[:seed_brokers])                      # Kafka bootstrap server as default if not overwritten by file_props
 
-=begin
-    kafka_options = {
-      client_id:                    config[:client_id],
-      logger:                       Rails.logger,
-      ssl_ca_certs_from_system:     config[:ssl_ca_certs_from_system],
-      ssl_ca_cert_file_path:        config[:ssl_ca_cert_file_path],
-      ssl_client_cert_chain:        config[:ssl_client_cert_chain],
-      ssl_client_cert:              config[:ssl_client_cert],
-      ssl_client_cert_key:          config[:ssl_client_cert_key],
-      ssl_client_cert_key_password: config[:ssl_client_cert_key_password],
-      sasl_plain_username:          config[:sasl_plain_username],
-      sasl_plain_password:          config[:sasl_plain_password]
-    }
-=end
+    # Content of property file should overrule the default properties from environment or run_config
+    file_props = read_java_properties
+    security_protocol = file_props[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol
+    props.put('security.protocol', security_protocol) # Ensure that security.protocol is set even if not in file
 
+    case security_protocol
+    when nil then
+
+    when 'PLAINTEXT' then
+
+    when 'SASL_PLAINTEXT' then
+      props.put("sasl.mechanism", "PLAIN") unless file_props[:'sasl.mechanism']
+      props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';") unless file_props[:'sasl.jaas.config']
+    when 'SASL_SSL' then
+      props.put("sasl.mechanism", "PLAIN") unless file_props[:'sasl.mechanism']
+      props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';") unless file_props[:'sasl.jaas.config']
+      set_ssl_encryption_properties(props, file_props)
+    when 'SSL' then
+      set_ssl_encryption_properties(props, file_props)
+      set_ssl_authentication_properties(props, file_props)
+    else
+      raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL."
+    end
+
+    # Content of property file should overrule the default properties from environment or run_config
+    file_props.each do |key, value|# use the whole content of file for connect properties or empty hash if file not specified
+      props.put(key, value)
+    end
     props
+  end
+
+  # Validate the connection properties at startup to raise the exception before worker threads are started
+  # @raise [Exception] if connection properties are invalid
+  def validate_connect_properties
+    properties = read_java_properties                                           # read the properties from the config file if defined
+    if MovexCdc::Application.config.kafka_security_protocol && properties['security.protocol'] && MovexCdc::Application.config.kafka_security_protocol != properties['security.protocol']
+      raise "Conflicting settings for KAFKA_SECURITY_PROTOCOL (#{MovexCdc::Application.config.kafka_security_protocol}) and 'security.protocol' in KAFKA_PROPERTIES_FILE (#{properties['security.protocol']})."
+    end
+
+    security_protocol = properties[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol
+
+    case security_protocol
+    when nil then
+      raise "Either KAFKA_SECURITY_PROTOCOL or KAFKA_PROPERTIES_FILE with content 'security.protocol' must be defined." unless properties && properties[:'security.protocol']
+    when 'PLAINTEXT' then
+      check_not_needed(:sasl_plain_password, security_protocol)
+      check_not_needed(:sasl_plain_username, security_protocol)
+      check_not_needed(:ssl_ca_cert, security_protocol)
+      check_not_needed(:ssl_ca_certs_from_system, security_protocol)
+      check_not_needed(:ssl_client_cert, security_protocol)
+      check_not_needed(:ssl_client_cert_chain, security_protocol)
+      check_not_needed(:ssl_client_cert_key, security_protocol)
+      check_not_needed(:ssl_key_password, security_protocol)
+    when 'SASL_PLAINTEXT' then
+      check_required(:kafka_sasl_plain_username, security_protocol) unless properties && properties[:'sasl.jaas.config']
+      check_required(:kafka_sasl_plain_password, security_protocol) unless properties && properties[:'sasl.jaas.config']
+      check_not_needed(:ssl_ca_cert, security_protocol)
+      check_not_needed(:ssl_ca_certs_from_system, security_protocol)
+      check_not_needed(:ssl_client_cert, security_protocol)
+      check_not_needed(:ssl_client_cert_chain, security_protocol)
+      check_not_needed(:ssl_client_cert_key, security_protocol)
+      check_not_needed(:ssl_key_password, security_protocol)
+    when 'SASL_SSL' then
+      check_required(:kafka_sasl_plain_username, security_protocol) unless properties && properties[:'sasl.jaas.config']
+      check_required(:kafka_sasl_plain_password, security_protocol) unless properties && properties[:'sasl.jaas.config']
+      check_ssl_encryption_properties(properties)                               # raise warning if SSL properties are invalid
+    when 'SSL'then
+      check_ssl_encryption_properties(properties, security_protocol)            # raise warning if SSL encryption properties are invalid
+      check_ssl_authentication_properties(properties, security_protocol)        # raise warning if SSL authentication properties are invalid
+    else
+      raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL."
+    end
+
+    # Check existence of files
+    if MovexCdc::Application.config.kafka_ssl_ca_cert
+      MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip}.each do |file|
+        check_file_existence(file, 'Certificate file', 'defined by KAFKA_SSL_CA_CERT')
+      end
+    end
+    check_file_existence(MovexCdc::Application.config.kafka_ssl_client_cert_chain, 'Certificate file', 'defined by KAFKA_CLIENT_CERT_CHAIN') if MovexCdc::Application.config.kafka_ssl_client_cert_chain
+    check_file_existence(MovexCdc::Application.config.kafka_ssl_client_cert,       'Certificate file', 'defined by KAFKA_CLIENT_CERT')       if MovexCdc::Application.config.kafka_ssl_client_cert
+    check_file_existence(MovexCdc::Application.config.kafka_ssl_client_cert_key,   'Certificate file', 'defined by KAFKA_CLIENT_CERT_KEY') if MovexCdc::Application.config.kafka_ssl_client_cert_key
   end
 
   private
@@ -346,5 +413,120 @@ class KafkaJava < KafkaBase
       end
       result.sort.to_h                                                          # sort by key
     end
+  end
+  # Check for required configuration values
+  # @param required [Symbol] required configuration attribute
+  # @param security_protocol [String] security protocol
+  # @return [String] value of configuration attribute
+  def check_required_config(required, security_protocol)
+    value = MovexCdc::Application.config.send('kafka_'+required.to_s)
+    if value.nil?
+      msg = "Missing required configuration value for KAFKA_#{required.upcase} if security protocol = #{security_protocol}."
+      puts msg
+      Rails.logger.warn msg
+    end
+    value
+  end
+
+  # Check for not needed configuration values
+  # @param not_needed [Symbol] required configuration attribute
+  # @param security_protocol [String] security protocol
+  # @return [void]
+  def check_not_needed(not_needed, security_protocol)
+    unless MovexCdc::Application.config.send('kafka_'+not_needed.to_s).nil?
+      msg = "Unnecessary configuration value for KAFKA_#{not_needed.upcase} if security protocol = #{security_protocol}. Please remove this configuration attribute."
+      puts msg
+      Rails.logger.warn msg
+    end
+  end
+
+  # Check for required configuration values for SSL encryption
+  # @param [JavaProperties] properties object or nil
+  # @param [String] security_protocol
+  # @return [void]
+  def check_ssl_encryption_properties(properties, security_protocol)
+    if MovexCdc::Application.config.kafka_ssl_truststore_type == 'PEM' || properties[:'ssl.truststore.type'] == 'PEM'
+      check_required_config(:ssl_ca_cert, security_protocol) unless MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
+    else # JKS
+      check_required_config(:ssl_truststore_location, security_protocol) unless properties[:'ssl.truststore.location'] # if not in properties then check for config
+      check_required_config(:ssl_truststore_password, security_protocol) unless properties[:'ssl.truststore.password'] # if not in properties then check for config
+    end
+  end
+
+  # Check for required configuration values for SSL authentication
+  # @param [JavaProperties] properties object or nil
+  # @param [String] security_protocol
+  # @return [void]
+  def check_ssl_authentication_properties(properties, security_protocol)
+    if MovexCdc::Application.config.kafka_ssl_keytore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
+      check_required_config(:ssl_client_cert, security_protocol)       unless MovexCdc::Application.config.kafka_ssl_client_cert_chain
+      check_required_config(:ssl_client_cert_chain, security_protocol) unless MovexCdc::Application.config.kafka_ssl_client_cert
+      check_required_config(:ssl_client_cert_key, security_protocol)
+      check_required_config(:ssl_key_password, security_protocol)
+    else # JKS
+      check_required_config(:ssl_keystore_location, security_protocol) unless properties[:'ssl.keystore.location'] # if not in properties then check for config
+      check_required_config(:ssl_keystore_password, security_protocol) unless properties[:'ssl.keystore.password'] # if not in properties then check for config
+      check_required_config(:ssl_key_password, security_protocol) unless properties[:'ssl.key.password'] # if not in properties then check for config
+    end
+  end
+
+  # Set SSL encryption properties for Kafka
+  # @param [java.util.Properties] properties object to be enriched
+  # @param [JavaProperties] file_props properties read from properties file
+  # @return [void]
+  def set_ssl_encryption_properties(properties, file_props)
+    if MovexCdc::Application.config.kafka_ssl_truststore_type == 'PEM' || properties[:'ssl.truststore.type'] == 'PEM'
+      properties.put('ssl.truststore.type',         MovexCdc::Application.config.kafka_ssl_truststore_type) unless file_props[:'ssl.truststore.type']
+
+      if MovexCdc::Application.config.kafka_ssl_ca_cert
+        certs = ''
+        MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip}.each do |cert|
+          certs << File.read(cert)
+          certs << "\n"
+        end
+        properties.put('ssl.truststore.certificates', certs);
+      end
+    else # JKS
+      properties.put('ssl.truststore.location', MovexCdc::Application.config.kafka_ssl_truststore_location) unless file_props[:'ssl.truststore.location']
+      properties.put('ssl.truststore.password', MovexCdc::Application.config.kafka_ssl_truststore_password) unless file_props[:'ssl.truststore.password']
+    end
+  end
+
+  # Set SSL authentication properties for Kafka
+  # @param [java.util.Properties] properties object to be enriched
+  # @param [JavaProperties] file_props properties read from properties file
+  # @return [void]
+  def set_ssl_authentication_properties(properties, file_props)
+    if MovexCdc::Application.config.kafka_ssl_keytore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
+      properties.put('ssl.keystore.type',               MovexCdc::Application.config.kafka_ssl_keystore_type) unless file_props[:'ssl.keystore.type']
+      properties.put('ssl.keystore.certificate.chain',  File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain))  if MovexCdc::Application.config.kafka_ssl_client_cert_chain
+      properties.put('ssl.keystore.key',                File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key))    if MovexCdc::Application.config.kafka_ssl_client_cert_key
+      properties.put(ssl.key.password,                  MovexCdc::Application.config.kafka_ssl_key_password)                  if MovexCdc::Application.config.kafka_ssl_key_password
+    else # JKS
+      properties.put('ssl.keystore.location', MovexCdc::Application.config.kafka_ssl_keystore_location) unless file_props[:'ssl.keystore.location']
+      properties.put('ssl.keystore.password', MovexCdc::Application.config.kafka_ssl_keystore_password) unless file_props[:'ssl.keystore.password']
+      properties.put('ssl.key.password',      MovexCdc::Application.config.kafka_ssl_key_password)      unless file_props[:'ssl.key.password'] # The password of the private key in the key store file. This is optional for client.
+    end
+  end
+
+  # Get properties from a property file
+  # @return [JavaProperties|Hash] properties from property file or empty Hash if no property file is defined
+  def read_java_properties
+    file_path = MovexCdc::Application.config.kafka_properties_file
+    if file_path.nil?
+      {}
+    else
+      # Check if file exists
+      check_file_existence(file_path, 'Property file', 'defined by KAFKA_PROPERTIES_FILE')
+      # Read the property file
+      properties = JavaProperties.load(file_path)
+      properties
+    end
+  end
+
+  def check_file_existence(filepath, description_prefix, description_suffix=nil)
+    raise "#{description_prefix} '#{filepath}' #{description_suffix}#{' ' if description_suffix}does not exist."   unless File.exist?(filepath)
+    raise "#{description_prefix} '#{filepath}' #{description_suffix}#{' ' if description_suffix}is not a file."    unless File.file?(filepath)
+    raise "#{description_prefix} '#{filepath}' #{description_suffix}#{' ' if description_suffix}is not readable."  unless File.readable?(filepath)
   end
 end

@@ -261,15 +261,23 @@ Valid values are: +
 The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|ruby
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
+|KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
 |KAFKA_SASL_PLAIN_USERNAME|Username for authentication with SASL_PLAIN or SASL_SSL|
+|KAFKA_SECURITY_PROTOCOL|Security protocol for Kafka connection. Valid values are: 'PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'|PLAINTEXT
 |KAFKA_SSL_CA_CERT|Path to CA certificate file in pem format. Use single file path or multiple file paths separated by comma. One file may contain multiple certificates.|
 |KAFKA_SSL_CA_CERTS_FROM_SYSTEM|Use system CA certificates instead of providing your own's by KAFKA_SSL_CA_CERT (TRUE / FALSE). +
 Used only in combination with SASL_SSL or SSL/TLS client certificate.|FALSE
 |KAFKA_SSL_CLIENT_CERT|Path to client certificate file in pem format|
 |KAFKA_SSL_CLIENT_CERT_CHAIN|Path to client certificate chain file in pem format|
 |KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
-|KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD|Password for client key|
+|KAFKA_SSL_KEY_PASSWORD|Password for client private key|
+|KAFKA_SSL_KEYSTORE_LOCATION|Path to keystore file in JKS format|
+|KAFKA_SSL_KEYSTORE_PASSWORD|Password of keystore file in JKS format|
+|KAFKA_SSL_KEYSTORE_TYPE|Type of keystore. Valid values are: 'JKS', 'PEM'|JKS
+|KAFKA_SSL_TRUSTSTORE_TYPE|Type of truststore. Valid values are: 'JKS', 'PEM'|JKS
+|KAFKA_SSL_TRUSTSTORE_LOCATION|Path to truststore file in JKS format|
+|KAFKA_SSL_TRUSTSTORE_PASSWORD|Password of truststore file in JKS format|
 |KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
 If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
@@ -308,43 +316,57 @@ At least you have to specify the broker hosts and ports to use:
 [source]
 KAFKA_SEED_BROKER: broker1.mydomain.com:2094,broker2.mydomain.com:2094
 
+.MOVEX CDC supports the following client connection methods to Kafka.
+[cols="~,~"]
+|===
+|Method|Description
 
-MOVEX CDC supports connections to Kafka authenticated by one of the following methods.
+|PLAINTEXT|No encryption and no authentication takes place.
+|SASL_PLAIN|Authentication with username and password. No encryption takes place.
+|SASL_SSL|Authentication with username and password. Network traffic is encrypted.
+|SSL|Network traffic is encrypted. Client certificates are used for authentication.
+|===
 
-===== Using PLAINTEXT authentication for Kafka =====
-Nothing needs to be configured in MOVEX_CDC except KAFKA_SEED_BROKER. No authentication takes place.
+The configuration can be done by the environment variables listed before (KAFKA_xxx) or by a Java-style properties file specified by KAFKA_PROPERTIES_FILE. +
+SSL configuration files are supported for JKS and PEM format. JKS store format is the default.
 
-===== Using SASL_PLAIN authentication to Kafka =====
+===== Using PLAINTEXT connection to Kafka =====
+Nothing needs to be configured in MOVEX_CDC except KAFKA_SEED_BROKER.
+
+===== Using SASL_PLAIN connection to Kafka =====
 Username and password are required for connection. Network traffic is not encrypted.
 [source]
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 
-===== Using SASL_SSL authentication to Kafka =====
+===== Using SASL_SSL connection to Kafka with systems CA certificates =====
 Username and password are required for connection. Network traffic is encrypted.
 [source]
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 KAFKA_SSL_CA_CERTS_FROM_SYSTEM: TRUE
 
-or
+===== Using SASL_SSL connection to Kafka with own CA certificates in PEM format =====
 [source]
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
+KAFKA_SSL_TRUSTSTORE_TYPE: PEM
 KAFKA_SSL_CA_CERT: /.../root-ca.pem, /.../company-ca.pem, /.../issuing-ca.pem
 
-===== Using SSL/TLS authentication to Kafka with client certificate =====
+===== Using SSL/TLS connection to Kafka with CA and client certificates in PEM format =====
 Authentication is based on client certificates.
 The required setup of Kafka for SSL is described at http://kafka.apache.org/documentation.html#security_ssl. +
 Specifying KAFKA_SSL_CLIENT_CERT_CHAIN is optional in this case.
 [source]
+KAFKA_SSL_TRUSTSTORE_TYPE: PEM
 KAFKA_SSL_CA_CERT: /.../root-ca.pem
+KAFKA_SSL_KEYSTORE_TYPE: PEM
 KAFKA_SSL_CLIENT_CERT_CHAIN: /.../ca_chain.pem
 KAFKA_SSL_CLIENT_CERT: /.../cert.pem
 KAFKA_SSL_CLIENT_CERT_KEY: /.../key.pem
-KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD: mykeypw
+KAFKA_SSL_KEY_PASSWORD: mykeypw
 
-====== Steps to convert the keystore content generated by Kafka into the formats needed for MOVEX CDC ======
+====== Steps to convert the keystore content generated by Kafka into the PEM formats needed for the ruby-kafka lib of MOVEX CDC ======
 If the client certificates generated for Kafka are in JKS format, the underlying library 'ruby-kafka' of MOVEX CDC does not support this format.
 It is possible to convert the generated files into X509 format.
 The following steps for conversion are based on this guide: https://github.com/zendesk/ruby-kafka/wiki/Creating-X509-certificates-from-JKS-format.
@@ -391,6 +413,9 @@ keytool -noprompt -keystore $KAFKA_CERT_DIR/kafka.client.keystore.jks -exportcer
 
 Now you are prepared with the four values for KAFKA_SSL_xxx needed to configure SSL connection in MOVEX CDC. +
 If KAFKA_SSL_CA_CERT is not set then KAFKA_SSL_CA_CERTS_FROM_SYSTEM should be set to TRUE to rely on system's CA certificate.
+
+==== Examples for Kafka configuration ====
+TODO: Add examples for Kafka configuration
 
 === Running MOVEX Change Data Capture ===
 The application is provided as Docker-Image by:

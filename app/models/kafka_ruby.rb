@@ -1,4 +1,5 @@
 # Implementation for Kafka producer functions using Ruby-Kafka gem
+
 class KafkaRuby < KafkaBase
   attr_reader :internal_kafka
   class Producer < KafkaBase::Producer
@@ -120,14 +121,14 @@ class KafkaRuby < KafkaBase
     kafka_options = {
       client_id:                    config[:client_id],
       logger:                       Rails.logger,
-      ssl_ca_certs_from_system:     config[:ssl_ca_certs_from_system],
-      ssl_ca_cert_file_path:        config[:ssl_ca_cert_file_path],
-      ssl_client_cert_chain:        config[:ssl_client_cert_chain],
-      ssl_client_cert:              config[:ssl_client_cert],
-      ssl_client_cert_key:          config[:ssl_client_cert_key],
-      ssl_client_cert_key_password: config[:ssl_client_cert_key_password],
-      sasl_plain_username:          config[:sasl_plain_username],
-      sasl_plain_password:          config[:sasl_plain_password]
+      ssl_ca_certs_from_system:     MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a? (TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE',
+      ssl_ca_cert_file_path:        MovexCdc::Application.config.kafka_ssl_ca_cert            ? MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip} : nil, # split multiple files in list into Array
+      ssl_client_cert_chain:        MovexCdc::Application.config.kafka_ssl_client_cert_chain  ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain) : nil,
+      ssl_client_cert:              MovexCdc::Application.config.kafka_ssl_client_cert        ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert) : nil,
+      ssl_client_cert_key:          MovexCdc::Application.config.kafka_ssl_client_cert_key    ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key) : nil,
+      ssl_client_cert_key_password: MovexCdc::Application.config.kafka_ssl_key_password ,
+      sasl_plain_username:          MovexCdc::Application.config.kafka_sasl_plain_username,
+      sasl_plain_password:          MovexCdc::Application.config.kafka_sasl_plain_password
     }
 
     # **kafka_options instead of kafka_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
@@ -224,6 +225,12 @@ class KafkaRuby < KafkaBase
     else
       @producer
     end
+  end
+
+  # Validate the connection properties at startup
+  # @raise [Exception] if connection properties are invalid
+  def validate_connect_properties
+
   end
 
 end

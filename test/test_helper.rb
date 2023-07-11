@@ -405,6 +405,24 @@ class ActiveSupport::TestCase
     Rails.logger.debug('TestHelper.assert_activity_log') { "Max created_at in Activity_Logs is #{Database.select_one("SELECT Max(created_at) FROM Activity_Logs")}"}
     assert Database.select_one(sql, filter) > 0, log_on_failure("Previous operation should have created a record in Activity_Logs for #{filter}")
   end
+
+  # test for created log entry
+  # @param [String] expected_log_message
+  def assert_log_written(expected_log_message)
+    original_logger = Rails.logger
+    raise "assert_log_written should be called with a block" unless block_given?
+    # Create a log capturing object
+    logs = StringIO.new
+    Rails.logger = Logger.new(logs)
+
+    yield
+
+    # Check if the log record was written
+    assert_includes logs.string, expected_log_message, log_on_failure("Expected log message '#{expected_log_message}' not found in '#{logs.string}'")
+  ensure
+    Rails.logger = original_logger
+  end
+
 end
 
 class ActionDispatch::IntegrationTest

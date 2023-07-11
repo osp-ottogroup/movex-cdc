@@ -81,6 +81,7 @@ GEM
       activesupport (>= 5.0)
     i18n (1.14.1)
       concurrent-ruby (~> 1.0)
+    java-properties (0.3.0)
     jdbc-sqlite3 (3.28.0)
     jwt (2.7.1)
     listen (3.0.8)
@@ -186,6 +187,7 @@ PLATFORMS
 DEPENDENCIES
   activerecord-jdbcsqlite3-adapter
   activerecord-oracle_enhanced-adapter
+  java-properties
   jwt
   listen (>= 3.0.5, < 3.2)
   puma

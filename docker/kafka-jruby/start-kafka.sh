@@ -39,6 +39,7 @@ do
     echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
     $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --bootstrap-server localhost:9092 --replication-factor 1
     $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --bootstrap-server localhost:9092 --replication-factor 1
+    echo "Waiting for Kafka to create groups now"
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 &
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 &
     typeset -i GROUP_LOOP_COUNT=0

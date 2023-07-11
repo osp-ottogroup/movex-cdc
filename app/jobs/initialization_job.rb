@@ -7,6 +7,7 @@ class InitializationJob < ApplicationJob
 
   def perform(*args)
     puts "Initialization at startup\n"
+    KafkaBase.create.validate_connect_properties                                # Check at startup if configuration is sufficient or not, raises Exception if not
     log_memory_state
     Database.initialize_db_connection                                           # do some init actions for DB connection before use
     ensure_required_rights                                                      # check DB for required rights

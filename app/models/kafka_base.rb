@@ -129,14 +129,5 @@ class KafkaBase
   def initialize
     @config = {}
     @config[:client_id]                     =  "MOVEX-CDC-#{Socket.gethostname}"
-    @config[:seed_brokers]                  = MovexCdc::Application.config.kafka_seed_broker.split(',').map{|b| b.strip}
-    @config[:ssl_ca_certs_from_system]      = true if MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a? (TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE'
-    @config[:ssl_ca_cert_file_path]         = MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip}  if MovexCdc::Application.config.kafka_ssl_ca_cert
-    @config[:ssl_client_cert_chain]         = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain) if MovexCdc::Application.config.kafka_ssl_client_cert_chain
-    @config[:ssl_client_cert]               = File.read(MovexCdc::Application.config.kafka_ssl_client_cert)       if MovexCdc::Application.config.kafka_ssl_client_cert
-    @config[:ssl_client_cert_key]           = File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)   if MovexCdc::Application.config.kafka_ssl_client_cert_key
-    @config[:ssl_client_cert_key_password]  = MovexCdc::Application.config.kafka_ssl_client_cert_key_password     if MovexCdc::Application.config.kafka_ssl_client_cert_key_password
-    @config[:sasl_plain_username]           = MovexCdc::Application.config.kafka_sasl_plain_username if MovexCdc::Application.config.kafka_sasl_plain_username
-    @config[:sasl_plain_password]           = MovexCdc::Application.config.kafka_sasl_plain_password if MovexCdc::Application.config.kafka_sasl_plain_password
   end
 end
