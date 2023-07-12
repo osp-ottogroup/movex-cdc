@@ -132,7 +132,7 @@ class KafkaRuby < KafkaBase
     }
 
     # **kafka_options instead of kafka_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
-    @internal_kafka = Kafka.new(config[:seed_brokers], **kafka_options)                  # return instance of Kafka
+    @internal_kafka = Kafka.new(MovexCdc::Application.config.kafka_seed_broker, **kafka_options)                  # return instance of Kafka
     @producer = nil                                                             # KafkaRuby::Producer is not initialized until needed
   end
 
