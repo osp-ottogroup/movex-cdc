@@ -121,7 +121,7 @@ class KafkaRuby < KafkaBase
     kafka_options = {
       client_id:                    config[:client_id],
       logger:                       Rails.logger,
-      ssl_ca_certs_from_system:     MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a? (TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE' : false,
+      ssl_ca_certs_from_system:     MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a?(TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE',
       ssl_ca_cert_file_path:        MovexCdc::Application.config.kafka_ssl_ca_cert            ? MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip} : nil, # split multiple files in list into Array
       ssl_client_cert_chain:        MovexCdc::Application.config.kafka_ssl_client_cert_chain  ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain) : nil,
       ssl_client_cert:              MovexCdc::Application.config.kafka_ssl_client_cert        ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert) : nil,
