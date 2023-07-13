@@ -30,7 +30,9 @@ class KafkaJavaTest < ActiveSupport::TestCase
       MovexCdc::Application.config.kafka_properties_file = 'kafka.properties'
       File.write('kafka.properties', 'security.protocol=SSL')
       KafkaJava.new.validate_connect_properties
+      assert false, 'Should not get here because SASL_PLAINTEXT is conflicting with SSL'
     end
+    MovexCdc::Application.config.kafka_properties_file = nil                    # Restore previous value
 
     assert_log_written('WARN -- : Unnecessary configuration value for KAFKA_SASL_PLAIN_USERNAME if security protocol = PLAINTEXT') do
       MovexCdc::Application.config.kafka_security_protocol = 'PLAINTEXT'

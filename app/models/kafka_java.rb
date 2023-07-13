@@ -341,8 +341,8 @@ class KafkaJava < KafkaBase
   # @raise [Exception] if connection properties are invalid
   def validate_connect_properties
     properties = read_java_properties                                           # read the properties from the config file if defined
-    if MovexCdc::Application.config.kafka_security_protocol && properties['security.protocol'] && MovexCdc::Application.config.kafka_security_protocol != properties['security.protocol']
-      raise "Conflicting settings for KAFKA_SECURITY_PROTOCOL (#{MovexCdc::Application.config.kafka_security_protocol}) and 'security.protocol' in KAFKA_PROPERTIES_FILE (#{properties['security.protocol']})."
+    if MovexCdc::Application.config.kafka_security_protocol && properties[:'security.protocol'] && MovexCdc::Application.config.kafka_security_protocol != properties[:'security.protocol']
+      raise "Conflicting settings for KAFKA_SECURITY_PROTOCOL (#{MovexCdc::Application.config.kafka_security_protocol}) and 'security.protocol' in KAFKA_PROPERTIES_FILE (#{properties[:'security.protocol']})."
     end
 
     security_protocol = properties[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol
