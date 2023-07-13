@@ -47,7 +47,7 @@ class ActiveSupport::TestCase
 
   setup do
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
-    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
+    GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
   end
 
   teardown do
@@ -431,7 +431,7 @@ class ActionDispatch::IntegrationTest
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
-    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
+    GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
 
     # create JWT token for following tests
     @jwt_token                  = jwt_token peter_user.id
@@ -461,7 +461,7 @@ end
 class GlobalFixtures
 
   @@global_fixtures_initialized = false
-  def self.initialize
+  def self.initialize_testdata
     unless @@global_fixtures_initialized
       # Fixtures to load only once
       @@global_fixtures_initialized = true                                      # call only once at start of test suite
@@ -635,7 +635,7 @@ class GlobalFixtures
   # initialize again after global changes of IDs and content, e.g. from import
   def self.reinitialize
     @@global_fixtures_initialized = false
-    initialize
+    self.initialize_testdata
   end
 
 end
