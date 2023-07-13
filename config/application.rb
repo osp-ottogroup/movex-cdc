@@ -218,7 +218,7 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_key_password, accept_empty: true, default: config.kafka_ssl_client_cert_key_password) # Use deprecated config as default
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_location, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_password, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_type, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_type, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb, default: 100, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_failed_logons_before_account_locked, default: 3, integer: true, minimum: 0, maximum:99)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_partitions_to_count_as_healthy, default: 15, integer: true, minimum: 1)

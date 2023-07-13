@@ -275,9 +275,9 @@ Used only in combination with SASL_SSL or SSL/TLS client certificate.|FALSE
 |KAFKA_SSL_KEYSTORE_LOCATION|Path to keystore file in JKS format|
 |KAFKA_SSL_KEYSTORE_PASSWORD|Password of keystore file in JKS format|
 |KAFKA_SSL_KEYSTORE_TYPE|Type of keystore. Valid values are: 'JKS', 'PEM'|JKS
-|KAFKA_SSL_TRUSTSTORE_TYPE|Type of truststore. Valid values are: 'JKS', 'PEM'|JKS
 |KAFKA_SSL_TRUSTSTORE_LOCATION|Path to truststore file in JKS format|
 |KAFKA_SSL_TRUSTSTORE_PASSWORD|Password of truststore file in JKS format|
+|KAFKA_SSL_TRUSTSTORE_TYPE|Type of truststore. Valid values are: 'JKS', 'PEM'|JKS
 |KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
 If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
