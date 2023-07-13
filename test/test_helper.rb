@@ -580,7 +580,8 @@ class GlobalFixtures
                               Rails.logger.debug('GlobalFixtures.initialize'){ "create_victim_connection: creating JDBCConnection" }
                               ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
                             end
-
+      # Fixtures to load only once if successfully initialized
+      @@global_fixtures_initialized = true                                      # call only once at start of test suite
     end
   end
 
