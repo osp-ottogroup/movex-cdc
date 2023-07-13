@@ -458,7 +458,7 @@ class KafkaJava < KafkaBase
   # @param [String] security_protocol
   # @return [void]
   def check_ssl_authentication_properties(properties, security_protocol)
-    if MovexCdc::Application.config.kafka_ssl_keytore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
+    if MovexCdc::Application.config.kafka_ssl_keystore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
       check_required_config(:ssl_client_cert, security_protocol)       unless MovexCdc::Application.config.kafka_ssl_client_cert_chain
       check_required_config(:ssl_client_cert_chain, security_protocol) unless MovexCdc::Application.config.kafka_ssl_client_cert
       check_required_config(:ssl_client_cert_key, security_protocol)
@@ -497,7 +497,7 @@ class KafkaJava < KafkaBase
   # @param [JavaProperties] file_props properties read from properties file
   # @return [void]
   def set_ssl_authentication_properties(properties, file_props)
-    if MovexCdc::Application.config.kafka_ssl_keytore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
+    if MovexCdc::Application.config.kafka_ssl_keystore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
       properties.put('ssl.keystore.type',               MovexCdc::Application.config.kafka_ssl_keystore_type) unless file_props[:'ssl.keystore.type']
       properties.put('ssl.keystore.certificate.chain',  File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain))  if MovexCdc::Application.config.kafka_ssl_client_cert_chain
       properties.put('ssl.keystore.key',                File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key))    if MovexCdc::Application.config.kafka_ssl_client_cert_key
