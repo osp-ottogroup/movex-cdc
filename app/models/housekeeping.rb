@@ -134,7 +134,7 @@ class Housekeeping
             # create dummy record with following rollback to enforce creation of two interval partitions with exact time difference of current_interval
             split_partition_force_create_time1 = compare_time - (current_interval - 2)   # smaller than expected high_value with 1 second rounding failure
             split_partition_force_create_time2 = split_partition_force_create_time1 - current_interval
-            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Create two empty partitions whith created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}" }
+            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Create two empty partitions with created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}" }
             ActiveRecord::Base.transaction do
               [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
                 Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
