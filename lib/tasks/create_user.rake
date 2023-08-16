@@ -20,6 +20,8 @@ namespace :ci_preparation do
       resultSet.next
       result = resultSet.getInt(1)
       result
+    rescue Exception => e
+      puts "Error #{e.class}:#{e.message} while executing #{sql}"
     ensure
       resultSet.close rescue nil
       stmt.close rescue nil

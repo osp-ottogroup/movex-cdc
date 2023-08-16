@@ -308,12 +308,12 @@ class KafkaJava < KafkaBase
 
     # Content of property file should overrule the default properties from environment or run_config
     file_props = read_java_properties
-    security_protocol = file_props[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol
+    security_protocol = define_security_protocol(file_props)
     props.put('security.protocol', security_protocol) # Ensure that security.protocol is set even if not in file
 
     case security_protocol
     when nil then
-
+      raise "Missing value for KAFKA_SECURITY_PROTOCOL. Please set this environment variable or define it in the properties file."
     when 'PLAINTEXT' then
 
     when 'SASL_PLAINTEXT' then
@@ -334,7 +334,15 @@ class KafkaJava < KafkaBase
     file_props.each do |key, value|# use the whole content of file for connect properties or empty hash if file not specified
       props.put(key, value)
     end
+    Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{props}" }
     props
+  end
+
+  # Define the final security protocol to use for Kafka connection
+  # @param file_props [Hash] Properties read from the properties file
+  # @return [String] security protocol to use for Kafka connection
+  def define_security_protocol(file_props)
+    file_props[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol || 'PLAINTEXT'
   end
 
   # Validate the connection properties at startup to raise the exception before worker threads are started
@@ -355,7 +363,7 @@ class KafkaJava < KafkaBase
     }
 
     properties = read_java_properties                                           # read the properties from the config file if defined
-    security_protocol = properties[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol
+    security_protocol = define_security_protocol(properties)
     raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL." unless ['PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'].include?(security_protocol)
 
     # @type [Proc] Check a particular property for validity
