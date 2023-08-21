@@ -454,12 +454,15 @@ END Flush;
   end
 
   # convert values to string in PL/SQL, replaced by JSON_OBJECT for old/new but still used for primary key conversion
+  # @param [Hash] column column definition {:column_name, :data_type, :nullable, :data_length, :data_precision, :data_scale}
+  # @param [String] old_new 'old' or 'new'
+  # @return [String] PL/SQL expression to convert column value to string
   def convert_col(column, old_new)
     column_name = ":#{old_new}.#{column[:column_name]}"
     result = ''
     result << "CASE WHEN #{column_name} IS NULL THEN 'null' ELSE " if column[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
     result << case column[:data_type]
-              when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'ROWID', 'UROWID', 'VARCHAR2'                 # character data types
+              when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'VARCHAR2'                 # character data types
               then "'\"'||REPLACE(#{column_name}, '\"', '\\\"')||'\"'"                        # place between double quotes "xxx" and escape double quote to \"
               when 'BINARY_DOUBLE', 'BINARY_FLOAT', 'FLOAT', 'NUMBER'                                                   # Numeric data types
               then "CASE
@@ -468,11 +471,12 @@ END Flush;
                     ELSE TO_CHAR(#{column_name}, 'TM','NLS_NUMERIC_CHARACTERS=''.,''')
                     END"
               when 'DATE'                         then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SS')||'\"'"
+              when 'ROWID', 'UROWID'              then "'\"'||ROWIDTOCHAR(#{column_name})||'\"'"
               when 'RAW'                          then "'\"'||RAWTOHEX(#{column_name})||'\"'"
               when /^TIMESTAMP\([0-9]\)$/
-              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF')||'\"'"
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFF', 'NLS_NUMERIC_CHARACTERS=''.,''')||'\"'"
               when /^TIMESTAMP\([0-9]\) WITH .*TIME ZONE$/
-              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR')||'\"'"
+              then "'\"'||TO_CHAR(#{column_name}, 'YYYY-MM-DD\"T\"HH24:MI:SSxFFTZR', 'NLS_NUMERIC_CHARACTERS=''.,''')||'\"'"
               else
                 raise "Unsupported column type '#{column[:data_type]}' for column '#{column[:column_name]}'"
               end

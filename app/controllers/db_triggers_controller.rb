@@ -40,7 +40,8 @@ class DbTriggersController < ApplicationController
     )
     result = { results: [ schema_result.merge(schema_name: schema_name) ] }
 
-    render json: result, status: :ok
+    # return http status 200 if ok or 207 (Multi-Status) if there are errors
+    render json: result, status: schema_result[:errors].empty? ? :ok : 207
   end
 
   # POST /db_triggers/generate_all
@@ -56,6 +57,7 @@ class DbTriggersController < ApplicationController
     else
       results = []
       error_strings = []
+      return_status = :ok
       schema_rights.each do |sr|
         schema_result = DbTrigger.generate_schema_triggers(schema_id:     sr.schema_id,
                                                            dry_run:       @dry_run,
@@ -64,10 +66,11 @@ class DbTriggersController < ApplicationController
         error_strings.concat(structured_errors_to_string(schema_result[:errors], sr.schema.name)) if schema_result[:errors].count > 0
         schema_result[:schema_name] = sr.schema.name
         results << schema_result
+        return_status = 207 unless schema_result[:errors].empty?                # return http status 200 if ok or 207 (Multi-Status) if there are errors
       end
       result = { results: results}
 
-      render json: result, status: :ok
+      render json: result, status: return_status
     end
   end
 

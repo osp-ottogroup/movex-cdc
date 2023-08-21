@@ -6,7 +6,7 @@
 # Update base images:
 #   docker pull openjdk:19
 #   docker pull oraclelinux:8-slim
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.2.0-jdk19 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.3.0-jdk19 .
 
 # base image to build a JRE
     FROM openjdk:19 as openjdk
@@ -24,8 +24,8 @@ RUN $JAVA_HOME/bin/jlink \
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
-ARG JRUBY_VERSION=9.4.2.0
-ARG KAFKA_VERSION=3.2.3
+ARG JRUBY_VERSION=9.4.3.0
+ARG KAFKA_VERSION=3.5.0
 ARG SCALA_VERSION=2.13
 ENV JRUBY_VERSION=$JRUBY_VERSION
 ENV KAFKA_VERSION=$KAFKA_VERSION
@@ -46,8 +46,8 @@ COPY --from=openjdk /customjre $JAVA_HOME
 # - install podman
 # - install Kafka
 RUN  microdnf update && \
-     microdnf install procps wget tar gzip vim util-linux findutils podman jq bc make && \
-     wget "https://dlcdn.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
+     microdnf install procps wget tar gzip vim util-linux findutils podman jq bc make unzip && \
+     wget "https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} && \
      sed -i 's|^log.dirs=.*$|log.dirs=/var/lib/kafka|' /opt/kafka/config/server.properties && \
@@ -55,10 +55,10 @@ RUN  microdnf update && \
      cd /opt && tar -xvf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby && \
      ruby -v && \
-     wget "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm" && \
-     microdnf install liberation-fonts libXScrnSaver.x86_64 libappindicator-gtk3.x86_64 vulkan libgbm xdg-utils alsa-lib nspr nss && \
-     rpm -i google-chrome-stable_current_x86_64.rpm && \
-     rm google-chrome-stable_current_x86_64.rpm && \
+     echo wget "https://dl.google.com/linux/direct/google-chrome-stable_current_x86_64.rpm" && \
+     echo microdnf install liberation-fonts libXScrnSaver.x86_64 libappindicator-gtk3.x86_64 vulkan libgbm xdg-utils alsa-lib nspr nss && \
+     echo rpm -i google-chrome-stable_current_x86_64.rpm && \
+     echo rm google-chrome-stable_current_x86_64.rpm && \
      echo 'Europe/Berlin' > /etc/timezone && rm -f /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
      date && \
      gem install --no-doc bundler && \

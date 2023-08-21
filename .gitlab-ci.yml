@@ -7,8 +7,9 @@
 image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.2.0-jdk19
 
 variables:
+  # Should the log output of DB service be shown in the job log?
+  CI_DEBUG_SERVICES: "false"
   RAILS_MAX_THREADS: 100
-  CI_DEBUG_SERVICES: trace
   KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
@@ -56,10 +57,21 @@ test_frontend:
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
+    - >
+      if [ "$CI_JOB_NAME" == "test_oracle_autonomous" ]; then
+        (
+          cd test/oracle_autonomous
+          # uses secret GPG_KEY_FOR_DB_WALLET_ENCRYPTION
+          ./decrypt_DB_wallet.sh && unzip Wallet_panoramatest.zip
+        )
+      fi
     # Wait max. 10 minutes for DB available
     - bundle exec rake "ci_preparation:wait_for_db_available[10]"
     # Fix problem in oracle_enhanced-adapter with access on All_Synonyms
-    - bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
+    - >
+      if [ "$CI_JOB_NAME" != "test_oracle_autonomous" ]; then
+        bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
+      fi
     - bundle exec rake ci_preparation:create_user
     - bundle exec rails db:migrate RAILS_ENV=test
     - >
@@ -88,11 +100,22 @@ test_frontend:
   variables:
     DB_TYPE: "ORACLE"
     DB_SYS_PASSWORD: "oracle"
+    DB_SYS_USER: "SYS"
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
 test_sqlite:
   stage: test
   extends: .tests_SQLITE
+
+#test_oracle_autonomous:
+#  stage: test
+#  extends: .tests
+#  variables:
+#    DB_TYPE: "ORACLE"
+#    DB_SYS_PASSWORD: $ORACLE_AUTONOMOUS_ADMIN_PASSWORD
+#    DB_SYS_USER: "ADMIN"
+#    DB_URL: "PANORAMATEST_TPURGENT"
+#    TNS_ADMIN: "./test/oracle_autonomous"
 
 test_oracle_12.1:
   stage: test

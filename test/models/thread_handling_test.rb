@@ -53,7 +53,7 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
     Rails.logger.debug('ThreadHandlingTest.process'){ "wait for processing finished" }
     loop_count = 0
-    while loop_count < 200 do                                                    # wait up to 200 seconds for processing of event_logs records
+    while loop_count < 300 do                                                    # wait up to 200 seconds for processing of event_logs records
       loop_count += 1
       event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
       if event_logs == 0                                                        # All records processed, no need to wait anymore

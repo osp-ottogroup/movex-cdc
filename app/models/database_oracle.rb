@@ -6,7 +6,7 @@ require 'active_record/connection_adapters/oracle_enhanced/connection'
 require 'active_record/connection_adapters/oracle_enhanced_adapter'
 require 'active_record/connection_adapters/oracle_enhanced/quoting'
 require 'java'
-
+require 'database'
 # get access to private JDBC-Connection
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
   def get_jdbc_connection
@@ -161,6 +161,8 @@ class DatabaseOracle
   end
 
   @@cached_db_version = nil
+  # Return the DB version as string
+  # @return [String] DB version
   def self.db_version
     if @@cached_db_version.nil?
       @@cached_db_version = Database.select_one "SELECT Version FROM v$Instance"
@@ -169,9 +171,43 @@ class DatabaseOracle
     @@cached_db_version
   end
 
+  # Return the JDBC driver version as string
+  # @return [String] JDBC driver version
   def self.jdbc_driver_version
     ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
   end
 
+  def self.db_default_timezone
+    Database.select_one "SELECT TO_CHAR(SYSTIMESTAMP, 'TZH:TZM') FROM DUAL"
+  end
+
+  # Connect as SYS user to execute SQL statements in rake tasks
+  # @return [] JDBC Connection
+  def self.connect_as_sys_user
+    conn = nil
+    raise "Value for DB_SYS_PASSWORD required to create users" if !MovexCdc::Application.config.respond_to?(:db_sys_password)
+
+    db_sys_user = if MovexCdc::Application.config.respond_to?(:db_sys_user)
+                    MovexCdc::Application.config.db_sys_user
+                  else 'sys'
+                  end
+    properties = java.util.Properties.new
+    properties.put("user", db_sys_user)
+    properties.put("password", MovexCdc::Application.config.db_sys_password)
+    properties.put("internal_logon", "SYSDBA") if db_sys_user.downcase == 'sys' # admin for autonomous db cannot connect as sysdba
+    url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
+    begin
+      conn = java.sql.DriverManager.getConnection(url, properties)
+    rescue
+      # bypass DriverManager to work in cases where ojdbc*.jar
+      # is added to the load path at runtime and not on the
+      # system classpath
+      # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
+      # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
+      # java.sql.DriverManager.registerDriver ORACLE_DRIVER
+      conn = ORACLE_DRIVER.connect(url, properties)
+    end
+    conn
+  end
 
 end

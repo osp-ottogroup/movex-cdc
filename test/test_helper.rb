@@ -46,7 +46,6 @@ class ActiveSupport::TestCase
   fixtures :all
 
   setup do
-    JdbcInfo.log_version
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
   end
@@ -337,7 +336,7 @@ class ActiveSupport::TestCase
     log_event_logs_content(console_output: false, caption: "#{options[:title]}: Event_Logs records before processing")
 
     # worker ID=0 for exactly 1 running worker
-    worker = TransferThread.new(0, max_transaction_size: 10000, max_message_bulk_count: 1000, max_buffer_bytesize: 100000)  # Sync. call within one thread
+    worker = TransferThread.new(0, max_transaction_size: 10000)  # Sync. call within one thread
 
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
     Thread.new do
@@ -346,7 +345,7 @@ class ActiveSupport::TestCase
         loop_count += 1
         event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
         Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "#{event_logs} records remaining in Event_Logs" }
-        break if event_logs == options[:expected_remaining_records]           # All records processed, no need to wait anymore
+        break if event_logs <= options[:expected_remaining_records]           # All records processed, no need to wait anymore
         sleep 1
       end
       worker.stop_thread
@@ -413,7 +412,6 @@ class ActionDispatch::IntegrationTest
 
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
-    JdbcInfo.log_version
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
 
@@ -440,20 +438,6 @@ class ActionDispatch::IntegrationTest
     { 'Authorization' => token}
   end
 
-end
-
-class JdbcInfo
-  @@jdbc_driver_logged = false
-  def self.log_version
-    unless @@jdbc_driver_logged
-      case MovexCdc::Application.config.db_type
-      when 'ORACLE' then MovexCdc::Application.log_attribute("Oracle JDBC driver version", ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion)
-      else puts "No JDBC version checked"
-      end
-
-      @@jdbc_driver_logged = true
-    end
-  end
 end
 
 class GlobalFixtures

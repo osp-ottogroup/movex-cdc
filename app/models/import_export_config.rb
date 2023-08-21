@@ -6,42 +6,49 @@ class ImportExportConfig
   end
 
   # get relevant column names for a AR class
+  # @param [Class] ar_class ActiveRecord class
+  # @return [Array] array of column names
   def self.extract_column_names(ar_class)
     # extract column names without id, *_id, timestamps and lock_version
-    ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
+    ar_class
+      .columns
+      .select{|c| !['id', 'created_at', 'updated_at', 'lock_version'].include?(c.name) && !c.name.match?(/_id$/)}
+      .map{|c| c.name}
+      .sort{|a, b| (a=='name' ? '1' : a) <=> (b=='name' ? '1' : b)} # put column "name" at the first position, other columns sorted alphabetically
   end
 
   # export schema info for all or one schemas
   # @param single_schema_name nil for all schemas or limited for one schema
   def export(single_schema_name: nil)
     schema_columns        = self.class.extract_column_names(Schema)
+    schema_columns        = schema_columns.select{|c| c != 'last_trigger_deployment'} # remove column "last_trigger_deployment" from export
     table_columns         = self.class.extract_column_names(Table)
     column_columns        = self.class.extract_column_names(Column)
     condition_columns     = self.class.extract_column_names(Condition)
     schema_right_columns  = self.class.extract_column_names(SchemaRight)
 
     schemas_list = []
-    Schema.all.select{|s| single_schema_name.nil? || single_schema_name == s.name}.each do |schema|
+    Schema.order(:name).select{|s| single_schema_name.nil? || single_schema_name == s.name}.each do |schema|
       schema_hash = generate_export_object(schema, schema_columns)
 
       schema_hash['tables'] = []
-      schema.tables.each do |table|
+      schema.tables.order(:name).each do |table|
         table_hash = generate_export_object(table, table_columns)
 
         table_hash['columns'] = []
-        table.columns.each do |column|
+        table.columns.order(:name).each do |column|
           table_hash['columns'] << generate_export_object(column, column_columns)
         end
 
         table_hash['conditions'] = []
-        table.conditions.each do |condition|
+        table.conditions.order(:operation).each do |condition|
           table_hash['conditions'] << generate_export_object(condition, condition_columns)
         end
         schema_hash['tables'] << table_hash
       end
 
       schema_hash['schema_rights'] = []
-      schema.schema_rights.each do |schema_right|
+      schema.schema_rights.order(:user_id).each do |schema_right|
         schema_rights_hash = generate_export_object(schema_right, schema_right_columns)
         schema_rights_hash['email'] = schema_right.user.email
         schema_hash['schema_rights'] << schema_rights_hash
@@ -50,7 +57,7 @@ class ImportExportConfig
     end
 
     users_list = []
-    User.all.each do |user|
+    User.order(:email).each do |user|
       user_hash = {}
       self.class.extract_column_names(User).each do |c|
         user_hash[c] = user.send(c)                                             # call method by name

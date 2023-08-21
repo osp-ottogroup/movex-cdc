@@ -1,3 +1,5 @@
+require_relative '../../app/models/database_oracle'
+
 namespace :ci_preparation do
   desc "Disable parallel query to ensure performance with Docker container and less CPU ressources.
 Access to dictionary views has massively slowed down in PDB environments while using PQ.
@@ -27,23 +29,7 @@ Access to dictionary views has massively slowed down in PDB environments while u
 
     puts "Running ci_preparation:speedup_oracle_dictionary_calls for db_type = #{MovexCdc::Application.config.db_type }"
     if MovexCdc::Application.config.db_type == 'ORACLE'
-      raise "Value for DB_SYS_PASSWORD required to create users" if !MovexCdc::Application.config.respond_to?(:db_sys_password)
-      properties = java.util.Properties.new
-      properties.put("user", 'sys')
-      properties.put("password", MovexCdc::Application.config.db_sys_password)
-      properties.put("internal_logon", "SYSDBA")
-      url = "jdbc:oracle:thin:@#{MovexCdc::Application.config.db_url}"
-      begin
-        conn = java.sql.DriverManager.getConnection(url, properties)
-      rescue
-        # bypass DriverManager to work in cases where ojdbc*.jar
-        # is added to the load path at runtime and not on the
-        # system classpath
-        # ORACLE_DRIVER is declared in jdbc_connection.rb of oracle_enhanced-adapter like:
-        # ORACLE_DRIVER = Java::oracle.jdbc.OracleDriver.new
-        # java.sql.DriverManager.registerDriver ORACLE_DRIVER
-        conn = ORACLE_DRIVER.connect(url, properties)
-      end
+      conn = DatabaseOracle.connect_as_sys_user
 
       db_version_gt_12_1 = select_single conn, "SELECT CASE WHEN Version < '12.2' THEN 0 ELSE 1 END FROM v$Instance"
       if db_version_gt_12_1 == 1
