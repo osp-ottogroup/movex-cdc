@@ -448,6 +448,7 @@ END Flush;
     column_name = ":#{old_new}.#{column[:column_name]}"
     case column[:data_type]
     when 'ROWID', 'UROWID' then "ROWIDTOCHAR(#{column_name})"                   # ROWID is not supported by JSON_OBJECT (ORA-40654)
+    when 'RAW' then "RAWTOHEX(:#{old_new}.#{column[:column_name]})"             # Catch PLS-00306: wrong number or types of arguments
     else
       column_name                                                               # use column as is, no conversion needed
     end
