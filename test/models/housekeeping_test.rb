@@ -72,7 +72,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     current_high_value_time = get_time_from_high_value(1)
     if current_high_value_time >= high_value_time                                       # high value should by adjusted to an older Time
       Rails.logger.debug('HousekeepingTest.check_partition_interval'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
-      log_partition_state(false)                                                # log partitions
+      log_partition_state(false, 'set_high_value_time before splitting')
       Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"                     # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
       # Remove all range partitions except the first partition
@@ -84,7 +84,7 @@ class HousekeepingTest < ActiveSupport::TestCase
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
-      log_partition_state(false)                                                # log partitions
+      log_partition_state(false, 'set_high_value_time after splitting')
     end
     EventLog.adjust_interval                                                    # adjust in DB according to MovexCdc::Application.config.partition_interval
     force_interval_partition_creation(last_partition_time)                      # ensure existence of at least one interval partition
@@ -92,10 +92,12 @@ class HousekeepingTest < ActiveSupport::TestCase
 
   # log existing partitions
   # @param console [Boolean] if true log is also written to console
-  def log_partition_state(console)
+  # @param additional_msg [String] additional message to log
+  def log_partition_state(console, additional_msg = '')
+    Rails.logger.debug('HousekeepingTest.log_partition_state'){ "------------ Current partitions ------------ #{additional_msg}" }
     Database.select_all("SELECT * FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |p|
       msg = "Partition #{p.partition_name} Pos=#{p.partition_position} High_Value=#{p.high_value} Interval=#{p.interval} Position=#{p.partition_position}"
-      Rails.logger.debug('HousekeepingTest.check_partition_interval'){ msg }
+      Rails.logger.debug('HousekeepingTest.log_partition_state'){ msg }
       puts msg if console
     end
   end
@@ -152,13 +154,13 @@ class HousekeepingTest < ActiveSupport::TestCase
         force_interval_partition_creation(last_part_hv+2*MovexCdc::Application.config.partition_interval)  # This will be the second partition
         force_interval_partition_creation(last_part_hv+10*MovexCdc::Application.config.partition_interval)  # This will be the sixth partition
         Database.execute "DELETE FROM Event_Logs"                           # Ensure all partitions are empty
-        log_partition_state(false)
+        log_partition_state(false, 'Two interval partitions should exist now')
         assure_last_partition
         ActiveRecord::Base.transaction do                                       # Hold insert lock on partition until rollback
           create_event_logs_record(last_part_hv + 4 * MovexCdc::Application.config.partition_interval + 1) # This will be the third partition
           create_event_logs_record(last_part_hv + 6 * MovexCdc::Application.config.partition_interval + 1) # This will be the fourth partition
           create_event_logs_record(last_part_hv + 8 * MovexCdc::Application.config.partition_interval + 1) # This will be the fifth partition
-          log_partition_state(false)
+          log_partition_state(false, 'Five interval partitions should exist now')
           intermediate_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           assert_equal 6, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
           hk_thread = Thread.new do
@@ -187,7 +189,7 @@ class HousekeepingTest < ActiveSupport::TestCase
             max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
             set_high_value_time(Time.now-max_seconds_for_interval_prev, prev_interval, Time.now) # set old high_value to 1/2 of possible partition count and default interval
             Housekeeping.get_instance.check_partition_interval
-            log_partition_state(false)                                               # log partitions
+            log_partition_state(false, 'After check_partitions')                                               # log partitions
 
             current_hv = get_time_from_high_value(1)
             max_expected_seconds_for_interval = (1024*1024)*10*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
@@ -203,7 +205,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           do_check.call(120000, 12000)                                          # should change only high_value
 
         rescue
-          log_partition_state(true)                                             # log partitions
+          log_partition_state(true, 'Error raised during check_partition')
           raise
         end
         MovexCdc::Application.config.partition_interval = original_interval     # Restore the original setting before the test
@@ -222,9 +224,9 @@ class HousekeepingTest < ActiveSupport::TestCase
         set_high_value_time(min_high_value_time, MovexCdc::Application.config.partition_interval, min_high_value_time+86400)
         drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the MIN partition
         force_interval_partition_creation(min_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
-        log_partition_state(false)
+        log_partition_state(false, 'before check_partition_interval')
         Housekeeping.get_instance.check_partition_interval
-        log_partition_state(false)
+        log_partition_state(false, 'after check_partition_interval')
         assert_equal 2, Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"), log_on_failure("There should be two partitions")
         current_hv = get_time_from_high_value(1)
         assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
