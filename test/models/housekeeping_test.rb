@@ -41,6 +41,23 @@ class HousekeepingTest < ActiveSupport::TestCase
             Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Error during DROP PARTITION #{part.partition_name} #{e.class}:#{e.message}"}
           end
         end
+        # Ensure that the first partition has a high value less than now - interval and is the only range partition
+        first_partition_high_value = get_time_from_high_value(1)
+        while first_partition_high_value > Time.now - MovexCdc::Application.config.partition_interval do
+          Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Adjust high value of first partition to less than #{Time.now - MovexCdc::Application.config.partition_interval}"}
+          partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
+          new_first_partition_name  = "Part_1_#{rand(10000)}"
+          new_second_partition_name = "Part_2_#{rand(10000)}"
+
+          Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
+                              PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{(Time.now - 2 * MovexCdc::Application.config.partition_interval).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
+                              PARTITION #{new_second_partition_name})"
+          Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{new_second_partition_name} INTO (
+                              PARTITION #{new_second_partition_name}_2 VALUES LESS THAN (TO_DATE(' #{(Time.now - 1 * MovexCdc::Application.config.partition_interval).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
+                              PARTITION #{new_second_partition_name}_2)"
+          first_partition_high_value = get_time_from_high_value(1)
+        end
+
         force_interval_partition_creation(Time.now)                             # Ensure that a interval partition is created again
         assure_last_partition
       end
