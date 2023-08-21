@@ -113,7 +113,21 @@ class HousekeepingTest < ActiveSupport::TestCase
   # drop all partitions above 1 for test, no matter if they are interval or not
   def drop_all_event_logs_partitions_except_1
     # drop all partitions above 1 for test, no matter if they are interval or not
-    Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'YES' AND Partition_Position > 1").each do |p|
+    Database.select_all("WITH Partitions AS (SELECT Partition_Name, Interval, Partition_Position
+                                                 FROM   User_Tab_Partitions
+                                                 WHERE Table_Name = 'EVENT_LOGS'
+                                                )
+                             SELECT Partition_Name
+                             FROM   Partitions p
+                             WHERE  Interval = 'YES'
+                             OR     (    Interval = 'NO'
+                                     AND EXISTS (SELECT 1 FROM Partitions pi
+                                                 WHERE  pi.Interval = 'NO'
+                                                 AND    pi.Partition_Position > p.Partition_Position
+                                                )
+                                    )
+                             ORDER BY Partition_Position
+                            ").each do |p|
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
     end
   end
@@ -156,7 +170,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           # There should remain: the first partition, three partitions with pending inserts and the last partition
           assert_equal 5, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
-        Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessabe records are removed
+        Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
       end
     end
