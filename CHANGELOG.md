@@ -11,7 +11,9 @@
     Controls the used library for Kafka connection. Default is still 'ruby' but will be switched to 'java' in a coming relase. 
   - KAFKA_SECURITY_PROTOCOL: PLAINTEXT, SASL_PLAINTEXT, SASL_SSL or SSL<br>
     This setting becomes mandatory if KAFKA_CLIENT_LIBRARY is set to 'java'.
-    
+
+## 2023-08-21 Release 1.10.17
+- Bugfix: Ensure that increasing the high value of the oldest partition works also if there is not high value gap between first and second partition  
 
 ## 2023-06-21 Release 1.10.16
 - API functions /db_triggers/generate and /db_triggers/generate_all return http status code 207 (Multi-Status) if DB errors occur at trigger generation

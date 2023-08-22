@@ -430,7 +430,7 @@ END Flush;
   def payload_command_internal(trigger_config, old_new, indent)
     if @use_json_object
       result = "'\"#{old_new}\": ' ||\n#{indent}JSON_OBJECT(\n"
-      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_4_json_object(c, old_new)}"}.join(",\n")
+      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
       result << "\n#{indent})"
     else
       result = "'\"#{old_new}\": {'||\n"
@@ -438,6 +438,20 @@ END Flush;
       result << "#{indent}||'}'"
     end
     result
+  end
+
+  # Convert columns that are not supported by JSON_OBJECT (ORA-40654)
+  # @param column [Hash] {column_name:, data_type:}
+  # @param old_new [String] 'old' or 'new'
+  # @return [String] SQL expression for column
+  def convert_col_json_object(column, old_new)
+    column_name = ":#{old_new}.#{column[:column_name]}"
+    case column[:data_type]
+    when 'ROWID', 'UROWID' then "ROWIDTOCHAR(#{column_name})"                   # ROWID is not supported by JSON_OBJECT (ORA-40654)
+    when 'RAW' then "RAWTOHEX(:#{old_new}.#{column[:column_name]})"             # Catch PLS-00306: wrong number or types of arguments
+    else
+      column_name                                                               # use column as is, no conversion needed
+    end
   end
 
   # convert values to string in PL/SQL, replaced by JSON_OBJECT for old/new but still used for primary key conversion
@@ -469,18 +483,6 @@ END Flush;
               end
     result << " END" if column[:nullable] == 'Y'
     result
-  end
-
-  # Convert column values into type that is accepted by JSON_OBJECT
-  # @param [Hash] column column definition {:column_name, :data_type, :nullable, :data_length, :data_precision, :data_scale}
-  # @param [String] old_new 'old' or 'new'
-  # @return [String] PL/SQL expression to convert column value to string
-  def convert_col_4_json_object(column, old_new)
-    case column[:data_type]
-    when 'ROWID', 'UROWID' then "ROWIDTOCHAR(:#{old_new}.#{column[:column_name]})" # Catch PLS-00306: wrong number or types of arguments
-    when 'RAW' then "RAWTOHEX(:#{old_new}.#{column[:column_name]})" # Catch PLS-00306: wrong number or types of arguments
-    else ":#{old_new}.#{column[:column_name]}"
-    end
   end
 
   # Build SQL expression for message key

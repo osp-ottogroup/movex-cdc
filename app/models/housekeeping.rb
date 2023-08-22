@@ -34,6 +34,14 @@ class Housekeeping
     end
   end
 
+  # Calculate the maximum age of the high value of the first partition
+  # @return [Integer] the maximum age in seconds to not overflow the max. partition count
+  def max_min_partition_age
+    max_possible_partition_count = 1024*1024-1
+    max_distance_seconds = max_possible_partition_count * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
+    max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
+    max_distance_seconds
+  end
 
 
   private
@@ -97,23 +105,29 @@ class Housekeeping
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
-
-        max_possible_partition_count = 1024*1024-1
-        max_distance_seconds = max_possible_partition_count * MovexCdc::Application.config.partition_interval / 4 # 1/4 of allowed number of possible partitions
-        max_distance_seconds = 1440*365*60 if max_distance_seconds > 1440*365*60 # largest distance for oldest partition is one year
+        max_distance_seconds = max_min_partition_age
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
         raise "No oldest partition found for table Event_Logs" if part1.nil?
         min_time =  Housekeeping.get_time_from_oracle_high_value(part1.high_value)
         Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "High value of oldest partition for Event_Logs is #{min_time}" }
-        compare_time = Time.now - 100*86400                                     # 100 days back
         second_hv = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
         if second_hv.nil?
           Rails.logger.warn('Housekeeping.check_partition_interval_internal') { "Only one partition exists for table EVENT_LOGS! This should never happen except at initial start of application!" }
           return
         end
         second_hv_time = Housekeeping.get_time_from_oracle_high_value(second_hv)
-        compare_time = second_hv_time if second_hv_time < compare_time          # get oldest partition high value
+        compare_time = default_first_partiton_high_value(second_hv_time)
+        current_interval = EventLog.current_interval_seconds
+        # if there is no place for two additional interval partitions between first and second partition
+        if second_hv_time < min_time + current_interval * 3
+          Rails.logger.warn('Housekeeping.check_partition_interval_internal') { "There is no place for two additional interval partitions between first and second partition! #{min_time}, #{second_hv_time}" }
+          force_interval_partition_creation(Time.now)                         # Ensure that an additional third partition exists
+          do_housekeeping_internal                                            # Remove the second partition if empty
+          second_hv = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
+          second_hv_time = Housekeeping.get_time_from_oracle_high_value(second_hv)
+          compare_time = default_first_partiton_high_value(second_hv_time)
+        end
 
         Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "High value of second oldest partition for Event_Logs is #{second_hv_time}, compare_time is #{compare_time}" }
         if compare_time - Time.now > max_distance_seconds/2                     # Half of expected max. distance
@@ -129,23 +143,18 @@ class Housekeeping
             partition = Database.select_first_row("SELECT Partition_Name, Partition_Position, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1")
             EventLog.check_and_drop_partition(partition.partition_name, 'Housekeeping.check_partition_interval_internal')
           else
-            current_interval = EventLog.current_interval_seconds
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Current partition interval is #{current_interval} seconds" }
-            # create dummy record with following rollback to enforce creation of two interval partitions with exact time difference of current_interval
-            split_partition_force_create_time1 = compare_time - (current_interval - 2)   # smaller than expected high_value with 1 second rounding failure
-            split_partition_force_create_time2 = split_partition_force_create_time1 - current_interval
+            # create dummy record with following rollback to enforce creation of interval partition
+            split_partition_force_create_time1 = compare_time - (current_interval) -2   # smaller than expected high_value with 1 second rounding failure
+            split_partition_force_create_time2 = split_partition_force_create_time1 - (current_interval)
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Create two empty partitions with created_at=#{split_partition_force_create_time2} and #{split_partition_force_create_time1}" }
-            ActiveRecord::Base.transaction do
-              [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
-                Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
-                                 binds: { created_at: created_at.strftime('%Y-%m-%d %H:%M:%S') } # Don't use Time directly as bind variable because of timezone drift
-              end
-              raise ActiveRecord::Rollback
+            [split_partition_force_create_time1, split_partition_force_create_time2].each do |created_at|
+              force_interval_partition_creation(created_at)
             end
             part2 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 2"
             part3 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 3"
-            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 2 with partition_name=#{part2.partition_name} and high_value=#{part2.high_value}" }
-            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 3 with partition_name=#{part3.partition_name} and high_value=#{part3.high_value}" }
+            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 2 with partition_name=#{part2&.partition_name} and high_value=#{part2&.high_value}" }
+            Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 3 with partition_name=#{part3&.partition_name} and high_value=#{part3&.high_value}" }
             raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
 
             # Both partitions must be empty because they become the first partition then
@@ -182,5 +191,27 @@ class Housekeeping
         end
       end
     end
+  end
+
+  # Ensure that an empty interval partition will be created
+  # @param [Time] created_at the time of the record to be inserted
+  # @return [void]
+  def force_interval_partition_creation(created_at)
+    ActiveRecord::Base.transaction do
+      Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), 5, 'I', 'hugo', 'hugo')",
+                       binds: { created_at: created_at.strftime('%Y-%m-%d %H:%M:%S') } # Don't use Time directly as bind variable because of timezone drift
+      raise ActiveRecord::Rollback
+    end
+  end
+
+  # Calculate the default high value of the first partition
+  # @param [Time] second_hv_time the high value time of the second partition
+  # @return [Time] the suggested hich value time of the first partition to have a valid distance to the current time
+  def default_first_partiton_high_value(second_hv_time)
+    hv_time = Time.now - 100*86400 # 100 days back
+    if second_hv_time < hv_time                                                 # the second partition is not younger then the new expected time for the first partition
+      hv_time = second_hv_time                                                  # use high value of the second partition if the second partition is older than 100 days
+    end
+    hv_time
   end
 end
