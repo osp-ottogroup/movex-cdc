@@ -295,7 +295,7 @@ You should ensure that this value is higher than the expected maximum number of 
 Reaching this limit with the number of simultaneous pending transactions at one DB block may lead to mismatches in processing order of events for Oracle DB
 because SELECT FOR UPDATE SKIP LOCK skips also unlocked records in DB blocks with full ITL (interested transaction list).
 |60
-|MAX_WORKER_THREAD_SLEEP_TIME|Max. seconds an idle worker thread may sleep until next lookup for events to process|60
+|MAX_WORKER_THREAD_SLEEP_TIME|Max. seconds an idle worker thread may sleep until next lookup for events to process. This value defines the maximum time an event may wait until transfer to Kafka. Smaller values increases the poll rate of transfer workers against the database.|60
 |PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
 Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
 Relevant only if EVENT_LOGS is used partitioned. +
