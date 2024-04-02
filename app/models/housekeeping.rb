@@ -155,7 +155,7 @@ class Housekeeping
             part3 =  Database.select_first_row "SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 3"
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 2 with partition_name=#{part2&.partition_name} and high_value=#{part2&.high_value}" }
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition created at position 3 with partition_name=#{part3&.partition_name} and high_value=#{part3&.high_value}" }
-            raise "No second and third oldest partitions found for table Event_Logs" if part2.nil? || part3.nil?
+            raise "No second and third oldest partitions found for table Event_Logs after partition split" if part2.nil? || part3.nil?
 
             # Both partitions must be empty because they become the first partition then
             unless EventLog.partition_allowed_for_drop?(part2.partition_name, 2, part2.high_value, 'Housekeeping.check_partition_interval_internal')
