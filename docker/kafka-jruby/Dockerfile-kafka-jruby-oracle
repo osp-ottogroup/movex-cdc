@@ -4,12 +4,12 @@
 
 # Usage:
 # Update base images:
-#   docker pull openjdk:19
+#   docker pull eclipse-temurin:21
 #   docker pull oraclelinux:8-slim
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk19 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk21 .
 
 # base image to build a JRE
-    FROM openjdk:19 as openjdk
+    FROM eclipse-temurin:21 as openjdk
 
 # Build small JRE image
 RUN $JAVA_HOME/bin/jlink \
