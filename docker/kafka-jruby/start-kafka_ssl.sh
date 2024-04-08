@@ -19,27 +19,27 @@ echo "Prepare configuration"
 # remove ol files
 rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_TRUSTSTOREFILE
 # Generate keystore
-keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass hugo01 -keypass hugo01
+keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
 # Disable hostname verification
 echo "ssl.endpoint.identification.algorithm=" >> $KAFKA_HOME/config/server.properties
 # Create your own CA (certificate authority)
-openssl req -new -x509 -keyout ca-key -out ca-cert -days 10000
+openssl req -new -x509 -keyout ca-key -out ca-cert -days 10000 -subj "/C=DE/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name" -passin pass:hugo01 -passout pass:hugo01
 # Add the generated CA to the clients’ trust store so that the clients can trust this CA.
-keytool -keystore $SERVER_TRUSTSTOREFILE -alias CARoot -import -file ca-cert
-keytool -keystore $CLIENT_TRUSTSTOREFILE -alias CARoot -import -file ca-cert
+keytool -keystore $SERVER_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+keytool -keystore $CLIENT_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
 # Sign all certificates in the keystore with the CA generated.
-keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -certreq -file cert-file
+keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
 # Sign it with CA
 openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
 # Import both the certificates of the CA and the signed certificate into the keystore
-keytool -keystore $SERVER_KEYSTOREFILE -alias CARoot -import -file ca-cert
-keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -import -file cert-signed
+keytool -keystore $SERVER_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
 # Create client keystore and import both certificates of the CA and signed certificates to client keystore. These client certificates will be used in application properties.
-keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12
-keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -certreq -file cert-file
-openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo
-keytool -keystore $CLIENT_KEYSTOREFILE -alias CARoot -import -file ca-cert
-keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -import -file cert-signed
+keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
+keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
+openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
+keytool -keystore $CLIENT_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
 
 
 
