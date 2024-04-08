@@ -10,19 +10,22 @@ export KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://l
 export KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
 export KAFKA_INTER_BROKER_LISTENER_NAME=LISTENER_INT
 export WAIT_FOR_KAFKA_SECS=60
+export SERVER_PROPERTIES=/opt/kafka/my_server.properties
 
 echo "Prepare configuration"
+# Create a new server.properties file
+cp -f $KAFKA_HOME/config/server.properties $SERVER_PROPERTIES
 sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.properties
-echo "listeners=$KAFKA_LISTENERS"                                               >> $KAFKA_HOME/config/server.properties
-echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS"                         >> $KAFKA_HOME/config/server.properties
-echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"     >> $KAFKA_HOME/config/server.properties
-echo "inter.broker.listener.name=$KAFKA_INTER_BROKER_LISTENER_NAME"             >> $KAFKA_HOME/config/server.properties
+echo "listeners=$KAFKA_LISTENERS"                                               >> $SERVER_PROPERTIES
+echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS"                         >> $SERVER_PROPERTIES
+echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"     >> $SERVER_PROPERTIES
+echo "inter.broker.listener.name=$KAFKA_INTER_BROKER_LISTENER_NAME"             >> $SERVER_PROPERTIES
 
 echo "Starting Zookeeper"
 $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
 
 echo "Starting Kafka"
-$KAFKA_HOME/bin/kafka-server-start.sh     -daemon $KAFKA_HOME/config/server.properties
+$KAFKA_HOME/bin/kafka-server-start.sh     -daemon $SERVER_PROPERTIES
 
 typeset -i LOOP_COUNT=0
 KAFKA_STARTED="started (kafka.server.KafkaServer)"
