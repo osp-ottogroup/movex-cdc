@@ -358,12 +358,11 @@ docker_test_oracle_19.3_SSL:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+    KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
   before_script:
     - |
       /opt/start-kafka_ssl.sh
-      export KAFKA_PROPERTIES_FILE=/opt/kafka/client.properties
   after_script:
-    - echo "KAFKA_PROPERTIES_FILE=$KAFKA_PROPERTIES_FILE"
     - $PODMAN logs movex-cdc > movex-cdc.log
     - $PODMAN stop movex-cdc
   artifacts:
