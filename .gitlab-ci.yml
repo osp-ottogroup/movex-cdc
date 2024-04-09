@@ -308,6 +308,11 @@ trivy_scan:
         echo -n .
         sleep 1
       done
+      if [ $LOOPS -eq $MAX_WAIT ]; then
+        echo "SystemValidationJob not finished after $MAX_WAIT seconds"
+        echo "retval = $retval"
+        exit 1
+      fi
       echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
