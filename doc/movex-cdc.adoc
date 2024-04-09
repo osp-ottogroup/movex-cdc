@@ -258,7 +258,7 @@ Valid values are: +
 'ruby' - The initially used Ruby library for Kafka (https://github.com/zendesk/ruby-kafka) which is no longer maintained +
 'java' - The Apache Kafka client library for Java as the primary lib for the future +
 'mock' - A mock library only for testing purposes without a Kafka connection (events are discarded and not transferred to a Kafka target) +
-The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|ruby
+The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|java
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
 |KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|

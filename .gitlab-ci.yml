@@ -363,6 +363,7 @@ docker_test_oracle_19.3_SSL:
       /opt/start-kafka_ssl.sh
       export KAFKA_PROPERTIES_FILE=/opt/kafka/client.properties
   after_script:
+    - echo "KAFKA_PROPERTIES_FILE=$KAFKA_PROPERTIES_FILE"
     - $PODMAN logs movex-cdc > movex-cdc.log
     - $PODMAN stop movex-cdc
   artifacts:
