@@ -17,6 +17,7 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
+  - beta
   - code_analysis
   - test
   - pre_build
@@ -342,6 +343,20 @@ docker_test_oracle_12.1:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+
+docker_test_oracle_12.1:
+  stage: beta
+  extends: .docker_test
+  services:
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.3.0.0-ee
+      alias: oracle-db
+  variables:
+    DB_TYPE: ORACLE
+    DB_USER: movex-cdc
+    DB_PASSWORD: movex-cdc
+    DB_URL: "oracle-db:1521/ORCLPDB1"
+  script:
+    - ls -lisa
 
 
 # Deploy the static site to GitLab Pages, but only for master branch
