@@ -273,7 +273,7 @@ trivy_scan:
 
 
 .docker_test:
-  script:
+  before_script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - $PODMAN pull $TEMP_DOCKER_IMAGE
 
@@ -330,6 +330,7 @@ trivy_scan:
         exit 1
       fi
       " | bash
+  after_script:
     - $PODMAN stop movex-cdc
 
 docker_test_oracle_12.1:
