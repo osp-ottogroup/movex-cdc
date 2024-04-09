@@ -297,11 +297,11 @@ trivy_scan:
       echo "Waiting for SystemValidationJob to be performed"
       MAX_WAIT=60
       typeset -i LOOPS=0
-      while [ \$LOOPS -lt \$MAX_WAIT ]; do
+      while [ $LOOPS -lt $MAX_WAIT ]; do
         $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
         curl http://localhost:8080/ 2>/dev/null >/dev/null
-        retval=\$?
-        if [ \$retval -eq 0 ]; then
+        retval=$?
+        if [ $retval -eq 0 ]; then
           break
         fi
         LOOPS=LOOPS+1
