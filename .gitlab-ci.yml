@@ -273,7 +273,7 @@ trivy_scan:
 
 
 .docker_test:
-  before_script:
+  script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - $PODMAN pull $TEMP_DOCKER_IMAGE
 
@@ -284,7 +284,7 @@ trivy_scan:
       echo  "DB_PASSWORD:        movex                    " >> run_config.yml &&
       echo  "DB_URL:             $DB_URL                  " >> run_config.yml &&
       echo  "DB_SYS_PASSWORD:    oracle                   " >> run_config.yml &&
-      echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER " >> run_config.yml
+      echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER       " >> run_config.yml
     - cat run_config.yml
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
@@ -344,8 +344,10 @@ docker_test_oracle_12.1:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+  after_script:
+    - $PODMAN stop movex-cdc
 
-docker_test_oracle_12.1:
+docker_test_oracle_19.3_SSL:
   stage: beta
   extends: .docker_test
   services:
@@ -356,8 +358,18 @@ docker_test_oracle_12.1:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
-  script:
-    - ls -lisa
+  before_script:
+    - |
+      /opt/start-kafka_ssl.sh
+      export KAFKA_PROPERTIES_FILE=/opt/kafka/client.properties
+  after_script:
+    - $PODMAN logs movex-cdc > movex-cdc.log
+    - $PODMAN stop movex-cdc
+  artifacts:
+    when: always
+    paths:
+      - movex-cdc.log
+    expire_in: 1 month
 
 
 # Deploy the static site to GitLab Pages, but only for master branch
