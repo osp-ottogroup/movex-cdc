@@ -290,7 +290,6 @@ trivy_scan:
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
     - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE
-    - sleep 5
     - $PODMAN ps
     - |
       export MAX_WAIT=60
@@ -299,7 +298,6 @@ trivy_scan:
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
-        curl http://localhost:8080/ 2>/dev/null >/dev/null
         retval=$?
         if [ $retval -eq 0 ]; then
           break
@@ -312,6 +310,8 @@ trivy_scan:
         echo "SystemValidationJob not finished after $MAX_WAIT seconds"
         echo "retval = $retval"
         exit 1
+      else
+        echo "SystemValidationJob finished after $LOOPS seconds"
       fi
       echo "
       typeset -i LOOPS=0
