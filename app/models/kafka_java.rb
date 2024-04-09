@@ -459,6 +459,7 @@ class KafkaJava < KafkaBase
   end
 
   # Get all attributes for a topic, enriched with info from KafkaBase
+  # @param [String] topic Kafka topic name
   # @return [Hash] Kafka topic attributes for describe { name: { value:, info:}}
   def describe_all_topic_attrs(topic)
     result = {}
@@ -468,7 +469,17 @@ class KafkaJava < KafkaBase
       attribute_info = topic_attributes_for_describe                            # info from KafkaBase, cloned only once
       config_list = describeConfigsResult.all().get().get(topicResource).entries.to_a.each do |entry|
         # entry = org.apache.kafka.clients.admin.ConfigEntry(name=compression.type, value=producer, source=DEFAULT_CONFIG, isSensitive=false, isReadOnly=false, synonyms=[], type=STRING, documentation=null)
-        result[entry.name] = { value: entry.value, info: attribute_info[entry.name][:info] }
+        info = if attribute_info[entry.name]
+                 attribute_info[entry.name][:info]
+               else
+                 if Rails.env.test?
+                   msg = "KafkaJava.describe_all_topic_attrs: No topic attribute info available for '#{entry.name}'! Please adjust topic_attributes_for_describe!"
+                    Rails.logger.warn(msg)
+                   puts msg
+                 end
+                 "No attribute info available"
+               end
+        result[entry.name] = { value: entry.value, info: info }
       end
       result.sort.to_h                                                          # sort by key
     end
