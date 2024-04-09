@@ -293,26 +293,33 @@ trivy_scan:
     - $PODMAN ps
     - |
       export MAX_WAIT=60
-      echo "Waiting for SystemValidationJob to be performed"
-      MAX_WAIT=60
-      typeset -i LOOPS=0
-      while [ $LOOPS -lt $MAX_WAIT ]; do
-        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
-        retval=$?
-        if [ $retval -eq 0 ]; then
-          break
+      (
+        echo "Waiting for SystemValidationJob to be performed"
+        MAX_WAIT=60
+        typeset -i LOOPS=0
+        echo "Before while"
+        while [ $LOOPS -lt $MAX_WAIT ]; do
+          echo "Before logs"
+          $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
+          retval=$?
+          if [ $retval -eq 0 ]; then
+            echo "Before break"
+            break
+          fi
+          LOOPS=LOOPS+1
+          echo -n .
+          sleep 1
+        done
+        echo "After while"
+        if [ $LOOPS -eq $MAX_WAIT ]; then
+          echo "SystemValidationJob not finished after $MAX_WAIT seconds"
+          echo "retval = $retval"
+          exit 1
+        else
+          echo "SystemValidationJob finished after $LOOPS seconds"
+          exit 0
         fi
-        LOOPS=LOOPS+1
-        echo -n .
-        sleep 1
-      done
-      if [ $LOOPS -eq $MAX_WAIT ]; then
-        echo "SystemValidationJob not finished after $MAX_WAIT seconds"
-        echo "retval = $retval"
-        exit 1
-      else
-        echo "SystemValidationJob finished after $LOOPS seconds"
-      fi
+      )
       echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
