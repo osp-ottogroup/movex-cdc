@@ -293,8 +293,22 @@ trivy_scan:
     - sleep 5
     - $PODMAN ps
     - |
-      echo "
+      export MAX_WAIT=60
+      echo "Waiting for SystemValidationJob to be performed"
       MAX_WAIT=60
+      typeset -i LOOPS=0
+      while [ \$LOOPS -lt \$MAX_WAIT ]; do
+        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
+        curl http://localhost:8080/ 2>/dev/null >/dev/null
+        retval=\$?
+        if [ \$retval -eq 0 ]; then
+          break
+        fi
+        LOOPS=LOOPS+1
+        echo -n .
+        sleep 1
+      done
+      echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
       while [ \$LOOPS -lt \$MAX_WAIT ]; do
@@ -363,8 +377,9 @@ docker_test_oracle_19.3_SSL:
     - |
       /opt/start-kafka_ssl.sh
   after_script:
-    - $PODMAN logs movex-cdc > movex-cdc.log
-    - $PODMAN stop movex-cdc
+    - |
+      $PODMAN logs movex-cdc > movex-cdc.log
+      $PODMAN stop movex-cdc
   artifacts:
     when: always
     paths:
