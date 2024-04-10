@@ -291,36 +291,33 @@ trivy_scan:
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
     - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE
     - $PODMAN ps
-    - - |
+    - |
       export MAX_WAIT=60
-      (
-        echo "Waiting for SystemValidationJob to be performed"
-        MAX_WAIT=60
-        typeset -i LOOPS=0
-        echo "Before while"
-        while [ $LOOPS -lt $MAX_WAIT ]; do
-          echo "Before logs"
-          $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
-          retval=$?
-          echo "After logs"
-          if [ $retval -eq 0 ]; then
-            echo "Before break"
-            break
-          fi
-          LOOPS=LOOPS+1
-          echo -n .
-          sleep 1
-        done
-        echo "After while"
-        if [ $LOOPS -eq $MAX_WAIT ]; then
-          echo "SystemValidationJob not finished after $MAX_WAIT seconds"
-          echo "retval = $retval"
-          exit 1
-        else
-          echo "SystemValidationJob finished after $LOOPS seconds"
-          exit 0
+      echo "Waiting for SystemValidationJob to be performed"
+      MAX_WAIT=60
+      typeset -i LOOPS=0
+      echo "Before while"
+      while [ $LOOPS -lt $MAX_WAIT ]; do
+        echo "Before logs"
+        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null || retval=$?
+        echo "After logs"
+        if [ $retval -eq 0 ]; then
+          echo "Before break"
+          break
         fi
-      )
+        LOOPS=LOOPS+1
+        echo -n .
+        sleep 1
+      done
+      echo "After while"
+      if [ $LOOPS -eq $MAX_WAIT ]; then
+        echo "SystemValidationJob not finished after $MAX_WAIT seconds"
+        echo "retval = $retval"
+        exit 1
+      else
+        echo "SystemValidationJob finished after $LOOPS seconds"
+        exit 0
+      fi
       echo "
       typeset -i LOOPS=0
       echo :\$LOOPS:
