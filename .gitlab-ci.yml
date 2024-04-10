@@ -296,20 +296,16 @@ trivy_scan:
       echo "Waiting for SystemValidationJob to be performed"
       MAX_WAIT=60
       typeset -i LOOPS=0
-      echo "Before while"
       while [ $LOOPS -lt $MAX_WAIT ]; do
-        echo "Before logs"
+        retval=0
         $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" || retval=$?
-        echo "After logs"
         if [ $retval -eq 0 ]; then
-          echo "Before break"
           break
         fi
         LOOPS=LOOPS+1
         echo -n .
         sleep 1
       done
-      echo "After while"
       if [ $LOOPS -eq $MAX_WAIT ]; then
         echo "SystemValidationJob not finished after $MAX_WAIT seconds"
         echo "retval = $retval"
@@ -382,7 +378,9 @@ docker_test_oracle_19.10_SSL:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+    KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
+    RUBYOPT: "-W0"
   before_script:
     - |
       /opt/start-kafka_ssl.sh
