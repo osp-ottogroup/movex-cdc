@@ -13,7 +13,7 @@ variables:
   KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
-
+  RUBYOPT: -W0
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
@@ -380,7 +380,6 @@ docker_test_oracle_19.10_SSL:
     DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
-    RUBYOPT: -W0
   before_script:
     - |
       /opt/start-kafka_ssl.sh
