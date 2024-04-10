@@ -299,7 +299,7 @@ trivy_scan:
       echo "Before while"
       while [ $LOOPS -lt $MAX_WAIT ]; do
         echo "Before logs"
-        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null || retval=$?
+        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" || retval=$?
         echo "After logs"
         if [ $retval -eq 0 ]; then
           echo "Before break"
