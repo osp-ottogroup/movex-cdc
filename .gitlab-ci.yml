@@ -302,6 +302,7 @@ trivy_scan:
           echo "Before logs"
           $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" >/dev/null
           retval=$?
+          echo "After logs"
           if [ $retval -eq 0 ]; then
             echo "Before break"
             break
