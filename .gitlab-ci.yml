@@ -338,9 +338,10 @@ trivy_scan:
       fi
     - |
       retval=0
-      curl -L http://localhost:8080/health_check/ | tee health_check_result.log | grep health_check_timestamp || retval=$?
+      curl -L http://localhost:8080/health_check/ > health_check_result.log 
+      grep '"warnings": "",' health_check_result.log || retval=$?
       if [ $retval -ne 0 ]; then
-        echo "healthcheck not complete! Details follow:"
+        echo "healthcheck warnings are not empty! Details follow:"
         cat health_check_result.log
         $PODMAN logs movex-cdc
         exit 1
