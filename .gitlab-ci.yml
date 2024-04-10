@@ -302,7 +302,7 @@ trivy_scan:
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         retval=0
-        $PODMAN logs movex-cdc 2>&1 | grep "Performed SystemValidationJob" || retval=$? 
+        $PODMAN logs movex-cdc 2>&1 | grep "Performed SystemValidationJob" >/dev/null || retval=$? 
         if [ $retval -eq 0 ]; then
           break
         fi
@@ -329,16 +329,14 @@ trivy_scan:
         sleep 1
       done
       if [ $LOOPS -eq $MAX_WAIT ]; then
-        echo No access to port 8080 after $MAX_WAIT seconds
-        echo retval = $retval
+        echo "No access to port 8080 after $MAX_WAIT seconds"
+        echo "retval = $retval"
+        curl http://localhost:8080/
         exit 1
       else
         echo "Access to port 8080 after $LOOPS seconds"
       fi
-    - curl http://localhost:8080/
-    - curl -L http://localhost:8080/health_check/
     - |
-      sleep 3
       retval=0
       curl -L http://localhost:8080/health_check/ | tee health_check_result.log | grep health_check_timestamp || retval=$?
       if [ $retval -ne 0 ]; then
