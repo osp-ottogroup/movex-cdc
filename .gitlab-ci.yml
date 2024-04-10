@@ -346,10 +346,18 @@ trivy_scan:
         exit 1
       fi
   after_script:
-    - $PODMAN stop movex-cdc
+    - |
+      $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
+      $PODMAN stop movex-cdc
+  artifacts:
+    when: always
+    paths:
+      - movex-cdc.log
+    expire_in: 1 month
 
 docker_test_oracle_12.1:
-  stage: post_build
+  # stage: post_build
+  stage: beta
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
@@ -378,15 +386,6 @@ docker_test_oracle_19.10_SSL:
   before_script:
     - |
       /opt/start-kafka_ssl.sh
-  after_script:
-    - |
-      $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
-      $PODMAN stop movex-cdc
-  artifacts:
-    when: always
-    paths:
-      - movex-cdc.log
-    expire_in: 1 month
 
 
 # Deploy the static site to GitLab Pages, but only for master branch
