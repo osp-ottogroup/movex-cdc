@@ -21,11 +21,11 @@ class TransferThreadTest < ActiveSupport::TestCase
     assert_equal 0, remaining_event_log_count, log_on_failure('All Records from Event_Logs should be processed and deleted now')
 
     run_with_current_user { create_event_logs_for_test(20) }
-    EventLog.last.update!(retry_count: 1, last_error_time: Time.now+20000)  # set erroneous, keep in mind that DB time and client time may differ in time zone
+    EventLog.last.update!(retry_count: 1, last_error_time: Database.systime+20000)  # set erroneous, keep in mind that DB time and client time may differ in time zone
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Processing with one error record')
     assert_equal 1, remaining_event_log_count, log_on_failure('All Records from Event_Logs except the one erroneous should be processed and deleted now')
 
-    EventLog.last.update!(last_error_time: Time.now-20000)  # set timestamp so remaining erroneous record should be processed now
+    EventLog.last.update!(last_error_time: Database.systime-20000)  # set timestamp so remaining erroneous record should be processed now
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Processing the one error record')
     assert_equal 0, remaining_event_log_count, log_on_failure('Last error record from Event_Logs should be processed and deleted now')
   end
