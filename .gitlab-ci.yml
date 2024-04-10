@@ -312,31 +312,25 @@ trivy_scan:
         exit 1
       else
         echo "SystemValidationJob finished after $LOOPS seconds"
-        exit 0
       fi
-      echo "
       typeset -i LOOPS=0
-      echo :\$LOOPS:
-      while [ \$LOOPS -lt \$MAX_WAIT ]; do
-        curl http://localhost:8080/ 2>/dev/null >/dev/null
-        retval=\$?
-        if [ \$retval -eq 0 ]; then
+      while [ $LOOPS -lt $MAX_WAIT ]; do
+        retval=0
+        curl http://localhost:8080/ 2>/dev/null >/dev/null || retval=$?
+        if [ $retval -eq 0 ]; then
           break
         fi
         LOOPS=LOOPS+1
         echo -n .
         sleep 1
       done
-      if [ \$LOOPS -eq \$MAX_WAIT ]; then
-        echo No access to port 8080 after \$MAX_WAIT seconds
-        echo retval = \$retval
+      if [ $LOOPS -eq $MAX_WAIT ]; then
+        echo No access to port 8080 after $MAX_WAIT seconds
+        echo retval = $retval
         exit 1
       else
-        # Let the worker start before health check
-        sleep 1
-        exit 0
+        echo "Access to port 8080 after $LOOPS seconds"
       fi
-      " | bash
     - curl http://localhost:8080/
     - curl -L http://localhost:8080/health_check/
     - |
