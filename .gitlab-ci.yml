@@ -296,9 +296,8 @@ trivy_scan:
     - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE
     - $PODMAN ps
     - |
-      export MAX_WAIT=60
       echo "Waiting for SystemValidationJob to be performed"
-      MAX_WAIT=60
+      MAX_WAIT=120
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         retval=0

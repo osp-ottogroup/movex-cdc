@@ -4,6 +4,9 @@
 
 # timezone setting is done by "-e TZ="Europe/Berlin" etc in call of "docker run"
 
+# Suppress warnings from several gems
+export RUBYOPT='-W0'
+
 export RAILS_LOG_FILE=log/production.log
 
 echo "Starting MOVEX CDC. Build version is `cat /app/build_version`" | tee -a $RAILS_LOG_FILE
