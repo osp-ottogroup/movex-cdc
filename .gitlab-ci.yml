@@ -367,8 +367,6 @@ docker_test_oracle_12.1:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
-  after_script:
-    - $PODMAN stop movex-cdc
 
 docker_test_oracle_19.10_SSL:
   stage: beta
