@@ -285,6 +285,7 @@ trivy_scan:
       echo  "DB_URL:             $DB_URL                  " >> run_config.yml &&
       echo  "DB_SYS_PASSWORD:    oracle                   " >> run_config.yml &&
       echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER       " >> run_config.yml
+    - |
       if [ -n "$KAFKA_CLIENT_LIBRARY" ]; then
         echo  "KAFKA_CLIENT_LIBRARY: $KAFKA_CLIENT_LIBRARY" >> run_config.yml
       fi
@@ -382,7 +383,7 @@ docker_test_oracle_19.10_SSL:
       /opt/start-kafka_ssl.sh
   after_script:
     - |
-      $PODMAN logs movex-cdc > movex-cdc.log
+      $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
       $PODMAN stop movex-cdc
   artifacts:
     when: always
