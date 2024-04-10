@@ -298,7 +298,7 @@ trivy_scan:
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         retval=0
-        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" || retval=$?
+        $PODMAN logs movex-cdc | grep "Performed SystemValidationJob" || retval=$? 2>&1 >/dev/null
         if [ $retval -eq 0 ]; then
           break
         fi
@@ -380,7 +380,7 @@ docker_test_oracle_19.10_SSL:
     DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
-    RUBYOPT: "-W0"
+    RUBYOPT: -W0
   before_script:
     - |
       /opt/start-kafka_ssl.sh
