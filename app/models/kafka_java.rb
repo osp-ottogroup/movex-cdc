@@ -332,7 +332,7 @@ class KafkaJava < KafkaBase
 
     # Content of property file should overrule the default properties from environment or run_config
     file_props.each do |key, value|# use the whole content of file for connect properties or empty hash if file not specified
-      props.put(key, value)
+      props.put(key, java.lang.String.new(value))
     end
     Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{props}" }
     props
