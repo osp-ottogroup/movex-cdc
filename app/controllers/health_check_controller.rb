@@ -107,6 +107,7 @@ class HealthCheckController < ApplicationController
         health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (MAX_TRANSACTION_SIZE) "
       end
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error calculating memory usage")
       health_data[:warnings] << "\nError calculating memory usage: #{e.class}:#{e.message}"
     end
 
@@ -118,6 +119,7 @@ class HealthCheckController < ApplicationController
         health_data[:warnings] << "\nThread count = #{current_thread_count} but should be #{MovexCdc::Application.config.initial_worker_threads}"
       end
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading current_number_of_worker_threads")
       health_data[:warnings] << "\nError reading current_number_of_worker_threads: #{e.class}:#{e.message}"
     end
 
@@ -130,6 +132,7 @@ class HealthCheckController < ApplicationController
         health_data[:warnings] << "\nWorker ID=#{worker_state[:worker_id]} thread=#{worker_state[:thread_id]}: #{worker_state[:warning]} " if worker_state[:warning] != ''
       end
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading worker_threads")
       health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
     end
 
@@ -177,12 +180,14 @@ class HealthCheckController < ApplicationController
       current_init_requests_count = TableInitialization.get_instance.init_requests_count(raise_exception_if_locked: true)
       health_data[:current_number_of_table_initialization_requests]  = current_init_requests_count
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading current_number_of_table_initialization_requests")
       health_data[:warnings] << "\nError reading current_number_of_table_initialization_requests: #{e.class}:#{e.message}"
     end
     begin
       Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.health_check_data_requests" }
       health_data[:table_initialization_requests] = TableInitialization.get_instance.health_check_data_requests
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading table_initialization_requests")
       health_data[:warnings] << "\nError reading table_initialization_requests: #{e.class}:#{e.message}"
     end
 
@@ -191,12 +196,14 @@ class HealthCheckController < ApplicationController
       current_init_thread_count = TableInitialization.get_instance.running_threads_count(raise_exception_if_locked: true)
       health_data[:current_number_of_table_initialization_threads]  = current_init_thread_count
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading current_number_of_table_initialization_threads")
       health_data[:warnings] << "\nError reading current_number_of_table_initialization_threads: #{e.class}:#{e.message}"
     end
     begin
       Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting TableInitialization.health_check_data_threads" }
       health_data[:table_initialization_threads] = TableInitialization.get_instance.health_check_data_threads(jwt_validated: jwt_validated)
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading table_initialization_threads")
       health_data[:warnings] << "\nError reading table_initialization_threads: #{e.class}:#{e.message}"
     end
 
@@ -210,6 +217,7 @@ class HealthCheckController < ApplicationController
       # Housekeeping executed by Docker container can repair this seldom scenario
       ApplicationJob.ensure_job_rescheduling
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading job states")
       health_data[:warnings] << "\nError reading job states: #{e.class}:#{e.message}"
     end
 
@@ -221,6 +229,7 @@ class HealthCheckController < ApplicationController
         health_data[:warnings] << "\n:Partition count (#{health_data[:event_log_status][:used_partition_count]}) exceeds threshold (#{partition_threshold})"
       end
     rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading event queue states")
       health_data[:warnings] << "\nError reading event queue states: #{e.class}:#{e.message}"
     end
 

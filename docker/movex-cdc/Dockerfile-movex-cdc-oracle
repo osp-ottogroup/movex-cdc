@@ -55,6 +55,8 @@ ENV RAILS_MAX_THREADS=300
 ARG JRUBY_VERSION
 ENV JAVA_HOME=/opt/jre
 ENV PATH "${JAVA_HOME}/bin:/opt/jruby-$JRUBY_VERSION/bin:$PATH"
+# Suppress warnings from several gems
+ENV RUBYOPT="-W0"
 
 COPY --from=openjdk /customjre $JAVA_HOME
 

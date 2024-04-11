@@ -129,9 +129,9 @@ class TransferThread
       worker_id:                      @worker_id,
       warning:                        ''                                        # empty warning means healthy
     }
-    warning << "DB-connection not established, "    unless @db_session_info
-    warning << "Kafka-connection not established, " unless @kafka_connected
-    warning << "Thread not alive, "                 unless @thread&.alive?
+    retval[:warning] << "DB-connection not established, "    unless @db_session_info
+    retval[:warning] << "Kafka-connection not established, " unless @kafka_connected
+    retval[:warning] << "Thread not alive, "                 unless @thread&.alive?
     retval[:stacktrace] = @thread&.backtrace unless options[:without_stacktrace]
     retval
   end
