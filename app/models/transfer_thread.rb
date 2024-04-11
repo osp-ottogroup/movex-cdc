@@ -34,7 +34,7 @@ class TransferThread
     @messages_processed_successful  = 0                                         # Number of successful message processings
     @messages_processed_with_error  = 0                                         # Number of messages processing trials ending with error
     @max_message_size               = 0                                         # Max. size of single message in bytes
-    @db_session_info                = 'set later in new thread'                 # Session ID etc.
+    @db_session_info                = nil                                       # Session ID etc., set after successful connection
     @thread                         = nil                                       # Reference to thread, set in new thread in method process
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
@@ -48,6 +48,7 @@ class TransferThread
     @last_read_events               = 0                                         # number of event_log records read at last read rom event_logs
     @last_scanned_partitions        = 0                                         # number of partitions scanned at last read rom event_logs
     @concurrent_tx_retry_delay_ms   = 1                                         # Amount of delay before retry at Kafka::ConcurrentTransactionError, increased if not sufficient
+    @kafka_connected                = false                                     # flag to ensure that kafka connection is established
   end
 
   # Do processing in a separate Thread
@@ -60,6 +61,7 @@ class TransferThread
     @thread = Thread.current
 
     @kafka_producer = KafkaBase.create.create_producer(transactional_id: @transactional_id)
+    @kafka_connected = true                                                     # flag to ensure that kafka connection is established, otherwise exception is raised by create_producer
 
     # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
@@ -111,6 +113,7 @@ class TransferThread
     retval = {
       cached_max_event_logs_seq_id:   @cached_max_event_logs_seq_id,
       db_session_info:                @db_session_info,
+      kafka_connected:                @kafka_connected,
       last_active_time:               @last_active_time,
       last_read_events:               @last_read_events,
       last_scanned_partitions:        @last_scanned_partitions,
@@ -124,7 +127,11 @@ class TransferThread
       thread_id:                      @thread&.object_id,
       transactional_id:               @transactional_id,
       worker_id:                      @worker_id,
+      warning:                        ''                                        # empty warning means healthy
     }
+    warning << "DB-connection not established, "    unless @db_session_info
+    warning << "Kafka-connection not established, " unless @kafka_connected
+    warning << "Thread not alive, "                 unless @thread&.alive?
     retval[:stacktrace] = @thread&.backtrace unless options[:without_stacktrace]
     retval
   end

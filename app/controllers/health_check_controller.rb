@@ -126,6 +126,9 @@ class HealthCheckController < ApplicationController
     begin
       Rails.logger.debug('HealthCheckController.health_check_content') { "Start getting ThreadHandling.health_check_data" }
       health_data[:worker_threads] = ThreadHandling.get_instance.health_check_data(jwt_validated: jwt_validated)
+      health_data[:worker_threads].each do |worker_state|
+        health_data[:warnings] << "\nWorker ID=#{worker_state[:worker_id]} thread=#{worker_state[:thread_id]}: #{worker_state[:warning]} " if worker_state[:warning] != ''
+      end
     rescue Exception=>e
       health_data[:warnings] << "\nError reading worker_threads: #{e.class}:#{e.message}"
     end
