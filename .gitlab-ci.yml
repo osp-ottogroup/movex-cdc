@@ -263,7 +263,7 @@ trivy_scan:
 #        echo "risk_score $RISK_SCORE is higher than allowed maximum $MAXIMAL_ALLOWED_RISK_SCORE ! Aborting..."
 #        echo ''
 #        cat rapid7.json
-#        exit 1
+#        false
 #      fi
 #  artifacts:
 #    when: always
@@ -315,7 +315,7 @@ trivy_scan:
       if [ $LOOPS -eq $MAX_WAIT ]; then
         echo "SystemValidationJob not finished after $MAX_WAIT seconds"
         echo "retval = $retval"
-        exit 1
+        false
       else
         echo "SystemValidationJob finished after $LOOPS seconds"
       fi
@@ -334,7 +334,7 @@ trivy_scan:
         echo "No access to port 8080 after $MAX_WAIT seconds"
         echo "retval = $retval"
         curl http://localhost:8080/
-        exit 1
+        false
       else
         echo "Access to port 8080 after $LOOPS seconds"
       fi
@@ -346,7 +346,7 @@ trivy_scan:
         echo "healthcheck warnings are not empty! Details follow:"
         cat health_check_result.log
         $PODMAN logs movex-cdc
-        exit 1
+        false
       fi
   after_script:
     - |
