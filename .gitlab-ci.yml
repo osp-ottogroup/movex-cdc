@@ -367,6 +367,8 @@ docker_test_oracle_12.1:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+  before_script:
+    - /bin/bash -c "sleep 1000"
 
 docker_test_oracle_19.10_SSL:
   stage: beta
