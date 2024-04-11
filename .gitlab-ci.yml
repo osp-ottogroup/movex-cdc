@@ -284,8 +284,8 @@ trivy_scan:
       echo  "DB_PASSWORD:        movex                    " >> run_config.yml &&
       echo  "DB_URL:             $DB_URL                  " >> run_config.yml &&
       echo  "DB_SYS_PASSWORD:    oracle                   " >> run_config.yml &&
-      #echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER       " >> run_config.yml
       echo  "KAFKA_SEED_BROKER:  localhost:9001       " >> run_config.yml
+      #echo  "KAFKA_SEED_BROKER:  $KAFKA_SEED_BROKER       " >> run_config.yml
     - |
       if [ -n "$KAFKA_CLIENT_LIBRARY" ]; then
         echo  "KAFKA_CLIENT_LIBRARY: $KAFKA_CLIENT_LIBRARY" >> run_config.yml
