@@ -355,7 +355,7 @@ trivy_scan:
       - movex-cdc.log
     expire_in: 1 month
 
-docker_test_oracle_12.1:
+docker_test_oracle_12.1_PLAINTEXT:
   # stage: post_build
   stage: beta
   extends: .docker_test
