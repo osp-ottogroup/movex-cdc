@@ -1,6 +1,7 @@
 # Base class for models without DB table but using ActiveRecord::Base
 require 'select_hash_helper'
 require 'exception_helper'
+require 'date'
 class Database
 
   # delegate method calls to DB-specific implementation classes
@@ -124,7 +125,7 @@ class Database
   def self.systime
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then select_one "SELECT SYSTIMESTAMP FROM DUAL"
-    when 'SQLITE' then select_one "SELECT DATETIME('now')"
+    when 'SQLITE' then Time.now
     else
       raise "Database.systime: missing value for '#{MovexCdc::Application.config.db_type}'"
     end
