@@ -357,6 +357,9 @@ trivy_scan:
     when: always
     paths:
       - movex-cdc.log
+      - /opt/kafka/logs/*
+      - /opt/kafka/*client*
+      - /opt/kafka/*server*
     expire_in: 1 month
 
 docker_test_oracle_12.1_PLAINTEXT:
