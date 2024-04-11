@@ -296,8 +296,9 @@ trivy_scan:
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
     - $PODMAN run --rm -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:create_user
-    - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml --log-driver=journald --log-opt=path=./movex-cdc.log $TEMP_DOCKER_IMAGE
+    - $PODMAN run -d --rm --name=movex-cdc -p8080:8080 -v $PWD/run_config.yml:/run_config.yml -e RUN_CONFIG=/run_config.yml --log-driver=journald --log-opt=path=$PWD/movex-cdc.log $TEMP_DOCKER_IMAGE
     - $PODMAN ps
+    - ls -lisa
     - |
       echo "Waiting for SystemValidationJob to be performed"
       MAX_WAIT=120
