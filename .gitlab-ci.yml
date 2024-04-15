@@ -343,8 +343,10 @@ trivy_scan:
       retval=0
       curl -L http://localhost:8080/health_check/ > health_check_result.log 
       grep '"warnings": "",' health_check_result.log || retval=$?
-      if [ $retval -ne 0 ]; then
+      if [ $retval -ne 0 ]; then        
         echo "healthcheck warnings are not empty! Details follow:"
+        # Wait for possible max.block.ms to reach at init_transactions to have the error in log output
+        sleep 6
         cat health_check_result.log
         $PODMAN logs movex-cdc
         false
@@ -362,7 +364,7 @@ trivy_scan:
       - /opt/kafka/*server*
     expire_in: 1 month
 
-docker_test_oracle_12.1_PLAINTEXT:
+docker_test_12.1_PLAINTEXT:
   # stage: post_build
   stage: beta
   extends: .docker_test
@@ -375,7 +377,7 @@ docker_test_oracle_12.1_PLAINTEXT:
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
-docker_test_oracle_19.10_SSL:
+docker_test_19.10_SSL:
   stage: beta
   extends: .docker_test
   services:

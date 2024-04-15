@@ -4,7 +4,7 @@
 
 # Usage:
 # Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0 .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.4.1
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
 # Use
 
 
@@ -37,7 +37,7 @@ RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /t
     ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
     sed -i 's|^log.dirs=.*$|log.dirs=/var/lib/kafka|' /opt/kafka/config/server.properties
 
-COPY    start-kafka.sh /opt/
+COPY    start_kafka.sh /opt/
 
 # Ensure container environment is used at container run time
-CMD ["/opt/start-kafka.sh"]
+CMD ["/opt/start_kafka.sh"]
