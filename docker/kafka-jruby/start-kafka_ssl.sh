@@ -58,6 +58,7 @@ echo "ssl.keystore.password=hugo01"                                             
 echo "ssl.key.password=hugo01"                                                  >> $SERVER_PROPERTIES
 echo "ssl.truststore.location=$SERVER_TRUSTSTOREFILE"                           >> $SERVER_PROPERTIES
 echo "ssl.truststore.password=hugo01"                                           >> $SERVER_PROPERTIES
+echo "ssl.client.auth=required"                                                 >> $SERVER_PROPERTIES
 
 echo "Build client properties"
 echo "security.protocol=SSL"                                                     >  $CLIENT_PROPERTIES

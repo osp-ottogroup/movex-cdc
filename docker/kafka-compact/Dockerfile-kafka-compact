@@ -5,7 +5,12 @@
 # Usage:
 # Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0 .
 # Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
-# Use
+# Start SSL authentiction:
+# > mkdir /tmp/kafka_ssl
+# > docker run  -p 2181:2181 -p 9092:9092 --name kafka -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 -e SECURITY_PROTOCOL=SSL registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
+# > docker cp kafka:/opt/kafka_ssl/client.properties /tmp/kafka_ssl
+# > docker cp kafka:/opt/kafka_ssl/kafka.client.keystore.p12 /tmp/kafka_ssl
+# > docker cp kafka:/opt/kafka_ssl/kafka.client.truststore.jks /tmp/kafka_ssl
 
 
 # FROM openjdk:17-jdk-alpine
@@ -22,10 +27,6 @@ ENV SCALA_VERSION=$SCALA_VERSION
 # generate unique id by default
 ENV BROKER_ID=-1
 ENV KAFKA_HOME=/opt/kafka
-ENV KAFKA_LISTENERS=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093
-ENV KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093
-ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-ENV KAFKA_INTER_BROKER_LISTENER_NAME=LISTENER_INT
 EXPOSE 2181/tcp 9092/tcp
 
 RUN apt install -y wget tar gzip bash
