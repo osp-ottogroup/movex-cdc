@@ -338,7 +338,7 @@ class KafkaJava < KafkaBase
 
     java_props = java.util.Properties.new
     props.each do |key, value|
-      java_props.put(key.to_s, value)                                           # Convert possible Ruby symbols to strings for Java keys
+      java_props.put(java.lang.String.new(key.to_s), java.lang.String.new(value))                                           # Convert possible Ruby symbols to strings for Java keys
     end
     Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{java_props}" }
     java_props
