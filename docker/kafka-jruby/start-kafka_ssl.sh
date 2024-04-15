@@ -27,7 +27,7 @@ rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_T
 # Generate keystore
 keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
 # Disable hostname verification
-echo "ssl.endpoint.identification.algorithm=" >> $KAFKA_HOME/config/server.properties
+echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
 # Create your own CA (certificate authority)
 openssl req -new -x509 -keyout ca-key -out ca-cert -days 10000 -subj "/C=DE/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name" -passin pass:hugo01 -passout pass:hugo01
 # Add the generated CA to the clients’ trust store so that the clients can trust this CA.
