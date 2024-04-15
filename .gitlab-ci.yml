@@ -185,8 +185,8 @@ generate_asciidoc:
       - doc/movex-cdc.pdf
 
 build_movex_cdc:
-  stage: build
-  #stage: beta
+  #stage: build
+  stage: beta
 
   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
