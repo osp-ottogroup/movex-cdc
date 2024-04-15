@@ -137,6 +137,7 @@ class KafkaJava < KafkaBase
           # TODO: Check if buffer.memory with transactions leads to batching or if batch.size hast to be set in addition
           producer_properties.put('acks',                   'all')              # The default for enabled itempotence which is enabled by transactional
           producer_properties.put('compression.codec',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
+          producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{producer_properties}"}
           @kafka_producer = org.apache.kafka.clients.producer.KafkaProducer.new(producer_properties)
@@ -303,13 +304,13 @@ class KafkaJava < KafkaBase
   # Basic Kafka options for connection to cluster including SSL options
   # @return [java.util.Properties] Basic Kafka options for connection to cluster
   def connect_properties
-    props = java.util.Properties.new
-    props.put('bootstrap.servers',  MovexCdc::Application.config.kafka_seed_broker)  # Kafka bootstrap server as default if not overwritten by file_props
+    props = {}
+    props['bootstrap.servers'] = MovexCdc::Application.config.kafka_seed_broker # Kafka bootstrap server as default if not overwritten by file_props
 
     # Content of property file should overrule the default properties from environment or run_config
     file_props = read_java_properties
     security_protocol = define_security_protocol(file_props)
-    props.put('security.protocol', security_protocol) # Ensure that security.protocol is set even if not in file
+    props['security.protocol'] = security_protocol                              # Ensure that security.protocol is set even if not in file
 
     case security_protocol
     when nil then
@@ -317,11 +318,11 @@ class KafkaJava < KafkaBase
     when 'PLAINTEXT' then
 
     when 'SASL_PLAINTEXT' then
-      props.put("sasl.mechanism", "PLAIN") unless file_props[:'sasl.mechanism']
-      props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';") unless file_props[:'sasl.jaas.config']
+      props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
+      props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
     when 'SASL_SSL' then
-      props.put("sasl.mechanism", "PLAIN") unless file_props[:'sasl.mechanism']
-      props.put("sasl.jaas.config", "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';") unless file_props[:'sasl.jaas.config']
+      props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
+      props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
       set_ssl_encryption_properties(props, file_props)
     when 'SSL' then
       set_ssl_encryption_properties(props, file_props)
@@ -332,10 +333,15 @@ class KafkaJava < KafkaBase
 
     # Content of property file should overrule the default properties from environment or run_config
     file_props.each do |key, value|# use the whole content of file for connect properties or empty hash if file not specified
-      props.put(key, java.lang.String.new(value))
+      props[key] = value
     end
-    Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{props}" }
-    props
+
+    java_props = java.util.Properties.new
+    props.each do |key, value|
+      java_props.put(key.to_s, value)                                           # Convert possible Ruby symbols to strings for Java keys
+    end
+    Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{java_props}" }
+    java_props
   end
 
   # Define the final security protocol to use for Kafka connection
@@ -486,12 +492,12 @@ class KafkaJava < KafkaBase
   end
 
   # Set SSL encryption properties for Kafka
-  # @param [java.util.Properties] properties object to be enriched
-  # @param [JavaProperties] file_props properties read from properties file
+  # @param [Hash] properties object to be enriched
+  # @param [Hash] file_props properties read from properties file
   # @return [void]
   def set_ssl_encryption_properties(properties, file_props)
     if MovexCdc::Application.config.kafka_ssl_truststore_type == 'PEM' || properties[:'ssl.truststore.type'] == 'PEM'
-      properties.put('ssl.truststore.type',         MovexCdc::Application.config.kafka_ssl_truststore_type) unless file_props[:'ssl.truststore.type']
+      properties['ssl.truststore.type'] = MovexCdc::Application.config.kafka_ssl_truststore_type unless file_props[:'ssl.truststore.type']
 
       if MovexCdc::Application.config.kafka_ssl_ca_cert
         certs = ''
@@ -499,33 +505,33 @@ class KafkaJava < KafkaBase
           certs << File.read(cert)
           certs << "\n"
         end
-        properties.put('ssl.truststore.certificates', certs);
+        properties['ssl.truststore.certificates'] = certs;
       end
     else # JKS
-      properties.put('ssl.truststore.location', MovexCdc::Application.config.kafka_ssl_truststore_location) unless file_props[:'ssl.truststore.location']
-      properties.put('ssl.truststore.password', MovexCdc::Application.config.kafka_ssl_truststore_password) unless file_props[:'ssl.truststore.password']
+      properties['ssl.truststore.location'] = MovexCdc::Application.config.kafka_ssl_truststore_location unless file_props[:'ssl.truststore.location']
+      properties['ssl.truststore.password'] = MovexCdc::Application.config.kafka_ssl_truststore_password unless file_props[:'ssl.truststore.password']
     end
   end
 
   # Set SSL authentication properties for Kafka
-  # @param [java.util.Properties] properties object to be enriched
-  # @param [JavaProperties] file_props properties read from properties file
+  # @param [Hash] properties object to be enriched
+  # @param [Hash] file_props properties read from properties file
   # @return [void]
   def set_ssl_authentication_properties(properties, file_props)
     if MovexCdc::Application.config.kafka_ssl_keystore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
-      properties.put('ssl.keystore.type',               MovexCdc::Application.config.kafka_ssl_keystore_type) unless file_props[:'ssl.keystore.type']
-      properties.put('ssl.keystore.certificate.chain',  File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain))  if MovexCdc::Application.config.kafka_ssl_client_cert_chain
-      properties.put('ssl.keystore.key',                File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key))    if MovexCdc::Application.config.kafka_ssl_client_cert_key
-      properties.put(ssl.key.password,                  MovexCdc::Application.config.kafka_ssl_key_password)                  if MovexCdc::Application.config.kafka_ssl_key_password
+      properties['ssl.keystore.type'] =               MovexCdc::Application.config.kafka_ssl_keystore_type unless file_props[:'ssl.keystore.type']
+      properties['ssl.keystore.certificate.chain'] =  File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain)  if MovexCdc::Application.config.kafka_ssl_client_cert_chain
+      properties['ssl.keystore.key'] =                File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)    if MovexCdc::Application.config.kafka_ssl_client_cert_key
+      properties[ssl.key.password] =                  MovexCdc::Application.config.kafka_ssl_key_password                  if MovexCdc::Application.config.kafka_ssl_key_password
     else # JKS
-      properties.put('ssl.keystore.location', MovexCdc::Application.config.kafka_ssl_keystore_location) unless file_props[:'ssl.keystore.location']
-      properties.put('ssl.keystore.password', MovexCdc::Application.config.kafka_ssl_keystore_password) unless file_props[:'ssl.keystore.password']
-      properties.put('ssl.key.password',      MovexCdc::Application.config.kafka_ssl_key_password)      unless file_props[:'ssl.key.password'] # The password of the private key in the key store file. This is optional for client.
+      properties['ssl.keystore.location'] = MovexCdc::Application.config.kafka_ssl_keystore_location unless file_props[:'ssl.keystore.location']
+      properties['ssl.keystore.password'] = MovexCdc::Application.config.kafka_ssl_keystore_password unless file_props[:'ssl.keystore.password']
+      properties['ssl.key.password'] =      MovexCdc::Application.config.kafka_ssl_key_password      unless file_props[:'ssl.key.password'] # The password of the private key in the key store file. This is optional for client.
     end
   end
 
-  # Get properties from a property file
-  # @return [JavaProperties|Hash] properties from property file or empty Hash if no property file is defined
+  # Get properties from a Java style property file
+  # @return [Hash] properties from property file or empty Hash if no property file is defined
   def read_java_properties
     file_path = MovexCdc::Application.config.kafka_properties_file
     if file_path.nil?
@@ -533,9 +539,7 @@ class KafkaJava < KafkaBase
     else
       # Check if file exists
       check_file_existence(file_path, 'Property file', 'defined by KAFKA_PROPERTIES_FILE')
-      # Read the property file
-      properties = JavaProperties.load(file_path)
-      properties
+      JavaProperties.load(file_path).to_h                                       # Read the property file and return the properties as a hash
     end
   end
 

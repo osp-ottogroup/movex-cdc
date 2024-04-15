@@ -261,6 +261,7 @@ Valid values are: +
 The ruby lib remains as fallback alternative for a transition period if problems occur with the Java libs|java
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
 |KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
+|KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker. If timeout is reached then the transfer is retried.|5000
 |KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
 |KAFKA_SASL_PLAIN_USERNAME|Username for authentication with SASL_PLAIN or SASL_SSL|
