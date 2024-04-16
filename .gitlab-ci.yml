@@ -274,6 +274,9 @@ trivy_scan:
 
 
 .docker_test:
+  variables:
+    # Ensure Kafka is reachable from inside a Podman container
+    KAFKA_SEED_BROKER: $HOSTNAME:9092
   script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - $PODMAN pull $TEMP_DOCKER_IMAGE
