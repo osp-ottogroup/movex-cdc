@@ -376,6 +376,7 @@ docker_test_12.1_PLAINTEXT:
     DB_USER: movex-cdc
     DB_PASSWORD: movex-cdc
     DB_URL: "oracle-db:1521/ORCLPDB1"
+    SECURITY_PROTOCOL: PLAINTEXT
 
 docker_test_19.10_SSL:
   stage: beta
@@ -390,9 +391,7 @@ docker_test_19.10_SSL:
     DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
-  before_script:
-    - |
-      /opt/start-kafka_ssl.sh
+    SECURITY_PROTOCOL: SSL
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:

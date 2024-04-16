@@ -8,13 +8,7 @@ function control_c {
 trap control_c SIGINT
 trap control_c SIGTERM
 
-if [ "$SECURITY_PROTOCOL" == "SSL" ]; then
-  echo "Start Kafka with SSL"
-  /opt/start-kafka_ssl.sh
-else
-  echo "Start Kafka with PLAINTEXT"
-  /opt/start-kafka.sh
-fi
+/opt/start-kafka.sh
 
 # wait until SIGTERM
 export TERMINATED=0

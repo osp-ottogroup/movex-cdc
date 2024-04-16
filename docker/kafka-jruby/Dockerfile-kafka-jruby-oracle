@@ -6,7 +6,8 @@
 # Update base images:
 #   docker pull eclipse-temurin:21
 #   docker pull oraclelinux:8-slim
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle --no-cache -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk21 .
+# add --no-cache to build without cache
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk21 .
 
 # base image to build a JRE
     FROM eclipse-temurin:21 as openjdk
