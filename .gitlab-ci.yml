@@ -277,10 +277,6 @@ trivy_scan:
   script:
     - $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
     - $PODMAN pull $TEMP_DOCKER_IMAGE
-    - echo "CI_SERVER_NAME = $CI_SERVER_NAME"
-    - echo "CI_SERVER_HOST = $CI_SERVER_HOST"
-    - ping -t 3 $CI_SERVER_NAME
-    - ping -t 3 $CI_SERVER_HOST
     - echo "hostname = `hostname`"
     - echo "HOSTNAME = $HOSTNAME"
     - |
