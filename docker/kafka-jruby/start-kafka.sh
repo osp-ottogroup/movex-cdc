@@ -19,8 +19,10 @@ export CLIENT_TRUSTSTOREFILE=/opt/kafka/kafka.client.truststore.jks
 export SERVER_TRUSTSTOREFILE=/opt/kafka/kafka.server.truststore.jks
 export CLIENT_PROPERTIES=/opt/kafka/client.properties
 export SERVER_PROPERTIES=/opt/kafka/my_server.properties
-export IP_ADDRESS=`ping -c 1 $HOSTNAME | awk -F'[()]' '/PING/{print $2}'`
-echo "IP address of host = $IP_ADDRESS"
+
+# export KAFKA_HOST=`ping -c 1 $HOSTNAME | awk -F'[()]' '/PING/{print $2}'`
+export KAFKA_HOST=$HOSTNAME
+echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = $KAFKA_HOST"
 echo "Prepare configuration"
 # Create a new server.properties file
 cp -f $KAFKA_HOME/config/server.properties $SERVER_PROPERTIES
@@ -30,7 +32,7 @@ touch $CLIENT_PROPERTIES
 
 sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.properties
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
-echo "advertised.listeners=LISTENER_EXT://$IP_ADDRESS:9092,LISTENER_INT://localhost:9093"       >> $SERVER_PROPERTIES
+echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092,LISTENER_INT://$KAFKA_HOST:9093"       >> $SERVER_PROPERTIES
 echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:PLAINTEXT"  >> $SERVER_PROPERTIES
 echo "inter.broker.listener.name=LISTENER_INT"                                                >> $SERVER_PROPERTIES
 
@@ -40,7 +42,7 @@ elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
   # remove old ssl files if they exist
   rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_TRUSTSTOREFILE
   # Generate keystore
-  keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
+  keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
   # Disable hostname verification
   echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
   # Create your own CA (certificate authority)
@@ -100,24 +102,24 @@ do
     echo "SCALA_VERSION = $SCALA_VERSION"
     echo "Creating topics and consumer groups"
     echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
-    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --bootstrap-server localhost:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
-    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --bootstrap-server localhost:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
+    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --bootstrap-server $KAFKA_HOST:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
+    $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --bootstrap-server $KAFKA_HOST:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
     echo "Waiting for Kafka to create groups now"
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
     typeset -i GROUP_LOOP_COUNT=0
     while [ 1 -eq 1 ]
     do
-      GROUP_COUNT=`$KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=localhost:9092 --list --command-config $CLIENT_PROPERTIES | wc -l`
+      GROUP_COUNT=`$KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=$KAFKA_HOST:9092 --list --command-config $CLIENT_PROPERTIES | wc -l`
       if [ $GROUP_COUNT -eq 2 ]; then
         echo "Kafka has two groups now"
-        $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=localhost:9092 --list --command-config $CLIENT_PROPERTIES
+        $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=$KAFKA_HOST:9092 --list --command-config $CLIENT_PROPERTIES
         exit 0
       fi
       GROUP_LOOP_COUNT=$GROUP_LOOP_COUNT+1
       if [ $GROUP_LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
         echo "Two Kafka groups missing after $WAIT_FOR_KAFKA_SECS seconds, terminating"
-        $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=localhost:9092 --list --command-config $CLIENT_PROPERTIES
+        $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=$KAFKA_HOST:9092 --list --command-config $CLIENT_PROPERTIES
         exit 1
       fi
       echo -n "."
