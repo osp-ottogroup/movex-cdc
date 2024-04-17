@@ -19,7 +19,8 @@ export CLIENT_TRUSTSTOREFILE=/opt/kafka/kafka.client.truststore.jks
 export SERVER_TRUSTSTOREFILE=/opt/kafka/kafka.server.truststore.jks
 export CLIENT_PROPERTIES=/opt/kafka/client.properties
 export SERVER_PROPERTIES=/opt/kafka/my_server.properties
-
+export IP_ADDRESS=`ping -c 1 $HOSTNAME | awk -F'[()]' '/PING/{print $2}'`
+echo "IP address of host = $IP_ADDRESS"
 echo "Prepare configuration"
 # Create a new server.properties file
 cp -f $KAFKA_HOME/config/server.properties $SERVER_PROPERTIES
@@ -29,7 +30,7 @@ touch $CLIENT_PROPERTIES
 
 sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.properties
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
-echo "advertised.listeners=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093"       >> $SERVER_PROPERTIES
+echo "advertised.listeners=LISTENER_EXT://$IP_ADDRESS:9092,LISTENER_INT://localhost:9093"       >> $SERVER_PROPERTIES
 echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:PLAINTEXT"  >> $SERVER_PROPERTIES
 echo "inter.broker.listener.name=LISTENER_INT"                                                >> $SERVER_PROPERTIES
 
