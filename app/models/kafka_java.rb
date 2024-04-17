@@ -175,7 +175,8 @@ class KafkaJava < KafkaBase
     builder = Java::OrgApacheLoggingLog4jCoreConfigBuilderApi::ConfigurationBuilderFactory.newConfigurationBuilder
     console = builder.newAppender("stdout", "Console")
     file = builder.newAppender("log", "File")
-    file.addAttribute("fileName", Rails.logger.instance_variable_get(:@logdev).dev.path)
+    logfile_path = File.join(Rails.root, 'log', "#{Rails.env}.log")
+    file.addAttribute("fileName", logfile_path)
     standard = builder.newLayout("PatternLayout")
     standard.addAttribute("pattern", "%d [%t] %-5level: %msg%n%throwable")
     console.add(standard)
@@ -571,7 +572,7 @@ class KafkaJava < KafkaBase
 end
 
 # make Kafka libs available at startup after class definition has been loaded
-Dir.glob(KafkaJava.kafka_lib_dir+'/*.jar').each do |jar|
+Dir.glob(File.join(KafkaJava.kafka_lib_dir, '/*.jar')).each do |jar|
   require jar
 end
 KafkaJava.configure_log4j
