@@ -2,18 +2,8 @@
 
 require 'java'
 require 'java-properties'
+require 'key_helper'
 
-
-# make Kafka libs available
-kafka_lib_dir = File.expand_path('../../../lib/kafka', __FILE__)
-# set log4j configuration for Kafka libs
-java.lang.System.setProperty('log4j.configurationFile', kafka_lib_dir + '/log4j.properties')
-
-Dir.glob(kafka_lib_dir+'/*.jar').each do |jar|
-  require jar
-end
-
-# builder = org.apache.logging.log4j.core.config.builder.api.ConfigurationBuilderFactory.newConfigurationBuilder
 class KafkaJava < KafkaBase
   class Producer < KafkaBase::Producer
 
@@ -118,7 +108,6 @@ class KafkaJava < KafkaBase
       init_transactions_retry_count = 0
 
       while !init_transactions_successfull
-
         begin
           producer_properties =@kafka.connect_properties
           producer_properties.put('transactional.id',     @transactional_id)
@@ -174,6 +163,36 @@ class KafkaJava < KafkaBase
       end
     end
   end # class Producer
+
+  # KafkaJava class methods
+
+  # @return [String] Path to the Kafka lib directory
+  def self.kafka_lib_dir
+    File.expand_path('../../../lib/kafka', __FILE__)
+  end
+
+  def self.configure_log4j
+    builder = Java::OrgApacheLoggingLog4jCoreConfigBuilderApi::ConfigurationBuilderFactory.newConfigurationBuilder
+    console = builder.newAppender("stdout", "Console")
+    file = builder.newAppender("log", "File")
+    file.addAttribute("fileName", Rails.logger.instance_variable_get(:@logdev).dev.path)
+    standard = builder.newLayout("PatternLayout")
+    standard.addAttribute("pattern", "%d [%t] %-5level: %msg%n%throwable")
+    console.add(standard)
+    file.add(standard)
+    builder.add(console)
+    builder.add(file)
+    rootLogger = builder.newRootLogger(KeyHelper.log_level_as_string)           # Use the log level of the Rails logger as default
+    rootLogger.add(builder.newAppenderRef("stdout"))
+    rootLogger.add(builder.newAppenderRef("log"))
+    builder.add(rootLogger)
+
+    Java::OrgApacheLoggingLog4jCoreConfig::Configurator.initialize(builder.build())
+
+    # Test logging function
+    # logger = Java::OrgApacheLoggingLog4j::LogManager.getLogger('org.apache.kafka.clients.producer.ProducerConfig')
+    # logger.debug('########################################## KafkaJava.configure_log4j ##########################################')
+  end
 
   private
   # Use KafkaBase.create to create an instance of this class
@@ -550,3 +569,9 @@ class KafkaJava < KafkaBase
     raise "#{description_prefix} '#{filepath}' #{description_suffix}#{' ' if description_suffix}is not readable."  unless File.readable?(filepath)
   end
 end
+
+# make Kafka libs available at startup after class definition has been loaded
+Dir.glob(KafkaJava.kafka_lib_dir+'/*.jar').each do |jar|
+  require jar
+end
+KafkaJava.configure_log4j
