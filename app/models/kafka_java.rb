@@ -128,7 +128,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('compression.codec',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
           producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
 
-          Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{producer_properties}"}
+          Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}"}
           @kafka_producer = org.apache.kafka.clients.producer.KafkaProducer.new(producer_properties)
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"calling kafka_producer.init_transactions"}
@@ -360,7 +360,7 @@ class KafkaJava < KafkaBase
     props.each do |key, value|
       java_props.put(java.lang.String.new(key.to_s), java.lang.String.new(value))                                           # Convert possible Ruby symbols to strings for Java keys
     end
-    Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{java_props}" }
+    Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{ExceptionHelper.mask_passwords_in_hash(java_props)}" }
     java_props
   end
 

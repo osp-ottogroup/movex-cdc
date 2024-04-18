@@ -92,6 +92,23 @@ module ExceptionHelper
     end
   end
 
+  # mask passwords in a hash
+  # @param [Hash] hash the hash to mask passwords in
+  # @return [Hash] the new hash with passwords masked
+  def self.mask_passwords_in_hash(hash)
+    retval = {}
+    hash.each do |key, value|
+      if value.is_a?(Hash)
+        retval[key] = mask_passwords_in_hash(value)
+      elsif key.to_s.include?('password')
+        retval[key] = '*' * value.length rescue '***'
+      else
+        retval[key] = value
+      end
+    end
+    retval
+  end
+
   private
   def self.gb_value_from_proc(key_linux, key_darwin)
     retval = nil

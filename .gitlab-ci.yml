@@ -17,7 +17,6 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - beta
   - code_analysis
   - test
   - pre_build
@@ -185,8 +184,7 @@ generate_asciidoc:
       - doc/movex-cdc.pdf
 
 build_movex_cdc:
-  #stage: build
-  stage: beta
+  stage: build
 
   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
@@ -369,8 +367,7 @@ trivy_scan:
     expire_in: 1 month
 
 docker_test_12.1_PLAINTEXT:
-  # stage: post_build
-  stage: beta
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
@@ -383,7 +380,7 @@ docker_test_12.1_PLAINTEXT:
     SECURITY_PROTOCOL: PLAINTEXT
 
 docker_test_19.10_SSL:
-  stage: beta
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
