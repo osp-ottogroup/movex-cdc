@@ -20,9 +20,9 @@ export SERVER_TRUSTSTOREFILE=/opt/kafka/kafka.server.truststore.jks
 export CLIENT_PROPERTIES=/opt/kafka/client.properties
 export SERVER_PROPERTIES=/opt/kafka/my_server.properties
 
-# export KAFKA_HOST=`ping -c 1 $HOSTNAME | awk -F'[()]' '/PING/{print $2}'`
 export KAFKA_HOST=$HOSTNAME
-echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = $KAFKA_HOST"
+export KAFKA_HOST_IP=`ping -c 1 $KAFKA_HOST | awk -F'[()]' '/PING/{print $2}'`
+echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = '$KAFKA_HOST' with IP $KAFKA_HOST_IP"
 echo "Prepare configuration"
 # Create a new server.properties file
 cp -f $KAFKA_HOME/config/server.properties $SERVER_PROPERTIES
@@ -41,8 +41,11 @@ if [ "$SECURITY_PROTOCOL" == "PLAINTEXT" ]; then
 elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
   # remove old ssl files if they exist
   rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_TRUSTSTOREFILE
-  # Generate keystore
-  keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
+  # Generate keystore with certificate
+  # user KAFKA_HOST as primary name for the certificate (CN) and the IP as alternative name (SAN)
+  # -ext SAN=DNS:$KAFKA_HOST,IP:$KAFKA_HOST_IP did not work if IP is used for seed broker
+  keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 \
+    -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
   # Disable hostname verification
   echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
   # Create your own CA (certificate authority)
@@ -57,8 +60,10 @@ elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
   # Import both the certificates of the CA and the signed certificate into the keystore
   keytool -keystore $SERVER_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
   keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
+
   # Create client keystore and import both certificates of the CA and signed certificates to client keystore. These client certificates will be used in application properties.
-  keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 -dname "CN=localhost, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
+  keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 \
+    -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
   keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
   openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
   keytool -keystore $CLIENT_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt

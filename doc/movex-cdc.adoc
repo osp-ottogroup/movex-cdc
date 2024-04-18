@@ -1031,6 +1031,7 @@ Therefore only tables are accessible for trigger definition in the GUI where the
 == Possible pitfalls ==
 - TIMESTAMP columns for Oracle are presented in the JSON message in ISO format with a number of fraction digits according to the precision of the column.
 For values at exact second the fraction digits are omitted.
+- Error message "javax.net.ssl.SSLHandshakeException: No subject alternative names present" in log output: The certificate of the Kafka broker does not contain the hostname of the Kafka broker as subject alternative name.
 
 == Frequently asked questions ==
 .FAQ will be completed over time with all upcoming questions that are not answered befor
