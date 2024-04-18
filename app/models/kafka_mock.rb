@@ -10,6 +10,7 @@ class KafkaMock < KafkaBase
     # @return [void]
     def initialize(kafka, transactional_id:)
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
+      @last_successfully_delivered_id = 0
       super(kafka, transactional_id: transactional_id)
       @events = []
     end
@@ -60,9 +61,14 @@ class KafkaMock < KafkaBase
 
     def deliver_messages
       @events.each do |event|
-        raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}" unless @kafka.has_topic?(event[:topic])
+        unless @kafka.has_topic?(event[:topic])
+          @last_produced_id = @last_successfully_delivered_id                   # reset last produced ID because events will occur again
+          raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}"
+        end
       end
-      @events = []
+      @last_successfully_delivered_id = @last_produced_id                       # remember last successfully delivered ID
+    ensure
+      @events = []                                                              # ensure to start with empty event list even after repeated errors
     end
 
     def reset_kafka_producer
@@ -78,6 +84,11 @@ class KafkaMock < KafkaBase
   def initialize
     super()
     @producer = nil                                                             # KafkaMock::Producer is not initialized until needed
+    @topic_attrs = {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
+    @groups = [
+      { group_id: 'group1', state: 'Stable', protocol_type: 'consumer', protocol: 'roundrobin', members: [{ member_id: 'member1', client_id: 'client1', client_host: 'host1', metadata: 'metadata1', assignment: 'assignment1' }]},
+      { group_id: 'group2', state: 'Stable', protocol_type: 'consumer', protocol: 'roundrobin', members: [{ member_id: 'member1', client_id: 'client1', client_host: 'host1', metadata: 'metadata1', assignment: 'assignment1' }]},
+    ]
   end
 
   public
@@ -93,23 +104,12 @@ class KafkaMock < KafkaBase
     topics.include?(topic)
   end
 
-  # @param topic [String] Kafka topic name to describe
-  # @param configs [Array] List of Kafka topic attributes to describe
-  # @return [Hash] Description of the Kafka topic
-  def describe_topic(topic, configs = [])
-    if EXISTING_TOPICS.include? topic
-      {"max.message.bytes"=>"100000", "retention.ms"=>"604800000"}
-    else
-      raise "Not existing topic '#{topic}'"
-    end
-  end
-
   # Describe a single Kafka topic attribute
   # @param topic [String] Kafka topic name to describe
   # @param attribute [String] Kafka topic attribute to describe
   # @return [String] Value of the Kafka topic attribute
   def describe_topic_attr(topic, attribute)
-    describe_topic(topic, [attribute])[attribute]
+    @topic_attrs[attribute].to_s
   end
 
   # @param topic [String] Kafka topic name to describe with all attributes
@@ -121,7 +121,7 @@ class KafkaMock < KafkaBase
         replicas: 2,
         last_offsets: { topic => { '0': 5, '1': 8 }},
         leaders: { '0': '1', '1': '1' },
-        config: { 'max.message.bytes': { value: 100000, info: 'Hugo'}, 'retention.ms': { value: "604800000", info: 'Hugo' }}
+        config: { 'max.message.bytes': { value: @topic_attrs['max.message.bytes'], info: 'Hugo'}, 'retention.ms': { value: @topic_attrs['retention.ms'], info: 'Hugo' }}
       }
     else
       raise "Not existing topic '#{topic}'"
@@ -132,19 +132,19 @@ class KafkaMock < KafkaBase
   # @param topic [String] Kafka topic name to change
   # @param settings [Hash] Settings to change
   def  alter_topic(topic, settings)
-    @kafka.alter_topic(topic, settings)
+    @topic_attrs.merge!(settings)
   end
 
   # @return [Array] List of Kafka group names
   def groups
-    @kafka.groups
+    @groups.map{|g| g[:group_id]}
   end
 
   # Get the description of a Kafka group (consumer group)
   # @param group_id [Integer] Kafka group id
   # @return [Hash] Description of the Kafka group
   def describe_group(group_id)
-    @kafka.describe_group(group_id)
+    @groups.find{|g| g[:group_id] == group_id}
   end
 
 
@@ -204,5 +204,11 @@ class KafkaMock < KafkaBase
     else
       raise "Not existing group '#{group_id}'"
     end
+  end
+
+  # Validate the connection properties at startup
+  # @raise [Exception] if connection properties are invalid
+  def validate_connect_properties
+
   end
 end

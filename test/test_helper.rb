@@ -47,7 +47,7 @@ class ActiveSupport::TestCase
 
   setup do
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
-    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
+    GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
   end
 
   teardown do
@@ -405,6 +405,24 @@ class ActiveSupport::TestCase
     Rails.logger.debug('TestHelper.assert_activity_log') { "Max created_at in Activity_Logs is #{Database.select_one("SELECT Max(created_at) FROM Activity_Logs")}"}
     assert Database.select_one(sql, filter) > 0, log_on_failure("Previous operation should have created a record in Activity_Logs for #{filter}")
   end
+
+  # test for created log entry
+  # @param [String] expected_log_message
+  def assert_log_written(expected_log_message)
+    original_logger = Rails.logger
+    raise "assert_log_written should be called with a block" unless block_given?
+    # Create a log capturing object
+    logs = StringIO.new
+    Rails.logger = Logger.new(logs)
+
+    yield
+
+    # Check if the log record was written
+    assert_includes logs.string, expected_log_message, log_on_failure("Expected log message '#{expected_log_message}' not found in '#{logs.string}'")
+  ensure
+    Rails.logger = original_logger
+  end
+
 end
 
 class ActionDispatch::IntegrationTest
@@ -413,7 +431,7 @@ class ActionDispatch::IntegrationTest
   self.use_transactional_tests = false                                        # Like ActiveSupport::TestCase don't rollback transactions
   setup do
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
-    GlobalFixtures.initialize                                                   # Create fixtures only once for whole test, not once per particular test
+    GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
 
     # create JWT token for following tests
     @jwt_token                  = jwt_token peter_user.id
@@ -443,7 +461,7 @@ end
 class GlobalFixtures
 
   @@global_fixtures_initialized = false
-  def self.initialize
+  def self.initialize_testdata
     unless @@global_fixtures_initialized
       # Fixtures to load only once
       @@global_fixtures_initialized = true                                      # call only once at start of test suite
@@ -562,7 +580,8 @@ class GlobalFixtures
                               Rails.logger.debug('GlobalFixtures.initialize'){ "create_victim_connection: creating JDBCConnection" }
                               ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.new(db_config)
                             end
-
+      # Fixtures to load only once if successfully initialized
+      @@global_fixtures_initialized = true                                      # call only once at start of test suite
     end
   end
 
@@ -617,7 +636,7 @@ class GlobalFixtures
   # initialize again after global changes of IDs and content, e.g. from import
   def self.reinitialize
     @@global_fixtures_initialized = false
-    initialize
+    self.initialize_testdata
   end
 
 end

@@ -3,6 +3,15 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2023 Release 1.11.0
+- Alternative connection to Kafka available via Apache Client Library
+- The previously used connection via ruby-kafka is still available as primary type
+- Additional configuration parameters are added:
+  - KAFKA_CLIENT_LIBRARY: 'ruby' or 'java'<br>
+    Controls the used library for Kafka connection. Default is still 'ruby' but will be switched to 'java' in a coming relase. 
+  - KAFKA_SECURITY_PROTOCOL: PLAINTEXT, SASL_PLAINTEXT, SASL_SSL or SSL<br>
+    This setting becomes mandatory if KAFKA_CLIENT_LIBRARY is set to 'java'.
+
 ## 2023-08-21 Release 1.10.17
 - Bugfix: Ensure that increasing the high value of the oldest partition works also if there is not high value gap between first and second partition  
 

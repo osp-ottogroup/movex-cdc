@@ -44,3 +44,5 @@ build_version
 /vendor/bundle/jruby/3.1.0/
 /kafka.properties
 /test/oracle_autonomous/Wallet_panoramatest.zip
+/kafka.properties
+/movex-cdc.jar

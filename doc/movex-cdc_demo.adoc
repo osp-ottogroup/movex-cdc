@@ -100,7 +100,7 @@ DB_PASSWORD: $MOVEX_DB_PASSWORD
 # Database-URL for JDBC Connect: Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 DB_URL: $DB_URL
 
-# Comma separated list of seed brokers for Kafka logon, "/dev/null" for mocking Kafka connection
+# Comma separated list of seed brokers for Kafka logon
 KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 
 ################################

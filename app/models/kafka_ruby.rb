@@ -1,4 +1,5 @@
 # Implementation for Kafka producer functions using Ruby-Kafka gem
+
 class KafkaRuby < KafkaBase
   attr_reader :internal_kafka
   class Producer < KafkaBase::Producer
@@ -10,12 +11,12 @@ class KafkaRuby < KafkaBase
     def initialize(kafka, transactional_id:)
       super(kafka, transactional_id: transactional_id)
       @kafka_producer             = nil
-      @topic_infos                = {}                                          # Max message size produced so far per topic
       create_kafka_producer
     end
 
     def begin_transaction
       @kafka_producer&.begin_transaction
+      @topic_infos.clear                                                        # Clear topic_infos to get new max_produced_message_size
     end
 
     def commit_transaction
@@ -38,7 +39,7 @@ class KafkaRuby < KafkaBase
     # @param [Table] table Table object of the message
     # @param [String] key Key of the message
     # @param [Hash] headers Headers of the message
-    def produce(message:, table:, key:, headers:)
+    def produce(message:, table:, key: nil, headers: {})
       topic = table.topic_to_use
       # Store messages in local collection, Kafka::BufferOverflow exception is handled by divide&conquer
       @kafka_producer.produce(message, topic: topic, key: key, headers: headers)
@@ -51,7 +52,7 @@ class KafkaRuby < KafkaBase
     def deliver_messages
       @kafka_producer.deliver_messages
     rescue Kafka::MessageSizeTooLarge => e
-      Rails.logger.warn('KafkaRuby::Producer.deliver_Messages') { "#{e.class} #{e.message}: max_message_size = #{@max_message_size}, max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.warn('KafkaRuby::Producer.deliver_Messages') { "#{e.class} #{e.message}: max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       fix_message_size_too_large
       raise
     rescue Kafka::ConcurrentTransactionError => e
@@ -100,7 +101,7 @@ class KafkaRuby < KafkaBase
           init_transactions_successfull = true                                    # no exception raise
         rescue Exception => e
           @kafka_producer&.shutdown                                                # clear existing producer
-          ExceptionHelper.log_exception(e, 'TransferThread.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
+          ExceptionHelper.log_exception(e, 'KafkaRuby.create_kafka_producer', additional_msg: "Producer options = #{producer_options}\nRetry count = #{init_transactions_retry_count}")
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
@@ -120,18 +121,18 @@ class KafkaRuby < KafkaBase
     kafka_options = {
       client_id:                    config[:client_id],
       logger:                       Rails.logger,
-      ssl_ca_certs_from_system:     config[:ssl_ca_certs_from_system],
-      ssl_ca_cert_file_path:        config[:ssl_ca_cert_file_path],
-      ssl_client_cert_chain:        config[:ssl_client_cert_chain],
-      ssl_client_cert:              config[:ssl_client_cert],
-      ssl_client_cert_key:          config[:ssl_client_cert_key],
-      ssl_client_cert_key_password: config[:ssl_client_cert_key_password],
-      sasl_plain_username:          config[:sasl_plain_username],
-      sasl_plain_password:          config[:sasl_plain_password]
+      ssl_ca_certs_from_system:     MovexCdc::Application.config.kafka_ssl_ca_certs_from_system.is_a?(TrueClass) || MovexCdc::Application.config.kafka_ssl_ca_certs_from_system == 'TRUE',
+      ssl_ca_cert_file_path:        MovexCdc::Application.config.kafka_ssl_ca_cert            ? MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip} : nil, # split multiple files in list into Array
+      ssl_client_cert_chain:        MovexCdc::Application.config.kafka_ssl_client_cert_chain  ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain) : nil,
+      ssl_client_cert:              MovexCdc::Application.config.kafka_ssl_client_cert        ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert) : nil,
+      ssl_client_cert_key:          MovexCdc::Application.config.kafka_ssl_client_cert_key    ? File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key) : nil,
+      ssl_client_cert_key_password: MovexCdc::Application.config.kafka_ssl_key_password ,
+      sasl_plain_username:          MovexCdc::Application.config.kafka_sasl_plain_username,
+      sasl_plain_password:          MovexCdc::Application.config.kafka_sasl_plain_password
     }
 
     # **kafka_options instead of kafka_options needed for compatibility with jRuby 9.4.0.0, possibly due to a bug
-    @internal_kafka = Kafka.new(config[:seed_brokers], **kafka_options)                  # return instance of Kafka
+    @internal_kafka = Kafka.new(MovexCdc::Application.config.kafka_seed_broker, **kafka_options)                  # return instance of Kafka
     @producer = nil                                                             # KafkaRuby::Producer is not initialized until needed
   end
 
@@ -140,20 +141,6 @@ class KafkaRuby < KafkaBase
   # @return [Array] List of Kafka topic names
   def topics
     @internal_kafka.topics.sort
-  end
-
-  # @param topic [String] Kafka topic name to check for existence
-  # @return [Boolean] True if the topic exists
-  def has_topic?(topic)
-    # @kafka.has_topic?(topic)  # not used, because it creates the topic if it does not exist, so second call returns true
-    @internal_kafka.topics.include?(topic)
-  end
-
-  # @param topic [String] Kafka topic name to describe
-  # @param configs [Array] List of Kafka topic attributes to describe
-  # @return [Hash] Description of the Kafka topic
-  def describe_topic(topic, configs = [])
-    @internal_kafka.describe_topic(topic, configs)
   end
 
   # Describe a single Kafka topic attribute
@@ -199,6 +186,13 @@ class KafkaRuby < KafkaBase
     @internal_kafka.alter_topic(topic, settings)
   end
 
+  # Create a new Kafka topic
+  # @param topic [String] Kafka topic name to create
+  # @return [void]
+  def create_topic(topic)
+    @internal_kafka.create_topic(topic)
+  end
+
   # @return [Array] List of Kafka group names
   def groups
     @internal_kafka.groups
@@ -208,7 +202,8 @@ class KafkaRuby < KafkaBase
   # @param group_id [Integer] Kafka group id
   # @return [Hash] Description of the Kafka group
   def describe_group(group_id)
-    @internal_kafka.describe_group(group_id)
+    # Kafka::Protocol::DescribeGroupsResponse::Group can be transformed to JSON by to_json
+    JSON.parse(@internal_kafka.describe_group(group_id).to_json)
   end
 
   # Create instance of KafkaRuby::Producer
@@ -231,4 +226,11 @@ class KafkaRuby < KafkaBase
       @producer
     end
   end
+
+  # Validate the connection properties at startup
+  # @raise [Exception] if connection properties are invalid
+  def validate_connect_properties
+
+  end
+
 end

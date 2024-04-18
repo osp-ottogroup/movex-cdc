@@ -3,17 +3,23 @@
 # Peter Ramm, 2020-03-09
 
 # Usage:
-# Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.5.0 .
-# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.5.0
-# Use
+# Build image:      > docker build -f Dockerfile-kafka-compact -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0 .
+# Run container:    > docker run  -p 2181:2181 -p 9092:9092 -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
+# Start SSL authentiction:
+# > mkdir /tmp/kafka_ssl
+# > docker run  -p 2181:2181 -p 9092:9092 --name kafka -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093 -e SECURITY_PROTOCOL=SSL registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
+# > docker cp kafka:/opt/kafka_ssl/client.properties /tmp/kafka_ssl
+# > docker cp kafka:/opt/kafka_ssl/kafka.client.keystore.p12 /tmp/kafka_ssl
+# > docker cp kafka:/opt/kafka_ssl/kafka.client.truststore.jks /tmp/kafka_ssl
 
 
 # FROM openjdk:17-jdk-alpine
-FROM amazoncorretto:20-al2-jdk
+FROM eclipse-temurin:21
 
 MAINTAINER Peter.Ramm@ottogroup.com
 
-ARG KAFKA_VERSION=3.5.0
+# 3.5.0 has problems working with single node cluster
+ARG KAFKA_VERSION=3.7.0
 ARG SCALA_VERSION=2.13
 ENV KAFKA_VERSION=$KAFKA_VERSION
 ENV SCALA_VERSION=$SCALA_VERSION
@@ -21,30 +27,18 @@ ENV SCALA_VERSION=$SCALA_VERSION
 # generate unique id by default
 ENV BROKER_ID=-1
 ENV KAFKA_HOME=/opt/kafka
-ENV KAFKA_LISTENERS=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093
-ENV KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://localhost:9092,LISTENER_INT://localhost:9093
-ENV KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-ENV KAFKA_INTER_BROKER_LISTENER_NAME=LISTENER_INT
 EXPOSE 2181/tcp 9092/tcp
 
-RUN yum install -y wget tar gzip bash
+RUN apt install -y wget tar gzip bash
 
-RUN wget "https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
+RUN wget "https://archive.apache.org/dist/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 
 RUN ls -l /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz
 RUN cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
     ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} /opt/kafka && \
     sed -i 's|^log.dirs=.*$|log.dirs=/var/lib/kafka|' /opt/kafka/config/server.properties
 
-# Ensure container environment is used at container run time
-CMD echo "KAFKA_VERSION = $KAFKA_VERSION" && \
-    echo "SCALA_VERSION = $SCALA_VERSION" && \
-    sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" /opt/kafka/config/server.properties && \
-    echo "########################### local settings"                               >> /opt/kafka/config/server.properties && \
-    echo "listeners=$KAFKA_LISTENERS"                                               >> /opt/kafka/config/server.properties && \
-    echo "advertised.listeners=$KAFKA_ADVERTISED_LISTENERS"                         >> /opt/kafka/config/server.properties && \
-    echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"     >> /opt/kafka/config/server.properties && \
-    echo "inter.broker.listener.name=$KAFKA_INTER_BROKER_LISTENER_NAME"             >> /opt/kafka/config/server.properties && \
-    /opt/kafka/bin/zookeeper-server-start.sh -daemon /opt/kafka/config/zookeeper.properties && \
-    /opt/kafka/bin/kafka-server-start.sh /opt/kafka/config/server.properties
+COPY    start_kafka.sh /opt/
 
+# Ensure container environment is used at container run time
+CMD ["/opt/start_kafka.sh"]

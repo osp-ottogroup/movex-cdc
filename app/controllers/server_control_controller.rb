@@ -1,4 +1,5 @@
 require 'json'
+require 'java'
 class ServerControlController < ApplicationController
   @@restart_worker_threads_mutex = Mutex.new
 
@@ -17,6 +18,13 @@ class ServerControlController < ApplicationController
       Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       Rails.logger.level = "Logger::#{level}".constantize
       MovexCdc::Application.config.log_level = level.downcase.to_sym
+
+      # Set log level for log4j, ignore Exception if log4j is not available
+      begin
+        Java::OrgApacheLoggingLog4j::LogManager.getRootLogger.setLevel(eval("Java::OrgApacheLoggingLog4j::Level::#{level}"))
+      rescue Exception => e
+        Rails.logger.warn "ServerControl.set_log_level: log4j not available, ignoring setting log level for log4j. Exception: #{e.class}:#{e.message}"
+      end
     end
   end
 
