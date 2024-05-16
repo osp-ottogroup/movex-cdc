@@ -35,7 +35,7 @@ sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.proper
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
 echo "controller.listener.names=LISTENER_INT"                                                 >> $SERVER_PROPERTIES
 echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092"                                   >> $SERVER_PROPERTIES
-echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:PLAINTEXT"  >> $SERVER_PROPERTIES
+echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:$SECURITY_PROTOCOL" >> $SERVER_PROPERTIES
 echo "inter.broker.listener.name=LISTENER_EXT"                                                >> $SERVER_PROPERTIES
 
 echo "security.protocol=$SECURITY_PROTOCOL"                                                   >> $CLIENT_PROPERTIES
@@ -98,25 +98,13 @@ if [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" || "$SECURITY_PROTOCOL" == "SASL_
   echo "Configure SASL settings"
 
   cat << EOF > $JAAS_CONFIG
-  ZookeeperServer {
-      org.apache.kafka.common.security.plain.PlainLoginModule required
-      username="admin"
-      password="admin-secret"
-      user_admin="admin-secret"
-  };
-
-  KafkaServer {
-      org.apache.kafka.common.security.plain.PlainLoginModule required
-      username="admin"
-      password="admin-secret"
-      user_admin="admin-secret"
-  };
-
-  Client {
-      org.apache.kafka.common.security.plain.PlainLoginModule required
-      username="admin"
-      password="admin-secret";
-  };
+KafkaServer {
+  org.apache.kafka.common.security.plain.PlainLoginModule required
+  serviceName="kafka"
+  username="admin"
+  password="admin-secret"
+  user_admin="admin-secret";
+};
 EOF
 
   export KAFKA_OPTS="-Djava.security.auth.login.config=$JAAS_CONFIG"
@@ -124,10 +112,15 @@ EOF
   echo "sasl.enabled.mechanisms=PLAIN"                                                >> $SERVER_PROPERTIES
   echo "sasl.mechanism.controller.protocol=PLAIN"                                     >> $SERVER_PROPERTIES
   echo "sasl.mechanism.inter.broker.protocol=PLAIN"                                   >> $SERVER_PROPERTIES
-  echo "sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required username=\"admin\" password=\"admin-secret\" user_admin=\"admin-secret\";" >> $CLIENT_PROPERTIES
+  echo "super.users=User:admin"                                                       >> $SERVER_PROPERTIES
+  # allow ACL config for super users
+  echo "authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer" >> $SERVER_PROPERTIES
+
+  echo "sasl.mechanism=PLAIN"                                                         >> $CLIENT_PROPERTIES
+  echo "sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required serviceName=\"kafka\" username=\"admin\" password=\"admin-secret\";" >> $CLIENT_PROPERTIES
 fi
 
-echo "Starting Zookeeper"
+# echo "Starting Zookeeper"
 # $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
 
 echo "Generate Cluster ID for Kafka"
@@ -156,8 +149,8 @@ do
 
     if [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" || "$SECURITY_PROTOCOL" == "SASL_SSL" ]]; then
       echo "Create ACLs for topics"
-      $KAFKA_HOME/bin/kafka-acls.sh — bootstrap-server $KAFKA_HOST:9092 — command-config $CLIENT_PROPERTIES — add — allow-principal User:admin — operation All — topic TestTopic1
-      $KAFKA_HOME/bin/kafka-acls.sh — bootstrap-server $KAFKA_HOST:9092 — command-config $CLIENT_PROPERTIES — add — allow-principal User:admin — operation All — topic TestTopic2
+      $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server $KAFKA_HOST:9092 --command-config $CLIENT_PROPERTIES --add --allow-principal User:admin --operation All --topic TestTopic1
+      $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server $KAFKA_HOST:9092 --command-config $CLIENT_PROPERTIES --add --allow-principal User:admin --operation All --topic TestTopic2
     fi
 
     echo "Waiting for Kafka to create groups now"
@@ -188,9 +181,9 @@ do
   if [ $LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
     echo ""
     echo "Kafka not in operation after $WAIT_FOR_KAFKA_SECS seconds, terminating"
-    echo ""
-    echo "############# Zookeeper log ##############"
-    cat $KAFKA_HOME/logs/zookeeper.out
+    # echo ""
+    # echo "############# Zookeeper log ##############"
+    # cat $KAFKA_HOME/logs/zookeeper.out
     echo ""
     echo "############# Kafka log ##############"
     cat $KAFKA_HOME/logs/kafkaServer.out
