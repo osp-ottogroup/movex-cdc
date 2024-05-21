@@ -24,7 +24,7 @@ module ExceptionHelper
     Rails.logger.error(context){ "Exception: #{exception.class}: #{exception.message}" }
     Rails.logger.error(context){ explain_exception(exception) } unless explain_exception(exception).nil?
     unless additional_msg.nil?
-      additional_msg.split.each do |line|
+      additional_msg.split("\n").each do |line|
         Rails.logger.error(context){ line }
       end
     end
@@ -97,7 +97,7 @@ module ExceptionHelper
     hash.each do |key, value|
       if value.is_a?(Hash)
         retval[key] = mask_passwords_in_hash(value)
-      elsif key.to_s.include?('password')
+      elsif key.to_s.include?('password') || value.to_s.include?('password')
         retval[key] = '*' * value.length rescue '***'
       else
         retval[key] = value

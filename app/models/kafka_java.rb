@@ -136,7 +136,7 @@ class KafkaJava < KafkaBase
           init_transactions_successfull = true                                    # no exception raise
         rescue Exception => e
           @kafka_producer&.close                                                # clear existing producer
-          ExceptionHelper.log_exception(e, 'KafkaJava.create_kafka_producer', additional_msg: "Producer properties = #{producer_properties.to_h}\nRetry count = #{init_transactions_retry_count}")
+          ExceptionHelper.log_exception(e, 'KafkaJava.create_kafka_producer', additional_msg: "Producer properties = #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}\nRetry count = #{init_transactions_retry_count}")
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
@@ -371,6 +371,20 @@ class KafkaJava < KafkaBase
     file_props[:'security.protocol'] || MovexCdc::Application.config.kafka_security_protocol || 'PLAINTEXT'
   end
 
+  # Get the set value or default for the truststore type
+  # @param file_props [Hash] Properties read from the properties file
+  # @return [String] truststore type to use for Kafka SSL connection
+  def define_ssl_truststore_type(file_props)
+    if file_props[:'ssl.truststore.type']                                       # Use the value from the properties file first if defined
+      file_props[:'ssl.truststore.type']
+    elsif MovexCdc::Application.config.kafka_ssl_truststore_type
+      MovexCdc::Application.config.kafka_ssl_truststore_type
+    else
+      'JKS'
+    end
+  end
+
+
   # Validate the connection properties at startup to raise the exception before worker threads are started
   # @raise [Exception] if connection properties are invalid
   def validate_connect_properties
@@ -390,6 +404,7 @@ class KafkaJava < KafkaBase
 
     properties = read_java_properties                                           # read the properties from the config file if defined
     security_protocol = define_security_protocol(properties)
+    ssl_trustore_type = define_ssl_truststore_type(properties)
     raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL." unless ['PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'].include?(security_protocol)
 
     # @type [Proc] Check a particular property for validity
@@ -401,11 +416,12 @@ class KafkaJava < KafkaBase
         raise "Conflicting settings for #{rails_config_name} (#{MovexCdc::Application.config.send(rails_config_name)}) and '#{file_property_name}' in KAFKA_PROPERTIES_FILE (#{properties[file_property_name]}). Property should be defined at one location only."
       end
       # Check not needed
+      truststore_type_msg = " and truststore type = #{ssl_truststore_type}" if ['SSL', 'SASL_SSL'].include?(security_protocol)
       if (MovexCdc::Application.config.send(rails_config_name) || properties[file_property_name]) && notneeded_properties[security_protocol].include?(file_property_name.to_s)
         msg = if MovexCdc::Application.config.send(rails_config_name)
-          "Unnecessary configuration value for #{rails_config_name.upcase} if security protocol = #{security_protocol}. Please remove this configuration attribute."
+          "Unnecessary configuration value for #{rails_config_name.upcase} if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
         else
-          "Unnecessary configuration value for '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}. Please remove this configuration attribute."
+          "Unnecessary configuration value for '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
         end
         puts msg
         Rails.logger.warn msg
@@ -413,7 +429,7 @@ class KafkaJava < KafkaBase
 
       # Check required
       if MovexCdc::Application.config.send(rails_config_name).nil? && properties[file_property_name].nil?  && required_properties[security_protocol].include?(file_property_name.to_s)
-        msg = "Missing required configuration value for #{rails_config_name.upcase} or '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}."
+        msg = "Missing required configuration value for #{rails_config_name.upcase} or '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}#{truststore_type_msg}."
         puts msg
         Rails.logger.warn msg
       end
@@ -428,7 +444,7 @@ class KafkaJava < KafkaBase
 
     # Check for SSL encryption properties
     if ['SASL_SSL', 'SSL'].include?(security_protocol)
-      if MovexCdc::Application.config.kafka_ssl_truststore_type == 'PEM' || properties[:'ssl.truststore.type'] == 'PEM'
+      if ssl_trustore_type == 'PEM'
         required_properties[security_protocol] << 'ssl.truststore.certificates' unless MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
         notneeded_properties[security_protocol] << 'ssl_truststore_location'
         notneeded_properties[security_protocol] << 'ssl_truststore_password'
@@ -516,20 +532,20 @@ class KafkaJava < KafkaBase
   # @param [Hash] file_props properties read from properties file
   # @return [void]
   def set_ssl_encryption_properties(properties, file_props)
-    if MovexCdc::Application.config.kafka_ssl_truststore_type == 'PEM' || properties[:'ssl.truststore.type'] == 'PEM'
-      properties['ssl.truststore.type'] = MovexCdc::Application.config.kafka_ssl_truststore_type unless file_props[:'ssl.truststore.type']
+    properties['ssl.truststore.type'] = define_ssl_truststore_type(file_props)
 
+    if properties['ssl.truststore.type'] == 'PEM'
       if MovexCdc::Application.config.kafka_ssl_ca_cert
         certs = ''
         MovexCdc::Application.config.kafka_ssl_ca_cert.split(',').map{|s| s.strip}.each do |cert|
           certs << File.read(cert)
           certs << "\n"
         end
-        properties['ssl.truststore.certificates'] = certs;
+        properties['ssl.truststore.certificates'] = certs
       end
-    else # JKS
-      properties['ssl.truststore.location'] = MovexCdc::Application.config.kafka_ssl_truststore_location unless file_props[:'ssl.truststore.location']
-      properties['ssl.truststore.password'] = MovexCdc::Application.config.kafka_ssl_truststore_password unless file_props[:'ssl.truststore.password']
+    else # JKS or others
+      properties['ssl.truststore.location'] = MovexCdc::Application.config.kafka_ssl_truststore_location if !file_props[:'ssl.truststore.location'] && MovexCdc::Application.config.kafka_ssl_truststore_location
+      properties['ssl.truststore.password'] = MovexCdc::Application.config.kafka_ssl_truststore_password if !file_props[:'ssl.truststore.password'] && MovexCdc::Application.config.kafka_ssl_truststore_password
     end
   end
 

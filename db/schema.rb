@@ -17,10 +17,10 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.string "schema_name", limit: 256, comment: "Name of schema"
     t.string "table_name", limit: 256, comment: "Name of table"
     t.string "column_name", limit: 256, comment: "Name of column"
-    t.text "action", null: false, comment: "Executed action / activity"
     t.string "client_ip", limit: 40, comment: "Client IP address for request"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.text "action"
     t.index ["schema_name", "table_name", "column_name"], name: "ix_activity_log_tabcol"
     t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
