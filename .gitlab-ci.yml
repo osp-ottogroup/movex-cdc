@@ -395,8 +395,7 @@ docker_test_19.10_SSL:
     SECURITY_PROTOCOL: SSL
 
 docker_test_19.10_SASL_PLAINTEXT:
-  # stage: post_build
-  stage: code_analysis
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
@@ -411,8 +410,7 @@ docker_test_19.10_SASL_PLAINTEXT:
     SECURITY_PROTOCOL: SASL_PLAINTEXT
 
 docker_test_19.10_SASL_SSL:
-  # stage: post_build
-  stage: code_analysis
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
