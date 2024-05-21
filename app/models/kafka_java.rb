@@ -404,7 +404,7 @@ class KafkaJava < KafkaBase
 
     properties = read_java_properties                                           # read the properties from the config file if defined
     security_protocol = define_security_protocol(properties)
-    ssl_trustore_type = define_ssl_truststore_type(properties)
+    ssl_truststore_type = define_ssl_truststore_type(properties)
     raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL." unless ['PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'].include?(security_protocol)
 
     # @type [Proc] Check a particular property for validity
@@ -444,7 +444,7 @@ class KafkaJava < KafkaBase
 
     # Check for SSL encryption properties
     if ['SASL_SSL', 'SSL'].include?(security_protocol)
-      if ssl_trustore_type == 'PEM'
+      if ssl_truststore_type == 'PEM'
         required_properties[security_protocol] << 'ssl.truststore.certificates' unless MovexCdc::Application.config.kafka_ssl_ca_certs_from_system
         notneeded_properties[security_protocol] << 'ssl_truststore_location'
         notneeded_properties[security_protocol] << 'ssl_truststore_password'
