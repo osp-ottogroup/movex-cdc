@@ -136,7 +136,7 @@ class KafkaJava < KafkaBase
           init_transactions_successfull = true                                    # no exception raise
         rescue Exception => e
           @kafka_producer&.close                                                # clear existing producer
-          ExceptionHelper.log_exception(e, 'KafkaJava.create_kafka_producer', additional_msg: "Producer properties = #{producer_properties}\nRetry count = #{init_transactions_retry_count}")
+          ExceptionHelper.log_exception(e, 'KafkaJava.create_kafka_producer', additional_msg: "Producer properties = #{producer_properties.to_h}\nRetry count = #{init_transactions_retry_count}")
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1

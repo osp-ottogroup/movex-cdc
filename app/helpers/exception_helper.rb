@@ -1,11 +1,16 @@
 require 'java'
 
 module ExceptionHelper
+
+  # Get the stack trace of an exception
+  # @param exception [Exception] The exception object
+  # @param line_number_limit [Integer] Limit the number of lines in the stack trace
+  # @return [Array] The stack trace lines of the exception
   def self.exception_backtrace(exception, line_number_limit=nil)
-    result = "Stack-Trace for exception '#{exception.class} #{exception.message}' is:\n"
+    result = ["Stack-Trace for exception '#{exception.class} #{exception.message}' is:"]
     curr_line_no=0
     exception.backtrace.each do |bt|
-      result << "#{bt}\n" if line_number_limit.nil? || curr_line_no < line_number_limit # report First x lines of stacktrace in log
+      result << bt if line_number_limit.nil? || curr_line_no < line_number_limit # report First x lines of stacktrace in log
       curr_line_no += 1
     end
     result
@@ -16,30 +21,20 @@ module ExceptionHelper
   # @param context        The class and method name where the exception occured
   # @param additional_msg Additional text to log in subseauent lines
   def self.log_exception(exception, context, additional_msg: nil)
-    following_lines = ''
-    following_lines << explain_exception(exception) unless explain_exception(exception).nil?
-    following_lines << "\n" unless following_lines == ''
-    following_lines << "#{additional_msg}\n" unless additional_msg.nil?
-    if Rails.logger.level == 0 # DEBUG
-      mem_info = memory_info_string
-      following_lines << "#{mem_info}\n" if mem_info && mem_info != ''
-      following_lines << exception_backtrace(exception)
-    else
-      following_lines << "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
+    Rails.logger.error(context){ "Exception: #{exception.class}: #{exception.message}" }
+    Rails.logger.error(context){ explain_exception(exception) } unless explain_exception(exception).nil?
+    unless additional_msg.nil?
+      additional_msg.split.each do |line|
+        Rails.logger.error(context){ line }
+      end
     end
-    following_lines << "\n" unless following_lines == ''
-
-    Rails.logger.error(context){ "Exception: #{exception.class}: #{exception.message}#{"\n" unless following_lines == ''}#{following_lines}" }
-    #explanation = explain_exception(exception)
-    #Rails.logger.error explanation if explanation
-    #Rails.logger.error "Context: #{context}"
-    #if Rails.logger.level == 0 # DEBUG
-    #  mem_info = memory_info_string
-    #  Rails.logger.error "#{mem_info}\n" if mem_info && mem_info != ''
-    #  log_exception_backtrace(exception)
-    #else
-    #  Rails.logger.error "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!"
-    #end
+    memory_info_array.each do |line|
+      Rails.logger.error(context){ line }
+    end
+    exception_backtrace(exception).each do |line|
+      Rails.logger.debug(context){ line }
+    end
+    Rails.logger.error(context){ "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!" } if Rails.logger.level != 0 # DEBUG
   end
 
   def self.warn_with_backtrace(context, message)
@@ -53,10 +48,12 @@ module ExceptionHelper
     end
   end
 
-  def self.memory_info_string
-    output = ''
+  # Get memory info as array
+  # @return [Array] Memory info as array
+  def self.memory_info_array
+    output = []
     memory_info_hash.each do |key, value|
-      output << "#{value[:name]} = #{value[:value]}, " unless value.nil?
+      output << "#{value[:name]} = #{value[:value]}" unless value.nil?
     end
     output
   end
