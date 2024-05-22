@@ -19,26 +19,31 @@ export CLIENT_TRUSTSTOREFILE=/opt/kafka/kafka.client.truststore.jks
 export SERVER_TRUSTSTOREFILE=/opt/kafka/kafka.server.truststore.jks
 export CLIENT_PROPERTIES=/opt/kafka/client.properties
 export SERVER_PROPERTIES=/opt/kafka/my_server.properties
+export JAAS_CONFIG=/opt/kafka/jaas.conf
 
 export KAFKA_HOST=$HOSTNAME
 export KAFKA_HOST_IP=`ping -c 1 $KAFKA_HOST | awk -F'[()]' '/PING/{print $2}'`
 echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = '$KAFKA_HOST' with IP $KAFKA_HOST_IP"
 echo "Prepare configuration"
 # Create a new server.properties file
-cp -f $KAFKA_HOME/config/server.properties $SERVER_PROPERTIES
+cp -f $KAFKA_HOME/config/kraft/server.properties $SERVER_PROPERTIES
 # Create a new client.properties file
 rm -f $CLIENT_PROPERTIES
 touch $CLIENT_PROPERTIES
 
 sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.properties
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
-echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092,LISTENER_INT://$KAFKA_HOST:9093"       >> $SERVER_PROPERTIES
-echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:PLAINTEXT"  >> $SERVER_PROPERTIES
-echo "inter.broker.listener.name=LISTENER_INT"                                                >> $SERVER_PROPERTIES
+echo "controller.listener.names=LISTENER_INT"                                                 >> $SERVER_PROPERTIES
+echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092"                                   >> $SERVER_PROPERTIES
+echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:$SECURITY_PROTOCOL" >> $SERVER_PROPERTIES
+echo "inter.broker.listener.name=LISTENER_EXT"                                                >> $SERVER_PROPERTIES
 
-if [ "$SECURITY_PROTOCOL" == "PLAINTEXT" ]; then
+echo "security.protocol=$SECURITY_PROTOCOL"                                                   >> $CLIENT_PROPERTIES
+
+if [[ "$SECURITY_PROTOCOL" == "PLAINTEXT" ]]; then
   echo "Nothing to do for PLAINTEXT"
-elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
+elif [[ "$SECURITY_PROTOCOL" == "SSL" || "$SECURITY_PROTOCOL" == "SASL_SSL" ]]; then
+  echo "Configure SSL settings"
   # remove old ssl files if they exist
   rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_TRUSTSTOREFILE
   # Generate keystore with certificate
@@ -77,25 +82,58 @@ elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
   echo "ssl.client.auth=required"                                                 >> $SERVER_PROPERTIES
 
   echo "Build client properties"
-  echo "security.protocol=SSL"                                                     >> $CLIENT_PROPERTIES
   echo "ssl.truststore.location=$CLIENT_TRUSTSTOREFILE"                            >> $CLIENT_PROPERTIES
   echo "ssl.truststore.password=hugo01"                                            >> $CLIENT_PROPERTIES
   echo "ssl.keystore.location=$CLIENT_KEYSTOREFILE"                                >> $CLIENT_PROPERTIES
   echo "ssl.keystore.password=hugo01"                                              >> $CLIENT_PROPERTIES
   echo "ssl.key.password=hugo01"                                                   >> $CLIENT_PROPERTIES
+elif [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" ]]; then
+  true
 else
   echo "Unsupported SECURITY_PROTOCOL = $SECURITY_PROTOCOL"
   exit 1
 fi
 
-echo "Starting Zookeeper"
-$KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
+if [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" || "$SECURITY_PROTOCOL" == "SASL_SSL" ]]; then
+  echo "Configure SASL settings"
+
+  cat << EOF > $JAAS_CONFIG
+KafkaServer {
+  org.apache.kafka.common.security.plain.PlainLoginModule required
+  serviceName="kafka"
+  username="admin"
+  password="admin-secret"
+  user_admin="admin-secret";
+};
+EOF
+
+  export KAFKA_OPTS="-Djava.security.auth.login.config=$JAAS_CONFIG"
+
+  echo "sasl.enabled.mechanisms=PLAIN"                                                >> $SERVER_PROPERTIES
+  echo "sasl.mechanism.controller.protocol=PLAIN"                                     >> $SERVER_PROPERTIES
+  echo "sasl.mechanism.inter.broker.protocol=PLAIN"                                   >> $SERVER_PROPERTIES
+  echo "super.users=User:admin"                                                       >> $SERVER_PROPERTIES
+  # allow ACL config for super users
+  echo "authorizer.class.name=org.apache.kafka.metadata.authorizer.StandardAuthorizer" >> $SERVER_PROPERTIES
+
+  echo "sasl.mechanism=PLAIN"                                                         >> $CLIENT_PROPERTIES
+  echo "sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required serviceName=\"kafka\" username=\"admin\" password=\"admin-secret\";" >> $CLIENT_PROPERTIES
+fi
+
+# echo "Starting Zookeeper"
+# $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
+
+echo "Generate Cluster ID for Kafka"
+KAFKA_CLUSTER_ID="$($KAFKA_HOME/bin/kafka-storage.sh random-uuid)"
+
+echo "Format Kafka"
+$KAFKA_HOME/bin/kafka-storage.sh format -t $KAFKA_CLUSTER_ID -c $SERVER_PROPERTIES
 
 echo "Starting Kafka"
 $KAFKA_HOME/bin/kafka-server-start.sh     -daemon $SERVER_PROPERTIES
 
 typeset -i LOOP_COUNT=0
-KAFKA_STARTED="started (kafka.server.KafkaServer)"
+KAFKA_STARTED="Kafka Server started (kafka.server.KafkaRaftServer)"
 echo "Wait for Kafka operation"
 while [ 1 -eq 1 ]
 do
@@ -106,10 +144,17 @@ do
     echo "KAFKA_VERSION = $KAFKA_VERSION"
     echo "SCALA_VERSION = $SCALA_VERSION"
     echo "Creating topics and consumer groups"
-    echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
     $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic1 --partitions 4 --bootstrap-server $KAFKA_HOST:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
     $KAFKA_HOME/bin/kafka-topics.sh --create --topic TestTopic2 --partitions 8 --bootstrap-server $KAFKA_HOST:9092 --replication-factor 1 --command-config $CLIENT_PROPERTIES
+
+    if [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" || "$SECURITY_PROTOCOL" == "SASL_SSL" ]]; then
+      echo "Create ACLs for topics"
+      $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server $KAFKA_HOST:9092 --command-config $CLIENT_PROPERTIES --add --allow-principal User:admin --operation All --topic TestTopic1
+      $KAFKA_HOME/bin/kafka-acls.sh --bootstrap-server $KAFKA_HOST:9092 --command-config $CLIENT_PROPERTIES --add --allow-principal User:admin --operation All --topic TestTopic2
+    fi
+
     echo "Waiting for Kafka to create groups now"
+    echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
     $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
     typeset -i GROUP_LOOP_COUNT=0
@@ -136,9 +181,9 @@ do
   if [ $LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
     echo ""
     echo "Kafka not in operation after $WAIT_FOR_KAFKA_SECS seconds, terminating"
-    echo ""
-    echo "############# Zookeeper log ##############"
-    cat $KAFKA_HOME/logs/zookeeper.out
+    # echo ""
+    # echo "############# Zookeeper log ##############"
+    # cat $KAFKA_HOME/logs/zookeeper.out
     echo ""
     echo "############# Kafka log ##############"
     cat $KAFKA_HOME/logs/kafkaServer.out
