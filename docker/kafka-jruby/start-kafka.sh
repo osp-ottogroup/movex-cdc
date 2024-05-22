@@ -12,7 +12,7 @@ fi
 
 export KAFKA_HOME=/opt/kafka
 export BROKER_ID=-1
-export WAIT_FOR_KAFKA_SECS=10
+export WAIT_FOR_KAFKA_SECS=60
 export CLIENT_KEYSTOREFILE=/opt/kafka/kafka.client.keystore.p12
 export SERVER_KEYSTOREFILE=/opt/kafka/kafka.server.keystore.p12
 export CLIENT_TRUSTSTOREFILE=/opt/kafka/kafka.client.truststore.jks
