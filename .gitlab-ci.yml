@@ -372,6 +372,7 @@ trivy_scan:
       fi
     - echo "Starting integration tests"
     - echo "$RUN_CONFIG"
+    - cat $RUN_CONFIG
     - bundle exec rake test:run_integration_test RUN_CONFIG=$RUN_CONFIG
   after_script:
     - |
@@ -387,7 +388,8 @@ trivy_scan:
     expire_in: 1 month
 
 docker_test_12.1_PLAINTEXT:
-  stage: post_build
+  stage: code_analysis
+  # stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
