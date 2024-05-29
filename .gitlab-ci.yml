@@ -53,6 +53,7 @@ prepare_tests:
     when: always
     paths:
       - vendor/bundle
+      - .bundle
     expire_in: 1 month
 
 .tests:
