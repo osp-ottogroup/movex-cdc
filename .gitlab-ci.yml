@@ -40,6 +40,21 @@ test_frontend:
     - npm install -g @vue/cli
     - cd frontend && npm ci && npm run test:unit
 
+prepare_tests:
+  stage: code_analysis
+  script:
+    - date
+    - gem install --no-doc bundler
+    - bundle config set deployment 'true'
+    # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
+    - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
+    - bundle install --jobs 4
+  artifacts:
+    when: always
+    paths:
+      - vendor/bundle
+    expire_in: 1 month
+
 .tests:
   variables:
     RAILS_ENV: "test"
@@ -52,11 +67,11 @@ test_frontend:
     - /opt/start-kafka.sh
     - date
     - java -version
-    - gem install --no-doc bundler
-    - bundle config set deployment 'true'
+    # - gem install --no-doc bundler
+    # - bundle config set deployment 'true'
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
-    - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
-    - bundle install --jobs 4
+    # - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
+    # - bundle install --jobs 4
     - >
       if [ "$CI_JOB_NAME" == "test_oracle_autonomous" ]; then
         (
