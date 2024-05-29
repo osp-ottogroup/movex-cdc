@@ -388,17 +388,12 @@ trivy_scan:
     expire_in: 1 month
 
 docker_test_12.1_PLAINTEXT:
-  stage: code_analysis
-  # stage: post_build
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
   variables:
-    DB_TYPE: ORACLE
-    DB_USER: movex-cdc
-    DB_PASSWORD: movex-cdc
-    DB_URL: "oracle-db:1521/ORCLPDB1"
     SECURITY_PROTOCOL: PLAINTEXT
 
 docker_test_19.10_SSL:
@@ -408,10 +403,6 @@ docker_test_19.10_SSL:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    DB_TYPE: ORACLE
-    DB_USER: movex-cdc
-    DB_PASSWORD: movex-cdc
-    DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
@@ -423,10 +414,6 @@ docker_test_19.10_SASL_PLAINTEXT:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    DB_TYPE: ORACLE
-    DB_USER: movex-cdc
-    DB_PASSWORD: movex-cdc
-    DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_PLAINTEXT
@@ -438,10 +425,6 @@ docker_test_19.10_SASL_SSL:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    DB_TYPE: ORACLE
-    DB_USER: movex-cdc
-    DB_PASSWORD: movex-cdc
-    DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
