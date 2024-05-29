@@ -370,7 +370,7 @@ trivy_scan:
         false
       fi
     - echo "Starting integration tests"
-    - rake test:run_integration_test
+    - bundle exec rake test:run_integration_test
   after_script:
     - |
       $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
