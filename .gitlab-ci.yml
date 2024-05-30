@@ -374,7 +374,7 @@ trivy_scan:
     - echo "$RUN_CONFIG"
     - cat $RUN_CONFIG
     - env
-    - bundle exec rake test:run_integration_test RUN_CONFIG=$RUN_CONFIG
+    - bundle exec rake test:run_integration_test RAILS_ENV=development
   after_script:
     - |
       $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
