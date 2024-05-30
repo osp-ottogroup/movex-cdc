@@ -373,7 +373,6 @@ trivy_scan:
     - echo "Starting integration tests"
     - echo "$RUN_CONFIG"
     - cat $RUN_CONFIG
-    - env
     - bundle exec rake test:run_integration_test RAILS_ENV=development
   after_script:
     - |
@@ -397,8 +396,6 @@ docker_test_12.1_PLAINTEXT:
   variables:
     SECURITY_PROTOCOL: PLAINTEXT
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    DB_USER: MOVEX
-    DB_PASSWORD: MOVEX
 
 docker_test_19.10_SSL:
   stage: post_build
@@ -411,8 +408,6 @@ docker_test_19.10_SSL:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    DB_USER: MOVEX
-    DB_PASSWORD: MOVEX
 
 docker_test_19.10_SASL_PLAINTEXT:
   stage: post_build
@@ -425,8 +420,6 @@ docker_test_19.10_SASL_PLAINTEXT:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_PLAINTEXT
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    DB_USER: MOVEX
-    DB_PASSWORD: MOVEX
 
 docker_test_19.10_SASL_SSL:
   stage: post_build
@@ -439,8 +432,6 @@ docker_test_19.10_SASL_SSL:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    DB_USER: MOVEX
-    DB_PASSWORD: MOVEX
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:
