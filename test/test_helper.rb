@@ -48,23 +48,18 @@ class ActiveSupport::TestCase
   setup do
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
     GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
+    @test_start_time = Time.now
+    Rails.logger.info('ActiveSupport::TestCase.setup') { "#{@test_start_time} : start of test #{self.class}.#{self.name}" } # set timestamp in test.logs
   end
 
   teardown do
     ThreadHandling.get_instance.shutdown_processing if ThreadHandling.has_instance?
     StatisticCounterConcentrator.remove_instance                                # Ensure next test starts with fresh instance
+    @test_end_time = Time.now
+    Rails.logger.info('ActiveSupport::TestCase.teardown') { "#{@test_end_time} : end of test #{self.class}.#{self.name}" } # set timestamp in test.logs
+    Rails.logger.info('ActiveSupport::TestCase.teardown') { "#{(@test_end_time-@test_start_time).round(2)} seconds for test #{self.class}.#{self.name}" } # set timestamp in test.logs
+    Rails.logger.info('ActiveSupport::TestCase.teardown') { '' }
   end
-
-=begin
-  def logoff_victim_connection(connection)
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then connection.logoff
-    when 'SQLITE' then                                                          # SQLite uses default AR connection
-    else
-      raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
-    end
-  end
-=end
 
   # Execute block with valid current user
   def run_with_current_user
