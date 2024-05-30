@@ -17,10 +17,10 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.string "schema_name", limit: 256, comment: "Name of schema"
     t.string "table_name", limit: 256, comment: "Name of table"
     t.string "column_name", limit: 256, comment: "Name of column"
+    t.text "action", null: false, comment: "Executed action / activity"
     t.string "client_ip", limit: 40, comment: "Client IP address for request"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
-    t.text "action"
     t.index ["schema_name", "table_name", "column_name"], name: "ix_activity_log_tabcol"
     t.index ["user_id"], name: "index_activity_logs_on_user_id"
   end
@@ -50,6 +50,26 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.index ["table_id"], name: "index_conditions_on_table_id"
   end
 
+  create_table "detail", id: :decimal, default: "0.0", force: :cascade do |t|
+    t.decimal "master_id"
+    t.decimal "value"
+    t.index ["value", "master_id"], name: "ix_detail_value"
+  end
+
+  create_table "encryption_key_versions", comment: "Encryption key versions with values", force: :cascade do |t|
+    t.integer "encryption_key_id", precision: 38, null: false, comment: "Reference to encryption key"
+    t.integer "version_no", precision: 38, null: false, comment: "Version number of encryption key. The key with Start_time < now and the highest version number is the active key"
+    t.datetime "start_time", precision: 6, null: false, comment: "Start time of key version to be used. Must be equal or higher than the start time of the previous version"
+    t.text "encryption_key_base64", null: false, comment: "The encryption key as base64 encoded string"
+    t.index ["encryption_key_id", "version_no"], name: "ix_encr_key_versions_unique", unique: true
+    t.index ["encryption_key_id"], name: "index_encryption_key_versions_on_encryption_key_id"
+  end
+
+  create_table "encryption_keys", comment: "Encryption key name for assignment from schemas and tables", force: :cascade do |t|
+    t.string "name", limit: 200, null: false, comment: "Name of encryption key as unique reference"
+    t.index ["name"], name: "ix_encryption_keys_name_unique", unique: true
+  end
+
   create_table "event_log_final_errors", id: false, force: :cascade do |t|
     t.integer "id", limit: 18, precision: 18, null: false
     t.integer "table_id", limit: 18, precision: 18, null: false
@@ -76,6 +96,11 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
   end
 
+  create_table "master", id: :decimal, force: :cascade do |t|
+    t.decimal "company_id"
+    t.index ["id", "company_id"], name: "id_master_id_company_id"
+  end
+
   create_table "schema_rights", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
     t.integer "schema_id", precision: 38, null: false, comment: "Reference to schema"
@@ -96,6 +121,8 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.integer "lock_version", precision: 38, default: 0, null: false, comment: "Version for optimistic locking"
     t.datetime "created_at", precision: 6, null: false
     t.datetime "updated_at", precision: 6, null: false
+    t.integer "encryption_key_id", precision: 38
+    t.index ["encryption_key_id"], name: "index_schemas_on_encryption_key_id"
     t.index ["name"], name: "ix_schemas_name", unique: true
   end
 
@@ -129,6 +156,8 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
     t.string "initialization_order_by", limit: 4000, comment: "Optionally sort current content of table before transferred to Kafka as insert events at next trigger generation"
     t.string "yn_initialize_with_flashback", limit: 1, default: "Y", null: false, comment: "Should flashback query used to init only records before create trigger SCN"
     t.string "yn_add_cloudevents_header", limit: 1, default: "N", null: false, comment: "Should Kafka message headers be added according to CloudEvents standard"
+    t.integer "encryption_key_id", precision: 38
+    t.index ["encryption_key_id"], name: "index_tables_on_encryption_key_id"
     t.index ["schema_id", "name"], name: "ix_tables_schema_name", unique: true
     t.index ["schema_id"], name: "index_tables_on_schema_id"
   end
@@ -152,7 +181,10 @@ ActiveRecord::Schema.define(version: 2022_11_03_000000) do
   add_foreign_key "activity_logs", "users", name: "fk_activity_logs_users"
   add_foreign_key "columns", "tables", name: "fk_columns_tables"
   add_foreign_key "conditions", "tables", name: "fk_conditions_tables"
+  add_foreign_key "detail", "master", name: "sys_c009732"
   add_foreign_key "schema_rights", "schemas", name: "fk_schema_rights_schema", on_delete: :cascade
   add_foreign_key "schema_rights", "users", name: "fk_schema_rights_users", on_delete: :cascade
+  add_foreign_key "schemas", "encryption_keys"
+  add_foreign_key "tables", "encryption_keys"
   add_foreign_key "tables", "schemas", name: "fk_tables_schema"
 end
