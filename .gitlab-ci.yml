@@ -395,6 +395,7 @@ docker_test_12.1_PLAINTEXT:
       alias: oracle-db
   variables:
     SECURITY_PROTOCOL: PLAINTEXT
+    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 docker_test_19.10_SSL:
   stage: post_build
@@ -406,6 +407,7 @@ docker_test_19.10_SSL:
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
+    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 docker_test_19.10_SASL_PLAINTEXT:
   stage: post_build
@@ -417,6 +419,7 @@ docker_test_19.10_SASL_PLAINTEXT:
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_PLAINTEXT
+    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 docker_test_19.10_SASL_SSL:
   stage: post_build
@@ -428,6 +431,7 @@ docker_test_19.10_SASL_SSL:
     KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
+    DB_URL: "oracle-db:1521/ORCLPDB1"
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:
