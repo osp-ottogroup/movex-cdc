@@ -39,7 +39,13 @@ class IntegrationTestStarter < ActiveSupport::TestCase
   def configure_schema
     clear_configuration
     load_api_token
-    add_schema_to_config
+    schema = add_schema_to_config
+    add_schema_rights_to_config(schema)
+    add_table_to_config({
+                          schema_id: schema['id'],
+                          name: 'TEST_TABLE1'
+                        }
+    )
   end
 
   # Clear the MOVEX CDC configuration
@@ -65,6 +71,8 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     assert_not_nil(@api_token, 'API token should not be nil')
   end
 
+  # Add the default MOVEC CDC schema to config
+  # @return
   def add_schema_to_config
     response = execute_post_request('schemas',
                                     {
@@ -74,7 +82,26 @@ class IntegrationTestStarter < ActiveSupport::TestCase
                                       }
                                     }
     )
-    assert_not_nil(response, "Response should not be nil")
+    assert_not_nil(response, "Response for schema should not be nil")
+    response
+  end
+
+  def add_schema_rights_to_config(schema)
+    user_id = Database.select_one "SELECT ID FROM users WHERE email = :email", email: 'admin'
+    response = execute_post_request('schema_rights', {
+      schema_right:{
+        schema_id: schema['id'],
+        user_id: user_id,
+        yn_deployment_granted: 'Y'
+      }})
+    assert_not_nil(response, "Response for schema_right should not be nil")
+    response
+  end
+
+  def add_table_to_config(table_data)
+    response = execute_post_request('tables', { table: table_data })
+    assert_not_nil(response, "Response for table should not be nil")
+    response
   end
 
   # Call API with POST request
@@ -98,10 +125,10 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     request = request_class.new(uri, headers)
     request.content_type = "application/json"
     request.body = JSON.dump(params)
-
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
+    assert(response.code.to_i >= 200 && response.code.to_i < 300, "Request should be successful for #{url} with #{params}! Response body = #{response.body}")
     JSON.parse(response.body)
   end
 
