@@ -17,14 +17,45 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     db_config = Rails.application.config.database_configuration
     ActiveRecord::Base.establish_connection(db_config['test'])
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
+    create_test_structures
     configure_schema
 
   end
 
+  def drop_table_if_exists(table_name)
+    Database.execute("DROP TABLE #{table_name}", options: {no_exception_logging: true})
+  rescue
+    nil
+  end
+
+  # create the tables for the integration test
+  def create_test_structures
+    drop_table_if_exists('test_table1')
+    Database.execute("CREATE TABLE test_table1 (id NUMBER PRIMARY KEY, name VARCHAR2(255))")
+  end
+
+
   # Configure the schema for the integration test using MOVEX CDC API
   def configure_schema
+    clear_configuration
     load_api_token
+    add_schema_to_config
+  end
 
+  # Clear the MOVEX CDC configuration
+  def clear_configuration
+    Database.execute("DELETE FROM Columns")
+    Database.execute("DELETE FROM Conditions")
+    Database.execute("DELETE FROM Statistics")
+    Database.execute("DELETE FROM Event_Logs")
+    Database.execute("DELETE FROM Event_Log_Final_Errors")
+    Database.execute("DELETE FROM Tables")
+    Database.execute("DELETE FROM Schema_Rights")
+    Database.execute("DELETE FROM Activity_Logs")
+    Database.execute("DELETE FROM Users WHERE email != 'admin'")
+    Database.execute("DELETE FROM Schemas")
+    Database.execute("DELETE FROM Encryption_Key_Versions")
+    Database.execute("DELETE FROM Encryption_Keys")
   end
 
   def load_api_token
@@ -32,7 +63,18 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     assert_not_nil(response, "Response should not be nil")
     @api_token = response['token']
     assert_not_nil(@api_token, 'API token should not be nil')
-    puts @api_token
+  end
+
+  def add_schema_to_config
+    response = execute_post_request('schemas',
+                                    {
+                                      schema: {
+                                        name: MovexCdc::Application.config.db_user,
+                                        topic: 'TestTopic1',
+                                      }
+                                    }
+    )
+    assert_not_nil(response, "Response should not be nil")
   end
 
   # Call API with POST request
@@ -40,8 +82,20 @@ class IntegrationTestStarter < ActiveSupport::TestCase
   # @param params [Hash] Parameters for the API
   # @return [Hash] Response from the API
   def execute_post_request(url, params)
+    execute_api_request(request_class: Net::HTTP::Post, url: url, params: params)
+  end
+
+  # Call API with POST request
+  # @param request_class [Class] Class of the request e.g. Net::HTTP::Post
+  # @param url [String] URL of the API
+  # @param headers [Hash] Header values
+  # @param params [Hash] Parameters for the API
+  # @return [Hash] Response from the API
+  def execute_api_request(request_class:, url:, params:)
     uri = URI.parse("http://localhost:8080/#{url}")
-    request = Net::HTTP::Post.new(uri)
+    headers = {}
+    headers['Authorization'] = @api_token if @api_token
+    request = request_class.new(uri, headers)
     request.content_type = "application/json"
     request.body = JSON.dump(params)
 
@@ -50,6 +104,7 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     end
     JSON.parse(response.body)
   end
+
 end
 
 
