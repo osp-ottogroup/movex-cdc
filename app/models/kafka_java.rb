@@ -125,7 +125,8 @@ class KafkaJava < KafkaBase
           producer_properties.put('buffer.memory',          @max_buffer_bytesize)  # maximum size of memory for buffering messages to send in bytes
           # TODO: Check if buffer.memory with transactions leads to batching or if batch.size hast to be set in addition
           producer_properties.put('acks',                   'all')              # The default for enabled itempotence which is enabled by transactional
-          producer_properties.put('compression.codec',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
+          # compresson.codec was substituted by compression.type
+          producer_properties.put('compression.type',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
           producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}"}
