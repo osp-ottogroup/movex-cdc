@@ -116,7 +116,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
           producer_properties.put('key.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
           producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          # producer_properties.put('retries',              java.lang.Integer.new(0))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
+          producer_properties.put('retries',              java.lang.Integer.new(0))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
           # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
           producer_properties.put('linger.ms',              java.lang.Integer.new(10))  # Number of m to wait for more messages before sending a batch
           # TODO: create config entry for linger.ms or adjust dynamically
