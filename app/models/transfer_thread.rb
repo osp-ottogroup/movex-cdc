@@ -156,6 +156,7 @@ class TransferThread
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
+      # TODO: Evaluate if this is still needed for Java Kafka Client Libs
       @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in Kafka::InvalidTxnStateError if trying to continue with begin_transaction
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs

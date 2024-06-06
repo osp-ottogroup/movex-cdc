@@ -41,11 +41,13 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     load_api_token
     schema = add_schema_to_config
     add_schema_rights_to_config(schema)
-    add_table_to_config({
+    table = add_table_to_config({
                           schema_id: schema['id'],
                           name: 'TEST_TABLE1'
                         }
     )
+    add_columns_to_config(table, 'ID', log_insert: 'Y')
+    add_columns_to_config(table, 'NAME', log_insert: 'Y', log_update: 'Y', log_delete: 'Y')
   end
 
   # Clear the MOVEX CDC configuration
@@ -98,11 +100,26 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     response
   end
 
+  # @return [Hash] response from API
   def add_table_to_config(table_data)
     response = execute_post_request('tables', { table: table_data })
     assert_not_nil(response, "Response for table should not be nil")
     response
   end
+
+  # Add column config
+  # @param [Hash] table
+  # @param [String] column_name
+  # @param [Hash] attribs
+  def add_columns_to_config(table, column_name, attribs)
+    response = execute_post_request('columns', {
+      table_id: table['id'],
+      name: column_name,
+    }.merge(attribs))
+    assert_not_nil(response, "Response for columns should not be nil")
+    response
+  end
+
 
   # Call API with POST request
   # @param url [String] URL of the API
