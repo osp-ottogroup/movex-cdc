@@ -14,6 +14,7 @@ variables:
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
   RUBYOPT: -W0
+  JRUBY_OPTS: --dev
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
