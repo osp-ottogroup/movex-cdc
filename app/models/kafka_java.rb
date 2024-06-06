@@ -74,7 +74,7 @@ class KafkaJava < KafkaBase
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
-      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       handle_kafka_server_exception(e)
       handle_kafka_buffer_overflow(e, message, topic, table) if e.class == Kafka::BufferOverflow
       # TODO: find corresponding Java exception for Kafka::BufferOverflow

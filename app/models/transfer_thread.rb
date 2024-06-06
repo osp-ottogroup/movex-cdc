@@ -542,6 +542,7 @@ class TransferThread
     cache_key = "Table_#{table_id}"
     unless @record_cache.has_key? cache_key
       @record_cache[cache_key] = Table.joins(:schema).find(table_id)
+      Rails.logger.debug('TransferThread.table_cache'){"Read table record for table_id = #{table_id}: #{@record_cache[cache_key]}"}
     end
     @record_cache[cache_key]
   end
