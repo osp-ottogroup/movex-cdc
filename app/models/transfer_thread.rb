@@ -120,7 +120,7 @@ class TransferThread
       max_event_logs_id:              @max_event_logs_id,
       max_key_event_logs_id:          @max_key_event_logs_id,
       max_message_size:               @max_message_size,
-      max_sorted_id_distances:        @max_sorted_id_distances,
+      max_sorted_id_distances:        @max_sorted_id_distances.map { |key, value| { partition_name: key, max_sorted_id_distance: value } },
       message_processing_errors:      @messages_processed_with_error,
       start_time:                     @start_time,
       successful_messages_processed:  @messages_processed_successful,
