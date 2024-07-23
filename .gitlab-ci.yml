@@ -241,7 +241,7 @@ trivy_scan:
   script:
     - trivy --version
     # cache cleanup is needed when scanning images with the same tags, it does not remove the database
-    - time trivy image --clear-cache
+    - time trivy clean --scan-cache
     # update vulnerabilities db
     #- time trivy --no-progress --cache-dir .trivycache/
     - echo "Content of .trivyignore" && cat .trivyignore
