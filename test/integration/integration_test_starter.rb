@@ -17,14 +17,53 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     db_config = Rails.application.config.database_configuration
     ActiveRecord::Base.establish_connection(db_config['test'])
     Database.initialize_db_connection                                              # do some init actions for DB connection before use
+    create_test_structures
     configure_schema
 
   end
 
+  def drop_table_if_exists(table_name)
+    Database.execute("DROP TABLE #{table_name}", options: {no_exception_logging: true})
+  rescue
+    nil
+  end
+
+  # create the tables for the integration test
+  def create_test_structures
+    drop_table_if_exists('test_table1')
+    Database.execute("CREATE TABLE test_table1 (id NUMBER PRIMARY KEY, name VARCHAR2(255))")
+  end
+
+
   # Configure the schema for the integration test using MOVEX CDC API
   def configure_schema
+    clear_configuration
     load_api_token
+    schema = add_schema_to_config
+    add_schema_rights_to_config(schema)
+    table = add_table_to_config({
+                          schema_id: schema['id'],
+                          name: 'TEST_TABLE1'
+                        }
+    )
+    add_columns_to_config(table, 'ID', log_insert: 'Y')
+    add_columns_to_config(table, 'NAME', log_insert: 'Y', log_update: 'Y', log_delete: 'Y')
+  end
 
+  # Clear the MOVEX CDC configuration
+  def clear_configuration
+    Database.execute("DELETE FROM Columns")
+    Database.execute("DELETE FROM Conditions")
+    Database.execute("DELETE FROM Statistics")
+    Database.execute("DELETE FROM Event_Logs")
+    Database.execute("DELETE FROM Event_Log_Final_Errors")
+    Database.execute("DELETE FROM Tables")
+    Database.execute("DELETE FROM Schema_Rights")
+    Database.execute("DELETE FROM Activity_Logs")
+    Database.execute("DELETE FROM Users WHERE email != 'admin'")
+    Database.execute("DELETE FROM Schemas")
+    Database.execute("DELETE FROM Encryption_Key_Versions")
+    Database.execute("DELETE FROM Encryption_Keys")
   end
 
   def load_api_token
@@ -32,24 +71,84 @@ class IntegrationTestStarter < ActiveSupport::TestCase
     assert_not_nil(response, "Response should not be nil")
     @api_token = response['token']
     assert_not_nil(@api_token, 'API token should not be nil')
-    puts @api_token
   end
+
+  # Add the default MOVEC CDC schema to config
+  # @return
+  def add_schema_to_config
+    response = execute_post_request('schemas',
+                                    {
+                                      schema: {
+                                        name: MovexCdc::Application.config.db_user,
+                                        topic: 'TestTopic1',
+                                      }
+                                    }
+    )
+    assert_not_nil(response, "Response for schema should not be nil")
+    response
+  end
+
+  def add_schema_rights_to_config(schema)
+    user_id = Database.select_one "SELECT ID FROM users WHERE email = :email", email: 'admin'
+    response = execute_post_request('schema_rights', {
+      schema_right:{
+        schema_id: schema['id'],
+        user_id: user_id,
+        yn_deployment_granted: 'Y'
+      }})
+    assert_not_nil(response, "Response for schema_right should not be nil")
+    response
+  end
+
+  # @return [Hash] response from API
+  def add_table_to_config(table_data)
+    response = execute_post_request('tables', { table: table_data })
+    assert_not_nil(response, "Response for table should not be nil")
+    response
+  end
+
+  # Add column config
+  # @param [Hash] table
+  # @param [String] column_name
+  # @param [Hash] attribs
+  def add_columns_to_config(table, column_name, attribs)
+    response = execute_post_request('columns', {
+      table_id: table['id'],
+      name: column_name,
+    }.merge(attribs))
+    assert_not_nil(response, "Response for columns should not be nil")
+    response
+  end
+
 
   # Call API with POST request
   # @param url [String] URL of the API
   # @param params [Hash] Parameters for the API
   # @return [Hash] Response from the API
   def execute_post_request(url, params)
+    execute_api_request(request_class: Net::HTTP::Post, url: url, params: params)
+  end
+
+  # Call API with POST request
+  # @param request_class [Class] Class of the request e.g. Net::HTTP::Post
+  # @param url [String] URL of the API
+  # @param headers [Hash] Header values
+  # @param params [Hash] Parameters for the API
+  # @return [Hash] Response from the API
+  def execute_api_request(request_class:, url:, params:)
     uri = URI.parse("http://localhost:8080/#{url}")
-    request = Net::HTTP::Post.new(uri)
+    headers = {}
+    headers['Authorization'] = @api_token if @api_token
+    request = request_class.new(uri, headers)
     request.content_type = "application/json"
     request.body = JSON.dump(params)
-
     response = Net::HTTP.start(uri.hostname, uri.port) do |http|
       http.request(request)
     end
+    assert(response.code.to_i >= 200 && response.code.to_i < 300, "Request should be successful for #{url} with #{params}! Response body = #{response.body}")
     JSON.parse(response.body)
   end
+
 end
 
 

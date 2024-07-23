@@ -32,6 +32,7 @@ class KafkaJava < KafkaBase
       @kafka_producer&.commitTransaction
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     rescue Exception => e
+      # commit_transaction fails if a previous send call failed. It raises the last exception again.
       Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       handle_kafka_server_exception(e)
       raise
@@ -42,6 +43,15 @@ class KafkaJava < KafkaBase
       Rails.logger.debug('KafkaJava::Producer.abort_transaction') { "Aborting transaction" }
       @kafka_producer&.abortTransaction
     rescue Exception => e
+      # The documentation says (https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/KafkaProducer.html#send-org.apache.kafka.clients.producer.ProducerRecord-org.apache.kafka.clients.producer.Callback-):
+      # Some transactional send errors cannot be resolved with a call to abortTransaction().
+      # In particular, if a transactional send finishes with a ProducerFencedException, a OutOfOrderSequenceException, a UnsupportedVersionException, or an AuthorizationException, then the only option left is to call close().
+      # Fatal errors cause the producer to enter a defunct state in which future API calls will continue to raise the same underyling error wrapped in a new KafkaException.
+      # That means:
+      # If a send call fails, the following commit_transaction will fail with the same exception.
+      # The exception at commit_transaction should be handled with an abort_transaction
+      # It this fails also, reset the producer
+      # Resetting the producer is done at TransferThread.process_event_logs_divide_and_conquer if also abort_transaction fails
       Rails.logger.error('KafkaJava::Producer.abort_transaction') { "#{e.class} #{e.message} during abort of transaction" }
       raise
     ensure
@@ -74,7 +84,7 @@ class KafkaJava < KafkaBase
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
-      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       handle_kafka_server_exception(e)
       handle_kafka_buffer_overflow(e, message, topic, table) if e.class == Kafka::BufferOverflow
       # TODO: find corresponding Java exception for Kafka::BufferOverflow
@@ -90,6 +100,7 @@ class KafkaJava < KafkaBase
     # Cancel previous producer and recreate again
 
     def reset_kafka_producer
+      Rails.logger.warn('KafkaJava::Producer.reset_kafka_producer') { "Resetting the Kafka producer suspended to clarify if really needed" }
       shutdown                                                                  # free kafka connections of current producer if != nil
       create_kafka_producer                                                     # get fresh producer
     end
@@ -114,7 +125,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
           producer_properties.put('key.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
           producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          # producer_properties.put('retries',              java.lang.Integer.new(0))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
+          producer_properties.put('retries',              java.lang.Integer.new(5))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
           # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
           producer_properties.put('linger.ms',              java.lang.Integer.new(10))  # Number of m to wait for more messages before sending a batch
           # TODO: create config entry for linger.ms or adjust dynamically
@@ -125,7 +136,8 @@ class KafkaJava < KafkaBase
           producer_properties.put('buffer.memory',          @max_buffer_bytesize)  # maximum size of memory for buffering messages to send in bytes
           # TODO: Check if buffer.memory with transactions leads to batching or if batch.size hast to be set in addition
           producer_properties.put('acks',                   'all')              # The default for enabled itempotence which is enabled by transactional
-          producer_properties.put('compression.codec',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
+          # compresson.codec was substituted by compression.type
+          producer_properties.put('compression.type',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
           producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}"}

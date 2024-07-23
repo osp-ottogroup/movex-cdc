@@ -14,6 +14,7 @@ variables:
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
   RUBYOPT: -W0
+  JRUBY_OPTS: --dev
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
@@ -240,7 +241,7 @@ trivy_scan:
   script:
     - trivy --version
     # cache cleanup is needed when scanning images with the same tags, it does not remove the database
-    - time trivy image --clear-cache
+    - time trivy clean --scan-cache
     # update vulnerabilities db
     #- time trivy --no-progress --cache-dir .trivycache/
     - echo "Content of .trivyignore" && cat .trivyignore

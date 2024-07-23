@@ -120,7 +120,7 @@ class TransferThread
       max_event_logs_id:              @max_event_logs_id,
       max_key_event_logs_id:          @max_key_event_logs_id,
       max_message_size:               @max_message_size,
-      max_sorted_id_distances:        @max_sorted_id_distances,
+      max_sorted_id_distances:        @max_sorted_id_distances.map { |key, value| { partition_name: key, max_sorted_id_distance: value } },
       message_processing_errors:      @messages_processed_with_error,
       start_time:                     @start_time,
       successful_messages_processed:  @messages_processed_successful,
@@ -541,6 +541,7 @@ class TransferThread
     cache_key = "Table_#{table_id}"
     unless @record_cache.has_key? cache_key
       @record_cache[cache_key] = Table.joins(:schema).find(table_id)
+      Rails.logger.debug('TransferThread.table_cache'){"Read table record for table_id = #{table_id}: #{@record_cache[cache_key]}"}
     end
     @record_cache[cache_key]
   end

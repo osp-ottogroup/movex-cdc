@@ -7,7 +7,7 @@ module ExceptionHelper
   # @param line_number_limit [Integer] Limit the number of lines in the stack trace
   # @return [Array] The stack trace lines of the exception
   def self.exception_backtrace(exception, line_number_limit=nil)
-    result = ["Stack-Trace for exception '#{exception.class} #{exception.message}' is:"]
+    result = ["Stack-Trace for exception '#{exception.class}' is:"]
     curr_line_no=0
     exception.backtrace.each do |bt|
       result << bt if line_number_limit.nil? || curr_line_no < line_number_limit # report First x lines of stacktrace in log
@@ -21,20 +21,32 @@ module ExceptionHelper
   # @param context        The class and method name where the exception occured
   # @param additional_msg Additional text to log in subseauent lines
   def self.log_exception(exception, context, additional_msg: nil)
-    Rails.logger.error(context){ "Exception: #{exception.class}: #{exception.message}" }
+    msg = "Exception: #{exception.class}: #{exception.message}"
+    msg.split("\n").each do |line|
+      Rails.logger.error(context){ line }
+    end
     Rails.logger.error(context){ explain_exception(exception) } unless explain_exception(exception).nil?
     unless additional_msg.nil?
       additional_msg.split("\n").each do |line|
         Rails.logger.error(context){ line }
       end
     end
-    memory_info_array.each do |line|
-      Rails.logger.error(context){ line }
+    Rails.logger.error(context) {"Stack-Trace for exception '#{exception.class}' is:"}
+    curr_line_no = 0
+    exception.backtrace.each do |line|
+      if curr_line_no < 2
+        Rails.logger.error(context){ line }
+      else
+        Rails.logger.debug(context){ line }
+      end
+      curr_line_no += 1
     end
-    exception_backtrace(exception).each do |line|
+
+    memory_info_array.each do |line|
       Rails.logger.debug(context){ line }
     end
-    Rails.logger.error(context){ "Switch log level to 'debug' to get additional stack trace and memory info for exceptions!" } if Rails.logger.level != 0 # DEBUG
+
+    Rails.logger.error(context){ "Switch log level to 'debug' to get the full stack trace and memory info for the exceptions!" } if Rails.logger.level != 0 # DEBUG
   end
 
   def self.warn_with_backtrace(context, message)

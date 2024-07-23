@@ -84,7 +84,7 @@ class Housekeeping
           # if only range partitions exists (no interval) than preserve the youngest two range partitions (because the first partition is not scanned by worker)
           if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
             if locked_partitions.include? part.partition_name                   # Don't check partition that has pending transactions
-              Rails.logger.info(caller){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
+              Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
             else
               EventLog.check_and_drop_partition(part.partition_name, 'Housekeeping.do_housekeeping_internal', lock_already_checked: true)
             end
