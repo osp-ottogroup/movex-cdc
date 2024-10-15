@@ -52,4 +52,4 @@ It is already used in production with Oracle databases.
 Further development takes place.
 
 ## Further resources
-- [Vieo recording of JUG Saxony meeting on this topic (German) ](https://vimeo.com/705639939)
+- [Video recording of JUG Saxony meeting on this topic (German) ](https://vimeo.com/705639939)
