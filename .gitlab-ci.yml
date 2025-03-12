@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.12.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
