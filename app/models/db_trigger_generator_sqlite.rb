@@ -268,21 +268,21 @@ FROM   main.#{table.name}
 
     pk_accessor =
       case operation
-      when 'I' then 'new.'
-      when 'U' then 'new.'
-      when 'D' then 'old.'
-      when 'N' then ''                                                          # initialization of table data
+      when 'I' then 'new'
+      when 'U' then 'new'
+      when 'D' then 'old'
+      when 'N' then nil                                                         # initialization of table data
       end
 
     pk_columns = Database.select_all("PRAGMA table_info(#{table.name})").select{|c| c.pk > 0}
     raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if pk_columns.length == 0
 
-    result = "'{' ||"
-    result << pk_columns.map {|pkc|
-      # TODO: put quotes on string and date
-      "'#{pkc.name}: '|| #{pk_accessor}#{pkc.name}"
-    }.join("||','||")
-    result << "|| ' }'"
+    result = "'{'||"
+    result << pk_columns
+                .map{|pkc| "'\"#{pkc['name']}\": '||#{convert_col({column_name: pkc['name'], type: pkc['type']}, pk_accessor)}" }
+                .join("||','||")
+    result << "||'}'"
+
     result
   end
 
