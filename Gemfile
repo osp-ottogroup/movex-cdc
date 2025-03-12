@@ -8,10 +8,11 @@ ruby '3.1.4'
 
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
-gem 'rails', '6.1.7.10'
+# gem 'rails', '6.1.7.10'
+gem 'rails', '7.1.5.1'
 # Use jdbcsqlite3 as the database for Agem ctive Record
 gem 'activerecord-jdbcsqlite3-adapter'
-gem 'activerecord-oracle_enhanced-adapter'
+gem 'activerecord-oracle_enhanced-adapter', :git => 'https://github.com/rammpeter/oracle-enhanced-7.1-2024-03-12.git', :branch => 'master'
 
 # Use Puma as the app server
 gem 'puma'
@@ -36,7 +37,7 @@ gem 'snappy'
 # gem 'zstd-ruby'
 
 group :development do
-  gem 'listen', '>= 3.0.5', '< 3.2'
+  gem 'listen'
   # gem 'rubocop' not really needed as deployment artifact
 end
 
