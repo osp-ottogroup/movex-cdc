@@ -46,3 +46,4 @@ build_version
 /test/oracle_autonomous/Wallet_panoramatest.zip
 /kafka.properties
 /movex-cdc.jar
+/.bundle/config
