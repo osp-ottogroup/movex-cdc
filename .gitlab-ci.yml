@@ -33,8 +33,6 @@ brakeman_analysis:
       # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
     - gem install --no-doc racc brakeman
     - brakeman -A
-  rules:
-    - when: never
 
 test_frontend:
   image: node:14-alpine
@@ -42,8 +40,6 @@ test_frontend:
   script:
     - npm install -g @vue/cli
     - cd frontend && npm ci && npm run test:unit
-  rules:
-    - when: never
 
 prepare_tests:
   stage: code_analysis
@@ -60,8 +56,6 @@ prepare_tests:
       - vendor/bundle
       - .bundle
     expire_in: 1 month
-  rules:
-    - when: never
 
 .tests:
   variables:
@@ -111,9 +105,6 @@ prepare_tests:
       - tmp/screenshots/
       - /opt/kafka/logs/*
     expire_in: 1 month
-  rules:
-    - when: never
-
 
 .tests_SQLITE:
   extends: .tests

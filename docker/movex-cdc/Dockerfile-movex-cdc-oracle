@@ -64,8 +64,7 @@ RUN   echo "### microdnf update" && \
       microdnf -y update && \
       echo "### apk add missing tools" && \
       microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make && \
-      echo "### install java" && \
-      echo "### get jRuby $JRUBY_VERSION" && \
+        echo "### get jRuby $JRUBY_VERSION" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
       echo "### untar jRuby" && \
       cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
