@@ -64,10 +64,9 @@ COPY --from=openjdk /customjre $JAVA_HOME
 RUN microdnf -y update
 # add missing tools
 RUN microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make
-# workdir for jruby download and installation
-WORKDIR /opt
-RUN wget https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz
-RUN tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz
+RUN echo "JRuby version: $JRUBY_VERSION"
+RUN cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz
+RUN cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz
 RUN ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby
 RUN ruby -v
 RUN echo 'Europe/Berlin' > /etc/timezone && \
