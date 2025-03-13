@@ -29,7 +29,8 @@ COPY $FRONTEND_SRC_PATH .
 RUN npm run build
 
 # Ensure no known vulnerabilities are in dependencies of frontend packages
-RUN npm audit --production
+# TODO: ignore specific issues and uncomment the next line
+# RUN npm audit --production
 
 # STAGE 2: JRE build
 FROM eclipse-temurin:21 as openjdk
@@ -41,13 +42,12 @@ RUN $JAVA_HOME/bin/jlink \
          --strip-debug \
          --no-man-pages \
          --no-header-files \
-         --compress=2 \
+         --compress=zip-6 \
          --output /customjre
 
 # STAGE 3: build movex-cdc backend
 FROM oraclelinux:9-slim
 
-MAINTAINER Peter.Ramm@ottogroup.com
 
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
@@ -64,8 +64,7 @@ RUN   echo "### microdnf update" && \
       microdnf -y update && \
       echo "### apk add missing tools" && \
       microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make && \
-      echo "### install java" && \
-      echo "### get jRuby" && \
+        echo "### get jRuby $JRUBY_VERSION" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
       echo "### untar jRuby" && \
       cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz && \

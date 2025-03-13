@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.5.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.12.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
@@ -105,7 +105,8 @@ prepare_tests:
       - tmp/screenshots/
       - /opt/kafka/logs/*
     expire_in: 1 month
-
+#  rules:
+#    - when: never
 
 .tests_SQLITE:
   extends: .tests
@@ -205,8 +206,8 @@ build_movex_cdc:
 
   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
-    # name: gcr.io/kaniko-project/executor:debug
-    name: registry.gitlab.com/osp-silver/oss/movex-cdc/kaniko-executor:debug
+    name: gcr.io/kaniko-project/executor:debug
+    # name: registry.gitlab.com/osp-silver/oss/movex-cdc/kaniko-executor:debug
     entrypoint: [""]
 
   script:
@@ -217,7 +218,7 @@ build_movex_cdc:
     - echo "Docker image = $TEMP_DOCKER_IMAGE"
     - |
       BUILD_VERSION=${CI_COMMIT_REF_NAME#"prod_"}_`date "+%Y-%m-%d_%H-%M-%S"`
-      JRUBY_VERSION=`cat .ruby-version | cut -c 7-13`
+      JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
       echo JRUBY_VERSION=$JRUBY_VERSION
       /kaniko/executor \
         --build-arg BUILD_VERSION=$BUILD_VERSION \
