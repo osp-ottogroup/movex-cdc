@@ -1,5 +1,9 @@
 require_relative 'boot'
 
+# Workaround to fix error: NameError: uninitialized constant ActiveSupport::LoggerThreadSafeLevel::Logger
+# as mentioned at https://stackoverflow.com/questions/79360526/uninitialized-constant-activesupportloggerthreadsafelevellogger-nameerror
+require "logger"
+
 require "rails"
 # Pick the frameworks you want:
 require "active_model/railtie"
