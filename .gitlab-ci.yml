@@ -206,8 +206,8 @@ build_movex_cdc:
 
   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
-    # name: gcr.io/kaniko-project/executor:debug
-    name: registry.gitlab.com/osp-silver/oss/movex-cdc/kaniko-executor:debug
+    name: gcr.io/kaniko-project/executor:debug
+    # name: registry.gitlab.com/osp-silver/oss/movex-cdc/kaniko-executor:debug
     entrypoint: [""]
 
   script:
@@ -221,7 +221,6 @@ build_movex_cdc:
       JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
       echo JRUBY_VERSION=$JRUBY_VERSION
       /kaniko/executor \
-        --docker
         --build-arg BUILD_VERSION=$BUILD_VERSION \
         --build-arg JRUBY_VERSION=$JRUBY_VERSION \
         --context $CI_PROJECT_DIR \
