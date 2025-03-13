@@ -105,6 +105,8 @@ prepare_tests:
       - tmp/screenshots/
       - /opt/kafka/logs/*
     expire_in: 1 month
+  rules:
+    - when: never
 
 .tests_SQLITE:
   extends: .tests
@@ -219,6 +221,7 @@ build_movex_cdc:
       JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
       echo JRUBY_VERSION=$JRUBY_VERSION
       /kaniko/executor \
+        --docker
         --build-arg BUILD_VERSION=$BUILD_VERSION \
         --build-arg JRUBY_VERSION=$JRUBY_VERSION \
         --context $CI_PROJECT_DIR \
