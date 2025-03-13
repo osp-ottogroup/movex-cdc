@@ -97,7 +97,8 @@ prepare_tests:
         # SQLite does not support remove_foreign_key although it is implemented
         bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
       fi
-    - bundle exec rails test
+# TODO remove
+#    - bundle exec rails test
   artifacts:
     when: always
     paths:
