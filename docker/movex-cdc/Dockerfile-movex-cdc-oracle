@@ -43,7 +43,7 @@ RUN $JAVA_HOME/bin/jlink \
          --strip-debug \
          --no-man-pages \
          --no-header-files \
-         --compress \
+         --compress=zip-6 \
          --output /customjre
 
 # STAGE 3: build movex-cdc backend
