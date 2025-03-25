@@ -20,8 +20,7 @@ class ApplicationRecord < ActiveRecord::Base
     changed = changed?                                                          # changed? only valid before excution of super
     retval = super
     log_activity('inserted', self.attributes) if retval && new_record
-    log_activity('updated', { old: @original_attributes, new: self.attributes}) if retval && !new_record && changed
-    @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
+    log_activity('updated', self.changes) if retval && !new_record && changed
     retval
   rescue Exception => e
     Rails.logger.error('ApplicationRecord.save') { "#{e.message}, attributes: #{self.attributes}" }
@@ -33,8 +32,7 @@ class ApplicationRecord < ActiveRecord::Base
     changed = changed?                                                          # changed? only valid before excution of super
     retval = super
     log_activity('inserted', self.attributes) if new_record
-    log_activity('updated', { old: @original_attributes, new: self.attributes}) if !new_record && changed
-    @original_attributes = nil                                                  # Reset the marker to prevent from repeated usage at direct call of save or save!
+    log_activity('updated', self.changes) if !new_record && changed
     retval
   rescue Exception => e
     Rails.logger.error('ApplicationRecord.save!') { "#{e.message}, attributes: #{self.attributes}" }
@@ -42,7 +40,6 @@ class ApplicationRecord < ActiveRecord::Base
   end
 
   def update(attributes)
-    @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
     super
   rescue Exception => e
     Rails.logger.error('ApplicationRecord.update') { "#{e.message}, attributes: #{self.attributes}" }
@@ -50,7 +47,6 @@ class ApplicationRecord < ActiveRecord::Base
   end
 
   def update!(attributes)
-    @original_attributes = self.attributes.clone                                # Remember the unchanged attributes before applying changes
     super
   rescue Exception => e
     Rails.logger.error('ApplicationRecord.update!') { "#{e.message}, attributes: #{self.attributes}" }
@@ -72,6 +68,10 @@ class ApplicationRecord < ActiveRecord::Base
   # ActiveRecord-Classes where DML activities should not be logged
   ACTIVITY_LOG_EXCLUDED_CLASSES=['ActivityLog', 'EventLog', 'Statistic']
 
+  # wtite activity log entry
+  # @param [String] operation 'inserted', 'updated', 'deleted'
+  # @param [Hash] attributes attributes of the record
+  # @return [void]
   def log_activity(operation, attributes)
     if !ACTIVITY_LOG_EXCLUDED_CLASSES.include?(self.class.name) &&
       !(self.class.name == 'User' && attributes['email'] == 'admin' && operation == 'inserted') # admin user must be created at first without logging
