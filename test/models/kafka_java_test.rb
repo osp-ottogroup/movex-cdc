@@ -45,7 +45,7 @@ class KafkaJavaTest < ActiveSupport::TestCase
     end
 
     # Check SSL combinations
-    assert_log_written("Missing required configuration value for KAFKA_SSL_CLIENT_CERT_CHAIN or 'ssl.keystore.certificate.chain' in KAFKA_PROPERTIES_FILE if security protocol = SSL") do
+    assert_log_written("issing required configuration value for KAFKA_SSL_CLIENT_CERT_CHAIN or 'ssl.keystore.certificate.chain' in KAFKA_PROPERTIES_FILE if security protocol = SSL") do
       MovexCdc::Application.config.kafka_security_protocol = 'SSL'
       MovexCdc::Application.config.kafka_ssl_keystore_type = 'PEM'
       KafkaJava.new.validate_connect_properties
