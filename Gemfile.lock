@@ -134,7 +134,7 @@ GEM
       net-smtp
     marcel (1.0.4)
     mini_mime (1.1.5)
-    minitest (5.25.4)
+    minitest (5.25.5)
     mutex_m (0.3.0)
     net-imap (0.5.6)
       date
@@ -146,7 +146,7 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4-java)
-    nokogiri (1.18.3-java)
+    nokogiri (1.18.4-java)
       racc (~> 1.4)
     pp (0.6.2)
       prettyprint
