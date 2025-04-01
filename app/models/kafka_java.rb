@@ -403,7 +403,7 @@ class KafkaJava < KafkaBase
     required_properties = {
       'PLAINTEXT'       => ['bootstrap.servers'],
       'SASL_PLAINTEXT'  => ['bootstrap.servers', 'sasl.jaas.config'],
-      'SASL_SSL'        => ['bootstrap.servers', 'sasl.jaas.config', 'ssl.key.password'],
+      'SASL_SSL'        => ['bootstrap.servers', 'sasl.jaas.config'],
       'SSL'             => ['bootstrap.servers', 'ssl.key.password']
     }
 
