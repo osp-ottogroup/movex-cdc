@@ -100,7 +100,7 @@ GEM
     marcel (1.0.4)
     method_source (1.1.0)
     mini_mime (1.1.5)
-    minitest (5.25.4)
+    minitest (5.25.5)
     net-imap (0.5.6)
       date
       net-protocol
@@ -111,7 +111,7 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4-java)
-    nokogiri (1.18.3-java)
+    nokogiri (1.18.7-java)
       racc (~> 1.4)
     puma (6.6.0-java)
       nio4r (~> 2.0)
@@ -176,7 +176,7 @@ GEM
     timeout (0.4.3)
     tzinfo (2.0.6)
       concurrent-ruby (~> 1.0)
-    tzinfo-data (1.2025.1)
+    tzinfo-data (1.2025.2)
       tzinfo (>= 1.0.0)
     websocket-driver (0.7.7-java)
       base64

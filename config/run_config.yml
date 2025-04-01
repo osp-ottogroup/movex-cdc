@@ -63,6 +63,10 @@
 # Max. size of Kafka message buffer per thread
 # KAFKA_TOTAL_BUFFER_SIZE_MB: 100
 
+# Prefix string to be prepended before the system generated transactional ID.
+# Ensures compliance with possible naming conventions for the transactional IDs
+# KAFKA_TRANSACTIONAL_ID_PREFIX: MOVEX-CDC
+
 # Log level for application (debug, info, warn, error)
 # LOG_LEVEL: warn
 
