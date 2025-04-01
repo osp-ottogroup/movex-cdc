@@ -282,6 +282,8 @@ Used only in combination with SASL_SSL or SSL/TLS client certificate.|FALSE
 |KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
 If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
+|KAFKA_TRANSACTIONAL_ID_PREFIX|Prefix string to be prepended before the system generated transactional ID. +
+Ensures compliance with possible naming conventions for the transactional IDs|MOVEX-CDC
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
 |MAX_FAILED_LOGONS_BEFORE_ACCOUNT_LOCKED|Number of failed logons to GUI before the used user account will be locked and has to be unlocked by an admin user|3
 |MAX_PARTITIONS_TO_COUNT_AS_HEALTHY|If using partitions for table EVENT_LOGS, then this is the max. number of partitions, up to which the system is considered healthy. +
