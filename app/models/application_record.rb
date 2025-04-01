@@ -29,10 +29,9 @@ class ApplicationRecord < ActiveRecord::Base
 
   def save!(**)
     new_record = new_record?                                                    # call of super toggles the flag
-    changed = changed?                                                          # changed? only valid before excution of super
+    log_activity('updated', self.changes) if !new_record && changed?            # self.changes and changed? is only valid before excution of super
     retval = super
     log_activity('inserted', self.attributes) if new_record
-    log_activity('updated', self.changes) if !new_record && changed
     retval
   rescue Exception => e
     Rails.logger.error('ApplicationRecord.save!') { "#{e.message}, attributes: #{self.attributes}" }
