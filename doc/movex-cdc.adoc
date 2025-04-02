@@ -351,10 +351,9 @@ KAFKA_SECURITY_PROTOCOL: SASL_SSL
 KAFKA_SASL_PLAIN_USERNAME: kafka_user
 KAFKA_SASL_PLAIN_PASSWORD: kafka_password
 
-Additional settings for SSL connection are needed as shown in the next sections.
+Additional settings for SSL connection may be needed as shown in the next section for SSL connection.
 
 ===== Using SSL connection to Kafka with CA and client certificates in JKS format =====
-This configuration is mostly used for Kafka with Java clients.
 Authentication is based on client certificates.
 The required setup of Kafka for SSL is described at http://kafka.apache.org/documentation.html#security_ssl. +
 A keystore file and a truststore file are needed.
