@@ -17,6 +17,11 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     get "/health_check", as: :json
     Rails.logger.info('HealthCheckControllerTest.should get index'){ @response.body }
     if MovexCdc::Application.config.initial_worker_threads == ThreadHandling.get_instance.thread_count
+      if @response.status != 200                                                 # Thread possibly not yet initialized (initializing Kafka connection etc.
+        sleep 2
+        get "/health_check", as: :json                                          # Do it again
+        Rails.logger.info('HealthCheckControllerTest.should get index'){ "Repeated request after sleep. Response:\n#{@response.body}" }
+      end
       assert_response :success, log_on_failure("200 (success) expected because all worker threads are active, but is #{@response.response_code}")
     else
       assert_response :conflict, log_on_failure("409 (conflict) expected because not all worker threads are active, but is #{@response.response_code}")
