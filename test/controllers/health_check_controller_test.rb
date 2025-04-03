@@ -17,7 +17,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     get "/health_check", as: :json
     Rails.logger.info('HealthCheckControllerTest.should get index'){ @response.body }
     if MovexCdc::Application.config.initial_worker_threads == ThreadHandling.get_instance.thread_count
-      if @reponse.response_code != 200                                          # Thread possibly not yet initialized (pending Kafka connection etc.
+      if @reponse.status != 200                                                 # Thread possibly not yet initialized (pending Kafka connection etc.
         sleep 2
         get "/health_check", as: :json                                          # Do it again
         Rails.logger.info('HealthCheckControllerTest.should get index'){ "Repeated request after sleep. Response:\n#{@response.body}" }
