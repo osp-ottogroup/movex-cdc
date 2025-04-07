@@ -40,12 +40,12 @@ class KafkaBase
     # enlarge Topic property "max.message.bytes" to needed value
     def fix_message_size_too_large
       if @topic_infos.count != 1
-        Rails.logger.warn('KafkaRuby::Producer.fix_message_size_too_large') { "There are #{@topic_infos.count} topics included in the transaction. Fix of max.message.bytes suspended until divide&conquer ensures that transaction contains only one topic" }
+        Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "There are #{@topic_infos.count} topics included in the transaction. Fix of max.message.bytes suspended until divide&conquer ensures that transaction contains only one topic" }
       else
         # get current max.message.byte per topic
         @topic_infos.each do |key, value|                                       # should be only one topic, but does nothing if there is none
           current_max_message_bytes = @kafka.describe_topic_attr(key, 'max.message.bytes').to_i
-          Rails.logger.warn('KafkaRuby::Producer.fix_message_size_too_large') { "Messages for topic '#{key}' have max. size per message of #{value[:max_produced_message_size]} bytes for transfer, topic-config max.message.bytes = #{current_max_message_bytes}" }
+          Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "Messages for topic '#{key}' have max. size per message of #{value[:max_produced_message_size]} bytes for transfer, topic-config max.message.bytes = #{current_max_message_bytes}" }
 
           if current_max_message_bytes && value[:max_produced_message_size] > current_max_message_bytes * 0.5
             # new max.message.bytes based on current value or largest msg size, depending on the larger one
@@ -74,7 +74,6 @@ class KafkaBase
   def self.create
     case MovexCdc::Application.config.kafka_client_library
     when 'java' then KafkaJava.new
-    when 'ruby' then KafkaRuby.new
     when 'mock' then KafkaMock.new
     else raise "Unsupported value '#{MovexCdc::Application.config.kafka_client_library}' for KAFKA_CLIENT_LIBRARY"
     end
