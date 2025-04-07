@@ -1,4 +1,3 @@
-require 'kafka'
 require 'kafka_mock'
 require 'socket'
 
@@ -393,7 +392,7 @@ class TransferThread
           @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
           @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
         end
-        @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka
+        @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka, relevant only for KafkaMock
       rescue Exception => e
         msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
         msg << event_logs_debug_info(event_logs_slice)

@@ -121,9 +121,13 @@ prepare_tests:
     DB_SYS_PASSWORD: "oracle"
     DB_SYS_USER: "SYS"
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    KAFKA_CLIENT_LIBRARY: ruby
+    KAFKA_CLIENT_LIBRARY: java
 
 test_sqlite:
+  stage: test
+  extends: .tests_SQLITE
+
+test_sqlite_java:
   stage: test
   extends: .tests_SQLITE
 
@@ -178,6 +182,15 @@ test_oracle_19.10_EE:
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
+
+test_oracle_19.10_EE_mock:
+  stage: test
+  extends: .tests_ORACLE
+  services:
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
+      alias: oracle-db
+  variables:
+    KAFKA_CLIENT_LIBRARY: mock
 
 test_oracle_19.10-SE2:
   stage: test
@@ -379,7 +392,8 @@ trivy_scan:
   after_script:
     - |
       $PODMAN logs movex-cdc 2>&1 > movex-cdc.log
-      $PODMAN stop movex-cdc
+      # ignore possible file system errors at podman stop like "tearing down network namespace configuration for container" or "Unable to clean up network for container"
+      $PODMAN stop movex-cdc || exit 0
   artifacts:
     when: always
     paths:
@@ -406,7 +420,6 @@ docker_test_19.10_SSL:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -418,7 +431,6 @@ docker_test_19.10_SASL_PLAINTEXT:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_PLAINTEXT
     DB_URL: "oracle-db:1521/ORCLPDB1"
@@ -430,7 +442,6 @@ docker_test_19.10_SASL_SSL:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    KAFKA_CLIENT_LIBRARY: java
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"

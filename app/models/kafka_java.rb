@@ -8,7 +8,7 @@ class KafkaJava < KafkaBase
   class Producer < KafkaBase::Producer
 
     # Create producer instance
-    # @param [KafkaRuby] kafka Instance of KafkaRuby
+    # @param [KafkaJava] kafka Instance of KafkaJava
     # @param [String] transactional_id Transactional id for the producer
     # @return [void]
     def initialize(kafka, transactional_id:)
@@ -92,7 +92,7 @@ class KafkaJava < KafkaBase
     end
 
     # send a batch of messages cumulated by produce() to Kafka
-    # This method is not needed for KafkaJava, but is required for KafkaRuby
+    # This method is not needed for KafkaJava, but was required for previously used Ruby implementation and for KafkaMock
     # @return [void]
     def deliver_messages
     end
@@ -211,7 +211,7 @@ class KafkaJava < KafkaBase
   # Use KafkaBase.create to create an instance of this class
   def initialize
     super
-    @producer = nil                                                             # KafkaRuby::Producer is not initialized until needed
+    @producer = nil                                                             # KafkaJava::Producer is not initialized until needed
   end
 
   public
@@ -312,22 +312,22 @@ class KafkaJava < KafkaBase
     end
   end
 
-  # Create instance of KafkaRuby::Producer
+  # Create instance of KafkaJava::Producer
   # @param transactional_id [String] Transactional id for the producer
-  # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer
+  # @return [KafkaJava::Producer] Instance of KafkaJava::Producer
   def create_producer(transactional_id:)
     if @producer.nil?
       @producer = Producer.new(self, transactional_id: transactional_id)
     else
-      raise "KafkaRuby::create_producer: producer already initialized! Only one producer per instance allowed."
+      raise "KafkaJava::create_producer: producer already initialized! Only one producer per instance allowed."
     end
     @producer
   end
 
-  # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer if exists
+  # @return [KafkaJava::Producer] Instance of KafkaJava::Producer if exists
   def producer
     if @producer.nil?
-      raise "KafkaRuby::producer: producer not yet created! Call KafkaRuby::create_producer(options) first."
+      raise "KafkaJava::producer: producer not yet created! Call KafkaJava::create_producer(options) first."
     else
       @producer
     end

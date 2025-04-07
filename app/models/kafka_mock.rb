@@ -157,22 +157,22 @@ class KafkaMock < KafkaBase
   end
 
 
-  # Create instance of KafkaRuby::Producer
+  # Create instance of KafkaMock::Producer
   # @param transactional_id [String] Transactional id for the producer
-  # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer
+  # @return [KafkaMock::Producer] Instance of KafkaMock::Producer
   def create_producer(transactional_id:)
     if @producer.nil?
       @producer = Producer.new(self, transactional_id: transactional_id)
     else
-      raise "KafkaRuby::create_producer: producer already initialized! Only one producer per instance allowed."
+      raise "KafkaMock::create_producer: producer already initialized! Only one producer per instance allowed."
     end
     @producer
   end
 
-  # @return [KafkaRuby::Producer] Instance of KafkaRuby::Producer if exists
+  # @return [KafkaMock::Producer] Instance of KafkaMock::Producer if exists
   def producer
     if @producer.nil?
-      raise "KafkaRuby::producer: producer not yet created! Call KafkaRuby::create_producer(options) first."
+      raise "KafkaMock::producer: producer not yet created! Call KafkaMock::create_producer(options) first."
     else
       @producer
     end
