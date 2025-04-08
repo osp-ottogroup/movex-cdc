@@ -258,7 +258,7 @@ Valid values are: +
 'java' - The Apache Kafka client library for Java as the primary lib for the future +
 'mock' - A mock library only for testing purposes without a Kafka connection (events are discarded and not transferred to a Kafka target)|java
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
-|KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like Kafka::MessageSizeTooLarge|1000
+|KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like MessageSizeTooLarge|1000
 |KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker. If timeout is reached then the transfer is retried.|5000
 |KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
@@ -495,13 +495,13 @@ List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#p
 |===
 |Error|Description|Solution
 
-|Kafka::UnknownError: Unknown error with code 53
+|Unknown error with code 53
 |TRANSACTIONAL_ID_AUTHORIZATION_FAILED +
 The transactional id used by MOVEX CDC is not authorized to produce messages
 |Explicite authorization of transactional id is required, optional as wildcard: +
 kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf
 --add --transactional-id * --allow-principal User:* --operation write
-|Kafka::UnknownError: Unknown error with code 87
+|Unknown error with code 87
 |INVALID_RECORD +
 This record has failed the validation on broker and hence will be rejected.
 |Possible reason: Log compaction is activated for topic (log.cleanup.policy=compact) but events are created by MOVEX CDC without key. +
@@ -956,6 +956,15 @@ jq .token | \
 sed -e 's/^"//' -e 's/"$//'`
 
 curl -s -X POST -H "Authorization: $JWT" -d "dry_run=true" http://localhost:8080/db_triggers/generate_all
+```
+
+===== API example for reschedule erroneous events for a schema =====
+```
+JWT=`curl -s -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | \
+sed -e 's/^"//' -e 's/"$//'`
+
+curl -s -X POST -H "Authorization: $JWT" -d "schema_name=MOVEX_LOCAL_NEW" http://localhost:8080/server_control/reprocess_final_errors
 ```
 
 === Entity relationship model ===

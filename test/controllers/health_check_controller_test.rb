@@ -2,6 +2,7 @@ require 'test_helper'
 
 class HealthCheckControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
+    Database.execute "DELETE FROM Event_Log_Final_Errors"                       # avoid unhealthy status due to old errors
 
     ThreadHandling.get_instance.ensure_processing
     SystemValidationJob.new.reset_job_warnings(3600)                            # Suppress health status due to not running job within time

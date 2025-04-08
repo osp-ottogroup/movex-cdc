@@ -86,8 +86,8 @@ class KafkaJava < KafkaBase
     rescue Exception => e
       Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       handle_kafka_server_exception(e)
-      handle_kafka_buffer_overflow(e, message, topic, table) if e.class == Kafka::BufferOverflow
-      # TODO: find corresponding Java exception for Kafka::BufferOverflow
+      # TODO: find corresponding Java exception for Kafka::BufferOverflow and uncomment the following line
+      # handle_kafka_buffer_overflow(e, message, topic, table) if e.class == <Buffer Overflow Exception class>
       raise
     end
 
@@ -152,7 +152,7 @@ class KafkaJava < KafkaBase
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
-            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException # change transactional_id as workaround for Kafka::ConcurrentTransactionError
+            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException # change transactional_id as workaround for ConcurrentTransactionError
               @transactional_id << '-'
               Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional_id = #{@transactional_id}. Possible reason: missing abort_transaction before reuse of transactional_id" }
             end
@@ -170,7 +170,7 @@ class KafkaJava < KafkaBase
     def handle_kafka_server_exception(exception)
       fix_message_size_too_large if exception.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
 
-      if exception.class == Kafka::ConcurrentTransactionError
+      if exception.class == org.apache.kafka.common.errors.ConcurrentTransactionsException
         raise KafkaBase::ConcurrentTransactionError.new(exception.message)              # Use generic error class to avoid dependency on Ruby-Kafka gem
       end
     end

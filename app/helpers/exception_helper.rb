@@ -151,7 +151,8 @@ module ExceptionHelper
   def self.explain_exception(exception)
     case exception.class.name
     # explain error codes like named at https://kafka.apache.org/protocol#protocol_error_codes
-    when 'Kafka::UnknownError' then
+    # TODI check content of exception.message and adjust searcg strings "Unknown error with code"
+    when 'org.apache.kafka.common.errors.UnknownServerException' then
       case exception.message.strip
       when 'Unknown error with code -1' then 'UNKNOWN_SERVER_ERROR: False	The server experienced an unexpected error when processing the request.'
       when 'Unknown error with code 0' then 'NONE:'

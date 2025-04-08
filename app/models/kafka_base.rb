@@ -36,7 +36,7 @@ class KafkaBase
       end
     end
 
-    # fix Exception Kafka::MessageSizeTooLarge
+    # fix Exception for MessageSizeTooLarge
     # enlarge Topic property "max.message.bytes" to needed value
     def fix_message_size_too_large
       if @topic_infos.count != 1
@@ -57,7 +57,7 @@ class KafkaBase
             unless response.nil?
               Rails.logger.error('KafkaBase::Producer.fix_message_size_too_large') { alter topic "#{response.class} #{response}:" }
             else
-              Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent Kafka::MessageSizeTooLarge" }
+              Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "Enlarge max.message.bytes for topic #{key} from #{current_max_message_bytes} to #{new_max_message_bytes} to prevent MessageSizeTooLarge" }
             end
           else
             Rails.logger.warn('KafkaBase::Producer.fix_message_size_too_large') { "No action raised because size of largest message is less than half of max.message.bytes" }
