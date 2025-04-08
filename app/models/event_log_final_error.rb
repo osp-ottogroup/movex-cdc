@@ -10,7 +10,7 @@ class EventLogFinalError < ApplicationRecord
      when 'ORACLE' then
        Database.select_one "SELECT COUNT(*) FROM #{MovexCdc::Application.config.db_user}.Event_Log_Final_Errors WHERE RowNum <= :max_rows", max_rows: max_count
      when 'SQLITE' then
-       Database.select_one "SELECT COUNT(*) FROM #{MovexCdc::Application.config.db_user}.Event_Log_Final_Errors LIMIT #{max_count}"
+       count = Database.select_one "SELECT COUNT(*) FROM (SELECT * FROM #{MovexCdc::Application.config.db_user}.Event_Log_Final_Errors LIMIT #{max_count})"
      end
   end
 
