@@ -4,6 +4,7 @@
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 - Alternative Ruby client library for Kafka removed, using only Apache Kafka client library now
 - The number of created change events at initialization is recorded now in activity logs
+- More than 0 error records in table Event_Log_Final_Errors cause healft check to fail now
 
 ## 2025-04-03 1.11.1
 - The default library controlled by KAFKA_CLIENT_LIBRARY is changed to 'java' in the next release. The ruby-kafka library will be removed in a future release.

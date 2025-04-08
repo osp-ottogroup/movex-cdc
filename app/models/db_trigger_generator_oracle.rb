@@ -300,7 +300,7 @@ END #{build_trigger_name(table, operation)};
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, "#{table.schema.name}.#{table.name}.")})" if trigger_config[:condition]
 
     load_sql = "DECLARE\n"
-    load_sql << generate_declare_section(table, operation, :load, trigger_config) # use operation 'i' for event generation
+    load_sql << generate_declare_section(table, operation, :load, trigger_config, addition: "  record_count      PLS_INTEGER := 0;") # use operation 'i' for event generation
     # use current SCN directly after creation of insert trigger if requested
     load_sql << "
 BEGIN
@@ -313,6 +313,7 @@ BEGIN
     trigger_row_section = generate_row_section(table_config, operation.upcase, include_conditions: false)  # generate columns for insert operation (I)
     load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
     load_sql << "
+    record_count := record_count + 1;
   END LOOP;
   Flush;
   INSERT INTO #{MovexCdc::Application.config.db_user}.Activity_Logs(ID, User_ID, Schema_Name, Table_Name, Action, Client_IP, Created_At, Updated_At)
@@ -322,7 +323,7 @@ BEGIN
           '#{table.name}',
           'Initially transferred '||record_count||' records of current table content. Filter = \"#{table.initialization_filter}\"',
           '#{ApplicationController.current_client_ip_info}',
-          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP, /* Time according to client timezone setting */
           CURRENT_TIMESTAMP
   );
   COMMIT;
@@ -348,7 +349,7 @@ END;
   # @param operation: I|U|D
   # @param mode: :body | :load
   # @param trigger_config: config for operation
-  def generate_declare_section(table, operation, mode, trigger_config)
+  def generate_declare_section(table, operation, mode, trigger_config, addition: nil)
     "\
 
 TYPE Payload_Rec_Type IS RECORD (
@@ -359,10 +360,10 @@ TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
 payload_rec       Payload_Rec_Type;
 payload_tab       Payload_Tab_Type;
 tab_size          PLS_INTEGER;
-record_count      PLS_INTEGER := 0;
 dbuser            VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
 transaction_id    VARCHAR2(100) := NULL;
 #{"condition_result  NUMBER;" if mode == :body && separate_condition_sql_needed?(trigger_config[:condition])}
+#{addition}
 
 PROCEDURE Flush IS
 BEGIN
@@ -373,11 +374,10 @@ BEGIN
             '#{operation}',
             dbuser,
             payload_tab(i).Payload,
-            SYSTIMESTAMP,
+            SYSTIMESTAMP, /* time according to system timezone setting of DB */
             payload_tab(i).msg_key,
             transaction_id
     );
-  record_count := record_count + payload_tab.COUNT;
   payload_tab.DELETE;
   #{"COMMIT;" if mode == :load}
 END Flush;
