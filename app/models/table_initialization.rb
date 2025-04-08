@@ -8,6 +8,11 @@ class TableInitialization
     @@instance
   end
 
+  # Add the table into the initialization queue and trigger processing of queue
+  # @param [Integer] table_id ID of the table to be initialized
+  # @param [String] table_name Name of the table to be initialized
+  # @param [String] sql SQL statement to be executed for initialization
+  # @return [void]
   def add_table_initialization(table_id, table_name, sql)
     @init_requests_mutex.synchronize do  @init_requests << {table_id:               table_id,
                                                             table_name:             table_name,

@@ -807,7 +807,7 @@ If the transfer operation fails the bulk size would be reduced (divide & conquer
 If this single processing still fails then the event is marked in Table Event_Logs and suspended for processing for the time defined by ERROR_RETRY_START_DELAY.
 After a number of not successful retries (defined by ERROR_MAX_RETRIES) the erroneous event is moved to table 'Event_Log_Final_Errors'.
 
-Events moved to final error table can be rescheduled by API function: _TODO: mark API function_
+Events moved to final error table can be rescheduled by API function: `/server_control/reprocess_final_errors`
 
 If no further action happens then this event is erased from table 'Event_Log_Final_Errors' by a houskeeping process after FINAL_ERRORS_KEEP_HOURS.
 

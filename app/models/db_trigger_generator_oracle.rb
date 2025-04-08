@@ -315,6 +315,17 @@ BEGIN
     load_sql << "
   END LOOP;
   Flush;
+  INSERT INTO #{MovexCdc::Application.config.db_user}.Activity_Logs(ID, User_ID, Schema_Name, Table_Name, Action, Client_IP, Created_At, Updated_At)
+  VALUES (#{MovexCdc::Application.config.db_user}.Activity_Logs_Seq.NextVal,
+          #{ApplicationController.current_user.id},
+          '#{table.schema.name}',
+          '#{table.name}',
+          'Initially transferred '||record_count||' records of current table content. Filter = \"#{table.initialization_filter}\"',
+          '#{ApplicationController.current_client_ip_info}',
+          CURRENT_TIMESTAMP,
+          CURRENT_TIMESTAMP
+  );
+  COMMIT;
 END;
 "
     @load_sqls << { table_id: table.id, table_name: table.name, sql: load_sql}
@@ -348,6 +359,7 @@ TYPE Payload_Tab_Type IS TABLE OF Payload_Rec_Type INDEX BY PLS_INTEGER;
 payload_rec       Payload_Rec_Type;
 payload_tab       Payload_Tab_Type;
 tab_size          PLS_INTEGER;
+record_count      PLS_INTEGER := 0;
 dbuser            VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
 transaction_id    VARCHAR2(100) := NULL;
 #{"condition_result  NUMBER;" if mode == :body && separate_condition_sql_needed?(trigger_config[:condition])}
@@ -365,6 +377,7 @@ BEGIN
             payload_tab(i).msg_key,
             transaction_id
     );
+  record_count := record_count + payload_tab.COUNT;
   payload_tab.DELETE;
   #{"COMMIT;" if mode == :load}
 END Flush;
