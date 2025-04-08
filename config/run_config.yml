@@ -22,7 +22,7 @@
 # Set max. Java heap size. Default is 75% of available memory
 # JAVA_OPTS:-Xmx2048m
 
-# which client library should be used for Kafka connection (java, ruby, mock)
+# which client library should be used for Kafka connection (java, mock)
 # KAFKA_CLIENT_LIBRARY: java
 
 # Number of messages to process within one bulk operation to kafka
@@ -30,7 +30,6 @@
 
 # Path to CA certificate file in pem format for SASL_SSL or SSL/TLS
 # KAFKA_SSL_CA_CERT: cert.pem
-
 
 # Path to client certificate file in pem format for SSL/TLS
 # KAFKA_SSL_CLIENT_CERT: client_cert.pem

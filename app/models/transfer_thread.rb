@@ -47,7 +47,7 @@ class TransferThread
     @kafka_producer                 = nil                                       # initialized later
     @last_read_events               = 0                                         # number of event_log records read at last read rom event_logs
     @last_scanned_partitions        = 0                                         # number of partitions scanned at last read rom event_logs
-    @concurrent_tx_retry_delay_ms   = 1                                         # Amount of delay before retry at Kafka::ConcurrentTransactionError, increased if not sufficient
+    @concurrent_tx_retry_delay_ms   = 1                                         # Amount of delay before retry at org.apache.kafka.common.errors.ConcurrentTransactionsException, increased if not sufficient
     @kafka_connected                = false                                     # flag to ensure that kafka connection is established
   end
 
@@ -156,7 +156,7 @@ class TransferThread
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in Kafka::InvalidTxnStateError if trying to continue with begin_transaction
+      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
         max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
@@ -378,7 +378,7 @@ class TransferThread
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
   def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
-    # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in Kafka::InvalidTxnStateError
+    # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in InvalidTxnStateError
     @kafka_producer.begin_transaction
     event_logs_slices = event_logs.each_slice(@kafka_producer.max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
     Rails.logger.debug('TransferThread.process_kafka_transaction'){"Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"}
@@ -409,17 +409,17 @@ class TransferThread
     @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
 
     max_concurrent_transaction_error_retries = 1
-    # Kafka::ConcurrentTransactionError is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
+    # org.apache.kafka.common.errors.ConcurrentTransactionsException is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
     if e.class == KafkaBase::ConcurrentTransactionError
       if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
         sleep @concurrent_tx_retry_delay_ms/1000.0
         # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-        Rails.logger.info('TransferThread.process_kafka_transaction'){"Kafka::ConcurrentTransactionError catched. Trying 'process_kafka_transaction' again."}
+        Rails.logger.info('TransferThread.process_kafka_transaction'){"org.apache.kafka.common.errors.ConcurrentTransactionsException catched. Trying 'process_kafka_transaction' again."}
         process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
       else
         Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
         if @concurrent_tx_retry_delay_ms < 1000                                 # Max. 1 second for delay
-          Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from Kafka::ConcurrentTransactionError next time"}
+          Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from org.apache.kafka.common.errors.ConcurrentTransactionsException next time"}
           @concurrent_tx_retry_delay_ms = @concurrent_tx_retry_delay_ms * 10    # Increase ot sufficient value
         end
         raise

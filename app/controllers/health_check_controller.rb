@@ -226,11 +226,26 @@ class HealthCheckController < ApplicationController
       partition_threshold = MovexCdc::Application.config.max_partitions_to_count_as_healthy
       health_data[:event_log_status] = EventLog.health_check_status
       if health_data[:event_log_status][:used_partition_count] && health_data[:event_log_status][:used_partition_count] > partition_threshold
-        health_data[:warnings] << "\n:Partition count (#{health_data[:event_log_status][:used_partition_count]}) exceeds threshold (#{partition_threshold})"
+        health_data[:warnings] << "\nPartition count (#{health_data[:event_log_status][:used_partition_count]}) exceeds threshold (#{partition_threshold})"
       end
     rescue Exception=>e
       ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading event queue states")
       health_data[:warnings] << "\nError reading event queue states: #{e.class}:#{e.message}"
+    end
+
+    # get status of final error queue
+    begin
+      max_count = 2000
+      final_error_count = EventLogFinalError.final_error_count(max_count: max_count)
+      if final_error_count > 0
+        at_least = final_error_count == max_count ? " at least " : ""
+        msg = "\nTable #{MovexCdc::Application.config.db_user}.Event_Log_Final_Errors contains#{at_least}#{final_error_count} records!"
+        msg << "\nExample error messge: #{EventLogFinalError.an_error_message}" if jwt_validated
+        health_data[:warnings] << msg
+      end
+    rescue Exception=>e
+      ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading final error queue state")
+      health_data[:warnings] << "\nError reading final error queue state: #{e.class}:#{e.message}"
     end
 
     pretty_health_data = JSON.pretty_generate(health_data)

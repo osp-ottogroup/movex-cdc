@@ -80,14 +80,23 @@ class KafkaJava < KafkaBase
         record.headers.add(org.apache.kafka.common.header.internals.RecordHeader.new(hkey.to_s, java.lang.String.new(hvalue.to_s).getBytes))
       end
 
-      @kafka_producer.send(record)                                              # Send message to Kafka
+      # This callback method is called asychronously once for each event
+      callback = org.apache.kafka.clients.producer.Callback.impl do |method_name, metadata, exception|
+        if exception
+          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          raise exception
+        end
+      end
+
+      # We are using the asynchronous send method to avoid blocking the producer thread
+      @kafka_producer.send(record, callback)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
       Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
       handle_kafka_server_exception(e)
-      handle_kafka_buffer_overflow(e, message, topic, table) if e.class == Kafka::BufferOverflow
-      # TODO: find corresponding Java exception for Kafka::BufferOverflow
+      # TODO: find corresponding Java exception for Kafka::BufferOverflow and uncomment the following line
+      # handle_kafka_buffer_overflow(e, message, topic, table) if e.class == <Buffer Overflow Exception class>
       raise
     end
 
@@ -152,7 +161,7 @@ class KafkaJava < KafkaBase
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
-            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException # change transactional_id as workaround for Kafka::ConcurrentTransactionError
+            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException # change transactional_id as workaround for ConcurrentTransactionError
               @transactional_id << '-'
               Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional_id = #{@transactional_id}. Possible reason: missing abort_transaction before reuse of transactional_id" }
             end
@@ -170,7 +179,7 @@ class KafkaJava < KafkaBase
     def handle_kafka_server_exception(exception)
       fix_message_size_too_large if exception.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
 
-      if exception.class == Kafka::ConcurrentTransactionError
+      if exception.class == org.apache.kafka.common.errors.ConcurrentTransactionsException
         raise KafkaBase::ConcurrentTransactionError.new(exception.message)              # Use generic error class to avoid dependency on Ruby-Kafka gem
       end
     end

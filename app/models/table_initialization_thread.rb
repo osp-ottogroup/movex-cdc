@@ -29,12 +29,14 @@ class TableInitializationThread
     @db_session_info = Database.db_session_info                                 # Session ID etc., get information from within separate thread
     Database.set_current_session_network_timeout(timeout_seconds: 86400)        # ensure hanging sessions are cancelled at least after one day
     sleep 1                                                                     # prevent from ORA-01466 if @table.raise_if_table_not_readable_by_movex_cdc is executed too quickly
-    @table.raise_if_table_not_readable_by_movex_cdc                                 # Check if flashback query is possible on table
+    @table.raise_if_table_not_readable_by_movex_cdc                             # Check if flashback query is possible on table
     Database.execute @sql
-    ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+    if MovexCdc::Application.config.db_type != 'ORACLE'                         # For Oracle the activity is logged in the load sql including the result count
+      ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+    end
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'TableInitializationThread.process', additional_msg: "Table_ID = #{@table_id}: Terminating thread due to exception")
-    ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}")
+    ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}\nExecuted SQL:\n#{@sql}")
   ensure
     begin
       @table.update!(yn_initialization: 'N')                                    # Mark initialization as finished no matter if succesful or not

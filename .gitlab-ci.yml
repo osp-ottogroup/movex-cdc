@@ -9,6 +9,7 @@ image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.12.0-jdk21
 variables:
   # Should the log output of DB service be shown in the job log?
   CI_DEBUG_SERVICES: "false"
+  LOG_LEVEL: "info"
   RAILS_MAX_THREADS: 100
   KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
@@ -112,7 +113,6 @@ prepare_tests:
   extends: .tests
   variables:
     DB_TYPE: "SQLITE"
-    KAFKA_CLIENT_LIBRARY: java
 
 .tests_ORACLE:
   extends: .tests
@@ -123,13 +123,12 @@ prepare_tests:
     DB_URL: "oracle-db:1521/ORCLPDB1"
     KAFKA_CLIENT_LIBRARY: java
 
-test_sqlite:
-  stage: test
-  extends: .tests_SQLITE
 
 test_sqlite_java:
   stage: test
   extends: .tests_SQLITE
+  variables:
+    KAFKA_CLIENT_LIBRARY: java
 
 # Use mock implementation for Kafka, checks JSON conformity
 test_sqlite_mock:
