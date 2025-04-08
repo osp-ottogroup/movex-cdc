@@ -80,7 +80,16 @@ class KafkaJava < KafkaBase
         record.headers.add(org.apache.kafka.common.header.internals.RecordHeader.new(hkey.to_s, java.lang.String.new(hvalue.to_s).getBytes))
       end
 
-      @kafka_producer.send(record)                                              # Send message to Kafka
+      # This callback method is called asychronously once for each event
+      callback = org.apache.kafka.clients.producer.Callback.impl do |method_name, metadata, exception|
+        if exception
+          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          raise exception
+        end
+      end
+
+      # We are using the asynchronous send method to avoid blocking the producer thread
+      @kafka_producer.send(record, callback)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
