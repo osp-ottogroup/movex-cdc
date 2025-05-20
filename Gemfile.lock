@@ -75,7 +75,7 @@ GEM
     date (3.4.1-java)
     docile (1.4.1)
     erubi (1.13.1)
-    ffi (1.17.1-java)
+    ffi (1.17.2-java)
     globalid (1.2.1)
       activesupport (>= 6.1)
     i18n (1.14.7)
@@ -87,7 +87,8 @@ GEM
     listen (3.0.8)
       rb-fsevent (~> 0.9, >= 0.9.4)
       rb-inotify (~> 0.9, >= 0.9.7)
-    loofah (2.24.0)
+    logger (1.7.0)
+    loofah (2.24.1)
       crass (~> 1.0.2)
       nokogiri (>= 1.12.0)
     mail (2.8.1)
@@ -99,7 +100,7 @@ GEM
     method_source (1.1.0)
     mini_mime (1.1.5)
     minitest (5.25.5)
-    net-imap (0.5.6)
+    net-imap (0.5.8)
       date
       net-protocol
     net-pop (0.1.2)
@@ -109,12 +110,12 @@ GEM
     net-smtp (0.5.1)
       net-protocol
     nio4r (2.7.4-java)
-    nokogiri (1.18.7-java)
+    nokogiri (1.18.8-java)
       racc (~> 1.4)
     puma (6.6.0-java)
       nio4r (~> 2.0)
     racc (1.8.1-java)
-    rack (2.2.13)
+    rack (2.2.15)
     rack-cors (2.0.2)
       rack (>= 2.0.0)
     rack-test (2.2.0)
@@ -161,8 +162,9 @@ GEM
     snappy (0.4.0-java)
       snappy-jars (~> 1.1.0)
     snappy-jars (1.1.0.1.2-java)
-    sprockets (4.2.1)
+    sprockets (4.2.2)
       concurrent-ruby (~> 1.0)
+      logger
       rack (>= 2.2.4, < 4)
     sprockets-rails (3.5.2)
       actionpack (>= 6.1)
@@ -197,7 +199,7 @@ DEPENDENCIES
   tzinfo-data
 
 RUBY VERSION
-   ruby 3.1.4p0 (jruby 9.4.12.0)
+   ruby 3.1.4p0 (jruby 9.4.12.1)
 
 BUNDLED WITH
-   2.6.5
+   2.6.8
