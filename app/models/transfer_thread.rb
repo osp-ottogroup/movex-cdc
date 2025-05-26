@@ -405,12 +405,24 @@ class TransferThread
     @messages_processed_successful += event_logs.count
   rescue Exception => e
     @statistic_counter.rollback_uncommitted_success_increments
-    @kafka_producer.abort_transaction
+    begin
+      @kafka_producer.abort_transaction
+      # Calling abort_transaction will lead to InvalidTxnStateError if called after commit_transaction returned TimeoutException, ajust max.block.ms and retries for producer to prevent this
+      # java.lang.IllegalStateException: Cannot attempt operation `abortTransaction` because the previous call to `commitTransaction` timed out and must be retried
+    rescue java.lang.IllegalStateException => e2
+      if e.class == org.apache.kafka.common.errors.TimeoutException
+        Rails.logger.error('TransferThread.process_kafka_transaction'){"java.lang.IllegalStateException catched at producer.abort_transaction.: #{e2.message}"}
+        Rails.logger.error('TransferThread.process_kafka_transaction'){"This is because abort_transaction was called after a TimeoutException possible from commit_transaction."}
+        Rails.logger.error('TransferThread.process_kafka_transaction'){"In this case it is not clear if commit_transaction succeeded or not (mostly not). Producer must be recreated in that case."}
+      else
+        ExceptionHelper.log_exception(e2, 'TransferThread.process_kafka_transaction', additional_msg: "Calling producer.abort_transaction raised #{e.class}:#{e.message}")
+      end
+    end
     @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
 
     max_concurrent_transaction_error_retries = 1
     # org.apache.kafka.common.errors.ConcurrentTransactionsException is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast
-    if e.class == KafkaBase::ConcurrentTransactionError
+    if e.class == org.apache.kafka.common.errors.ConcurrentTransactionsException
       if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
         sleep @concurrent_tx_retry_delay_ms/1000.0
         # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
@@ -425,7 +437,6 @@ class TransferThread
         raise
       end
     else
-      ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: "Aborting Kafka transaction due to #{e.class}:#{e.message}")
       raise
     end
   end

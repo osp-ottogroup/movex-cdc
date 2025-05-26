@@ -3,6 +3,10 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2025-05-26 1.11.3
+- Docker container becomes unhealthy if regular job cycle is exceeded by factor of 10
+- Jobs are not restarted at massive job execution delay possibly due to out of memory, this should by handled outside the container with restart of container
+- Timeout at commit_transaction may raise IllegalStateException at following abort_transaction, catched now
 ## 2025-05-20 1.11.2
 - Alternative Ruby client library for Kafka removed, using only Apache Kafka client library now
 - The number of created change events at initialization is recorded now in activity logs
