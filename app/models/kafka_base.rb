@@ -2,10 +2,6 @@
 class KafkaBase
   attr_reader :config
 
-  # Error class for Kafka errors independent from used library
-  class ConcurrentTransactionError < Exception
-  end
-
   # Producer class with generic functions independent from used library
   class Producer
     attr_reader :max_message_bulk_count

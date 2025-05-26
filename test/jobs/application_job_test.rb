@@ -14,13 +14,4 @@ class ApplicationJobTest < ActiveJob::TestCase
     end
   end
 
-  test "ensure_job_rescheduling" do
-    dummy_job = DummyJob.new
-    dummy_job.reset_job_warnings(1)
-    sleep 3                                                                     # Age out the last job execution
-    $dummy_job_enqueued = 0
-    ApplicationJob.ensure_job_rescheduling
-    assert_equal(1, $dummy_job_enqueued, log_on_failure("Job should have been enqueued"))
-  end
-
 end

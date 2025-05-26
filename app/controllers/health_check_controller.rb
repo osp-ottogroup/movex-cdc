@@ -209,13 +209,8 @@ class HealthCheckController < ApplicationController
 
     # get health status of last job executions
     begin
-      health_data[:warnings] << ApplicationJob.last_job_warnings(SystemValidationJob)
-      health_data[:warnings] << ApplicationJob.last_job_warnings(HourlyJob)
-      health_data[:warnings] << ApplicationJob.last_job_warnings(DailyJob)
+      health_data[:warnings] << ApplicationJob.last_job_warnings
       health_data[:job_info] = ApplicationJob.job_infos
-      # Sometimes at OutOfMemory conditions jobs are not restarted and remain inactive for the future
-      # Housekeeping executed by Docker container can repair this seldom scenario
-      ApplicationJob.ensure_job_rescheduling
     rescue Exception=>e
       ExceptionHelper.log_exception(e, 'HealthCheckController.health_check_content', additional_msg: "Error reading job states")
       health_data[:warnings] << "\nError reading job states: #{e.class}:#{e.message}"

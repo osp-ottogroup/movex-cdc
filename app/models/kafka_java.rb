@@ -178,10 +178,6 @@ class KafkaJava < KafkaBase
     # @param caller [String] Name of the calling method
     def handle_kafka_server_exception(exception)
       fix_message_size_too_large if exception.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
-
-      if exception.class == org.apache.kafka.common.errors.ConcurrentTransactionsException
-        raise KafkaBase::ConcurrentTransactionError.new(exception.message)              # Use generic error class to avoid dependency on Ruby-Kafka gem
-      end
     end
   end # class Producer
 
