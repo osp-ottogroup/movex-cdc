@@ -116,7 +116,7 @@ class KafkaJava < KafkaBase
     def shutdown
       Rails.logger.info('KafkaJava::Producer.shutdown') { "Shutdown the Kafka producer" }
       # Reaching the timeout will reject all pending messages and abort open transaction if broker is available
-      @kafka_producer&.close(Java::Time::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
+      @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
     end
 
     private
