@@ -5,7 +5,7 @@
 
 ## 2025-05-27 1.11.4
 - Check for 90% limit at use of Java heap memory in health check
-- Update Kafka client lib to 3.9.1
+- Update Kafka client lib to 3.9.1 and log4j to 2.24.3
 - Reduce the number of producer retries from 5 to 1 because divide & conquer does the same job
 - Adjust also log4j log level at runtime changes of log level
 
