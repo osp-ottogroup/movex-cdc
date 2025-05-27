@@ -3,7 +3,14 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
-## 2025-05-26 1.11.3
+## 2025-05-27 1.11.4
+- Check for 90% limit at use of Java heap memory in health check
+- Update Kafka client lib to 3.9.1 and log4j to 2.24.3
+- Reduce the number of producer retries from 5 to 1 because divide & conquer does the same job
+- Replace infinite wait for producer.close if Kafka broker is not available with defined timeout specified by KAFKA_PRODUCER_TIMEOUT
+- Adjust also log4j log level at runtime changes of log level
+
+## 2025-05-26 1.11.
 - Docker container becomes unhealthy if regular job cycle is exceeded by factor of 10
 - Jobs are not restarted at massive job execution delay possibly due to out of memory, this should by handled outside the container with restart of container
 - Timeout at commit_transaction may raise IllegalStateException at following abort_transaction, catched now

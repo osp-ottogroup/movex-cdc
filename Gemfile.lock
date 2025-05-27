@@ -115,7 +115,7 @@ GEM
     puma (6.6.0-java)
       nio4r (~> 2.0)
     racc (1.8.1-java)
-    rack (2.2.15)
+    rack (2.2.16)
     rack-cors (2.0.2)
       rack (>= 2.0.0)
     rack-test (2.2.0)
@@ -135,7 +135,7 @@ GEM
       bundler (>= 1.15.0)
       railties (= 6.1.7.10)
       sprockets-rails (>= 2.0.0)
-    rails-dom-testing (2.2.0)
+    rails-dom-testing (2.3.0)
       activesupport (>= 5.0.0)
       minitest
       nokogiri (>= 1.6)
@@ -176,7 +176,7 @@ GEM
       concurrent-ruby (~> 1.0)
     tzinfo-data (1.2025.2)
       tzinfo (>= 1.0.0)
-    websocket-driver (0.7.7-java)
+    websocket-driver (0.8.0-java)
       base64
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.5)
@@ -202,4 +202,4 @@ RUBY VERSION
    ruby 3.1.4p0 (jruby 9.4.12.1)
 
 BUNDLED WITH
-   2.6.8
+   2.6.9

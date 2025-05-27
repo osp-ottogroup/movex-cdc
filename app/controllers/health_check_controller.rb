@@ -101,8 +101,14 @@ class HealthCheckController < ApplicationController
 
     begin
       if memory_info_hash[:available_memory][:value] / memory_info_hash[:total_memory][:value] < 0.1
-        health_data[:warnings] << "\nAvailable memory is less than 10% of total memory! Risk of getting out of memory exists."
+        health_data[:warnings] << "\nAvailable memory (#{memory_info_hash[:available_memory][:value]} G) is less than 10% of total memory (#{memory_info_hash[:total_memory][:value]} G)! Risk of getting out of memory exists."
         health_data[:warnings] << "\nIncrease the memory for container or reduce either:"
+        health_data[:warnings] << "\n- the number of threads (INITIAL_WORKER_THREADS)"
+        health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (MAX_TRANSACTION_SIZE) "
+      end
+      if memory_info_hash[:used_java_heap][:value] / memory_info_hash[:maximum_java_heap][:value] > 0.9
+        health_data[:warnings] << "\nUsed Java heap size (#{memory_info_hash[:used_java_heap][:value]} G) exceededs more than 90% of maximum java heap size (#{memory_info_hash[:maximum_java_heap][:value]} G)! Risk of getting out of memory in Java exists."
+        health_data[:warnings] << "\nIncrease the setting for JAVAOPTS e.g. to '-Xmx3072m' or reduce either:"
         health_data[:warnings] << "\n- the number of threads (INITIAL_WORKER_THREADS)"
         health_data[:warnings] << "\n- the number of simultaneously processed records per transaction (MAX_TRANSACTION_SIZE) "
       end
