@@ -126,7 +126,7 @@ Interval partitioning of table Event_Logs is used in this case which ensures aut
 MOVEX CDC also works without partitioning,
 but in this case there are some disadvantages:
 
-- Peak usage increases high water mark in table Event_Logs, the claimed space is not freed after processing
+- Peak usage increases high water mark in table Event_Logs, the claimed space in tablespace is not freed after processing
 - Because read access with full table scan is not suitable in this case due to the unpredictable size of the table, an index on column ID is placed for the non-partitioned table Event_Logs
 - This index ensures processing troughput, but a tiny risk is remaining for wait szenarios at index block split operation under heavy concurrent transactions that are executing MOVEX CDC's triggers.
 

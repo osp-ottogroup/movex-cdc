@@ -21,7 +21,8 @@ class ServerControlController < ApplicationController
 
       # Set log level for log4j, ignore Exception if log4j is not available
       begin
-        Java::OrgApacheLoggingLog4j::LogManager.getRootLogger.setLevel(eval("Java::OrgApacheLoggingLog4j::Level::#{level}"))
+        java_level = eval("Java::OrgApacheLoggingLog4j::Level::#{level}")
+        Java::OrgApacheLoggingLog4jCoreConfig::Configurator.setRootLevel(java_level);
       rescue Exception => e
         Rails.logger.warn "ServerControl.set_log_level: log4j not available, ignoring setting log level for log4j. Exception: #{e.class}:#{e.message}"
       end

@@ -64,7 +64,6 @@ class KafkaJava < KafkaBase
     def clear_buffer
     end
 
-
     # Create a single Kafka message
     # @param [String] message Message to send
     # @param [Table] table Table object of the message
@@ -116,7 +115,8 @@ class KafkaJava < KafkaBase
 
     def shutdown
       Rails.logger.info('KafkaJava::Producer.shutdown') { "Shutdown the Kafka producer" }
-      @kafka_producer&.close                                                    # free kafka connections if != nil
+      # Reaching the timeout will reject all pending messages and abort open transaction if broker is available
+      @kafka_producer&.close(Java::Time::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
     end
 
     private
@@ -134,7 +134,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
           producer_properties.put('key.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
           producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          producer_properties.put('retries',              java.lang.Integer.new(5))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
+          producer_properties.put('retries',              java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
           # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
           producer_properties.put('linger.ms',              java.lang.Integer.new(10))  # Number of m to wait for more messages before sending a batch
           # TODO: create config entry for linger.ms or adjust dynamically
@@ -153,15 +153,15 @@ class KafkaJava < KafkaBase
           @kafka_producer = org.apache.kafka.clients.producer.KafkaProducer.new(producer_properties)
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"calling kafka_producer.init_transactions"}
-          @kafka_producer.init_transactions                                        # Should be called once before starting transactions
-          init_transactions_successfull = true                                    # no exception raise
+          @kafka_producer.init_transactions                                     # Should be called once before starting transactions
+          init_transactions_successfull = true                                  # no exception raise
         rescue Exception => e
-          @kafka_producer&.close                                                # clear existing producer
+          shutdown                                                              # clear existing producer
           ExceptionHelper.log_exception(e, 'KafkaJava.create_kafka_producer', additional_msg: "Producer properties = #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}\nRetry count = #{init_transactions_retry_count}")
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
-            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException # change transactional_id as workaround for ConcurrentTransactionError
+            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException    # change transactional_id as workaround for ConcurrentTransactionError
               @transactional_id << '-'
               Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional_id = #{@transactional_id}. Possible reason: missing abort_transaction before reuse of transactional_id" }
             end

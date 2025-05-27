@@ -1,4 +1,9 @@
 # Kafka libs
+Download binary from https://kafka.apache.org/downloads
+
+## Used releases
+2024-01-01 Kafka 3.7.0
+2025-05-27 Kafka 3.9.1
 
 ## Used libs
 
