@@ -17,7 +17,7 @@ class StatisticCounterConcentrator
     start_wait = nil
     if @values_mutex.locked?
       start_wait = Time.now
-      ExceptionHelper.warn_with_backtrace 'StatisticCounterConcentrator.cumulate', "Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed."
+      Rails.logger.info('StatisticCounterConcentrator.cumulate'){ "Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." }
     end
     @values_mutex.synchronize do
       values_hash.each do |table_id, operations|
@@ -32,7 +32,13 @@ class StatisticCounterConcentrator
       end
     end
     unless start_wait.nil?
-      Rails.logger.warn('StatisticCounterConcentrator.cumulate'){ "Waited #{Time.now - start_wait} seconds to get, hold and free Mutex @values_mutex" }
+      waited_seconds = Time.now - start_wait
+      msg = "Waited #{waited_seconds} seconds to get, hold and free Mutex @values_mutex"
+      if waited_seconds > 1
+        Rails.logger.warn('StatisticCounterConcentrator.cumulate'){ msg }
+      else
+        Rails.logger.info('StatisticCounterConcentrator.cumulate'){ msg }
+      end
     end
   end
 

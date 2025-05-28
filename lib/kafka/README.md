@@ -15,7 +15,8 @@ Download binary from https://kafka.apache.org/downloads
 | log4j-slf4j-impl-x.x.x.jar | The SLF4J binding for Log4j 2
 | slf4j-api-x.x.x.jar        | The SLF4J API
 | lz4-java-x,x.x.jar         | The LZ4 compression library
-| snappy-java-x.x.x.jar      | The Snappy compression library        
+| snappy-java-x.x.x.jar      | The Snappy compression library   
+| zstd-jni-x.x.x.jar         | The zstd compression library
 - 
 
 ## Configure log4j
