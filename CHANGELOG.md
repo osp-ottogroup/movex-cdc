@@ -3,6 +3,9 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2025-05-28 1.11.5
+- Separate library for zstd compression added
+
 ## 2025-05-27 1.11.4
 - Check for 90% limit at use of Java heap memory in health check
 - Update Kafka client lib to 3.9.1 and log4j to 2.24.3
