@@ -108,7 +108,7 @@ class KafkaJava < KafkaBase
     # Cancel previous producer and recreate again
 
     def reset_kafka_producer
-      Rails.logger.warn('KafkaJava::Producer.reset_kafka_producer') { "Resetting the Kafka producer suspended to clarify if really needed" }
+      Rails.logger.warn('KafkaJava::Producer.reset_kafka_producer') { "Resetting the Kafka producer (close the current producer + create a new producer" }
       shutdown                                                                  # free kafka connections of current producer if != nil
       create_kafka_producer                                                     # get fresh producer
     end
