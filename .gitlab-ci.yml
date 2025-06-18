@@ -488,7 +488,7 @@ final_tag_docker:
         $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
         $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:$TAG_NAME
         $PODMAN push $DOCKER_IMAGE_NAME:$TAG_NAME
-        LATEST_PROD_BRANCH=prod_`curl -s https://gitlab.com/api/v4/projects/osp-silver%2Foss%2Fmovex-cdc/repository/branches | \
+        LATEST_PROD_BRANCH=prod_`curl -s "https://gitlab.com/api/v4/projects/osp-silver%2Foss%2Fmovex-cdc/repository/branches?page=1&per_page=10000" | \
           jq '.[] | .name' | \
           grep 'prod_' | \
           sed 's/prod_//' | \
