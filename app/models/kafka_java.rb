@@ -409,7 +409,7 @@ class KafkaJava < KafkaBase
       'PLAINTEXT'       => ['bootstrap.servers'],
       'SASL_PLAINTEXT'  => ['bootstrap.servers', 'sasl.jaas.config'],
       'SASL_SSL'        => ['bootstrap.servers', 'sasl.jaas.config'],
-      'SSL'             => ['bootstrap.servers', 'ssl.key.password']
+      'SSL'             => ['bootstrap.servers']
     }
 
     notneeded_properties = {
