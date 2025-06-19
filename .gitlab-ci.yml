@@ -20,12 +20,11 @@ variables:
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
   - code_analysis
-  # - test
+  - test
   - pre_build
   - build
   - post_build
   - deploy
-  - test
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
@@ -374,11 +373,22 @@ trivy_scan:
         echo "Access to port 8080 after $LOOPS seconds"
       fi
     - |
-      retval=0
-      curl -L http://localhost:8080/health_check/ > health_check_result.log 
-      grep '"warnings": "",' health_check_result.log || retval=$?
-      if [ $retval -ne 0 ]; then        
-        echo "healthcheck warnings are not empty! Details follow:"
+      # Check healthcheck endpoint for warnings, retry up to x seconds if warnings are present
+      MAX_WAIT=20
+      typeset -i LOOPS=0
+      while [ $LOOPS -lt $MAX_WAIT ]; do
+        retval=0
+        curl -L http://localhost:8080/health_check/ > health_check_result.log 
+        grep '"warnings": "",' health_check_result.log || retval=$?
+        if [ $retval -eq 0 ]; then
+          break
+        fi
+        LOOPS=LOOPS+1
+        echo -n .
+        sleep 1
+      done
+      if [ $LOOPS -eq $MAX_WAIT ]; then
+        echo "healthcheck warnings are not empty after $LOOPS seconds! Details follow:"
         # Wait for possible max.block.ms to reach at init_transactions to have the error in log output
         sleep 6
         cat health_check_result.log
