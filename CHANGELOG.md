@@ -3,6 +3,9 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2025-06-19 1.11.6
+- Support for SSL connection without client authentication (keystore) added
+
 ## 2025-05-28 1.11.5
 - Separate library for zstd compression added
 

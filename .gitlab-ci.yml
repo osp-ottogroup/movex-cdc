@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.12.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.13.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
@@ -373,11 +373,22 @@ trivy_scan:
         echo "Access to port 8080 after $LOOPS seconds"
       fi
     - |
-      retval=0
-      curl -L http://localhost:8080/health_check/ > health_check_result.log 
-      grep '"warnings": "",' health_check_result.log || retval=$?
-      if [ $retval -ne 0 ]; then        
-        echo "healthcheck warnings are not empty! Details follow:"
+      # Check healthcheck endpoint for warnings, retry up to x seconds if warnings are present
+      MAX_WAIT=20
+      typeset -i LOOPS=0
+      while [ $LOOPS -lt $MAX_WAIT ]; do
+        retval=0
+        curl -L http://localhost:8080/health_check/ > health_check_result.log 
+        grep '"warnings": "",' health_check_result.log || retval=$?
+        if [ $retval -eq 0 ]; then
+          break
+        fi
+        LOOPS=LOOPS+1
+        echo -n .
+        sleep 1
+      done
+      if [ $LOOPS -eq $MAX_WAIT ]; then
+        echo "healthcheck warnings are not empty after $LOOPS seconds! Details follow:"
         # Wait for possible max.block.ms to reach at init_transactions to have the error in log output
         sleep 6
         cat health_check_result.log
@@ -421,6 +432,20 @@ docker_test_19.10_SSL:
   variables:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
+    DB_URL: "oracle-db:1521/ORCLPDB1"
+
+# SSL without keystore file, so no client authentication
+docker_test_19.10_SSL_NO_KEYSTORE:
+  stage: post_build
+  extends: .docker_test
+  services:
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
+      alias: oracle-db
+  variables:
+    KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
+    SECURITY_PROTOCOL: SSL
+    INITIAL_WORKER_THREADS: 1
+    NO_KEYSTORE_FILE: "true"
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
 docker_test_19.10_SASL_PLAINTEXT:
@@ -488,7 +513,7 @@ final_tag_docker:
         $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
         $PODMAN tag $TEMP_DOCKER_IMAGE $DOCKER_IMAGE_NAME:$TAG_NAME
         $PODMAN push $DOCKER_IMAGE_NAME:$TAG_NAME
-        LATEST_PROD_BRANCH=prod_`curl -s https://gitlab.com/api/v4/projects/osp-silver%2Foss%2Fmovex-cdc/repository/branches | \
+        LATEST_PROD_BRANCH=prod_`curl -s "https://gitlab.com/api/v4/projects/osp-silver%2Foss%2Fmovex-cdc/repository/branches?page=1&per_page=10000" | \
           jq '.[] | .name' | \
           grep 'prod_' | \
           sed 's/prod_//' | \

@@ -46,47 +46,61 @@ elif [[ "$SECURITY_PROTOCOL" == "SSL" || "$SECURITY_PROTOCOL" == "SASL_SSL" ]]; 
   echo "Configure SSL settings"
   # remove old ssl files if they exist
   rm -f $CLIENT_KEYSTOREFILE $SERVER_KEYSTOREFILE $CLIENT_TRUSTSTOREFILE $SERVER_TRUSTSTOREFILE
+
+  # Create your own CA (certificate authority)
+  openssl req -new -x509 -keyout ca-key -out ca-cert -days 10000 -subj "/C=DE/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name" -passin pass:hugo01 -passout pass:hugo01
+
+  # Add the generated CA to the clients’ trust store so that the clients can trust this CA.
+  keytool -keystore $SERVER_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+  keytool -keystore $CLIENT_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+
   # Generate keystore with certificate
   # user KAFKA_HOST as primary name for the certificate (CN) and the IP as alternative name (SAN)
   # -ext SAN=DNS:$KAFKA_HOST,IP:$KAFKA_HOST_IP did not work if IP is used for seed broker
   keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 \
     -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
-  # Disable hostname verification
-  echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
-  # Create your own CA (certificate authority)
-  openssl req -new -x509 -keyout ca-key -out ca-cert -days 10000 -subj "/C=DE/ST=State/L=City/O=Organization/OU=Organizational Unit/CN=Common Name" -passin pass:hugo01 -passout pass:hugo01
-  # Add the generated CA to the clients’ trust store so that the clients can trust this CA.
-  keytool -keystore $SERVER_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
-  keytool -keystore $CLIENT_TRUSTSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+
   # Sign all certificates in the keystore with the CA generated.
   keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
+
   # Sign it with CA
   openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
   # Import both the certificates of the CA and the signed certificate into the keystore
   keytool -keystore $SERVER_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
   keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
 
-  # Create client keystore and import both certificates of the CA and signed certificates to client keystore. These client certificates will be used in application properties.
-  keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 \
-    -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
-  keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
-  openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
-  keytool -keystore $CLIENT_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
-  keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
-
   echo "ssl.keystore.location=$SERVER_KEYSTOREFILE"                               >> $SERVER_PROPERTIES
   echo "ssl.keystore.password=hugo01"                                             >> $SERVER_PROPERTIES
   echo "ssl.key.password=hugo01"                                                  >> $SERVER_PROPERTIES
+
+  if [ -z "$NO_KEYSTORE_FILE" ]; then
+
+    # Create client keystore and import both certificates of the CA and signed certificates to client keystore. These client certificates will be used in application properties.
+    keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -validity 365 -genkey -keyalg RSA -storetype pkcs12 \
+      -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01
+    keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -certreq -file cert-file -storepass hugo01
+    openssl x509 -req -CA ca-cert -CAkey ca-key -in cert-file -out cert-signed -days 365 -CAcreateserial -passin pass:hugo01
+    keytool -keystore $CLIENT_KEYSTOREFILE -alias CARoot -import -file ca-cert -storepass hugo01 -noprompt
+    keytool -keystore $CLIENT_KEYSTOREFILE -alias localhost -import -file cert-signed -storepass hugo01 -noprompt
+
+    echo "ssl.keystore.location=$CLIENT_KEYSTOREFILE"                               >> $CLIENT_PROPERTIES
+    echo "ssl.keystore.password=hugo01"                                             >> $CLIENT_PROPERTIES
+    echo "ssl.key.password=hugo01"                                                  >> $CLIENT_PROPERTIES
+
+    echo "ssl.client.auth=required"                                                 >> $SERVER_PROPERTIES
+  else
+    echo "NO_KEYSTORE_FILE = $NO_KEYSTORE_FILE, skipping client keystore generation "
+    echo "ssl.client.auth=none"                                                     >> $SERVER_PROPERTIES
+  fi
+
+  # Disable hostname verification
+  echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
+
   echo "ssl.truststore.location=$SERVER_TRUSTSTOREFILE"                           >> $SERVER_PROPERTIES
   echo "ssl.truststore.password=hugo01"                                           >> $SERVER_PROPERTIES
-  echo "ssl.client.auth=required"                                                 >> $SERVER_PROPERTIES
 
-  echo "Build client properties"
   echo "ssl.truststore.location=$CLIENT_TRUSTSTOREFILE"                            >> $CLIENT_PROPERTIES
   echo "ssl.truststore.password=hugo01"                                            >> $CLIENT_PROPERTIES
-  echo "ssl.keystore.location=$CLIENT_KEYSTOREFILE"                                >> $CLIENT_PROPERTIES
-  echo "ssl.keystore.password=hugo01"                                              >> $CLIENT_PROPERTIES
-  echo "ssl.key.password=hugo01"                                                   >> $CLIENT_PROPERTIES
 elif [[ "$SECURITY_PROTOCOL" == "SASL_PLAINTEXT" ]]; then
   true
 else

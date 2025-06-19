@@ -73,7 +73,17 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
         fetch_size = 100
       end
       cursor.get_raw_statement.setFetchSize(fetch_size)
-      cursor.exec
+      begin
+        cursor.exec
+      rescue Exception => e
+        if e.message['ORA-00054']                                               # ORA-00054: resource busy and acquire with NOWAIT specified or timeout expired
+          Rails.logger.warn('DatabaseOracle.select_all_limit'){ "Exception #{e.class}:'#{e.message}' suppressed for SQL. Waiting shortly and try again:\n#{sql}." }
+          sleep 1
+          cursor.exec                                                           # Try again after waiting 1 second, until possible DROP PARTITION or similar operation has finished
+        else
+          raise
+        end
+      end
 
       columns = cursor.get_col_names.map do |col_name|
         # @connection.oracle_downcase(col_name)                               # Rails 5-Variante

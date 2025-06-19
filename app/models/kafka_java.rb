@@ -363,7 +363,7 @@ class KafkaJava < KafkaBase
       set_ssl_encryption_properties(props, file_props)
     when 'SSL' then
       set_ssl_encryption_properties(props, file_props)
-      set_ssl_authentication_properties(props, file_props)
+      set_ssl_authentication_properties(props, file_props)                      # optional SSL authentication properties
     else
       raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL."
     end
@@ -375,6 +375,8 @@ class KafkaJava < KafkaBase
 
     java_props = java.util.Properties.new
     props.each do |key, value|
+      raise "KafkaJava.connect_properties: props.key '#{key}' is not a String or Symbol" unless key.is_a?(String) || key.is_a?(Symbol)
+      raise "KafkaJava.connect_properties: props.value of key '#{key}': '#{value}' is not a String or Symbol" unless value.is_a?(String) || value.is_a?(Symbol)
       java_props.put(java.lang.String.new(key.to_s), java.lang.String.new(value))                                           # Convert possible Ruby symbols to strings for Java keys
     end
     Rails.logger.debug('KafkaJava.connect_properties') { "properties = #{ExceptionHelper.mask_passwords_in_hash(java_props)}" }
@@ -409,7 +411,7 @@ class KafkaJava < KafkaBase
       'PLAINTEXT'       => ['bootstrap.servers'],
       'SASL_PLAINTEXT'  => ['bootstrap.servers', 'sasl.jaas.config'],
       'SASL_SSL'        => ['bootstrap.servers', 'sasl.jaas.config'],
-      'SSL'             => ['bootstrap.servers', 'ssl.key.password']
+      'SSL'             => ['bootstrap.servers']
     }
 
     notneeded_properties = {
@@ -566,20 +568,21 @@ class KafkaJava < KafkaBase
     end
   end
 
-  # Set SSL authentication properties for Kafka
+  # Set SSL authentication properties for Kafka, must not be dined in case of "ssl.client.auth=none" in server.properties of Kafka
   # @param [Hash] properties object to be enriched
   # @param [Hash] file_props properties read from properties file
   # @return [void]
   def set_ssl_authentication_properties(properties, file_props)
-    if MovexCdc::Application.config.kafka_ssl_keystore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
-      properties['ssl.keystore.type'] =               MovexCdc::Application.config.kafka_ssl_keystore_type unless file_props[:'ssl.keystore.type']
-      properties['ssl.keystore.certificate.chain'] =  File.read(MovexCdc::Application.config.kafka_ssl_client_cert_chain)  if MovexCdc::Application.config.kafka_ssl_client_cert_chain
-      properties['ssl.keystore.key'] =                File.read(MovexCdc::Application.config.kafka_ssl_client_cert_key)    if MovexCdc::Application.config.kafka_ssl_client_cert_key
-      properties[ssl.key.password] =                  MovexCdc::Application.config.kafka_ssl_key_password                  if MovexCdc::Application.config.kafka_ssl_key_password
+    config = MovexCdc::Application.config
+    if config.kafka_ssl_keystore_type == 'PEM' || properties[:'ssl.keystore.type'] == 'PEM'
+      properties['ssl.keystore.type'] =               config.kafka_ssl_keystore_type if config.kafka_ssl_keystore_type && !file_props[:'ssl.keystore.type']
+      properties['ssl.keystore.certificate.chain'] =  File.read(config.kafka_ssl_client_cert_chain)  if config.kafka_ssl_client_cert_chain
+      properties['ssl.keystore.key'] =                File.read(config.kafka_ssl_client_cert_key)    if config.kafka_ssl_client_cert_key
+      properties[ssl.key.password] =                  config.kafka_ssl_key_password                  if config.kafka_ssl_key_password
     else # JKS
-      properties['ssl.keystore.location'] = MovexCdc::Application.config.kafka_ssl_keystore_location unless file_props[:'ssl.keystore.location']
-      properties['ssl.keystore.password'] = MovexCdc::Application.config.kafka_ssl_keystore_password unless file_props[:'ssl.keystore.password']
-      properties['ssl.key.password'] =      MovexCdc::Application.config.kafka_ssl_key_password      unless file_props[:'ssl.key.password'] # The password of the private key in the key store file. This is optional for client.
+      properties['ssl.keystore.location'] = config.kafka_ssl_keystore_location if config.kafka_ssl_keystore_location && !file_props[:'ssl.keystore.location']
+      properties['ssl.keystore.password'] = config.kafka_ssl_keystore_password if config.kafka_ssl_keystore_password && !file_props[:'ssl.keystore.password']
+      properties['ssl.key.password']      = config.kafka_ssl_key_password      if config.kafka_ssl_key_password      && !file_props[:'ssl.key.password'] # The password of the private key in the key store file. This is optional for client.
     end
   end
 

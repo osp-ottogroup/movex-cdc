@@ -7,7 +7,7 @@
 #   docker pull eclipse-temurin:21
 #   docker pull oraclelinux:8-slim
 # add --no-cache to build without cache
-# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.12.0-jdk21 .
+# Build image:      > docker build -f Dockerfile-kafka-jruby-oracle -t registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.13.0-jdk21 .
 
 # base image to build a JRE
 FROM eclipse-temurin:21 as openjdk
@@ -25,7 +25,7 @@ RUN $JAVA_HOME/bin/jlink \
 FROM oraclelinux:8-slim
 
 MAINTAINER Peter.Ramm@ottogroup.com
-ARG JRUBY_VERSION=9.4.12.0
+ARG JRUBY_VERSION=9.4.13.0
 # Kafka 3.5.0 has problems with transactions in a single broker setup
 ARG KAFKA_VERSION=3.7.2
 ARG SCALA_VERSION=2.13
