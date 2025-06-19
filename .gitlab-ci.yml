@@ -25,6 +25,7 @@ stages:
   - build
   - post_build
   - deploy
+  - test
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
