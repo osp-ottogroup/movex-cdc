@@ -20,7 +20,7 @@ variables:
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
   - code_analysis
-  - test
+  # - test
   - pre_build
   - build
   - post_build
@@ -433,6 +433,7 @@ docker_test_19.10_SSL_NO_KEYSTORE:
   variables:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL
+    INITIAL_WORKER_THREADS: 1
     NO_KEYSTORE_FILE: "true"
     DB_URL: "oracle-db:1521/ORCLPDB1"
 

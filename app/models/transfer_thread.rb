@@ -61,6 +61,7 @@ class TransferThread
     @thread = Thread.current
 
     @kafka_producer = KafkaBase.create.create_producer(transactional_id: @transactional_id)
+    Rails.logger.debug('TransferThread.process'){"Kafka producer created with transactional_id = #{@transactional_id}, marking @kafka_connected = true "}
     @kafka_connected = true                                                     # flag to ensure that kafka connection is established, otherwise exception is raised by create_producer
 
     # Loop for ever, check cancel criteria in ThreadHandling
