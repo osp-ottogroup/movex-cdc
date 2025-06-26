@@ -191,6 +191,18 @@ do
     done
   fi
 
+  if [ -f $SERVER_PROPERTIES ]; then
+    echo "Content if server properties file $SERVER_PROPERTIES:"
+    cat $SERVER_PROPERTIES
+    echo ""
+  fi
+
+  if [ -f $CLIENT_PROPERTIES ]; then
+    echo "Content if client properties file $CLIENT_PROPERTIES:"
+    cat $CLIENT_PROPERTIES
+    echo ""
+  fi
+
   LOOP_COUNT=$LOOP_COUNT+1
   if [ $LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
     echo ""
