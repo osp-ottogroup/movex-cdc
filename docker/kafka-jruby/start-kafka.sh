@@ -191,17 +191,18 @@ do
     done
   fi
 
-  if [ -f $SERVER_PROPERTIES ]; then
-    echo "Content if server properties file $SERVER_PROPERTIES:"
-    cat $SERVER_PROPERTIES
-    echo ""
-  else
-    echo "No server properties file $SERVER_PROPERTIES found, cannot show content"
-  fi
+  # if [ -f $SERVER_PROPERTIES ]; then
+  #   echo "Content of server properties file $SERVER_PROPERTIES:"
+  #   cat $SERVER_PROPERTIES
+  #   echo ""
+  # else
+  #   echo "No server properties file $SERVER_PROPERTIES found, cannot show content"
+  # fi
 
   if [ -f $CLIENT_PROPERTIES ]; then
-    echo "Content if client properties file $CLIENT_PROPERTIES:"
+    echo "Content of client properties file $CLIENT_PROPERTIES:"
     cat $CLIENT_PROPERTIES
+    echo ""
     echo ""
   else
     echo "No client properties file $CLIENT_PROPERTIES found, cannot show content"

@@ -1,7 +1,5 @@
 require 'json'
 
-EXISTING_TOPICS = ['Topic1', 'Topic2']
-
 class KafkaMock < KafkaBase
   class Producer < KafkaBase::Producer
     # Create producer instance
@@ -104,7 +102,21 @@ class KafkaMock < KafkaBase
 
   # @return [Array] List of Kafka topic names
   def topics
-    EXISTING_TOPICS.sort
+    if !defined?(@topics) || @topics.nil?
+      # Two default topics for testing
+      topics = ['Topic1', 'Topic2']
+      Schema.all.each do |schema|
+        topics << schema.topic unless schema.topic.nil?
+      end
+      Table.all.each do |table|
+        topics << table.topic unless table.topic.nil?
+      end
+
+      topics.delete('Non-existing topic')                                       # Should raise error in test if used
+
+      @topics = topics.uniq.sort
+    end
+    @topics
   end
 
   # @param topic [String] Kafka topic name to check for existence
@@ -124,7 +136,7 @@ class KafkaMock < KafkaBase
   # @param topic [String] Kafka topic name to describe with all attributes
   # @return [Hash] Description of the Kafka topic
   def describe_topic_complete(topic)
-    if EXISTING_TOPICS.include? topic
+    if topics.include? topic
       {
         partitions: 2,
         replicas: 2,
@@ -179,7 +191,7 @@ class KafkaMock < KafkaBase
   end
 
   def partitions_for(topic)
-    if EXISTING_TOPICS.include? topic
+    if topics.include? topic
       2
     else
       raise "Not existing topic '#{topic}'"
@@ -187,7 +199,7 @@ class KafkaMock < KafkaBase
   end
 
   def replica_count_for(topic)
-    if EXISTING_TOPICS.include? topic
+    if topics.include? topic
       1
     else
       raise "Not existing topic '#{topic}'"
@@ -195,7 +207,7 @@ class KafkaMock < KafkaBase
   end
 
   def last_offsets_for(topic)
-    if EXISTING_TOPICS.include? topic
+    if topics.include? topic
       { topic => {'0': 5, '1': 8} }
     else
       raise "Not existing topic '#{topic}'"
