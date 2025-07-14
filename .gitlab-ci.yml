@@ -378,7 +378,7 @@ trivy_scan:
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         retval=0
-        curl -L http://localhost:8080/health_check/ > health_check_result.log 
+        curl -s -L http://localhost:8080/health_check/ > health_check_result.log 
         grep '"warnings": "",' health_check_result.log || retval=$?
         if [ $retval -eq 0 ]; then
           break

@@ -199,6 +199,7 @@ do
   #   echo "No server properties file $SERVER_PROPERTIES found, cannot show content"
   # fi
 
+  echo ""
   if [ -f $CLIENT_PROPERTIES ]; then
     echo "Content of client properties file $CLIENT_PROPERTIES:"
     cat $CLIENT_PROPERTIES
