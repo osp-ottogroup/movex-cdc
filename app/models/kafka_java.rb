@@ -349,23 +349,17 @@ class KafkaJava < KafkaBase
     security_protocol = define_security_protocol(file_props)
     props['security.protocol'] = security_protocol                              # Ensure that security.protocol is set even if not in file
 
-    case security_protocol
-    when nil then
-      raise "Missing value for KAFKA_SECURITY_PROTOCOL. Please set this environment variable or define it in the properties file."
-    when 'PLAINTEXT' then
+    raise "Missing value for KAFKA_SECURITY_PROTOCOL. Please set this environment variable or define it in the properties file." if security_protocol.nil? || security_protocol.empty?
+    raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL." unless ['PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'].include?(security_protocol)
 
-    when 'SASL_PLAINTEXT' then
+    if ['SASL_PLAINTEXT', 'SASL_SSL'].include?(security_protocol)
       props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
       props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
-    when 'SASL_SSL' then
-      props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
-      props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
-      set_ssl_encryption_properties(props, file_props)
-    when 'SSL' then
+    end
+
+    if ['SASL_SSL', 'SSL'].include?(security_protocol)
       set_ssl_encryption_properties(props, file_props)
       set_ssl_authentication_properties(props, file_props)                      # optional SSL authentication properties
-    else
-      raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL."
     end
 
     # Content of property file should overrule the default properties from environment or run_config
