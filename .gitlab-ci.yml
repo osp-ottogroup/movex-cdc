@@ -479,16 +479,17 @@ docker_test_19.10_SASL_SSL_no_properties:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
+    KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    KAFKA_SECURITY_PROTOCOL: SSL
-    KAFKA_SSL_KEYSTORE_LOCATION: /opt/kafka/kafka.client.keystore.p12
-    KAFKA_SSL_KEYSTORE_PASSWORD: hugo01
-    KAFKA_SSL_KEY_PASSWORD: hugo01
-    KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/kafka.client.truststore.jks
-    KAFKA_SSL_TRUSTSTORE_PASSWORD: hugo01
-    KAFKA_SASL_PLAIN_USERNAME: admin
-    KAFKA_SASL_PLAIN_PASSWORD: admin-secret
+    #KAFKA_SECURITY_PROTOCOL: SSL
+    #KAFKA_SSL_KEYSTORE_LOCATION: /opt/kafka/kafka.client.keystore.p12
+    #KAFKA_SSL_KEYSTORE_PASSWORD: hugo01
+    #KAFKA_SSL_KEY_PASSWORD: hugo01
+    #KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/kafka.client.truststore.jks
+    #KAFKA_SSL_TRUSTSTORE_PASSWORD: hugo01
+    #KAFKA_SASL_PLAIN_USERNAME: admin
+    #KAFKA_SASL_PLAIN_PASSWORD: admin-secret
     # sasl.mechanism=PLAIN
 
 # Deploy the static site to GitLab Pages, but only for master branch
