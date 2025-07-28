@@ -93,13 +93,7 @@ class TransferThread
       Rails.logger.info('TransferThread.process') { "Worker #{@worker_id}: stopped" }
       Rails.logger.info('TransferThread.process') { JSON.pretty_generate(thread_state(without_stacktrace: true)) }
       ThreadHandling.get_instance.remove_from_pool(self)                 # unregister from threadpool
-
-      # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
-      if !Rails.env.test?                                                       # not for test because threads have all the same DB connection in test
-        ActiveRecord::Base.connection.disconnect!                               # Physically disconnect from DB to ensure that a new fresh connection is established at next request in this thread
-        ActiveRecord::Base.clear_active_connections!                            # Ensure tha a new connection is established at next request in this thread
-        ActiveRecord::Base.connection_handler.clear_active_connections!         # Ensure that connections are freed in connection pool
-      end
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'TransferThread.process', additional_msg: "Worker-ID = #{@worker_id}: remaining ensure ") #
       raise                                                                     # this raise may not be catched because it is the last operation of this thread
