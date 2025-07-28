@@ -184,6 +184,7 @@ GEM
 
 PLATFORMS
   universal-java-21
+  universal-java-24
 
 DEPENDENCIES
   activerecord-jdbcsqlite3-adapter
