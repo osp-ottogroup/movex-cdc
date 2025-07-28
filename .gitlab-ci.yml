@@ -471,7 +471,7 @@ docker_test_19.10_SASL_SSL:
 
 # Test with native configuration in run_config.yml instead of properties file
 docker_test_19.10_SASL_SSL_no_properties:
-  stage: code_analysis
+  stage: post_build
   # stage: post_build
   extends: .docker_test
   services:
