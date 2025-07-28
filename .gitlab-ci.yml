@@ -319,9 +319,9 @@ trivy_scan:
       # Use the hostname of the container for the seed broker to allow access from inside the Podman container
       echo  "KAFKA_SEED_BROKER:  \"$HOSTNAME:9092\""       >> $RUN_CONFIG
     - |
-      echo "Transfer all found KAFKA_xx environment variables to $RUN_CONFIG"
+      echo "Putting all found KAFKA_xx environment variables into $RUN_CONFIG:"
       env | grep '^KAFKA' | while IFS='=' read -r NAME VALUE; do
-        echo "Putting environment $NAME=$VALUE into $RUN_CONFIG"
+        echo "> $NAME = $VALUE"
         echo  "$NAME: $VALUE" >> $RUN_CONFIG
       done
     - cat $RUN_CONFIG
@@ -481,13 +481,13 @@ docker_test_19.10_SASL_SSL_no_properties:
     KAFKA_SECURITY_PROTOCOL: SSL
     SECURITY_PROTOCOL: SASL_SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
-    #KAFKA_SSL_KEYSTORE_LOCATION: /opt/kafka/kafka.client.keystore.p12
-    #KAFKA_SSL_KEYSTORE_PASSWORD: hugo01
-    #KAFKA_SSL_KEY_PASSWORD: hugo01
-    #KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/kafka.client.truststore.jks
-    #KAFKA_SSL_TRUSTSTORE_PASSWORD: hugo01
-    #KAFKA_SASL_PLAIN_USERNAME: admin
-    #KAFKA_SASL_PLAIN_PASSWORD: admin-secret
+    KAFKA_SSL_KEYSTORE_LOCATION: /opt/kafka/kafka.client.keystore.p12
+    KAFKA_SSL_KEYSTORE_PASSWORD: hugo01
+    KAFKA_SSL_KEY_PASSWORD: hugo01
+    KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/kafka.client.truststore.jks
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: hugo01
+    KAFKA_SASL_PLAIN_USERNAME: admin
+    KAFKA_SASL_PLAIN_PASSWORD: admin-secret
     # sasl.mechanism=PLAIN
 
 # Deploy the static site to GitLab Pages, but only for master branch
