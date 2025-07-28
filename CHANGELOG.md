@@ -2,6 +2,7 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+- Close DB connection at termination of worker thread so new worker thread always gets a new fresh connection
 
 ## 2025-06-26 1.11.7
 - Bugfix: Mock implementation for Kafka producer accepts all configured topics now (KAFKA_CLIENT_LIBRARY: mock)
