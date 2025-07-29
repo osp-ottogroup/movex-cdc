@@ -319,10 +319,12 @@ trivy_scan:
       # Use the hostname of the container for the seed broker to allow access from inside the Podman container
       echo  "KAFKA_SEED_BROKER:  \"$HOSTNAME:9092\""       >> $RUN_CONFIG
     - |
-      echo "Putting all found KAFKA_xx environment variables into $RUN_CONFIG:"
+      echo "Putting some found KAFKA_xx environment variables into $RUN_CONFIG:"
       env | grep '^KAFKA' | while IFS='=' read -r NAME VALUE; do
-        echo "> $NAME = $VALUE"
-        echo  "$NAME: $VALUE" >> $RUN_CONFIG
+        if [ "$NAME" != "KAFKA_SEED_BROKER" && "$NAME" != "KAFKA_HOME" && "$NAME" != "KAFKA_VERSION" ]; then
+          echo "> $NAME = $VALUE"
+          echo  "$NAME: $VALUE" >> $RUN_CONFIG
+        fi
       done
     - cat $RUN_CONFIG
     - $PODMAN run --rm -v $RUN_CONFIG:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
