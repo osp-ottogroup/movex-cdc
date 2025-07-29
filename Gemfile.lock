@@ -183,6 +183,7 @@ GEM
     zeitwerk (2.6.18)
 
 PLATFORMS
+  universal-java-21
   universal-java-24
 
 DEPENDENCIES
