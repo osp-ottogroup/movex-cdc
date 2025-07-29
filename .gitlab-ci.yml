@@ -319,12 +319,13 @@ trivy_scan:
       # Use the hostname of the container for the seed broker to allow access from inside the Podman container
       echo  "KAFKA_SEED_BROKER:  \"$HOSTNAME:9092\""       >> $RUN_CONFIG
     - |
-      if [ -n "$KAFKA_CLIENT_LIBRARY" ]; then
-        echo  "KAFKA_CLIENT_LIBRARY: $KAFKA_CLIENT_LIBRARY" >> $RUN_CONFIG
-      fi
-      if [ -n "$KAFKA_PROPERTIES_FILE" ]; then
-        echo  "KAFKA_PROPERTIES_FILE: $KAFKA_PROPERTIES_FILE" >> $RUN_CONFIG
-      fi
+      echo "Putting some found KAFKA_xx environment variables into $RUN_CONFIG:"
+      env | grep '^KAFKA' | while IFS='=' read -r NAME VALUE; do
+        if [[ "$NAME" != "KAFKA_SEED_BROKER" && "$NAME" != "KAFKA_HOME" && "$NAME" != "KAFKA_VERSION" ]]; then
+          echo "> $NAME = $VALUE"
+          echo  "$NAME: $VALUE" >> $RUN_CONFIG
+        fi
+      done
     - cat $RUN_CONFIG
     - $PODMAN run --rm -v $RUN_CONFIG:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake "ci_preparation:wait_for_db_available[10]"
     - $PODMAN run --rm -v $RUN_CONFIG:/run_config.yml -e RUN_CONFIG=/run_config.yml $TEMP_DOCKER_IMAGE bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
@@ -378,7 +379,7 @@ trivy_scan:
       typeset -i LOOPS=0
       while [ $LOOPS -lt $MAX_WAIT ]; do
         retval=0
-        curl -L http://localhost:8080/health_check/ > health_check_result.log 
+        curl -s -L http://localhost:8080/health_check/ > health_check_result.log 
         grep '"warnings": "",' health_check_result.log || retval=$?
         if [ $retval -eq 0 ]; then
           break
@@ -469,6 +470,27 @@ docker_test_19.10_SASL_SSL:
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SASL_SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
+
+# Test with native configuration in run_config.yml instead of properties file
+docker_test_19.10_SASL_SSL_no_properties:
+  stage: post_build
+  # stage: post_build
+  extends: .docker_test
+  services:
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
+      alias: oracle-db
+  variables:
+    KAFKA_SECURITY_PROTOCOL: SASL_SSL
+    SECURITY_PROTOCOL: SASL_SSL
+    DB_URL: "oracle-db:1521/ORCLPDB1"
+    KAFKA_SSL_KEYSTORE_LOCATION: /opt/kafka/kafka.client.keystore.p12
+    KAFKA_SSL_KEYSTORE_PASSWORD: hugo01
+    KAFKA_SSL_KEY_PASSWORD: hugo01
+    KAFKA_SSL_TRUSTSTORE_LOCATION: /opt/kafka/kafka.client.truststore.jks
+    KAFKA_SSL_TRUSTSTORE_PASSWORD: hugo01
+    KAFKA_SASL_PLAIN_USERNAME: admin
+    KAFKA_SASL_PLAIN_PASSWORD: admin-secret
+    # sasl.mechanism=PLAIN
 
 # Deploy the static site to GitLab Pages, but only for master branch
 pages:

@@ -14,6 +14,7 @@ class SystemValidationJob < ApplicationJob
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'SystemValidationJob.perform', additional_msg: "calling ThreadHandling.ensure_processing! Proceeding with housekeeping.\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     end
 
     # do housekeeping activities
@@ -23,6 +24,7 @@ class SystemValidationJob < ApplicationJob
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'SystemValidationJob.perform', additional_msg: "calling Housekeeping!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     end
   end
 end

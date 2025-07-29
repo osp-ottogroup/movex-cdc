@@ -349,23 +349,17 @@ class KafkaJava < KafkaBase
     security_protocol = define_security_protocol(file_props)
     props['security.protocol'] = security_protocol                              # Ensure that security.protocol is set even if not in file
 
-    case security_protocol
-    when nil then
-      raise "Missing value for KAFKA_SECURITY_PROTOCOL. Please set this environment variable or define it in the properties file."
-    when 'PLAINTEXT' then
+    raise "Missing value for KAFKA_SECURITY_PROTOCOL. Please set this environment variable or define it in the properties file." if security_protocol.nil? || security_protocol.empty?
+    raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL." unless ['PLAINTEXT', 'SASL_PLAINTEXT', 'SASL_SSL', 'SSL'].include?(security_protocol)
 
-    when 'SASL_PLAINTEXT' then
+    if ['SASL_PLAINTEXT', 'SASL_SSL'].include?(security_protocol)
       props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
       props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
-    when 'SASL_SSL' then
-      props['sasl.mechanism'] = 'PLAIN' unless file_props[:'sasl.mechanism']
-      props['sasl.jaas.config'] = "org.apache.kafka.common.security.plain.PlainLoginModule required username='#{MovexCdc::Application.config.kafka_sasl_plain_username}' password='#{MovexCdc::Application.config.kafka_sasl_plain_password.gsub(/'/, '\\\\\0')}';" unless file_props[:'sasl.jaas.config']
-      set_ssl_encryption_properties(props, file_props)
-    when 'SSL' then
+    end
+
+    if ['SASL_SSL', 'SSL'].include?(security_protocol)
       set_ssl_encryption_properties(props, file_props)
       set_ssl_authentication_properties(props, file_props)                      # optional SSL authentication properties
-    else
-      raise "Unsupported value '#{security_protocol}' for KAFKA_SECURITY_PROTOCOL."
     end
 
     # Content of property file should overrule the default properties from environment or run_config
@@ -437,11 +431,12 @@ class KafkaJava < KafkaBase
       # Check not needed
       truststore_type_msg = " and truststore type = #{ssl_truststore_type}" if ['SSL', 'SASL_SSL'].include?(security_protocol)
       if (MovexCdc::Application.config.send(rails_config_name) || properties[file_property_name]) && notneeded_properties[security_protocol].include?(file_property_name.to_s)
-        msg = if MovexCdc::Application.config.send(rails_config_name)
-          "Unnecessary configuration value for #{rails_config_name.upcase} if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
-        else
-          "Unnecessary configuration value for '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
-        end
+        msg_addition = if MovexCdc::Application.config.send(rails_config_name)
+                         rails_config_name.upcase
+                       else
+                         "'#{file_property_name}' in KAFKA_PROPERTIES_FILE"
+                       end
+        msg = "Unnecessary configuration value for #{msg_addition} if security protocol = #{security_protocol}#{truststore_type_msg}. This configuration attribute can be removed."
         puts msg
         Rails.logger.warn msg
       end

@@ -89,21 +89,20 @@ class TransferThread
       ExceptionHelper.log_exception(e, 'TransferThread.process', additional_msg: "Worker-ID = #{@worker_id}: ensure (Kafka-disconnect)") # Ensure that following actions are processed in any case
     end
     begin
-      @statistic_counter.flush                                                    # Write cumulated statistics to singleton memory
+      @statistic_counter.flush                                                  # Write cumulated statistics to singleton memory
       Rails.logger.info('TransferThread.process') { "Worker #{@worker_id}: stopped" }
       Rails.logger.info('TransferThread.process') { JSON.pretty_generate(thread_state(without_stacktrace: true)) }
-      ThreadHandling.get_instance.remove_from_pool(self)                          # unregister from threadpool
-
-      # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
-      if !Rails.env.test?                                                         # not for test because threads have all the same DB connection in test
-        ActiveRecord::Base.connection_handler.clear_active_connections!           # Ensure that connections are freed in connection pool
-      end
+      ThreadHandling.get_instance.remove_from_pool(self)                 # unregister from threadpool
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'TransferThread.process', additional_msg: "Worker-ID = #{@worker_id}: remaining ensure ") #
       raise                                                                     # this raise may not be catched because it is the last operation of this thread
     end
   end # process
 
+  # Request the current thread to stop processing at next possible occasion
+  # This method is called from main thread or job that started the worker thread
+  # @return [void]
   def stop_thread                                                               # called from main thread / job
     Rails.logger.info('TransferThread.stop_thread') { "Worker #{@worker_id}: stop request forced" }
     @thread_mutex.synchronize { @stop_requested = true }

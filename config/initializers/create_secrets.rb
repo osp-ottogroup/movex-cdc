@@ -7,7 +7,7 @@ DEFAULT_SECRET_KEY_BASE_FILE = File.join(Rails.root, 'config', 'secret_key_base'
 begin
   secret_key_base = nil                                                         # set later
 
-  if File.exists?(DEFAULT_SECRET_KEY_BASE_FILE)                                 # look for generated file at first
+  if File.exist?(DEFAULT_SECRET_KEY_BASE_FILE)                                 # look for generated file at first
     secret_key_base = File.read(DEFAULT_SECRET_KEY_BASE_FILE)
     Rails.logger.info('create_secrets.rb'){ "Secret key base read from default file location '#{DEFAULT_SECRET_KEY_BASE_FILE}' (#{secret_key_base.length} chars)" }
     Rails.logger.error('create_secrets.rb'){ "Secret key base file at default location '#{DEFAULT_SECRET_KEY_BASE_FILE}' is empty!" } if secret_key_base.nil? || secret_key_base == ''
@@ -15,7 +15,7 @@ begin
   end
 
   if ENV['SECRET_KEY_BASE_FILE']                                              # User-provided secrets file
-    if File.exists?(ENV['SECRET_KEY_BASE_FILE'])
+    if File.exist?(ENV['SECRET_KEY_BASE_FILE'])
       secret_key_base = File.read(ENV['SECRET_KEY_BASE_FILE'])
       Rails.logger.info('create_secrets.rb'){ "Secret key base read from file '#{ENV['SECRET_KEY_BASE_FILE']}' pointed to by SECRET_KEY_BASE_FILE environment variable (#{secret_key_base.length} chars)" }
       Rails.logger.error('create_secrets.rb'){ "Secret key base file pointed to by SECRET_KEY_BASE_FILE environment variable is empty!" } if secret_key_base.nil? || secret_key_base == ''
