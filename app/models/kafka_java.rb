@@ -431,11 +431,12 @@ class KafkaJava < KafkaBase
       # Check not needed
       truststore_type_msg = " and truststore type = #{ssl_truststore_type}" if ['SSL', 'SASL_SSL'].include?(security_protocol)
       if (MovexCdc::Application.config.send(rails_config_name) || properties[file_property_name]) && notneeded_properties[security_protocol].include?(file_property_name.to_s)
-        msg = if MovexCdc::Application.config.send(rails_config_name)
-          "Unnecessary configuration value for #{rails_config_name.upcase} if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
-        else
-          "Unnecessary configuration value for '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}#{truststore_type_msg}. Please remove this configuration attribute."
-        end
+        msg_addition = if MovexCdc::Application.config.send(rails_config_name)
+                         rails_config_name.upcase
+                       else
+                         "'#{file_property_name}' in KAFKA_PROPERTIES_FILE"
+                       end
+        msg = "Unnecessary configuration value for #{msg_addition} if security protocol = #{security_protocol}#{truststore_type_msg}. This configuration attribute can be removed."
         puts msg
         Rails.logger.warn msg
       end

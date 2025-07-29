@@ -321,7 +321,7 @@ trivy_scan:
     - |
       echo "Putting some found KAFKA_xx environment variables into $RUN_CONFIG:"
       env | grep '^KAFKA' | while IFS='=' read -r NAME VALUE; do
-        if [ "$NAME" != "KAFKA_SEED_BROKER" && "$NAME" != "KAFKA_HOME" && "$NAME" != "KAFKA_VERSION" ]; then
+        if [[ "$NAME" != "KAFKA_SEED_BROKER" && "$NAME" != "KAFKA_HOME" && "$NAME" != "KAFKA_VERSION" ]]; then
           echo "> $NAME = $VALUE"
           echo  "$NAME: $VALUE" >> $RUN_CONFIG
         fi
