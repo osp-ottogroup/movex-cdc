@@ -443,7 +443,7 @@ docker_test_19.10_SSL_PEM:
   stage: post_build
   # extends: .docker_test
   script:
-    - echo "TODO: Implement test with PEM files for Kafka SSL connection"
+    - echo "Implement test with PEM files for Kafka SSL connection"
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
