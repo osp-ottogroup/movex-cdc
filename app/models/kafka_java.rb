@@ -426,7 +426,11 @@ class KafkaJava < KafkaBase
     validate_connect_property = proc do |rails_config_name, file_property_name|
       # Ensure only one source defines the property
       if MovexCdc::Application.config.send(rails_config_name) && properties[file_property_name]
-        raise "Conflicting settings for #{rails_config_name} (#{MovexCdc::Application.config.send(rails_config_name)}) and '#{file_property_name}' in KAFKA_PROPERTIES_FILE (#{properties[file_property_name]}). Property should be defined at one location only."
+        if MovexCdc::Application.config.send(rails_config_name) == properties[file_property_name]
+          Rails.logger.warn('KafkaJava.validate_connect_properties') { "Redundant setting for #{rails_config_name} (#{MovexCdc::Application.config.send(rails_config_name)}) and '#{file_property_name}' in KAFKA_PROPERTIES_FILE (#{properties[file_property_name]}). Property should ideally be defined at one location only." }
+        else
+          raise "Conflicting settings for #{rails_config_name} (#{MovexCdc::Application.config.send(rails_config_name)}) and '#{file_property_name}' in KAFKA_PROPERTIES_FILE (#{properties[file_property_name]}). Property should be defined at one location only."
+        end
       end
       # Check not needed
       truststore_type_msg = " and truststore type = #{ssl_truststore_type}" if ['SSL', 'SASL_SSL'].include?(security_protocol)
@@ -438,14 +442,14 @@ class KafkaJava < KafkaBase
                        end
         msg = "Unnecessary configuration value for #{msg_addition} if security protocol = #{security_protocol}#{truststore_type_msg}. This configuration attribute can be removed."
         puts msg
-        Rails.logger.warn msg
+        Rails.logger.warn('KafkaJava.validate_connect_properties') { msg }
       end
 
       # Check required
       if MovexCdc::Application.config.send(rails_config_name).nil? && properties[file_property_name].nil?  && required_properties[security_protocol].include?(file_property_name.to_s)
         msg = "Missing required configuration value for #{rails_config_name.upcase} or '#{file_property_name}' in KAFKA_PROPERTIES_FILE if security protocol = #{security_protocol}#{truststore_type_msg}."
         puts msg
-        Rails.logger.warn msg
+        Rails.logger.warn('KafkaJava.validate_connect_properties') { msg }
       end
 
     end
@@ -530,7 +534,7 @@ class KafkaJava < KafkaBase
                else
                  if Rails.env.test?
                    msg = "KafkaJava.describe_all_topic_attrs: No topic attribute info available for '#{entry.name}'! Please adjust topic_attributes_for_describe!"
-                    Rails.logger.warn(msg)
+                    Rails.logger.warn('KafkaJava.describe_all_topic_attrs') { msg }
                    puts msg
                  end
                  "No attribute info available"

@@ -20,7 +20,6 @@ variables:
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
   - code_analysis
-  - debug
   - test
   - pre_build
   - build
@@ -426,14 +425,13 @@ docker_test_12.1_PLAINTEXT:
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
 docker_test_19.10_SSL:
-  stage: debug
-  # stage: post_build
+  stage: post_build
   extends: .docker_test
   services:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
       alias: oracle-db
   variables:
-    # TODO: remove KAFKA_SECURITY_PROTOCOL or not
+    # KAFKA_SECURITY_PROTOCOL is redundant here to security.protocol in client.properties, but should not raise an error
     KAFKA_SECURITY_PROTOCOL: SSL
     KAFKA_PROPERTIES_FILE: /opt/kafka/client.properties
     SECURITY_PROTOCOL: SSL

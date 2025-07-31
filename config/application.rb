@@ -28,6 +28,19 @@ require 'socket'
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+class CDCLogFormatter
+  include ActiveSupport::TaggedLogging::Formatter
+  def call(severity, timestamp, progname, message)
+    date_format = timestamp.strftime("%Y-%m-%d %H:%M:%S.%3N")
+    # tagged_message = tag_stack.format_message(message)
+    # tagged_message not used because of too much garbage in the log (a'la [ActiveJob] [InitializationJob] [083634de-de20-47ae-90d4-cdb4b53f5ed1])
+    "[#{date_format}] #{severity.ljust(5)} (#{Thread.current.object_id}#{' ' if progname}#{progname}): #{ message}\n"
+  rescue => e
+    # Fallback in case formatting fails
+    "FATAL: Log formatting failed: #{e.message} - Original message: #{message.inspect}\n"
+  end
+end
+
 module MovexCdc
   class Application < Rails::Application
     # Will be calling Java classes from this JRuby script
@@ -63,6 +76,21 @@ module MovexCdc
         )
       end
     end
+
+
+
+    if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
+      console_logger  = ActiveSupport::Logger.new(STDOUT)
+      file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
+      config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
+    elsif ENV["RAILS_LOG_TO_STDOUT"].present?
+      config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(STDOUT))
+    else
+      file_logger   = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 100*1024*1024 )  # max. 50 MB logfile ( 5 files with 100 MB)
+      config.logger = ActiveSupport::TaggedLogging.new(file_logger)
+    end
+
+    config.logger.formatter = CDCLogFormatter.new
 
     # Hash with MOVEX CDC's configs config_name: { default_value:, startup_config_value:}
     @@config_attributes = {}
