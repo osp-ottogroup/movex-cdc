@@ -2,6 +2,10 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+- Warning only if configuration items are duplicated in client.properties as long as the values are the same
+- Timestamp-Format in Kafka event correted to ISO 8601 format with milliseconds and timezone.<br/>
+  Komma before fraction is replaced by dot to ensure correct ISO 8601 compatibility.
+- TODO: Etsablish config LEGACY_TS_FORMAT to switch between legacy timestamp format and ISO 8601 format
 
 ## 2025-07-29 1.11.8
 - Bugfix: Accept SSL keystore config also if declared in run_config.yml or environment and not declared in property file 

@@ -78,9 +78,19 @@ module MovexCdc
     end
 
     if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
-      console_logger  = ActiveSupport::Logger.new(STDOUT)
-      file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
-      config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
+      # Variante für Raiils 6, deaktivieren nach Umstellung auf Rails 8
+      console_logger = ActiveSupport::Logger.new(STDOUT)
+      console_logger.formatter = CDCLogFormatter.new
+      tagged_console_logger = ActiveSupport::TaggedLogging.new(console_logger)
+      file_logger = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files á 10 MB)
+      file_logger.formatter = CDCLogFormatter.new
+      combined_logger = tagged_console_logger.extend(ActiveSupport::Logger.broadcast(file_logger))
+      config.logger = combined_logger
+
+      # Variante für Rails 8, Aktivieren nach Umstellung auf Rails 8
+      # console_logger  = ActiveSupport::Logger.new(STDOUT)
+      # file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
+      # config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
     elsif ENV["RAILS_LOG_TO_STDOUT"].present?
       config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(STDOUT))
     else
