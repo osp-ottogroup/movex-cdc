@@ -1,6 +1,11 @@
 require 'test_helper'
 
 class HealthCheckControllerTest < ActionDispatch::IntegrationTest
+  setup do
+    # Ensure that partition count is shrinked down below health check limit
+    Housekeeping.get_instance.do_housekeeping
+  end
+
   test "should get index" do
     Database.execute "DELETE FROM Event_Log_Final_Errors"                       # avoid unhealthy status due to old errors
 

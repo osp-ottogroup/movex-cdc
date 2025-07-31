@@ -77,8 +77,6 @@ module MovexCdc
       end
     end
 
-
-
     if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
       console_logger  = ActiveSupport::Logger.new(STDOUT)
       file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
@@ -86,7 +84,11 @@ module MovexCdc
     elsif ENV["RAILS_LOG_TO_STDOUT"].present?
       config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(STDOUT))
     else
-      file_logger   = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 100*1024*1024 )  # max. 50 MB logfile ( 5 files with 100 MB)
+      file_logger = if Rails.env.test?
+                      ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ))  # without limit
+                    else
+                      ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 100*1024*1024 )  # max. 500 MB logfile ( 5 files with 100 MB)
+                    end
       config.logger = ActiveSupport::TaggedLogging.new(file_logger)
     end
 
