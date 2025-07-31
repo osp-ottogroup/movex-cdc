@@ -437,6 +437,22 @@ docker_test_19.10_SSL:
     SECURITY_PROTOCOL: SSL
     DB_URL: "oracle-db:1521/ORCLPDB1"
 
+# Test with SSL using PEM files, instead of keystore and truststore files
+docker_test_19.10_SSL_PEM:
+  stage: post_build
+  # extends: .docker_test
+  services:
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:19.10.0.0-ee
+      alias: oracle-db
+  variables:
+    KAFKA_SECURITY_PROTOCOL: SSL
+    KAFKA_SSL_CA_CERT: /config/kafka/root_ca.crt
+    KAFKA_SSL_CLIENT_CERT: /config/kafka/copla04w.crt
+    KAFKA_SSL_CLIENT_CERT_KEY: /config/kafka/copla04w.key
+    KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD: "xxx"
+  script:
+    echo "TODO: Implement test with PEM files for Kafka SSL connection"
+
 # SSL without keystore file, so no client authentication
 docker_test_19.10_SSL_NO_KEYSTORE:
   stage: post_build
