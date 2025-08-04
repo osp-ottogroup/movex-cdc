@@ -28,6 +28,19 @@ require 'socket'
 # you've limited to :test, :development, or :production.
 Bundler.require(*Rails.groups)
 
+class CDCLogFormatter
+  include ActiveSupport::TaggedLogging::Formatter
+  def call(severity, timestamp, progname, message)
+    date_format = timestamp.strftime("%Y-%m-%d %H:%M:%S.%3N")
+    # tagged_message = tag_stack.format_message(message)
+    # tagged_message not used because of too much garbage in the log (a'la [ActiveJob] [InitializationJob] [083634de-de20-47ae-90d4-cdb4b53f5ed1])
+    "[#{date_format}] #{severity.ljust(5)} (#{Thread.current.object_id}#{' ' if progname}#{progname}): #{ message}\n"
+  rescue => e
+    # Fallback in case formatting fails
+    "FATAL: Log formatting failed: #{e.message} - Original message: #{message.inspect}\n"
+  end
+end
+
 module MovexCdc
   class Application < Rails::Application
     # Will be calling Java classes from this JRuby script
@@ -63,6 +76,33 @@ module MovexCdc
         )
       end
     end
+
+    if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
+      # Variante für Raiils 6, deaktivieren nach Umstellung auf Rails 8
+      console_logger = ActiveSupport::Logger.new(STDOUT)
+      console_logger.formatter = CDCLogFormatter.new
+      tagged_console_logger = ActiveSupport::TaggedLogging.new(console_logger)
+      file_logger = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files á 10 MB)
+      file_logger.formatter = CDCLogFormatter.new
+      combined_logger = tagged_console_logger.extend(ActiveSupport::Logger.broadcast(file_logger))
+      config.logger = combined_logger
+
+      # Variante für Rails 8, Aktivieren nach Umstellung auf Rails 8
+      # console_logger  = ActiveSupport::Logger.new(STDOUT)
+      # file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
+      # config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
+    elsif ENV["RAILS_LOG_TO_STDOUT"].present?
+      config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(STDOUT))
+    else
+      file_logger = if Rails.env.test?
+                      ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ))  # without limit
+                    else
+                      ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 100*1024*1024 )  # max. 500 MB logfile ( 5 files with 100 MB)
+                    end
+      config.logger = ActiveSupport::TaggedLogging.new(file_logger)
+    end
+
+    config.logger.formatter = CDCLogFormatter.new
 
     # Hash with MOVEX CDC's configs config_name: { default_value:, startup_config_value:}
     @@config_attributes = {}
@@ -226,6 +266,8 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_type, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb, default: 100, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_transactional_id_prefix, default: 'MOVEX-CDC')
+    MovexCdc::Application.set_and_log_attrib_from_env(:legacy_ts_format, accept_empty: true)
+    raise "LEGACY_TS_FORMAT has unsupported content '#{config.legacy_ts_format}! Valid values are TYPE_1, TYPE_2'" unless [nil, 'TYPE_1', 'TYPE_2'].include?(config.legacy_ts_format)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_failed_logons_before_account_locked, default: 3, integer: true, minimum: 0, maximum:99)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_partitions_to_count_as_healthy, default: 15, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_simultaneous_table_initializations, default: 5, integer: true, minimum: 1)

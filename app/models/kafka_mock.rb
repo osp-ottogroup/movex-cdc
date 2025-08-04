@@ -39,6 +39,7 @@ class KafkaMock < KafkaBase
                    Rails.logger.error('KafkaMock.produce'){ msg }
                    raise msg
                  end
+      validate_message_content(msg_hash)
 
       # Rails.logger.debug('KafkaMock.produce'){msg_hash}                       # only for special tests, may be commented out
       if key                                                                    # for keyed messages ID should be ascending
@@ -84,6 +85,55 @@ class KafkaMock < KafkaBase
     def shutdown;
     end
 
+    private
+    # Check if the message content is valid
+    # @param msg_hash [Hash] Parsed message content to validate
+    # @raise [Exception] if the message content is invalid
+    # @return [void]
+    def validate_message_content(msg_hash)
+      raise "Message content is not a Hash!" if !msg_hash.is_a?(Hash)
+
+      raise "ID is not numeric" unless msg_hash['id'].to_i.is_a? Integer
+
+      raise "schema is not a String" unless msg_hash['schema'].is_a? String
+      raise "schema is empty" if msg_hash['schema'].empty?
+
+      raise "tablename is not a String" unless msg_hash['tablename'].is_a? String
+      raise "tablename is empty" if msg_hash['tablename'].empty?
+
+      raise "operation is not a String" unless msg_hash['operation'].is_a? String
+      raise "operation is empty" if msg_hash['operation'].empty?
+      raise "operation is not valid" unless ['INIT', 'INSERT', 'UPDATE', 'DELETE'].include? msg_hash['operation']
+
+      raise "timestamp is not a String" unless msg_hash['timestamp'].is_a? String
+      raise "timestamp is empty" if msg_hash['timestamp'].empty?
+      DateTime.parse(msg_hash['timestamp'])                                     # All types of LEGACY_TS_FORMAT should be valid for DateTime.parse
+      splitted_ts = msg_hash['timestamp'].split('+')
+      raise "timestamp should have a timezone" if splitted_ts.length != 2
+      timezone = splitted_ts[1]
+      case MovexCdc::Application.config.legacy_ts_format
+      when nil, '' then
+        raise "timezone of timestamp should contain a colon" unless timezone.include?(':')
+        raise "timestamp should not contain a comma as fraction delimiter" if msg_hash['timestamp'].include?(',')
+        raise "timestamp should contain dot as fraction delimiter" unless msg_hash['timestamp'].include?('.')
+      when 'TYPE_1' then
+        raise "timezone of timestamp should not contain a colon" if timezone.include?(':')
+        raise "timestamp should contain comma as fraction delimiter" if !msg_hash['timestamp'].include?(',')
+      when 'TYPE_2' then
+        raise "timezoe of timestamp should contain a colon" unless timezone.include?(':')
+        raise "timestamp should contain comma as fraction delimiter" if !msg_hash['timestamp'].include?(',')
+      else
+        raise "Unknown legacy timestamp format '#{MovexCdc::Application.config.legacy_ts_format}'"
+      end
+
+      raise "transaction_id is not a String" if !msg_hash['transaction_id'].nil? && !msg_hash['transaction_id'].is_a?(String)
+
+      raise "new is not a Hash" if !msg_hash['new'].nil? && !msg_hash['new'].is_a?(Hash)
+
+      raise "old is not a Hash" if !msg_hash['new'].nil? && !msg_hash['new'].is_a?(Hash)
+    rescue Exception => e
+      raise "KafkaMock::Producer.validate_message_content: #{e.message}"
+    end
   end # class Producer
 
 

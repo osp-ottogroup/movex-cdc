@@ -517,7 +517,14 @@ class TransferThread
         else
           timestamp
         end
-    "#{timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N"}#{MovexCdc::Application.config.db_default_timezone}"
+    case MovexCdc::Application.config.legacy_ts_format
+    when nil then                                                               # ISO 8601 format with dot as fraction delimiter and DB timezone with colon
+      "#{timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S.%6N"}#{MovexCdc::Application.config.db_default_timezone}"
+    when 'TYPE_1' then                                                          # Fraction delimiter is comma instead of dot and timezone of local machine without colon
+      "#{timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N%z"}"
+    when 'TYPE_2' then                                                          # Fraction delimiter is comma instead of dot
+      "#{timestamp_as_time.strftime "%Y-%m-%dT%H:%M:%S,%6N"}#{MovexCdc::Application.config.db_default_timezone}"
+    end
   end
 
   def sleep_and_watch(sleeptime)

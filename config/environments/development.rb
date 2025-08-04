@@ -52,10 +52,4 @@ Rails.application.configure do
 
   # Remove ANSI color controls from log file
   config.colorize_logging = false
-
-  config.log_formatter = proc do |severity, datetime, progname, msg|
-    date_format = datetime.strftime("%Y-%m-%d %H:%M:%S.%3N")
-    "#{date_format} #{severity.ljust(5)} (#{Thread.current.object_id}#{' ' if progname}#{progname}): #{msg}\n"
-  end
-
 end

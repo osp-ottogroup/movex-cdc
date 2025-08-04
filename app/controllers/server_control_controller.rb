@@ -177,7 +177,7 @@ class ServerControlController < ApplicationController
   def raise_if_restart_active
     if @@restart_worker_threads_mutex.locked?
       msg = "There's already a request processing and only one simultaneous request for worker threads restart is accepted!\n#{@@restart_worker_threads_active}"
-      Rails.logger.warn msg
+      Rails.logger.warn('ServerControlController.raise_if_restart_active') { msg }
       raise msg
     end
   end

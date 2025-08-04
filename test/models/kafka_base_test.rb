@@ -5,8 +5,22 @@ class KafkaBaseTest < ActiveSupport::TestCase
     kafka = KafkaBase.create
     producer = kafka.create_producer(transactional_id: 'hugo2')
     producer.begin_transaction
-    producer.produce(message: '{ "id": 1, "content": "Dummes zeug" }', table: victim1_table, key: nil, headers: {})
-    producer.produce(message: '{ "id": 2, "content": "Dummes zeug 2" }', table: victim1_table, key: 'Hugo', headers: {Addition: 'Hugo'})
+
+    timestamp = case MovexCdc::Application.config.legacy_ts_format
+                when nil then "2025-08-04T12:34:56.789456+02:00"
+                when 'TYPE_1' then "2025-08-04T12:34:56,789456+0000"
+                when 'TYPE_2' then "2025-08-04T12:34:56,789456+02:00"
+                end
+    producer.produce(message: "{ \"id\": 1, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
+                     table: victim1_table,
+                     key: nil,
+                     headers: {}
+    )
+    producer.produce(message: "{ \"id\": 2, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
+                     table: victim1_table,
+                     key: 'Hugo',
+                     headers: {Addition: 'Hugo'}
+    )
     producer.deliver_messages
     producer.commit_transaction
   rescue Exception => e

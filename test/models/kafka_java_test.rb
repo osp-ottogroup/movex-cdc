@@ -38,7 +38,7 @@ class KafkaJavaTest < ActiveSupport::TestCase
     end
     MovexCdc::Application.config.kafka_properties_file = nil                    # Restore previous value
 
-    assert_log_written('WARN -- : Unnecessary configuration value for KAFKA_SASL_PLAIN_USERNAME if security protocol = PLAINTEXT') do
+    assert_log_written('Unnecessary configuration value for KAFKA_SASL_PLAIN_USERNAME if security protocol = PLAINTEXT') do
       MovexCdc::Application.config.kafka_security_protocol = 'PLAINTEXT'
       MovexCdc::Application.config.kafka_sasl_plain_username = 'hugo'
       KafkaJava.new.validate_connect_properties
