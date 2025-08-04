@@ -108,17 +108,19 @@ class KafkaMock < KafkaBase
       raise "timestamp is not a String" unless msg_hash['timestamp'].is_a? String
       raise "timestamp is empty" if msg_hash['timestamp'].empty?
       DateTime.parse(msg_hash['timestamp'])                                     # All types of LEGACY_TS_FORMAT should be valid for DateTime.parse
+      splitted_ts = msg_hash['timestamp'].split('+')
+      raise "timestamp should have a timezone" if splitted_ts.length != 2
+      timezone = splitted_ts[1]
       case MovexCdc::Application.config.legacy_ts_format
       when nil, '' then
-        raise "timestamp should contain colon" unless msg_hash['timestamp'].include?(':')
-        raise "timestamp should contain not comma as fraction delimiter" if msg_hash['timestamp'].include?(',')
+        raise "timezone of timestamp should contain a colon" unless timezone.include?(':')
+        raise "timestamp should not contain a comma as fraction delimiter" if msg_hash['timestamp'].include?(',')
         raise "timestamp should contain dot as fraction delimiter" unless msg_hash['timestamp'].include?('.')
       when 'TYPE_1' then
-        raise "timestamp should not contain colon" if msg_hash['timestamp'].include?(':')
-        raise "timestamp should not have a timezone other than +0000" if !msg_hash['timestamp'].include?('+0000')
+        raise "timezone of timestamp should not contain a colon" if timezone.include?(':')
         raise "timestamp should contain comma as fraction delimiter" if !msg_hash['timestamp'].include?(',')
       when 'TYPE_2' then
-        raise "timestamp should contain colon" unless msg_hash['timestamp'].include?(':')
+        raise "timezoe of timestamp should contain a colon" unless timezone.include?(':')
         raise "timestamp should contain comma as fraction delimiter" if !msg_hash['timestamp'].include?(',')
       else
         raise "Unknown legacy timestamp format '#{MovexCdc::Application.config.legacy_ts_format}'"
