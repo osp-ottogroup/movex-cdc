@@ -486,6 +486,18 @@ NOTE: The configuration in this screen is not user-specific. Each table/column c
 ==== Generation of database triggers ====
 
 === Troubleshooting ===
+==== Backward compatibility ====
+MOVEX CDC aims for backward compatibility with previous releases.
+If this cannot be ensured automatically, the behavior of MOVEX CDC can be configured to be compatible with  earlier versions.
+
+Before rel. 1.12.1 the timestamp field in the Kafka event was not formatted as regular ISO 8601 format (e.g. 2025-08-04T12:34:56.789456+02:00). +
+To stick with the previously used format there is a configuration parameter LEGACY_TS_FORMAT with two possible values:
+
+* TYPE_1: ISO 8601-like format but with comma instead of dot as fraction delimiter and with local machine timezone without colon (e.g. 2025-08-04T12:34:56,789456+0200). +
+  This was the default format before release 1.10.1 of 2022-06-13.
+* TYPE_2: ISO 8601-like format but with comma instead of dot as fraction delimiter (e.g. 2025-08-04T12:34:56,789456+02:00). +
+  This was the default format before release 1.12.1 of 2025-08-04.
+
 ==== Common error traps ====
 ===== Kafka =====
 List of Kafka error codes is avaliable here: https://kafka.apache.org/protocol#protocol_error_codes

@@ -16,15 +16,18 @@ class TransferThreadTest < ActiveSupport::TestCase
 
 
   test "process" do
+    MovexCdc::Application.config.legacy_ts_format = nil                         # ensure legacy timestamp format is not used, check in KafkaMock
     run_with_current_user { create_event_logs_for_test(20) }
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Regular processing of all records')
     assert_equal 0, remaining_event_log_count, log_on_failure('All Records from Event_Logs should be processed and deleted now')
 
+    MovexCdc::Application.config.legacy_ts_format = 'TYPE_1'                    # build timestamp with comma as fraction delimiter and without colon
     run_with_current_user { create_event_logs_for_test(20) }
     EventLog.last.update!(retry_count: 1, last_error_time: Database.systime+20000)  # set erroneous, keep in mind that DB time and client time may differ in time zone
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 1, title: 'Processing with one error record')
     assert_equal 1, remaining_event_log_count, log_on_failure('All Records from Event_Logs except the one erroneous should be processed and deleted now')
 
+    MovexCdc::Application.config.legacy_ts_format = 'TYPE_2'                    # build timestamp with comma as fraction delimiter
     EventLog.last.update!(last_error_time: Database.systime-20000)  # set timestamp so remaining erroneous record should be processed now
     remaining_event_log_count = process_eventlogs(max_wait_time: 20, expected_remaining_records: 0, title: 'Processing the one error record')
     assert_equal 0, remaining_event_log_count, log_on_failure('Last error record from Event_Logs should be processed and deleted now')
