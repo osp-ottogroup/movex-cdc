@@ -70,6 +70,7 @@ class InitializationJob < ApplicationJob
     when 'ORACLE' then
       check_readable 'DBA_Constraints'
       check_readable 'DBA_Cons_Columns'
+      check_readable 'DBA_Roles'
       check_readable 'DBA_Role_Privs'
       check_readable 'DBA_Sys_Privs'
       check_readable 'DBA_Tables'
