@@ -176,11 +176,12 @@ If it will be impossible to get the CREATE ANY TRIGGER privilege, then MOVEX CDC
 |RESOURCE|Allows creation of tables in own schema
 |SELECT ON sys.DBA_Constraints|For primary key info of table.
 |SELECT ON sys.DBA_Cons_Columns|For primary key info of table.
-|SELECT ON sys.DBA_Role_Privs|Allows check if GUI-user has SELECT grant for a table.
-|SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT grant for a table.
-|SELECT ON sys.DBA_Tables|Allows listing of table names for tables without SELECT grant (not included in All_Tables).
-|SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT grant (not included in All_Tab_Columns).
-|SELECT ON sys.DBA_Tab_Privs|Allows check if GUI-user has SELECT grant for a table.
+|SELECT ON sys.DBA_Roles|Allows check if GUI-user has SELECT or READ grant for a table.
+|SELECT ON sys.DBA_Role_Privs|Allows check if GUI-user has SELECT or READ grant for a table.
+|SELECT ON sys.DBA_Sys_Privs|Allows check if GUI-user has SELECT or READ grant for a table.
+|SELECT ON sys.DBA_Tables|Allows listing of table names for tables without SELECT or READ grant (not included in All_Tables).
+|SELECT ON sys.DBA_Tab_Columns|Allows listing of column names for tables without SELECT or READ grant (not included in All_Tab_Columns).
+|SELECT ON sys.DBA_Tab_Privs|Allows check if GUI-user has SELECT or READ grant for a table.
 |SELECT ON sys.gv_$Lock|Allows check for housekeeping if there are pending transactions. Accessed via synonym public.gv$Lock.
 |SELECT ON sys.v_$Database|Get DB Info.
 |SELECT ON sys.v_$Instance|Get DB version.

@@ -18,10 +18,12 @@ class ChangeAllowedDbTables < ActiveRecord::Migration[6.0]
                 /* Implicite table grants for users's roles */
                 SELECT tp.Owner, rp.Grantee, tp.Table_Name
                 FROM   DBA_Tab_Privs tp
-                JOIN   (SELECT Granted_Role, CONNECT_BY_ROOT GRANTEE Grantee
-                        FROM   DBA_Role_Privs
-                        WHERE  Default_Role = 'YES' /* Accept roles only if fix assignment to user exists */
-                        CONNECT BY PRIOR Granted_Role = Grantee
+                JOIN   (SELECT p.Granted_Role, CONNECT_BY_ROOT p.GRANTEE Grantee
+                        FROM   DBA_Role_Privs p
+                        JOIN   DBA_Roles r ON r.Role = p.Granted_Role
+                        WHERE  r.Authentication_Type = 'NONE' /* Accept roles if they can be activated without authentication */
+                        OR     Default_Role = 'YES'           /* Accept roles only if fix assignment to user exists */
+                        CONNECT BY PRIOR p.Granted_Role = p.Grantee
                        ) rp ON rp.Granted_Role = tp.Grantee
                 WHERE  tp.Privilege IN ('SELECT', 'READ')
                 AND    tp.Type      = 'TABLE'

@@ -3,6 +3,12 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
+## 2925-08.13 1.12.2
+- Role based privileges are accepted to show tables in configuration dialog,
+  if the role is a default role or has an authentication type = 'NONE'.
+  Before only default roles were accepted.
+- SELECT or READ privilege on DBA_ROLES is required now for the MOVEX CDC schema owner in addition to DBA_ROLE_PRIVS.
+
 ## 2025-08-04 1.12.1
 - Bugfix: The format of the 'timestamp' field in the Kafka event is now an exact ISO 8601 format with microseconds and the default timezone of the DB server (e.g. 2025-08-04T12:34:56.789456+02:00).<br/>
   The comma before the fraction is replaced by dot to ensure correct ISO 8601 compatibility.<br/>
