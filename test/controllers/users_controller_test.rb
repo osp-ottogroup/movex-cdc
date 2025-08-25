@@ -2,24 +2,24 @@ require 'test_helper'
 
 class UsersControllerTest < ActionDispatch::IntegrationTest
   test "should get index" do
-    get users_url, headers: jwt_header(@jwt_admin_token), as: :json
+    get "/users", headers: jwt_header(@jwt_admin_token), as: :json
     assert_response :success
 
-    get users_url, headers: jwt_header, as: :json
+    get "/users", headers: jwt_header, as: :json
     assert_response :unauthorized, 'Access allowed to supervisor only'
 
   end
 
   test "should create user" do
     assert_difference('User.count') do
-      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+      post "/users", headers: jwt_header(@jwt_admin_token), params: { user: {
         email: 'Hans.Dampf@ottogroup.com', db_user: MovexCdc::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
         schema_rights: [ { info: 'Info for right', schema: { name: MovexCdc::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
     end
     assert_response 201
 
-    post users_url, headers: jwt_header, params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
+    post "/users", headers: jwt_header, params: { user: { email: 'Hans.Dampf@ottogroup.com', db_user: 'HANS', first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N'} }, as: :json
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
 
     run_with_current_user { User.where(email: 'Hans.Dampf@ottogroup.com').first.destroy! }  # cleanup user table
@@ -27,7 +27,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
 
   test "should not create user with already existing email" do
     assert_difference('User.count') do
-      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+      post "/users", headers: jwt_header(@jwt_admin_token), params: { user: {
         email: 'Hans.Dampf@ottogroup.com', db_user: MovexCdc::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
         schema_rights: [ { info: 'Info for right', schema: { name: MovexCdc::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
@@ -35,7 +35,7 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     assert_response 201
 
     assert_no_difference('User.count') do
-      post users_url, headers: jwt_header(@jwt_admin_token), params: { user: {
+      post "/users", headers: jwt_header(@jwt_admin_token), params: { user: {
         email: 'Hans.Dampf@ottogroup.com', db_user: MovexCdc::Application.config.db_user, first_name: 'Hans', last_name: 'Dampf', yn_admin: 'N',
         schema_rights: [ { info: 'Info for right', schema: { name: MovexCdc::Application.config.db_user}, yn_deployment_granted: 'N' }]
       } }, as: :json
