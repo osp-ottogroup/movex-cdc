@@ -56,7 +56,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
 
   def down
     # TODO: view_exists? 'ALLOWED_DB_TABLES' does nor realize existence of view
-    ActiveRecord::Base.connection.execute "DROP VIEW All_DB_Tables" if view_exists? 'ALLOWED_DB_TABLES'
+    ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables" if view_exists? 'ALLOWED_DB_TABLES'
   end
 end
 
