@@ -8,7 +8,9 @@ class Database
   @@METHODS_TO_DELEGATE = [
       :set_application_info,
       :db_version,
+      :exec_unprepared,
       :jdbc_driver_version,
+      :jdbc_driver_path,
       :db_default_timezone,
   ]
 
@@ -50,6 +52,9 @@ class Database
     end
     unless MovexCdc::Application.config.respond_to?(:jdbc_driver_version)       # Set only once especially for tests
       MovexCdc::Application.set_and_log_attrib_from_env(:jdbc_driver_version, default: self.jdbc_driver_version)
+    end
+    unless MovexCdc::Application.config.respond_to?(:jdbc_driver_path) || Rails.env.production?       # Set only once especially for tests
+      MovexCdc::Application.set_and_log_attrib_from_env(:jdbc_driver_path, default: self.jdbc_driver_path)
     end
   rescue
     Rails.logger.error('Database.initialize_db_connection') { "Error executing SQL at DB. Connection to DB failed?" }

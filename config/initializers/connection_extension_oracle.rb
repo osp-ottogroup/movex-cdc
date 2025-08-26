@@ -1,5 +1,6 @@
 # Extend oracle-enhanced_adapter by some missed features
 # Peter Ramm, 2020-12-07
+require 'active_record/connection_adapters/oracle_enhanced/connection'
 require 'active_record/connection_adapters/oracle_enhanced/jdbc_connection'
 
 ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
@@ -27,4 +28,26 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
     raw_connection                                                              # return result of original method
   end
 end
+
+
+# Fix for https://github.com/rsim/oracle-enhanced/pull/2473
+# https://github.com/rsim/oracle-enhanced/issues/2470
+
+ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection::Cursor.class_eval do
+  def select_statement?
+    # Only simple SELECT and WITH statements are considered SELECT statements.
+    # because no other valid ojdbc method found to check it.
+
+    sql = @raw_statement.get_original_sql.strip
+
+    sql.gsub!(/\A\n+/, "")            # remove leading newlines
+    sql.gsub!(/\A\r+/, "")            # remove leading carriage returns
+    sql.gsub!(/--.*$/, "")            # remove single line comments
+    sql.gsub!(/\/\*.*?\*\//m, "")     # Remove multi-line comments (/* ... */)
+    sql.match?(/\A\s*(SELECT|WITH)/i)
+  end
+
+end
+
+
 

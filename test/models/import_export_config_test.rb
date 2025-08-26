@@ -95,7 +95,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   end
 
   test 'export single schema' do
-    exported_data = ImportExportConfig.new.export(single_schema_name: MovexCdc::Application.config.db_user)
+    assert_nothing_raised do
+      exported_data = ImportExportConfig.new.export(single_schema_name: MovexCdc::Application.config.db_user)
+    end
   end
 
   # a schema not in whole import list should be deactivated but not dropped

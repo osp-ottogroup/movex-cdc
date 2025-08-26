@@ -92,7 +92,7 @@ class HealthCheckController < ApplicationController
       database_url:                 MovexCdc::Application.config.db_url,
       kafka_seed_broker:            MovexCdc::Application.config.kafka_seed_broker,
       start_working_timestamp:      ThreadHandling.get_instance.application_startup_timestamp,
-      warnings:                     '',
+      warnings:                     String.new,
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
       kafka_max_bulk_count:         MovexCdc::Application.config.kafka_max_bulk_count,

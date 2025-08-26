@@ -34,7 +34,7 @@ RUN npm audit --production
 # STAGE 2: build MOVEX CDC backend
 FROM openjdk:17-jdk-alpine
 
-MAINTAINER Peter.Ramm@ottogroup.com
+MAINTAINER Peter.Ramm@og1o.de
 
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container

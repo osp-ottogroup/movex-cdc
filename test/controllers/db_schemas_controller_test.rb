@@ -11,7 +11,7 @@ class DbSchemasControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
 
     # Test with existing email
-    get '/db_schemas/authorizable_schemas?email=Peter.Ramm@ottogroup.com', headers: jwt_header, as: :json
+    get '/db_schemas/authorizable_schemas?email=Peter.Ramm@og1o.de', headers: jwt_header, as: :json
     assert_response :success
   end
 

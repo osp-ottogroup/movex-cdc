@@ -16,7 +16,7 @@
 # FROM openjdk:17-jdk-alpine
 FROM eclipse-temurin:21
 
-MAINTAINER Peter.Ramm@ottogroup.com
+MAINTAINER Peter.Ramm@og1o.de
 
 # 3.5.0 has problems working with single node cluster
 ARG KAFKA_VERSION=3.7.0

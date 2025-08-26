@@ -27,9 +27,11 @@ class InitializationJob < ApplicationJob
 
     # LOG Datase and JDBC driver version
     Rails.logger.info('InitializationJob.perform'){ "JDBC driver version = #{Database.jdbc_driver_version}" }
-    MovexCdc::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
-    Rails.logger.debug('InitializationJob.perform'){ "Database version = #{Database.db_version}"}
-    MovexCdc::Application.log_attribute('Database version', Database.db_version)
+    Rails.logger.info('InitializationJob.perform'){ "JDBC driver path    = #{Database.jdbc_driver_path}" }
+    Rails.logger.debug('InitializationJob.perform'){ "Database version   = #{Database.db_version}"}
+    MovexCdc::Application.log_attribute('JDBC driver version',  Database.jdbc_driver_version)
+    MovexCdc::Application.log_attribute('JDBC driver path',     Database.jdbc_driver_path)
+    MovexCdc::Application.log_attribute('Database version',     Database.db_version)
 
     EventLog.adjust_interval                                                    # Activate new MovexCdc::Application.config.partition_interval if necessary
     EventLog.adjust_max_simultaneous_transactions                               # Activate new MovexCdc::Application.config.max_simultaneous_transactions if necessary

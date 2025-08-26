@@ -148,6 +148,17 @@ class DatabaseOracle
     end
   end
 
+  # Execute SQL without using bind variables (connection.createStatement instead of connection.prepareStatement)
+  # @param stmt SQL-Statement
+  # @return [void]
+  def self.exec_unprepared(sql)
+    Rails.logger.debug('DatabaseOracle.exec_unprepared'){ "Executing:\n#{sql}" }
+    ActiveRecord::Base.connection.get_jdbc_connection.exec(sql)
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}")
+    raise
+  end
+
   # Exec SQL with bound list of rowids
   # @param stmt SQL-Statement
   # @param rowid_array Array of rowids

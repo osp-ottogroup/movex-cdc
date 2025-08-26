@@ -24,7 +24,7 @@ RUN $JAVA_HOME/bin/jlink \
 
 FROM oraclelinux:8-slim
 
-MAINTAINER Peter.Ramm@ottogroup.com
+MAINTAINER Peter.Ramm@og1o.de
 ARG JRUBY_VERSION=9.4.13.0
 # Kafka 3.5.0 has problems with transactions in a single broker setup
 ARG KAFKA_VERSION=3.7.2
