@@ -16,7 +16,7 @@ class ServerControlController < ApplicationController
       level = params.permit(:log_level)[:log_level]&.upcase
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
       Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
-      Rails.logger.level = "Logger::#{level}".constantize
+      Rails.logger.level = Logger.const_get(level)
       MovexCdc::Application.config.log_level = level.downcase.to_sym
 
       # Set log level for log4j, ignore Exception if log4j is not available
