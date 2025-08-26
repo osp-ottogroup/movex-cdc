@@ -91,14 +91,6 @@ class ActiveSupport::TestCase
     raise msg
   end
 
-  def exec_db_user_sql(sql)
-    ActiveRecord::Base.connection.execute sql
-  rescue Exception => e
-    msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
-    Rails.logger.error('ActiveSupport::TestCase.exec_db_user_sql'){ msg }
-    raise msg
-  end
-
   def create_victim_structures
     # Remove possible pending structures before recreating
     exec_drop = proc do |sql|
@@ -120,7 +112,7 @@ class ActiveSupport::TestCase
       # Ensure uniqueness of ID even if other PKey is used to test event keys from primary key columns
       exec_victim_sql("CREATE UNIQUE INDEX  #{victim_schema_prefix}UX_#{victim1_table.name} ON #{victim_schema_prefix}#{victim1_table.name}(ID)")
       exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{MovexCdc::Application.config.db_user}") # needed for table initialization
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
@@ -129,7 +121,7 @@ class ActiveSupport::TestCase
           END BEFORE STATEMENT;
         END #{DbTrigger.build_trigger_name(victim1_table, 'I')};
       ")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{victim1_drop_trigger_name} FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
@@ -146,13 +138,13 @@ class ActiveSupport::TestCase
     when 'SQLITE' then
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), CHAR_NAME CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} INSERT ON #{victim1_table.name}
         BEGIN
           DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{victim1_drop_trigger_name} UPDATE ON #{victim1_table.name}
         BEGIN
           DELETE FROM Event_Logs WHERE 1=2;
