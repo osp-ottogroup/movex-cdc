@@ -48,6 +48,8 @@ prepare_tests:
     - date
     - gem install --no-doc bundler
     - bundle config set deployment 'true'
+    # Ensure bundle install uses the correct JRE
+    - bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
