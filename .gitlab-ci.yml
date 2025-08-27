@@ -9,7 +9,7 @@ image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.0.2.0-jdk21
 variables:
   # Should the log output of DB service be shown in the job log?
   CI_DEBUG_SERVICES: "false"
-  LOG_LEVEL: "info"
+  LOG_LEVEL: "debug"
   RAILS_MAX_THREADS: 100
   KAFKA_SEED_BROKER: localhost:9092
   TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
