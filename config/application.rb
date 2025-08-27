@@ -302,7 +302,7 @@ module MovexCdc
 
     # check if database supports partitioning (possible and licensed)
     def partitioning?
-      if !defined? @db_partitioning
+      if !defined?(@db_partitioning) || @db_partitioning.nil?
         @db_partitioning = case config.db_type
                                  when 'ORACLE' then
                                    Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
