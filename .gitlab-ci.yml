@@ -94,12 +94,12 @@ prepare_tests:
         bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
       fi
     - bundle exec rake ci_preparation:create_user
-    - bundle exec rails db:migrate RAILS_ENV=test
+    - bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test
     - >
       if [ "$DB_TYPE" == "ORACLE" ]; then
         # Check if db:rollback is functional + restore migration
         # SQLite does not support remove_foreign_key although it is implemented
-        bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
+        bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test
       fi
     - echo "test.log after migrations" && cat log/test.log
     - bundle exec rails test
