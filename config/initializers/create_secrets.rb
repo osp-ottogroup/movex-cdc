@@ -35,7 +35,7 @@ begin
     Rails.logger.warn('create_secrets.rb'){ "Neither SECRET_KEY_BASE nor SECRET_KEY_BASE_FILE provided!" }
     Rails.logger.warn('create_secrets.rb'){ "Temporary encryption key for SECRET_KEY_BASE is generated and stored in local filesystem!" }
     Rails.logger.warn('create_secrets.rb'){ "This key is valid only for the lifetime of this running instance and is not persistent!!!" }
-    secret_key_base = Random.rand 99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999
+    secret_key_base = Random.rand(99999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999999).to_s
     File.write(DEFAULT_SECRET_KEY_BASE_FILE, secret_key_base)
   end
 
