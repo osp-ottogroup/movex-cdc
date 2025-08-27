@@ -305,12 +305,14 @@ module MovexCdc
       if !defined?(@db_partitioning) || @db_partitioning.nil?
         @db_partitioning = case config.db_type
                                  when 'ORACLE' then
+                                   puts "MovexCdc::Application.partitioning?: checking DB"
                                    Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
                                  else
                                    false
                                  end
         Rails.logger.info('Application'){ "Partitioning = #{@db_partitioning} for this #{config.db_type} database" }
       end
+      puts "MovexCdc::Application.partitioning?: returning #{@db_partitioning}"
       @db_partitioning
     end
   end
