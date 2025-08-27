@@ -17,33 +17,33 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
 
   test "should create condition" do
     assert_difference('Condition.count') do
-      post conditions_url, headers: jwt_header, params: { condition: { table_id: victim1_table.id, operation: 'U', filter: 'ID IS NULL' } }, as: :json
+      post "/conditions", headers: jwt_header, params: { condition: { table_id: victim1_table.id, operation: 'U', filter: 'ID IS NULL' } }, as: :json
     end
     assert_response 201
 
     run_with_current_user { Condition.where(filter: 'ID IS NULL').first.destroy! } # restore previous state
 
-    post conditions_url, headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: tables_table.id, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
+    post "/conditions", headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  table_id: tables_table.id, operation: 'U', filter: 'ID IS NULL'  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should show condition" do
-    get conditions_url(@condition), headers: jwt_header, as: :json
+    get "/conditions/#{@condition.id}", headers: jwt_header, as: :json
     assert_response :success
 
-    get conditions_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), as: :json
+    get "/conditions/#{@condition.id}", headers: jwt_header(@jwt_no_schema_right_token), as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
   test "should update condition" do
     org_filter = @condition.filter
-    patch conditions_url(@condition), headers: jwt_header, params: { condition: { filter: 'new filter', lock_version: @condition.lock_version } }, as: :json
+    patch "/conditions/#{@condition.id}", headers: jwt_header, params: { condition: { filter: 'new filter', lock_version: @condition.lock_version } }, as: :json
     assert_response 200
 
     condition = Condition.find(@condition.id)                                   # load fresh state from DB
     run_with_current_user { condition.update!(filter: org_filter, lock_version: condition.lock_version) } # Restore previous state
 
-    patch conditions_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
+    patch "/conditions/#{@condition.id}", headers: jwt_header(@jwt_no_schema_right_token), params: { condition: {  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
@@ -52,18 +52,18 @@ class ConditionsControllerTest < ActionDispatch::IntegrationTest
     run_with_current_user { condition_to_delete.save! }
 
     assert_difference('Condition.count', -1) do
-      delete conditions_url(condition_to_delete), headers: jwt_header, params: { condition: condition_to_delete.attributes}, as: :json
+      delete"/conditions/#{condition_to_delete.id}", headers: jwt_header, params: { condition: condition_to_delete.attributes}, as: :json
     end
     assert_response 204
 
     condition = Condition.where(table_id: victim1_table.id, operation: 'D').first
-    delete conditions_url(condition), headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
+    delete"/conditions/#{@condition.id}", headers: jwt_header, params: { condition: {lock_version: 42}}, as: :json
     assert_response :internal_server_error
     assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
   end
 
   test "should not destroy condition" do
-    delete conditions_url(@condition), headers: jwt_header(@jwt_no_schema_right_token), params: { condition: @condition.attributes}, as: :json
+    delete "/conditions/#{@condition.id}", headers: jwt_header(@jwt_no_schema_right_token), params: { condition: @condition.attributes}, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
