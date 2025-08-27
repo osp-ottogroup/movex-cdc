@@ -58,6 +58,7 @@ prepare_tests:
     paths:
       - vendor/bundle
       - .bundle
+      - Gemfile.lock
     expire_in: 1 month
 
 .tests:
