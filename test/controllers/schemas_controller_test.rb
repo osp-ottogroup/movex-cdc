@@ -5,7 +5,7 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get index for allowed schemata" do
-    get schemas_url, headers: jwt_header, as: :json
+    get "/schemas", headers: jwt_header, as: :json
     assert_response :success
     result = response.parsed_body
 
@@ -19,24 +19,24 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
 
   test "should create schema" do
     assert_difference('Schema.count') do
-      post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new'  } }, as: :json
+      post "/schemas", headers: jwt_header, params: { schema: { name: 'Schema new'  } }, as: :json
     end
     assert_response 201
 
     assert_difference('Schema.count') do
-      post schemas_url, headers: jwt_header, params: { schema: { name: 'Schema new2', topic: KafkaHelper.existing_topic_for_test  } }, as: :json
+      post "/schemas", headers: jwt_header, params: { schema: { name: 'Schema new2', topic: KafkaHelper.existing_topic_for_test  } }, as: :json
     end
     assert_response 201
   end
 
   test "should show schema" do
-    get schema_url(user_schema), headers: jwt_header, as: :json
+    get "/schema/#{user_schema.id}", headers: jwt_header, as: :json
     assert_response :success
   end
 
   test "should update schema" do
     schema = Schema.find(user_schema.id)
-    patch schema_url(schema), headers: jwt_header, params: { schema: { name: 'new_name', topic: KafkaHelper.existing_topic_for_test, lock_version: schema.lock_version} }, as: :json
+    patch "/schema/#{schema.id}", headers: jwt_header, params: { schema: { name: 'new_name', topic: KafkaHelper.existing_topic_for_test, lock_version: schema.lock_version} }, as: :json
     assert_response 200
     run_with_current_user { Schema.find(user_schema.id).update!(user_schema.attributes.select{|key, value| key != 'lock_version'}) } # Restore original state
   end
@@ -47,13 +47,13 @@ class SchemasControllerTest < ActionDispatch::IntegrationTest
       @deletable = Schema.new(name: 'Deletable', lock_version: 1)
       run_with_current_user { @deletable.save! }
       assert_difference('Schema.count', -1) do
-        delete schema_url(@deletable), headers: jwt_header, params: { schema: @deletable.attributes}, as: :json
+        delete "/schema/#{@deletable.id}", headers: jwt_header, params: { schema: @deletable.attributes}, as: :json
       end
       assert_response 204
 
       @deletable = Schema.new(name: 'Deletable', lock_version: 1)
       run_with_current_user { @deletable.save! }
-      delete schema_url(@deletable), headers: jwt_header, params: { schema: {lock_version: 42}}, as: :json
+      delete "/schema/#{@deletable.id}", headers: jwt_header, params: { schema: {lock_version: 42}}, as: :json
       assert_response :internal_server_error
       assert response.body['ActiveRecord::StaleObjectError'], log_on_failure('Should raise ActiveRecord::StaleObjectError')
     when 'SQLITE' then                                                          # onle one schema exists for SQLite that should not be deleted

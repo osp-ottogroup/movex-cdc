@@ -61,7 +61,7 @@ class ColumnsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should not destroy column" do
-    delete column_url(@column), headers: jwt_header(@jwt_no_schema_right_token), params: { column: @column.attributes}, as: :json
+    delete "/columns/#{@column.id}", headers: jwt_header(@jwt_no_schema_right_token), params: { column: @column.attributes}, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
   end
 
