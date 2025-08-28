@@ -131,7 +131,6 @@ class KafkaJava < KafkaBase
           Java::OrgApacheKafkaCommonErrors::UnsupportedForMessageFormatException,
           Java::OrgApacheKafkaCommonErrors::AuthenticationException,
           Java::OrgApacheKafkaCommonErrors::AuthorizationException,
-          Java::OrgApacheKafkaCommonErrors::IllegalStateException,
           Java::JavaLang::IllegalStateException,
         ]
       end
