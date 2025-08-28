@@ -40,7 +40,7 @@ class TransferThread
     @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
     @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
     # Kafka transactional ID, must be unique per thread / Kafka connection
-    @transactional_id               = "#{MovexCdc::Application.config.kafka_transactional_id_prefix}-#{Socket.gethostname}-#{@worker_id}"
+    @transactional_id               = "#{MovexCdc::Application.config.kafka_transactional_id_prefix}-#{Socket.gethostname}-#{@worker_id}-#{Time.now.strftime("%Y-%m-%d-%H-%M")}"
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
