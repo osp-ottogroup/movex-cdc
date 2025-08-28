@@ -3,7 +3,7 @@ require 'test_helper'
 class KafkaBaseTest < ActiveSupport::TestCase
   test "simple produce" do
     kafka = KafkaBase.create
-    producer = kafka.create_producer(transactional_id: 'hugo2')
+    producer = kafka.create_producer(worker_id: 2)
     producer.begin_transaction
 
     timestamp = case MovexCdc::Application.config.legacy_ts_format

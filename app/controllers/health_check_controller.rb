@@ -95,6 +95,7 @@ class HealthCheckController < ApplicationController
       warnings:                     '',
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
+      garbage_collector:            garbage_collector_info,
       kafka_max_bulk_count:         MovexCdc::Application.config.kafka_max_bulk_count,
       max_transaction_size:   MovexCdc::Application.config.max_transaction_size
     }
@@ -265,5 +266,42 @@ class HealthCheckController < ApplicationController
       info_record[:startup_config_value]  = config_info[:startup_config_value]
     end
     info_record
+  end
+
+  def garbage_collector_info
+    GC.start  # Force a garbage collection cycle
+    stats = GC.stat
+
+    gb = (1024 * 1024 * 1024).to_f
+    stats.each do |k1, v1|
+      if v1.is_a?(Numeric) && v1 > gb/100
+        stats[k1] = (v1 / gb).round(3).to_s + ' GB'
+      end
+      if v1.instance_of?(Hash)
+        v1.each do |k2, v2|
+          if v2.is_a?(Numeric) && v2 > gb/100
+            v1[k2] = (v2 / gb).round(3).to_s + ' GB'
+          end
+          if v2.instance_of?(Hash)
+            v2.each do |k3, v3|
+              if v3.is_a?(Numeric) && v3 > gb/100
+                v2[k3] = (v3 / gb).round(3).to_s + ' GB'
+              end
+              if v3.instance_of?(Hash)
+                v3.each do |k4, v4|
+                  if v4.is_a?(Numeric) && v4 > gb/100
+                    v3[k4] = (v4 / gb).round(3).to_s + ' GB'
+                  end
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    stats
+  rescue Exception=>e
+    ExceptionHelper.log_exception(e, 'HealthCheckController.garbage_collector_info', additional_msg: "Error reading garbage collector info")
+    { error: "Error reading garbage collector info: #{e.class}:#{e.message}" }
   end
 end
