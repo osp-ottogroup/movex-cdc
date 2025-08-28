@@ -85,6 +85,10 @@ class KafkaMock < KafkaBase
     def shutdown;
     end
 
+    def abort_worker_thread_at_exception?(exception)
+      false
+    end
+
     private
     # Check if the message content is valid
     # @param msg_hash [Hash] Parsed message content to validate

@@ -83,11 +83,11 @@ ActiveRecord::Schema.define(version: 2025_08_12_100000) do
     t.string "operation", limit: 1, null: false
     t.string "dbuser", limit: 128, null: false
     t.text "payload", null: false
+    t.string "msg_key", limit: 4000
     t.datetime "created_at", precision: 6, null: false
     t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
     t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
-    t.string "msg_key", limit: 4000
   end
 
   create_table "schema_rights", force: :cascade do |t|

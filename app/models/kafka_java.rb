@@ -119,6 +119,25 @@ class KafkaJava < KafkaBase
       @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
     end
 
+    # Check if the exception should lead to abort of the worker thread
+    # @param exception [Exception] Exception raised by producer action
+    # @return [Boolean] true if the exception should lead to abort of the worker thread
+    def abort_worker_thread_at_exception?(exception)
+      if !defined?(@producer_abort_exceptions) || @producer_abort_exceptions.nil?
+        # Kafka exceptions that should lead to abort of the worker thread
+        @producer_abort_exceptions = [
+          Java::OrgApacheKafkaCommonErrors::InvalidProducerEpochException,
+          Java::OrgApacheKafkaCommonErrors::ProducerFencedException,
+          Java::OrgApacheKafkaCommonErrors::UnsupportedForMessageFormatException,
+          Java::OrgApacheKafkaCommonErrors::AuthenticationException,
+          Java::OrgApacheKafkaCommonErrors::AuthorizationException,
+          Java::OrgApacheKafkaCommonErrors::IllegalStateException,
+          Java::JavaLang::IllegalStateException,
+        ]
+      end
+      @producer_abort_exceptions.include?(exception.class)
+    end
+
     private
     MAX_INIT_TRANSACTION_RETRY=3
     # create the instance of Kafka producer

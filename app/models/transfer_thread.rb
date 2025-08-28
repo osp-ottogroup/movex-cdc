@@ -68,7 +68,7 @@ class TransferThread
     idle_sleep_time = 0
     event_logs = []                                                             # ensure variable is also known in exception handling
     while !@thread_mutex.synchronize { @stop_requested }
-      ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka
+      ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka, rollback at exception
         event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
         @last_read_events = event_logs.count                                    # remember for health check
         if event_logs.count > 0
@@ -139,8 +139,6 @@ class TransferThread
   private
 
 
-  # Cancel previous producer and recreate again
-
   # Process the event_logs array within the AR transaction
   # Method is called recursive on error until event_logs.size = 1
   def process_event_logs_divide_and_conquer(event_logs, recursive_depth = 0)
@@ -155,6 +153,10 @@ class TransferThread
       process_kafka_transaction(event_logs)
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
+      if @kafka_producer.abort_worker_thread_at_exception?(e)
+        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, the worker thread will stop now!"}
+        raise
+      end
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
       @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts

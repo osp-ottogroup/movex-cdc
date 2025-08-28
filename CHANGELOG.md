@@ -3,7 +3,10 @@
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
 
-## 2925-08.13 1.12.2
+## 2025-08-28 1.12.3
+- Abort processing of a batch if certain Kafka errors occure. This avoids endless retries with divide & conquer processing.
+
+## 2025-08.13 1.12.2
 - Role based privileges are accepted to show tables in configuration dialog,
   if the role is a default role or has an authentication type = 'NONE'.
   Before only default roles were accepted.
