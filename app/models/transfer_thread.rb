@@ -1,5 +1,4 @@
 require 'kafka_mock'
-require 'socket'
 
 # preload classes to prevent from 'RuntimeError: Circular dependency detected while autoloading constant' if multiple threads start working simultaneously
 require 'database'
@@ -40,7 +39,6 @@ class TransferThread
     @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
     @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
     # Kafka transactional ID, must be unique per thread / Kafka connection
-    @transactional_id               = "#{MovexCdc::Application.config.kafka_transactional_id_prefix}-#{Socket.gethostname}-#{@worker_id}-#{Time.now.strftime("%Y-%m-%d-%H-%M")}"
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
     @cached_max_event_logs_seq_id   = @max_key_event_logs_id                    # last known max value from sequence, refreshed by get_max_event_logs_id_from_sequence if required
@@ -60,8 +58,8 @@ class TransferThread
     Database.set_current_session_network_timeout(timeout_seconds: MovexCdc::Application.config.db_query_timeout * 2) # ensure hanging sessions are cancelled sometimes
     @thread = Thread.current
 
-    @kafka_producer = KafkaBase.create.create_producer(transactional_id: @transactional_id)
-    Rails.logger.debug('TransferThread.process'){"Kafka producer created with transactional_id = #{@transactional_id}, marking @kafka_connected = true "}
+    @kafka_producer = KafkaBase.create.create_producer(worker_id: @worker_id)
+    Rails.logger.debug('TransferThread.process'){"Kafka producer created with transactional_id = #{@kafka_producer&.current_transactional_id}, marking @kafka_connected = true "}
     @kafka_connected = true                                                     # flag to ensure that kafka connection is established, otherwise exception is raised by create_producer
 
     # Loop for ever, check cancel criteria in ThreadHandling
@@ -125,7 +123,7 @@ class TransferThread
       start_time:                     @start_time,
       successful_messages_processed:  @messages_processed_successful,
       thread_id:                      @thread&.object_id,
-      transactional_id:               @transactional_id,
+      transactional_id:               @kafka_producer&.current_transactional_id,
       worker_id:                      @worker_id,
       warning:                        ''                                        # empty warning means healthy
     }
@@ -396,7 +394,7 @@ class TransferThread
         end
         @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka, relevant only for KafkaMock
       rescue Exception => e
-        msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@transactional_id}. Aborting transaction now.\n"
+        msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
         msg << event_logs_debug_info(event_logs_slice)
         ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: msg)
         raise
@@ -668,7 +666,6 @@ class TransferThread
       }
     end
   end
-
 end
 
 

@@ -9,10 +9,10 @@ class KafkaJava < KafkaBase
 
     # Create producer instance
     # @param [KafkaJava] kafka Instance of KafkaJava
-    # @param [String] transactional_id Transactional id for the producer
+    # @param [Integer] worker_id Worker ID for transactional id for the producer
     # @return [void]
-    def initialize(kafka, transactional_id:)
-      super(kafka, transactional_id: transactional_id)
+    def initialize(kafka, worker_id:)
+      super(kafka, worker_id: worker_id)
       @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
       @kafka_producer            = nil
       create_kafka_producer
@@ -106,7 +106,7 @@ class KafkaJava < KafkaBase
     end
 
     # Cancel previous producer and recreate again
-
+    # @return [void]
     def reset_kafka_producer
       Rails.logger.warn('KafkaJava::Producer.reset_kafka_producer') { "Resetting the Kafka producer (close the current producer + create a new producer" }
       shutdown                                                                  # free kafka connections of current producer if != nil
@@ -147,6 +147,7 @@ class KafkaJava < KafkaBase
 
       while !init_transactions_successfull
         begin
+          @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
           producer_properties =@kafka.connect_properties
           producer_properties.put('transactional.id',     @transactional_id)
           producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
@@ -179,12 +180,9 @@ class KafkaJava < KafkaBase
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
-            if e.class == Java::OrgApacheKafkaCommonErrors::TimeoutException    # change transactional_id as workaround for ConcurrentTransactionError
-              @transactional_id << '-'
-              Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional_id = #{@transactional_id}. Possible reason: missing abort_transaction before reuse of transactional_id" }
-            end
+            Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional id . Possible reason: missing abort_transaction before reuse of transactional id" }
           else
-            raise
+            raise                                                               # exit the while loop and reraise the exception
           end
         end
       end
@@ -336,11 +334,11 @@ class KafkaJava < KafkaBase
   end
 
   # Create instance of KafkaJava::Producer
-  # @param transactional_id [String] Transactional id for the producer
+  # @param worker_id [Integer] Worker ID for transactional id for the producer
   # @return [KafkaJava::Producer] Instance of KafkaJava::Producer
-  def create_producer(transactional_id:)
+  def create_producer(worker_id:)
     if @producer.nil?
-      @producer = Producer.new(self, transactional_id: transactional_id)
+      @producer = Producer.new(self, worker_id: worker_id)
     else
       raise "KafkaJava::create_producer: producer already initialized! Only one producer per instance allowed."
     end

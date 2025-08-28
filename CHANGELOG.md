@@ -6,6 +6,7 @@
 ## 2025-08-28 1.12.3
 - Abort processing of a batch if certain Kafka errors occure. This avoids endless retries with divide & conquer processing.
 - Add the timestamp of worker thread start to the transactional ID of the Kafka producer to avoid collisions of transactional IDs if a worker thread is restarted quickly after termination.
+- Use new transactional ID each time a new Kafka producer is created
 
 ## 2025-08.13 1.12.2
 - Role based privileges are accepted to show tables in configuration dialog,

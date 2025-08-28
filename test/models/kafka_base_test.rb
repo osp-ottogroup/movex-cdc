@@ -3,7 +3,7 @@ require 'test_helper'
 class KafkaBaseTest < ActiveSupport::TestCase
   test "simple produce" do
     kafka = KafkaBase.create
-    producer = kafka.create_producer(transactional_id: 'hugo2')
+    producer = kafka.create_producer(worker_id: 2)
     producer.begin_transaction
 
     timestamp = case MovexCdc::Application.config.legacy_ts_format
@@ -89,7 +89,7 @@ class KafkaBaseTest < ActiveSupport::TestCase
       org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
       begin
         kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10')                         # Set a minimal value
-        producer = kafka.create_producer(transactional_id: 'hugo14')
+        producer = kafka.create_producer(worker_id: 2)
         producer.begin_transaction
         assert_raise do
           begin

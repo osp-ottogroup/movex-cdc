@@ -4,12 +4,13 @@ class KafkaMock < KafkaBase
   class Producer < KafkaBase::Producer
     # Create producer instance
     # @param [KafkaMock] kafka Instance of KafkaMock
-    # @param [String] transactional_id Transactional id for the producer
+    # @param [Integer] worker_id for transactional id for the producer
     # @return [void]
-    def initialize(kafka, transactional_id:)
+    def initialize(kafka, worker_id:)
+      @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
       @last_successfully_delivered_id = 0
-      super(kafka, transactional_id: transactional_id)
+      super(kafka, worker_id: worker_id)
       @events = []
     end
 
@@ -80,6 +81,7 @@ class KafkaMock < KafkaBase
     end
 
     def reset_kafka_producer
+      @transactional_id = generate_new_transactional_id(@worker_id)             # Simulate new transactional_id for each new producer
     end
 
     def shutdown;
@@ -224,11 +226,11 @@ class KafkaMock < KafkaBase
 
 
   # Create instance of KafkaMock::Producer
-  # @param transactional_id [String] Transactional id for the producer
+  # @param worker_id [Integer] worker ID for transactional id for the producer
   # @return [KafkaMock::Producer] Instance of KafkaMock::Producer
-  def create_producer(transactional_id:)
+  def create_producer(worker_id:)
     if @producer.nil?
-      @producer = Producer.new(self, transactional_id: transactional_id)
+      @producer = Producer.new(self, worker_id: worker_id)
     else
       raise "KafkaMock::create_producer: producer already initialized! Only one producer per instance allowed."
     end

@@ -1,3 +1,6 @@
+require 'socket'
+
+
 # Generic class for Kafka producers and service functions
 class KafkaBase
   attr_reader :config
@@ -7,13 +10,20 @@ class KafkaBase
     attr_reader :max_message_bulk_count
 
     # @param kafka [KafkaBase] Kafka object inherited from KafkaBase
-    # @param transactional_id [String] Transactional ID for Kafka producer
-    def initialize(kafka, transactional_id:)
+    # @param worker_id [Integer] Worker thread id as part of the transactional ID for Kafka producer
+    def initialize(kafka, worker_id:)
       @kafka                      = kafka
       @max_message_bulk_count     = MovexCdc::Application.config.kafka_max_bulk_count   # Keep this value for the lifetime of the producer, event if the config changes
       @max_buffer_bytesize        = (MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024).to_i
-      @transactional_id           = transactional_id
+      @worker_id                  = worker_id
       @topic_infos                = {}                                          # Max message size produced within a transaction so far per topic
+      @transactional_id            = nil                                        # Will be generated on first use in create_kafka_producer
+    end
+
+    # Get the current transactional ID used by this producer
+    # @return [String, nil] the current transactional ID or nil if not yet set
+    def current_transactional_id
+      @transactional_id
     end
 
     private
@@ -62,6 +72,30 @@ class KafkaBase
           Rails.logger.error('KafkaBase::Producer.fix_message_size_too_large') { "#{e.class}: #{e.message} while getting or setting topic property max.message.bytes" }
         end
       end
+    end
+
+    # Generate unique transactional ID for Kafka producer
+    # Format: <prefix>-<hostname>-<worker_id>-<YYYY-MM-DD-HH-MM>
+    # @return [String] the generated transactional ID
+    #
+    # Note: The transactional ID must be unique for each producer instance. If two producers use the same transactional ID, it can lead to transaction conflicts and data inconsistencies.
+    # The format used here ensures uniqueness by incorporating the hostname and worker ID, along with a timestamp to differentiate between instances started at different times.
+    #
+    # The timestamp is included up to the minute level to allow for multiple restarts of the same worker within a short time frame without causing conflicts.
+    #
+    # The prefix is configurable to allow for easy identification of the transactional IDs related to this application.
+    #
+    # Example: If the prefix is "movex-cdc", the hostname is "server1", the worker ID is "2", and the current date and time is "2024-06-15 14:30", the generated transactional ID would be:
+    # "movex-cdc-server1-2-2024-06-15-14-30"
+    #
+    # This format helps in identifying and managing Kafka transactions effectively, especially in distributed environments where multiple instances of the application may be running.
+    #
+    # Note: Ensure that the prefix does not contain special characters that are not allowed in Kafka transactional IDs.
+    #
+    # Reference: https://kafka.apache.org/documentation/#transactions
+    #
+    def generate_new_transactional_id(worker_id)
+      "#{MovexCdc::Application.config.kafka_transactional_id_prefix}-#{Socket.gethostname}-#{worker_id}-#{Time.now.strftime("%Y-%m-%d-%H-%M-%S-%N")}"
     end
   end # class Producer
 
