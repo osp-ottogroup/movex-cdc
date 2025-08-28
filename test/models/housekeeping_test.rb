@@ -86,6 +86,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     if current_high_value_time >= high_value_time                                       # high value should by adjusted to an older Time
       Rails.logger.debug('HousekeepingTest.check_partition_interval'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
       log_partition_state(false, 'set_high_value_time before splitting')
+      # TODO: Is something missing here? SET INTERVAL ()
       Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"                     # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
       # Remove all range partitions except the first partition
