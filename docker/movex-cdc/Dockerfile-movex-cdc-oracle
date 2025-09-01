@@ -71,7 +71,10 @@ RUN   echo "### get ruby version info" && ruby -v
 RUN   echo "### set timezone" && \
       echo 'Europe/Berlin' > /etc/timezone && \
       rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
-      date
+      date \
+RUN   echo "### Install async-profiler 4.1" && \
+      wget -q https://github.com/async-profiler/async-profiler/releases/download/v4.1/async-profiler-4.1-linux-x64.tar.gz && \
+      tar -xvf async-profiler-4.1-linux-x64.tar.gz -C /opt && rm async-profiler-4.1-linux-x64.tar.gz
 RUN   echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
       ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
 RUN   echo "### update installed system gems" && gem update --system --no-doc
@@ -116,6 +119,7 @@ WORKDIR $WORKDIR
 COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
 COPY --from=build_stage $JRUBY_HOME $JRUBY_HOME
 COPY --from=build_stage $WORKDIR    $WORKDIR
+COPY --from=build_stage /opt/async-profiler-4.1-linux-x64  /opt/async-profiler
 
 
 # Show doc files for direct access
