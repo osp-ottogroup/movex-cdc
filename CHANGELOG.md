@@ -7,6 +7,9 @@
 - Abort processing of a batch if certain Kafka errors occure. This avoids endless retries with divide & conquer processing.
 - Add the timestamp of worker thread start to the transactional ID of the Kafka producer to avoid collisions of transactional IDs if a worker thread is restarted quickly after termination.
 - Use new transactional ID each time a new Kafka producer is created
+- Config attribute KAFKA_MAX_BULK_COUNT is not used anymore
+- Config attribute KAFKA_TRANSACTION_TIMEOUT added with default 10 minutes
+  Default for config attribute KAFKA_PRODUCER_TIMEOUT increased from 5 seconds to one minute
 
 ## 2025-08.13 1.12.2
 - Role based privileges are accepted to show tables in configuration dialog,

@@ -7,14 +7,11 @@ class KafkaBase
 
   # Producer class with generic functions independent from used library
   class Producer
-    attr_reader :max_message_bulk_count
 
     # @param kafka [KafkaBase] Kafka object inherited from KafkaBase
     # @param worker_id [Integer] Worker thread id as part of the transactional ID for Kafka producer
     def initialize(kafka, worker_id:)
       @kafka                      = kafka
-      @max_message_bulk_count     = MovexCdc::Application.config.kafka_max_bulk_count   # Keep this value for the lifetime of the producer, event if the config changes
-      @max_buffer_bytesize        = (MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024).to_i
       @worker_id                  = worker_id
       @topic_infos                = {}                                          # Max message size produced within a transaction so far per topic
       @transactional_id            = nil                                        # Will be generated on first use in create_kafka_producer
@@ -27,20 +24,6 @@ class KafkaBase
     end
 
     private
-    # Reduce the number of messages in bulk if exception occurs
-    def handle_kafka_buffer_overflow(exception, kafka_message, topic, table)
-      Rails.logger.warn "#{exception.class} #{exception.message}: max_buffer_size = #{@max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}, current message value size = #{kafka_message.bytesize}, topic = #{topic}, schema = #{table.schema.name}, table = #{table.name}"
-      if kafka_message.bytesize > @max_buffer_bytesize / 3
-        Rails.logger.error('TransferThread.handle_kafka_buffer_overflow'){"Single message size exceeds 1/3 of the Kafka buffer size! No automatic action called! Possibly increase KAFKA_TOTAL_BUFFER_SIZE_MB to fix this issue."}
-      else
-        reduce_step = @max_message_bulk_count / 10                  # Reduce by 10%
-        if @max_message_bulk_count > reduce_step + 1
-          @max_message_bulk_count -= reduce_step
-          MovexCdc::Application.config.kafka_max_bulk_count = @max_message_bulk_count  # Ensure reduced value is valid also for new TransferThreads
-          Rails.logger.warn "Reduce max_message_bulk_count by #{reduce_step} to #{@max_message_bulk_count} to prevent this situation"
-        end
-      end
-    end
 
     # fix Exception for MessageSizeTooLarge
     # enlarge Topic property "max.message.bytes" to needed value

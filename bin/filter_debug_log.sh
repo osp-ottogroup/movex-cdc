@@ -12,7 +12,6 @@ grep -v "WHERE  e.ID >= :max_id" |
 grep -v "FOR UPDATE SKIP LOCKED" |
 grep -v "records selected with following SQL" |
 grep -v "app/models/table_less_oracle.rb:42:in " |
-grep -v "Process event_logs_slice with 1000 records" |
 grep -v "app/models/table_less.rb:12:in" |
 grep -v "SELECT Partition_Name, High_Value FROM User_Tab_Partitions" |
 grep -v " records in event_logs into " |

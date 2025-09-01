@@ -33,7 +33,7 @@ class KafkaJava < KafkaBase
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     rescue Exception => e
       # commit_transaction fails if a previous send call failed. It raises the last exception again.
-      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message}" }
       handle_kafka_server_exception(e)
       raise
     end
@@ -83,13 +83,12 @@ class KafkaJava < KafkaBase
 
       # We are using the asynchronous send method to avoid blocking the producer thread
       @kafka_producer.send(record, callback)                                              # Send message to Kafka
+      # @kafka_producer.send(record)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
-      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}" }
       handle_kafka_server_exception(e)
-      # TODO: find corresponding Java exception for Kafka::BufferOverflow and uncomment the following line
-      # handle_kafka_buffer_overflow(e, message, topic, table) if e.class == <Buffer Overflow Exception class>
       raise
     end
 
@@ -159,23 +158,20 @@ class KafkaJava < KafkaBase
         begin
           @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
           producer_properties =@kafka.connect_properties
-          producer_properties.put('transactional.id',     @transactional_id)
-          producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
-          producer_properties.put('key.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          producer_properties.put('retries',              java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
-          # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
-          producer_properties.put('linger.ms',              java.lang.Integer.new(1000))  # Number of m to wait for more messages before sending a batch
-          # producer_properties.put('batch.size',           @max_buffer_bytesize)  # maximum size of a batch of messages to send in bytes. Allocated per partition!!!
-          # TODO: adjust KAFKA_TOTAL_BUFFER_SIZE_MB to including the number of threads and document the multiplication with max. partition count
-          # TODO: Add test where the buffer excceeds the OS limits and exception handler decreases this value
-          # TODO: Check if config KAFKA_MAX_BULK_COUNT (@max_message_bulk_count) can be further used
-          producer_properties.put('buffer.memory',          @max_buffer_bytesize)  # maximum size of memory for buffering messages to send in bytes
-          # TODO: Check if buffer.memory with transactions leads to batching or if batch.size hast to be set in addition
           producer_properties.put('acks',                   'all')              # The default for enabled itempotence which is enabled by transactional
-          # compresson.codec was substituted by compression.type
-          producer_properties.put('compression.type',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
-          producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
+          # TODO: what if max.request.size < batch.size?
+          producer_properties.put('batch.size',             java.lang.Integer.new(1024*1024))  # maximum size of a batch of messages to send in bytes. Allocated per partition!!!
+          producer_properties.put('buffer.memory',          (MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024).to_i)  # maximum size of memory for buffering messages to send in bytes
+          producer_properties.put('compression.type',       MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
+          producer_properties.put('enable.idempotence',     'true')               # required if using transactional.id
+          producer_properties.put('key.serializer',         'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
+          producer_properties.put('linger.ms',              java.lang.Integer.new(1000))  # Number of m to wait for more messages before sending a batch
+          producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout.to_i) # Max number of milliseconds to wait for response from Kafka broker
+          producer_properties.put('retries',                java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
+          producer_properties.put('transactional.id',       @transactional_id)
+          producer_properties.put('transaction.timeout.ms ',MovexCdc::Application.config.kafka_transaction_timeout.to_i)  # Max. time in ms a transaction may be active before timing out. Must not be greater than the broker setting transaction.max.timeout.ms
+          producer_properties.put('value.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
+          # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}"}
           @kafka_producer = org.apache.kafka.clients.producer.KafkaProducer.new(producer_properties)

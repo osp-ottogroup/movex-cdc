@@ -50,7 +50,6 @@ class HealthCheckController < ApplicationController
     info << build_info_record(:info_contact_person,               'Name and email of contact person for display at GUI home screen')
     info << build_info_record(:initial_worker_threads,            'No. of workers for Kafka transfer')
     info << build_info_record(:kafka_compression_codec,           'Compression codec used to compress transferred events')
-    info << build_info_record(:kafka_max_bulk_count,              'Max. messages in one call')
     info << build_info_record(:kafka_sasl_plain_username,         'Username for authentication with SASL')
     info << build_info_record(:kafka_ssl_ca_cert,                 'Path to CA certificate')
     info << build_info_record(:kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
@@ -96,7 +95,6 @@ class HealthCheckController < ApplicationController
       log_level:                    "#{KeyHelper.log_level_as_string} (#{Rails.logger.level})",
       memory:                       Hash[memory_info_hash.to_a.map{|a| [a[1][:name], a[1][:value]]}],
       garbage_collector:            garbage_collector_info,
-      kafka_max_bulk_count:         MovexCdc::Application.config.kafka_max_bulk_count,
       max_transaction_size:   MovexCdc::Application.config.max_transaction_size
     }
 

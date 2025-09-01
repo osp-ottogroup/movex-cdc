@@ -378,26 +378,26 @@ class TransferThread
 
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
+  # @param event_logs [Array] array of event_log records to process
+  # @param concurrent_transaction_error_retry [Integer] number of retries at org.apache.kafka.common.errors.ConcurrentTransactionsException
+  # @return [void]
+  # @raise Exception if processing failed, in this case no event_log records are deleted
   def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
     @kafka_producer.begin_transaction
-    event_logs_slices = event_logs.each_slice(@kafka_producer.max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
-    Rails.logger.debug('TransferThread.process_kafka_transaction'){"Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"}
-    event_logs_slices.each do |event_logs_slice|
-      Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs_slice with #{event_logs_slice.count} records"}
-      begin
-        event_logs_slice.each do |event_log|
-          @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-          table = table_cache(event_log['table_id'])
-          kafka_message = prepare_message_from_event_log(event_log, table)
-          @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
-          @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
-        end
-      rescue Exception => e
-        msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
-        msg << event_logs_debug_info(event_logs_slice)
-        ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: msg)
-        raise
+    Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs with #{event_logs.count} records"}
+    begin
+      event_logs.each do |event_log|
+        @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+        table = table_cache(event_log['table_id'])
+        kafka_message = prepare_message_from_event_log(event_log, table)
+        @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
+        @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
       end
+    rescue Exception => e
+      msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
+      msg << event_logs_debug_info(event_logs)
+      ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: msg)
+      raise
     end
     @kafka_producer.commit_transaction
     @statistic_counter.commit_uncommitted_success_increments
