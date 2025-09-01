@@ -26,6 +26,8 @@ echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST_IP:9092,LISTENER_INT://loc
 echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"     >> $SERVER_PROPERTIES
 echo "inter.broker.listener.name=LISTENER_INT"                                  >> $SERVER_PROPERTIES
 
+echo "auto.create.topics.enable=false"                                          >> $SERVER_PROPERTIES
+
 if [[ -z "$SECURITY_PROTOCOL" || "$SECURITY_PROTOCOL" == "PLAINTEXT"  ]]; then
   echo "Configure PLAINTEXT settings"
   echo "listener.security.protocol.map=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT"     >> $SERVER_PROPERTIES
