@@ -104,7 +104,12 @@ class KafkaJava < KafkaBase
     def shutdown
       Rails.logger.info('KafkaJava::Producer.shutdown') { "Shutdown the Kafka producer" }
       # Reaching the timeout will reject all pending messages and abort open transaction if broker is available
-      @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
+      @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))
+    rescue Exception => e
+      Rails.logger.error('KafkaJava::Producer.shutdown') { "Exception #{e.class} #{e.message} during shutdown of producer" }
+    ensure
+      @kafka_producer = nil                                                     # free producer object for garbage collection
+      @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
     # Check if the exception should lead to abort of the worker thread
@@ -136,9 +141,10 @@ class KafkaJava < KafkaBase
           name: metric_name.name,
           decription: metric_name.description,
           value: metric.metric_value.is_a?(Float) && metric.metric_value.nan? ? nil: metric.metric_value,
+          tags: metric_name.tags.to_h
         }
       end
-      metrics
+      metrics.sort { |a, b| a[:name] <=> b[:name] }
     end
 
     private
@@ -159,8 +165,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
           producer_properties.put('retries',              java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
           # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
-          producer_properties.put('linger.ms',              java.lang.Integer.new(10))  # Number of m to wait for more messages before sending a batch
-          # TODO: create config entry for linger.ms or adjust dynamically
+          producer_properties.put('linger.ms',              java.lang.Integer.new(1000))  # Number of m to wait for more messages before sending a batch
           # producer_properties.put('batch.size',           @max_buffer_bytesize)  # maximum size of a batch of messages to send in bytes. Allocated per partition!!!
           # TODO: adjust KAFKA_TOTAL_BUFFER_SIZE_MB to including the number of threads and document the multiplication with max. partition count
           # TODO: Add test where the buffer excceeds the OS limits and exception handler decreases this value
