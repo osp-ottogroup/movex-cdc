@@ -300,6 +300,17 @@ class HealthCheckController < ApplicationController
       end
     end
     stats
+    result = []
+    totals = {}
+    stats.each do |key, value|
+      if value.is_a?(Hash)
+        result << { key => value }
+      else
+        totals[key] = value
+      end
+    end
+    result.unshift({ totals: totals })                                          # add at the first position
+    result
   rescue Exception=>e
     ExceptionHelper.log_exception(e, 'HealthCheckController.garbage_collector_info', additional_msg: "Error reading garbage collector info")
     { error: "Error reading garbage collector info: #{e.class}:#{e.message}" }

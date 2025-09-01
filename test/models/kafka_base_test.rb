@@ -21,7 +21,6 @@ class KafkaBaseTest < ActiveSupport::TestCase
                      key: 'Hugo',
                      headers: {Addition: 'Hugo'}
     )
-    producer.deliver_messages
     producer.commit_transaction
   rescue Exception => e
     log_on_failure("Exception #{e.class}: #{e.message}")
@@ -83,7 +82,7 @@ class KafkaBaseTest < ActiveSupport::TestCase
     assert !description.empty?, log_on_failure('group description should not be empty')
   end
 
-  test "deliver_messages with MessageSizeTooLarge" do
+  test "produce_messages with MessageSizeTooLarge" do
     if MovexCdc::Application.config.kafka_client_library != 'mock'            # real Kafka connected
       kafka = KafkaBase.create
       org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
@@ -94,7 +93,6 @@ class KafkaBaseTest < ActiveSupport::TestCase
         assert_raise do
           begin
             producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
-            producer.deliver_messages
             producer.commit_transaction
           ensure
             producer.abort_transaction

@@ -58,12 +58,6 @@ class KafkaJava < KafkaBase
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
-    # remove all pending (not processed by kafka) messages from producer buffer
-    # Nothing to do yet for Java producer
-    # @return [void]
-    def clear_buffer
-    end
-
     # Create a single Kafka message
     # @param [String] message Message to send
     # @param [Table] table Table object of the message
@@ -99,12 +93,6 @@ class KafkaJava < KafkaBase
       raise
     end
 
-    # send a batch of messages cumulated by produce() to Kafka
-    # This method is not needed for KafkaJava, but was required for previously used Ruby implementation and for KafkaMock
-    # @return [void]
-    def deliver_messages
-    end
-
     # Cancel previous producer and recreate again
     # @return [void]
     def reset_kafka_producer
@@ -135,6 +123,22 @@ class KafkaJava < KafkaBase
         ]
       end
       @producer_abort_exceptions.include?(exception.class)
+    end
+
+    # Get the metrics of the Kafka producer
+    # @return [Array<Hash>] List of metrics { name: 'name', description: 'description', value: value }
+    def metrics
+      return [] if @kafka_producer.nil?
+      org_metrics = @kafka_producer.metrics.to_h
+      metrics = []
+      org_metrics.each do |metric_name, metric|
+        metrics << {
+          name: metric_name.name,
+          decription: metric_name.description,
+          value: metric.metric_value.is_a?(Float) && metric.metric_value.nan? ? nil: metric.metric_value,
+        }
+      end
+      metrics
     end
 
     private

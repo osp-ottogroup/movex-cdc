@@ -4,25 +4,34 @@
 
 export SERVER_PROPERTIES=$KAFKA_HOME/config/server.properties
 
-export KAFKA_HOST=$HOSTNAME
-export KAFKA_HOST_IP=`ping -c 1 $KAFKA_HOST | awk -F'[()]' '/PING/{print $2}'`
-echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = '$KAFKA_HOST' with IP $KAFKA_HOST_IP"
+if [[ -z "$KAFKA_HOST_IP" ]]; then
+  echo "Error: KAFKA_HOST_IP environment variable not set, exit"
+  exit 1
+fi
+
+if [[ -z "$SECURITY_PROTOCOL" ]]; then
+  echo "Error: SECURITY_PROTOCOL environment variable not set, exit"
+  exit 1
+fi
+
+
+echo "KAFKA host IP to use in SSL config, Kafka config and Kafka clients = $KAFKA_HOST_IP"
 
 echo "KAFKA_VERSION = $KAFKA_VERSION"
 echo "SCALA_VERSION = $SCALA_VERSION"
 sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $SERVER_PROPERTIES
 echo "########################### local settings"                               >> $SERVER_PROPERTIES
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"        >> $SERVER_PROPERTIES
-echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092,LISTENER_INT://$KAFKA_HOST:9093" >> $SERVER_PROPERTIES
+echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST_IP:9092,LISTENER_INT://localhost:9093" >> $SERVER_PROPERTIES
 echo "listener.security.protocol.map=$KAFKA_LISTENER_SECURITY_PROTOCOL_MAP"     >> $SERVER_PROPERTIES
 echo "inter.broker.listener.name=LISTENER_INT"                                  >> $SERVER_PROPERTIES
 
-if [ -z "$SECURITY_PROTOCOL" || "$SECURITY_PROTOCOL" == "PLAINTEXT"  ]; then
+if [[ -z "$SECURITY_PROTOCOL" || "$SECURITY_PROTOCOL" == "PLAINTEXT"  ]]; then
   echo "Configure PLAINTEXT settings"
   echo "listener.security.protocol.map=LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT"     >> $SERVER_PROPERTIES
 
 
-elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
+elif [[ "$SECURITY_PROTOCOL" == "SSL" ]]; then
   echo "Configure SSL settings"
   echo "listener.security.protocol.map=LISTENER_EXT:SSL,LISTENER_INT:PLAINTEXT"     >> $SERVER_PROPERTIES
 
@@ -39,8 +48,8 @@ elif [ "$SECURITY_PROTOCOL" == "SSL" ]; then
   # Generate keystore with certificate
   # user KAFKA_HOST as primary name for the certificate (CN) and the IP as alternative name (SAN)
   keytool -keystore $SERVER_KEYSTOREFILE -alias localhost -validity 10000 -genkey -keyalg RSA -storetype pkcs12 \
-    -dname "CN=$KAFKA_HOST, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01 \
-    -ext SAN=DNS:$KAFKA_HOST,IP:$KAFKA_HOST_IP
+    -dname "CN=$KAFKA_HOST_IP, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=DE" -storepass hugo01 -keypass hugo01 \
+    -ext SAN=DNS:$KAFKA_HOST_IP,IP:$KAFKA_HOST_IP
   # Disable hostname verification
   echo "ssl.endpoint.identification.algorithm=" >> $SERVER_PROPERTIES
   # Create your own CA (certificate authority)
