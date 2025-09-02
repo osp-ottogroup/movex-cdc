@@ -248,7 +248,8 @@ Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |DB_QUERY_TIMEOUT|Maximum runtime in seconds of database query. Monitors selection on table Event_Logs. All other SQL executions are monitored by socket timeout with twice this value. |600
 |DB_SYS_PASSWORD|Password of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user)|
 |DB_SYS_USER|User name of DB admin user. Required only for additional maintenance tasks like creation of DB user by MOVEX CDC (ci_preparation:create_user). Need to change to 'admin' e.g. for autonomous DB. If DB_SYS_USER=sys then connect 'AS SYSDBA' is used, otherwise as regular user.|sys
-|ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka|5
+|ERROR_MAX_RETRIES|Maximum number of retries after error during transfer to Kafka. +
+If error persists for a single execution of an event at x + 1 retry, then the event is moved to table Event_Log_Final_Errors.|5
 |ERROR_RETRY_START_DELAY|Number of seconds after error before first retry starts. This delay is tripled for each next retry.|20
 |FINAL_ERRORS_KEEP_HOURS|Number of hours final errors are kept in table Event_Log_Final_Errors before erase them by housekeeping|240
 |INFO_CONTACT_PERSON|Name and email of contact person for display at GUI home screen|
@@ -259,8 +260,7 @@ Valid values are: +
 'java' - The Apache Kafka client library for Java as the primary lib for the future +
 'mock' - A mock library only for testing purposes without a Kafka connection (events are discarded and not transferred to a Kafka target)|java
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
-|KAFKA_MAX_BULK_COUNT|Maximum number of messages to process within one bulk operation to Kafka. Higher values increases risk of unexpected errors like MessageSizeTooLarge|1000
-|KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker. If timeout is reached then the transfer is retried.|5000
+|KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker (max.block.ms). If timeout is reached then the transfer is retried.|5000
 |KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
 |KAFKA_SASL_PLAIN_USERNAME|Username for authentication with SASL_PLAIN or SASL_SSL|
@@ -279,10 +279,12 @@ Used only in combination with SASL_SSL or SSL/TLS client certificate.|FALSE
 |KAFKA_SSL_TRUSTSTORE_PASSWORD|Password of truststore file in JKS format|
 |KAFKA_SSL_TRUSTSTORE_TYPE|Type of truststore. Valid values are: 'JKS', 'PEM'|JKS
 |KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
-This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS. +
-If the amount is not sufficient at runtime then the value of KAFKA_MAX_BULK_COUNT is automatically decreased by the application until it is according to the available memory.|100
+This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS.|100
 |KAFKA_TRANSACTIONAL_ID_PREFIX|Prefix string to be prepended before the system generated transactional ID. +
 Ensures compliance with possible naming conventions for the transactional IDs|MOVEX-CDC
+|KAFKA_TRANSACTION_TIMEOUT|Max. duration in milliseconds of a Kafka transaction. +
+Must not be greater then the broker-side setting for transaction.max.timeout.ms . +
+A Kafka transaction spans the whole transfer of a batch of events limited by MAX_TRANSACTION_SIZE.|600000
 |LOG_LEVEL|Log level of application (debug, info, warn, error)|info
 |MAX_FAILED_LOGONS_BEFORE_ACCOUNT_LOCKED|Number of failed logons to GUI before the used user account will be locked and has to be unlocked by an admin user|3
 |MAX_PARTITIONS_TO_COUNT_AS_HEALTHY|If using partitions for table EVENT_LOGS, then this is the max. number of partitions, up to which the system is considered healthy. +

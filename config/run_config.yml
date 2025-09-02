@@ -25,9 +25,6 @@
 # which client library should be used for Kafka connection (java, mock)
 # KAFKA_CLIENT_LIBRARY: java
 
-# Number of messages to process within one bulk operation to kafka
-# KAFKA_MAX_BULK_COUNT: 1000
-
 # Path to CA certificate file in pem format for SASL_SSL or SSL/TLS
 # KAFKA_SSL_CA_CERT: cert.pem
 
@@ -65,6 +62,11 @@
 # Prefix string to be prepended before the system generated transactional ID.
 # Ensures compliance with possible naming conventions for the transactional IDs
 # KAFKA_TRANSACTIONAL_ID_PREFIX: MOVEX-CDC
+
+# Max. duration in milliseconds of a Kafka transaction.
+# Must not be greater then the broker-side setting for transaction.max.timeout.ms .
+# A Kafka transaction spans the whole transfer of a batch of events limited by MAX_TRANSACTION_SIZE.
+# KAFKA_TRANSACTION_TIMEOUT: 600000
 
 # Log level for application (debug, info, warn, error)
 # LOG_LEVEL: warn

@@ -4,8 +4,24 @@ require 'java'
 require 'java-properties'
 require 'key_helper'
 
+# make Kafka libs available at startup after class definition has been loaded
+Dir.glob(Rails.root.join('lib', 'kafka', '*.jar')).each do |jar|
+  require jar
+end
+
 class KafkaJava < KafkaBase
   class Producer < KafkaBase::Producer
+
+    # Callback class for asynchronous send method of Kafka producer, implements interface org.apache.kafka.clients.producer.Callback
+    class ProduceCallback
+      include org.apache.kafka.clients.producer.Callback
+      def onCompletion(metadata, exception)
+        if exception
+          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{metadata.topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          raise exception
+        end
+      end
+    end
 
     # Create producer instance
     # @param [KafkaJava] kafka Instance of KafkaJava
@@ -15,6 +31,8 @@ class KafkaJava < KafkaBase
       super(kafka, worker_id: worker_id)
       @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
       @kafka_producer            = nil
+      @produce_callback = ProduceCallback.new                                   # This callback method is called asychronously once for each event
+      @reset_needed_ask_count    = 0                                            # Count how often a reset of the producer was needed
       create_kafka_producer
     end
 
@@ -33,7 +51,7 @@ class KafkaJava < KafkaBase
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     rescue Exception => e
       # commit_transaction fails if a previous send call failed. It raises the last exception again.
-      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message} max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.commit_transaction') { "#{e.class} #{e.message}" }
       handle_kafka_server_exception(e)
       raise
     end
@@ -58,12 +76,6 @@ class KafkaJava < KafkaBase
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
-    # remove all pending (not processed by kafka) messages from producer buffer
-    # Nothing to do yet for Java producer
-    # @return [void]
-    def clear_buffer
-    end
-
     # Create a single Kafka message
     # @param [String] message Message to send
     # @param [Table] table Table object of the message
@@ -79,30 +91,14 @@ class KafkaJava < KafkaBase
         record.headers.add(org.apache.kafka.common.header.internals.RecordHeader.new(hkey.to_s, java.lang.String.new(hvalue.to_s).getBytes))
       end
 
-      # This callback method is called asychronously once for each event
-      callback = org.apache.kafka.clients.producer.Callback.impl do |method_name, metadata, exception|
-        if exception
-          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
-          raise exception
-        end
-      end
-
       # We are using the asynchronous send method to avoid blocking the producer thread
-      @kafka_producer.send(record, callback)                                              # Send message to Kafka
+      @kafka_producer.send(record, @produce_callback)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
-      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}! max_buffer_size = #{max_message_bulk_count}, max_buffer_bytesize = #{@max_buffer_bytesize}" }
+      Rails.logger.error('KafkaJava::Producer.produce') { "#{e.class} #{e.message}" }
       handle_kafka_server_exception(e)
-      # TODO: find corresponding Java exception for Kafka::BufferOverflow and uncomment the following line
-      # handle_kafka_buffer_overflow(e, message, topic, table) if e.class == <Buffer Overflow Exception class>
       raise
-    end
-
-    # send a batch of messages cumulated by produce() to Kafka
-    # This method is not needed for KafkaJava, but was required for previously used Ruby implementation and for KafkaMock
-    # @return [void]
-    def deliver_messages
     end
 
     # Cancel previous producer and recreate again
@@ -116,13 +112,19 @@ class KafkaJava < KafkaBase
     def shutdown
       Rails.logger.info('KafkaJava::Producer.shutdown') { "Shutdown the Kafka producer" }
       # Reaching the timeout will reject all pending messages and abort open transaction if broker is available
-      @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))                                                    # free kafka connections if != nil
+      @kafka_producer&.close(Java::JavaTime::Duration.ofMillis(MovexCdc::Application.config.kafka_producer_timeout))
+    rescue Exception => e
+      Rails.logger.error('KafkaJava::Producer.shutdown') { "Exception #{e.class} #{e.message} during shutdown of producer" }
+    ensure
+      @kafka_producer = nil                                                     # free producer object for garbage collection
+      @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
-    # Check if the exception should lead to abort of the worker thread
+    # Check if the exception should lead to abort of the current Kafka producer instance
     # @param exception [Exception] Exception raised by producer action
-    # @return [Boolean] true if the exception should lead to abort of the worker thread
-    def abort_worker_thread_at_exception?(exception)
+    # @return [Boolean] true if the exception should lead to reinstance of the producer
+    def producer_reset_needed?(exception)
+      @reset_needed_ask_count += 1                                              # remember how often this method was called
       if !defined?(@producer_abort_exceptions) || @producer_abort_exceptions.nil?
         # Kafka exceptions that should lead to abort of the worker thread
         @producer_abort_exceptions = [
@@ -134,7 +136,34 @@ class KafkaJava < KafkaBase
           Java::JavaLang::IllegalStateException,
         ]
       end
-      @producer_abort_exceptions.include?(exception.class)
+      result = @producer_abort_exceptions.include?(exception.class)
+      if result
+        @reset_needed_ask_count = 0                                             # reset counter because we will reset the producer now
+      else
+        if @reset_needed_ask_count > 10000
+          Rails.logger.warn('KafkaJava::Producer.producer_reset_needed?') { "Exception #{exception.class} '#{exception.message}' does not need to reset the producer, but reset is forced after #{@reset_needed_ask_count} calls of this method without producer reset" }
+          result = true
+          @reset_needed_ask_count = 0                                           # reset counter because we will reset the producer now
+        end
+      end
+      result
+    end
+
+    # Get the metrics of the Kafka producer
+    # @return [Array<Hash>] List of metrics { name: 'name', description: 'description', value: value }
+    def metrics
+      return [] if @kafka_producer.nil?
+      org_metrics = @kafka_producer.metrics.to_h
+      metrics = []
+      org_metrics.each do |metric_name, metric|
+        metrics << {
+          name: metric_name.name,
+          decription: metric_name.description,
+          value: metric.metric_value.is_a?(Float) && metric.metric_value.nan? ? nil: metric.metric_value,
+          tags: metric_name.tags.to_h
+        }
+      end
+      metrics.sort { |a, b| a[:name] <=> b[:name] }
     end
 
     private
@@ -149,24 +178,20 @@ class KafkaJava < KafkaBase
         begin
           @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
           producer_properties =@kafka.connect_properties
-          producer_properties.put('transactional.id',     @transactional_id)
-          producer_properties.put('enable.idempotence',   'true')               # required if using transactional.id
-          producer_properties.put('key.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          producer_properties.put('value.serializer',     'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
-          producer_properties.put('retries',              java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
-          # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
-          producer_properties.put('linger.ms',              java.lang.Integer.new(10))  # Number of m to wait for more messages before sending a batch
-          # TODO: create config entry for linger.ms or adjust dynamically
-          # producer_properties.put('batch.size',           @max_buffer_bytesize)  # maximum size of a batch of messages to send in bytes. Allocated per partition!!!
-          # TODO: adjust KAFKA_TOTAL_BUFFER_SIZE_MB to including the number of threads and document the multiplication with max. partition count
-          # TODO: Add test where the buffer excceeds the OS limits and exception handler decreases this value
-          # TODO: Check if config KAFKA_MAX_BULK_COUNT (@max_message_bulk_count) can be further used
-          producer_properties.put('buffer.memory',          @max_buffer_bytesize)  # maximum size of memory for buffering messages to send in bytes
-          # TODO: Check if buffer.memory with transactions leads to batching or if batch.size hast to be set in addition
           producer_properties.put('acks',                   'all')              # The default for enabled itempotence which is enabled by transactional
-          # compresson.codec was substituted by compression.type
-          producer_properties.put('compression.type',      MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
-          producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout) # Max number of milliseconds to wait for response from Kafka broker
+          # TODO: what if max.request.size < batch.size?
+          producer_properties.put('batch.size',             java.lang.Integer.new(1024*1024))  # maximum size of a batch of messages to send in bytes. Allocated per partition!!!
+          producer_properties.put('buffer.memory',          (MovexCdc::Application.config.kafka_total_buffer_size_mb * 1024 * 1024).to_i)  # maximum size of memory for buffering messages to send in bytes
+          producer_properties.put('compression.type',       MovexCdc::Application.config.kafka_compression_codec) if MovexCdc::Application.config.kafka_compression_codec != 'none'
+          producer_properties.put('enable.idempotence',     'true')               # required if using transactional.id
+          producer_properties.put('key.serializer',         'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
+          producer_properties.put('linger.ms',              java.lang.Integer.new(1000))  # Number of m to wait for more messages before sending a batch
+          producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout.to_i) # Max number of milliseconds to wait for response from Kafka broker
+          producer_properties.put('retries',                java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
+          producer_properties.put('transactional.id',       @transactional_id)
+          producer_properties.put('transaction.timeout.ms ',MovexCdc::Application.config.kafka_transaction_timeout.to_i)  # Max. time in ms a transaction may be active before timing out. Must not be greater than the broker setting transaction.max.timeout.ms
+          producer_properties.put('value.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
+          # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
 
           Rails.logger.debug('KafkaJava::Producer.create_kafka_producer'){"creating Kafka producer with options: #{ExceptionHelper.mask_passwords_in_hash(producer_properties.to_h)}"}
           @kafka_producer = org.apache.kafka.clients.producer.KafkaProducer.new(producer_properties)
@@ -198,11 +223,6 @@ class KafkaJava < KafkaBase
   end # class Producer
 
   # KafkaJava class methods
-
-  # @return [String] Path to the Kafka lib directory
-  def self.kafka_lib_dir
-    File.expand_path('../../../lib/kafka', __FILE__)
-  end
 
   def self.configure_log4j
     builder = Java::OrgApacheLoggingLog4jCoreConfigBuilderApi::ConfigurationBuilderFactory.newConfigurationBuilder
@@ -622,8 +642,4 @@ class KafkaJava < KafkaBase
   end
 end
 
-# make Kafka libs available at startup after class definition has been loaded
-Dir.glob(File.join(KafkaJava.kafka_lib_dir, '/*.jar')).each do |jar|
-  require jar
-end
 KafkaJava.configure_log4j

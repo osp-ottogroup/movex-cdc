@@ -8,7 +8,6 @@ class ThreadHandlingTest < ActiveSupport::TestCase
 
   test "process" do
     original_max_transaction_size   = MovexCdc::Application.config.max_transaction_size # Remember previous setting
-    original_kafka_max_bulk_count   = MovexCdc::Application.config.kafka_max_bulk_count
     original_initial_worker_threads = MovexCdc::Application.config.initial_worker_threads
 
     Database.execute "DELETE FROM Event_Logs"                                   # Ensure table is empty before testing with super-large sequences
@@ -17,7 +16,6 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       MovexCdc::Application.config.max_transaction_size   = 1000             # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      MovexCdc::Application.config.kafka_max_bulk_count   = 100
       MovexCdc::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
 
       # Set sequence to large value to test if numeric variables may deal with this large values, sequence will cycle within test
@@ -40,7 +38,6 @@ class ThreadHandlingTest < ActiveSupport::TestCase
       end
     else
       MovexCdc::Application.config.max_transaction_size = 100                # Ensure that two pass access is done in TransferThread.read_event_logs_batch
-      MovexCdc::Application.config.kafka_max_bulk_count = 10
       MovexCdc::Application.config.initial_worker_threads = 1                      # Needed as long as test uses the same DB connection for all threads (different to development and production)
       run_with_current_user { create_event_logs_for_test(1000) }
     end
@@ -84,7 +81,6 @@ class ThreadHandlingTest < ActiveSupport::TestCase
     assert_equal 0, Database.select_one("SELECT COUNT(*) FROM Event_Logs"), log_on_failure('All event_logs should be processed after shutdown')
 
     MovexCdc::Application.config.max_transaction_size    = original_max_transaction_size   # Restore previous setting
-    MovexCdc::Application.config.kafka_max_bulk_count    = original_kafka_max_bulk_count   # Restore previous setting
     MovexCdc::Application.config.initial_worker_threads  = original_initial_worker_threads # Restore previous setting
 
     # Drop all partitions from Event_Log after test to ensure next record with correct created_at will create new partition and not store records in first partition

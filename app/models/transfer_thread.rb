@@ -2,7 +2,7 @@ require 'kafka_mock'
 
 # preload classes to prevent from 'RuntimeError: Circular dependency detected while autoloading constant' if multiple threads start working simultaneously
 require 'database'
-require 'table'
+# require 'table'
 require 'exception_helper'
 
 class TransferThread
@@ -112,6 +112,7 @@ class TransferThread
       cached_max_event_logs_seq_id:   @cached_max_event_logs_seq_id,
       db_session_info:                @db_session_info,
       kafka_connected:                @kafka_connected,
+      kafka_producer_metrics:         @kafka_producer&.metrics,
       last_active_time:               @last_active_time,
       last_read_events:               @last_read_events,
       last_scanned_partitions:        @last_scanned_partitions,
@@ -151,12 +152,11 @@ class TransferThread
       process_kafka_transaction(event_logs)
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
-      if @kafka_producer.abort_worker_thread_at_exception?(e)
-        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, the worker thread will stop now!"}
-        raise
-      end
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
+      if @kafka_producer.producer_reset_needed?(e)
+        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, reset called!"}
+        @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
+      end
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
         max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
@@ -377,28 +377,26 @@ class TransferThread
 
   # Process given event_logs within one Kafka transaction
   # Method is called within ActiveRecord Transaction
+  # @param event_logs [Array] array of event_log records to process
+  # @param concurrent_transaction_error_retry [Integer] number of retries at org.apache.kafka.common.errors.ConcurrentTransactionsException
+  # @return [void]
+  # @raise Exception if processing failed, in this case no event_log records are deleted
   def process_kafka_transaction(event_logs, concurrent_transaction_error_retry: 0)
-    # Kafka transactions requires that deliver_messages is called within transaction. Otherwhise commit_transaction and abort_transaction will end up in InvalidTxnStateError
     @kafka_producer.begin_transaction
-    event_logs_slices = event_logs.each_slice(@kafka_producer.max_message_bulk_count).to_a   # Produce smaller arrays for kafka processing
-    Rails.logger.debug('TransferThread.process_kafka_transaction'){"Splitted #{event_logs.count} records in event_logs into #{event_logs_slices.count} slices"}
-    event_logs_slices.each do |event_logs_slice|
-      Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs_slice with #{event_logs_slice.count} records"}
-      begin
-        event_logs_slice.each do |event_log|
-          @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
-          table = table_cache(event_log['table_id'])
-          kafka_message = prepare_message_from_event_log(event_log, table)
-          @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
-          @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
-        end
-        @kafka_producer.deliver_messages                                        # bulk transfer of messages from collection to kafka, relevant only for KafkaMock
-      rescue Exception => e
-        msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
-        msg << event_logs_debug_info(event_logs_slice)
-        ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: msg)
-        raise
+    Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs with #{event_logs.count} records"}
+    begin
+      event_logs.each do |event_log|
+        @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+        table = table_cache(event_log['table_id'])
+        kafka_message = prepare_message_from_event_log(event_log, table)
+        @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
+        @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
       end
+    rescue Exception => e
+      msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
+      msg << event_logs_debug_info(event_logs)
+      ExceptionHelper.log_exception(e, 'TransferThread.process_kafka_transaction', additional_msg: msg)
+      raise
     end
     @kafka_producer.commit_transaction
     @statistic_counter.commit_uncommitted_success_increments
@@ -418,7 +416,6 @@ class TransferThread
         ExceptionHelper.log_exception(e2, 'TransferThread.process_kafka_transaction', additional_msg: "Calling producer.abort_transaction raised #{e.class}:#{e.message}")
       end
     end
-    @kafka_producer.clear_buffer                                                 # remove all pending (not processed by kafka) messages from producer buffer
 
     max_concurrent_transaction_error_retries = 1
     # org.apache.kafka.common.errors.ConcurrentTransactionsException is raised in TransactionManager.add_partitions_to_transaction some times, possibly if next transaction started too fast

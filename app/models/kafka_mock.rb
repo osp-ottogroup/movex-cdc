@@ -9,21 +9,23 @@ class KafkaMock < KafkaBase
     def initialize(kafka, worker_id:)
       @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
-      @last_successfully_delivered_id = 0
       super(kafka, worker_id: worker_id)
       @events = []
     end
 
     def begin_transaction
+      @events = []                                                              # ensure to start with empty event list even after repeated errors
     end
 
     def commit_transaction
+      @events.each do |event|
+        unless @kafka.has_topic?(event[:topic])
+          raise "KafkaMock::Producer.commit_transaction: No topic for event #{event}"
+        end
+      end
     end
 
     def abort_transaction
-    end
-
-    def clear_buffer
     end
 
     # Create a single Kafka message
@@ -68,18 +70,6 @@ class KafkaMock < KafkaBase
       @events << { message: message, topic: table.topic_to_use, key: key, headers: headers}
     end
 
-    def deliver_messages
-      @events.each do |event|
-        unless @kafka.has_topic?(event[:topic])
-          @last_produced_id = @last_successfully_delivered_id                   # reset last produced ID because events will occur again
-          raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}"
-        end
-      end
-      @last_successfully_delivered_id = @last_produced_id                       # remember last successfully delivered ID
-    ensure
-      @events = []                                                              # ensure to start with empty event list even after repeated errors
-    end
-
     def reset_kafka_producer
       @transactional_id = generate_new_transactional_id(@worker_id)             # Simulate new transactional_id for each new producer
     end
@@ -87,9 +77,17 @@ class KafkaMock < KafkaBase
     def shutdown;
     end
 
-    def abort_worker_thread_at_exception?(exception)
+    def producer_reset_needed?(exception)
       false
     end
+
+    # Get the metrics of the Kafka producer
+    # @return [Array<Hash>] List of metrics { name: 'name', description: 'description', value: value }
+    def metrics
+      []
+    end
+
+
 
     private
     # Check if the message content is valid
