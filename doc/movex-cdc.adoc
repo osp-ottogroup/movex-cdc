@@ -260,7 +260,7 @@ Valid values are: +
 'java' - The Apache Kafka client library for Java as the primary lib for the future +
 'mock' - A mock library only for testing purposes without a Kafka connection (events are discarded and not transferred to a Kafka target)|java
 |KAFKA_COMPRESSION_CODEC|Compression codec used to compress transferred events. Valid values are: 'none' for not using compression or 'snappy', 'gzip', 'lz4' or 'zstd'.|gzip
-|KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker. If timeout is reached then the transfer is retried.|60000
+|KAFKA_PRODUCER_TIMEOUT|Timeout in milliseconds for Kafka producer to wait for response of broker (max.block.ms). If timeout is reached then the transfer is retried.|5000
 |KAFKA_PROPERTIES_FILE|Path to Java-style properties file for Kafka connection settings. Settings in this file will overrule possible identical settings from environment or RUN_CONFIG.|
 |KAFKA_SASL_PLAIN_PASSWORD|Password for authentication with SASL_PLAIN or SASL_SSL|
 |KAFKA_SASL_PLAIN_USERNAME|Username for authentication with SASL_PLAIN or SASL_SSL|

@@ -256,7 +256,7 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_compression_codec, default: 'gzip')
     supported_compression_codecs = ['none', 'snappy', 'gzip', 'lz4', 'zstd']
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_producer_timeout, default: 60000) # milliseconds for max.block.ms
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_producer_timeout, default: 5000) # milliseconds for max.block.ms
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_properties_file, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)

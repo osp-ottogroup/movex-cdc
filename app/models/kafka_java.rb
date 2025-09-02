@@ -4,8 +4,24 @@ require 'java'
 require 'java-properties'
 require 'key_helper'
 
+# make Kafka libs available at startup after class definition has been loaded
+Dir.glob(Rails.root.join('lib', 'kafka', '*.jar')).each do |jar|
+  require jar
+end
+
 class KafkaJava < KafkaBase
   class Producer < KafkaBase::Producer
+
+    # Callback class for asynchronous send method of Kafka producer, implements interface org.apache.kafka.clients.producer.Callback
+    class ProduceCallback
+      include org.apache.kafka.clients.producer.Callback
+      def onCompletion(metadata, exception)
+        if exception
+          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{metadata.topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          raise exception
+        end
+      end
+    end
 
     # Create producer instance
     # @param [KafkaJava] kafka Instance of KafkaJava
@@ -15,6 +31,7 @@ class KafkaJava < KafkaBase
       super(kafka, worker_id: worker_id)
       @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
       @kafka_producer            = nil
+      @produce_callback = ProduceCallback.new                                   # This callback method is called asychronously once for each event
       create_kafka_producer
     end
 
@@ -73,17 +90,8 @@ class KafkaJava < KafkaBase
         record.headers.add(org.apache.kafka.common.header.internals.RecordHeader.new(hkey.to_s, java.lang.String.new(hvalue.to_s).getBytes))
       end
 
-      # This callback method is called asychronously once for each event
-      callback = org.apache.kafka.clients.producer.Callback.impl do |method_name, metadata, exception|
-        if exception
-          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
-          raise exception
-        end
-      end
-
       # We are using the asynchronous send method to avoid blocking the producer thread
-      @kafka_producer.send(record, callback)                                              # Send message to Kafka
-      # @kafka_producer.send(record)                                              # Send message to Kafka
+      @kafka_producer.send(record, @produce_callback)                                              # Send message to Kafka
 
       @topic_infos[topic] = { max_produced_message_size: message.bytesize } if !@topic_infos.has_key?(topic) || message.bytesize > @topic_infos[topic][:max_produced_message_size]
     rescue Exception => e
@@ -203,11 +211,6 @@ class KafkaJava < KafkaBase
   end # class Producer
 
   # KafkaJava class methods
-
-  # @return [String] Path to the Kafka lib directory
-  def self.kafka_lib_dir
-    File.expand_path('../../../lib/kafka', __FILE__)
-  end
 
   def self.configure_log4j
     builder = Java::OrgApacheLoggingLog4jCoreConfigBuilderApi::ConfigurationBuilderFactory.newConfigurationBuilder
@@ -627,8 +630,4 @@ class KafkaJava < KafkaBase
   end
 end
 
-# make Kafka libs available at startup after class definition has been loaded
-Dir.glob(File.join(KafkaJava.kafka_lib_dir, '/*.jar')).each do |jar|
-  require jar
-end
 KafkaJava.configure_log4j

@@ -9,7 +9,6 @@
 - Use new transactional ID each time a new Kafka producer is created
 - Config attribute KAFKA_MAX_BULK_COUNT is not used anymore
 - Config attribute KAFKA_TRANSACTION_TIMEOUT added with default 10 minutes
-  Default for config attribute KAFKA_PRODUCER_TIMEOUT increased from 5 seconds to one minute
 
 ## 2025-08.13 1.12.2
 - Role based privileges are accepted to show tables in configuration dialog,
