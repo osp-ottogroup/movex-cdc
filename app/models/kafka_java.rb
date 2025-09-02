@@ -32,6 +32,7 @@ class KafkaJava < KafkaBase
       @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
       @kafka_producer            = nil
       @produce_callback = ProduceCallback.new                                   # This callback method is called asychronously once for each event
+      @reset_needed_ask_count    = 0                                            # Count how often a reset of the producer was needed
       create_kafka_producer
     end
 
@@ -119,10 +120,11 @@ class KafkaJava < KafkaBase
       @pending_transaction = nil                                                # Mark transaction as inactive by setting to nil
     end
 
-    # Check if the exception should lead to abort of the worker thread
+    # Check if the exception should lead to abort of the current Kafka producer instance
     # @param exception [Exception] Exception raised by producer action
-    # @return [Boolean] true if the exception should lead to abort of the worker thread
-    def abort_worker_thread_at_exception?(exception)
+    # @return [Boolean] true if the exception should lead to reinstance of the producer
+    def producer_reset_needed?(exception)
+      @reset_needed_ask_count += 1                                              # remember how often this method was called
       if !defined?(@producer_abort_exceptions) || @producer_abort_exceptions.nil?
         # Kafka exceptions that should lead to abort of the worker thread
         @producer_abort_exceptions = [
@@ -134,7 +136,17 @@ class KafkaJava < KafkaBase
           Java::JavaLang::IllegalStateException,
         ]
       end
-      @producer_abort_exceptions.include?(exception.class)
+      result = @producer_abort_exceptions.include?(exception.class)
+      if result
+        @reset_needed_ask_count = 0                                             # reset counter because we will reset the producer now
+      else
+        if @reset_needed_ask_count > 10000
+          Rails.logger.warn('KafkaJava::Producer.producer_reset_needed?') { "Exception #{exception.class} '#{exception.message}' does not need to reset the producer, but reset is forced after #{@reset_needed_ask_count} calls of this method without producer reset" }
+          result = true
+          @reset_needed_ask_count = 0                                           # reset counter because we will reset the producer now
+        end
+      end
+      result
     end
 
     # Get the metrics of the Kafka producer

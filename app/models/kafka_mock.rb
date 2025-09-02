@@ -77,7 +77,7 @@ class KafkaMock < KafkaBase
     def shutdown;
     end
 
-    def abort_worker_thread_at_exception?(exception)
+    def producer_reset_needed?(exception)
       false
     end
 

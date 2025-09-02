@@ -152,12 +152,11 @@ class TransferThread
       process_kafka_transaction(event_logs)
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
-      if @kafka_producer.abort_worker_thread_at_exception?(e)
-        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, the worker thread will stop now!"}
-        raise
-      end
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
+      if @kafka_producer.producer_reset_needed?
+        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, reset called!"}
+        @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
+      end
       if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
         max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
         max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
