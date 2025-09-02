@@ -153,7 +153,7 @@ class TransferThread
       kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
       Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      if @kafka_producer.producer_reset_needed?
+      if @kafka_producer.producer_reset_needed?(e)
         Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, reset called!"}
         @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
       end
