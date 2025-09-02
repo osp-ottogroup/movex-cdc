@@ -596,6 +596,22 @@ At first this values are cumulated for each minute. Later on statistics data wil
 
 Compression is executed once a day as background job in the application.
 
+=== Throughput to expect ===
+The maximum throughput of MOVEX CDC depends on several factors like:
+
+* Database performance (especially the performance of the redo log generation)
+* Network performance between DB and MOVEX CDC
+* Network performance between MOVEX CDC and Kafka
+* Performance of Kafka cluster
+* Configuration of MOVEX CDC (number of worker threads, transaction size, number of columns to capture etc.)
+
+Max. values of an example with 18 CPU Oracle-DB and single node Kafka cluster were:
+
+* One worker thread: approx 8000 events/sec
+* Three worker threads: approx. 20000 events/sec
+
+Limiting factor in this example was the Oracle DB read performance.
+
 == Technical implementation ==
 === Structure of Kafka messages ===
 MOVEX CDC creates Kafka messages with JSON-formatted content. +
