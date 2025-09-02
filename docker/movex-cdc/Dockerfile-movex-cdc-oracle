@@ -71,7 +71,7 @@ RUN   echo "### get ruby version info" && ruby -v
 RUN   echo "### set timezone" && \
       echo 'Europe/Berlin' > /etc/timezone && \
       rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
-      date \
+      date
 RUN   echo "### Install async-profiler 4.1" && \
       wget -q https://github.com/async-profiler/async-profiler/releases/download/v4.1/async-profiler-4.1-linux-x64.tar.gz && \
       tar -xvf async-profiler-4.1-linux-x64.tar.gz -C /opt && rm async-profiler-4.1-linux-x64.tar.gz
