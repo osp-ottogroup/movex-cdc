@@ -39,41 +39,41 @@ class HealthCheckController < ApplicationController
     # array with info-hashes to display at home screen { name: xxx, value: yyy }
     info = []
     # info << { name: 'LOG_LEVEL: ',            value: KeyHelper.log_level_as_string}
-    info << build_info_record(:cloudevents_source,                'Source info for CloudEvents header ce_source')
-    info << build_info_record(:db_query_timeout,                  'Timeout for DB selections')
-    info << build_info_record(:db_type,                           'Database type')
-    info << build_info_record(:db_url,                            'Database URL')
-    info << build_info_record(:db_user,                           'Database user for server operations')
-    info << build_info_record(:error_max_retries,                 'Max. retries after transfer error')
-    info << build_info_record(:error_retry_start_delay,           'Seconds after error before first retry starts. Tripled for each next retry.')
-    info << build_info_record(:final_errors_keep_hours,           'Time before erasing')
-    info << build_info_record(:info_contact_person,               'Name and email of contact person for display at GUI home screen')
-    info << build_info_record(:initial_worker_threads,            'No. of workers for Kafka transfer')
-    info << build_info_record(:kafka_compression_codec,           'Compression codec used to compress transferred events')
-    info << build_info_record(:kafka_producer_timeout,            'Timeout in milliseconds for Kafka producer to wait for response of broker (max.block.ms)')
-    info << build_info_record(:kafka_sasl_plain_username,         'Username for authentication with SASL')
-    info << build_info_record(:kafka_seed_broker,                 'Comma-separated list of seed-brokers for Kafka logon')
-    info << build_info_record(:kafka_security_protocol,           'Security protocol for Kafka connection')
-    info << build_info_record(:kafka_ssl_ca_cert,                 'Path to CA certificate')
-    info << build_info_record(:kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
-    info << build_info_record(:kafka_ssl_client_cert,             'Path to client certificate')
-    info << build_info_record(:kafka_ssl_client_cert_chain,       'Path to client certificate chain')
-    info << build_info_record(:kafka_ssl_client_cert_key,         'Path to client key')
-    info << build_info_record(:kafka_ssl_keystore_location,       'Path to keystore file in JKS format')
-    info << build_info_record(:kafka_ssl_keystore_type,           'Type of keystore file')
-    info << build_info_record(:kafka_ssl_truststore_location,     'Path to truststore file in JKS format')
-    info << build_info_record(:kafka_ssl_truststore_type,         'Type of truststore file')
-    info << build_info_record(:kafka_total_buffer_size_mb,        'Max. buffer size per thread')
-    info << build_info_record(:kafka_transaction_timeout,         'Max. duration in milliseconds of a Kafka transaction')
-    info << build_info_record(:legacy_ts_format,                  'Keep unusualtimestamp format of previous releases')
-    info << build_info_record(:log_level,                         'Server side log level')
-    info << build_info_record(:max_failed_logons_before_account_locked,  'Number of failed logons to GUI before the used user account will be locked')
-    info << build_info_record(:max_partitions_to_count_as_healthy,  'Max. number of partitions, up to which the system is considered healthy')
-    info << build_info_record(:max_transaction_size,              'Max. messages in a single transaction')
-    info << build_info_record(:max_simultaneous_table_initializations, '')
-    info << build_info_record(:max_simultaneous_transactions,     'For insert in EVENT_LOGS')
-    info << build_info_record(:max_worker_thread_sleep_time,      'Max. seconds an idle worker thread may sleep')
-    info << build_info_record(:partition_interval,                'For table EVENT_LOGS')
+    build_info_record(info, :cloudevents_source,                'Source info for CloudEvents header ce_source')
+    build_info_record(info, :db_query_timeout,                  'Timeout for DB selections')
+    build_info_record(info, :db_type,                           'Database type')
+    build_info_record(info, :db_url,                            'Database URL')
+    build_info_record(info, :db_user,                           'Database user for server operations')
+    build_info_record(info, :error_max_retries,                 'Max. retries after transfer error')
+    build_info_record(info, :error_retry_start_delay,           'Seconds after error before first retry starts. Tripled for each next retry.')
+    build_info_record(info, :final_errors_keep_hours,           'Time before erasing')
+    build_info_record(info, :info_contact_person,               'Name and email of contact person for display at GUI home screen')
+    build_info_record(info, :initial_worker_threads,            'No. of workers for Kafka transfer')
+    build_info_record(info, :kafka_compression_codec,           'Compression codec used to compress transferred events')
+    build_info_record(info, :kafka_producer_timeout,            'Timeout in milliseconds for Kafka producer to wait for response of broker (max.block.ms)')
+    build_info_record(info, :kafka_sasl_plain_username,         'Username for authentication with SASL')
+    build_info_record(info, :kafka_seed_broker,                 'Comma-separated list of seed-brokers for Kafka logon')
+    build_info_record(info, :kafka_security_protocol,           'Security protocol for Kafka connection')
+    build_info_record(info, :kafka_ssl_ca_cert,                 'Path to CA certificate')
+    build_info_record(info, :kafka_ssl_ca_certs_from_system,    'Use system CA certificates?')
+    build_info_record(info, :kafka_ssl_client_cert,             'Path to client certificate')
+    build_info_record(info, :kafka_ssl_client_cert_chain,       'Path to client certificate chain')
+    build_info_record(info, :kafka_ssl_client_cert_key,         'Path to client key')
+    build_info_record(info, :kafka_ssl_keystore_location,       'Path to keystore file in JKS format')
+    build_info_record(info, :kafka_ssl_keystore_type,           'Type of keystore file')
+    build_info_record(info, :kafka_ssl_truststore_location,     'Path to truststore file in JKS format')
+    build_info_record(info, :kafka_ssl_truststore_type,         'Type of truststore file')
+    build_info_record(info, :kafka_total_buffer_size_mb,        'Max. buffer size per thread')
+    build_info_record(info, :kafka_transaction_timeout,         'Max. duration in milliseconds of a Kafka transaction')
+    build_info_record(info, :legacy_ts_format,                  'Keep unusualtimestamp format of previous releases')
+    build_info_record(info, :log_level,                         'Server side log level')
+    build_info_record(info, :max_failed_logons_before_account_locked,  'Number of failed logons to GUI before the used user account will be locked')
+    build_info_record(info, :max_partitions_to_count_as_healthy,  'Max. number of partitions, up to which the system is considered healthy')
+    build_info_record(info, :max_transaction_size,              'Max. messages in a single transaction')
+    build_info_record(info, :max_simultaneous_table_initializations, '')
+    build_info_record(info, :max_simultaneous_transactions,     'For insert in EVENT_LOGS')
+    build_info_record(info, :max_worker_thread_sleep_time,      'Max. seconds an idle worker thread may sleep')
+    build_info_record(info, :partition_interval,                'For table EVENT_LOGS')
     info << {
       name: 'RAILS_MAX_THREADS',
       description: 'max. number of threads for application',
@@ -81,8 +81,8 @@ class HealthCheckController < ApplicationController
       default_value: 300,
       startup_config_value: ENV['RAILS_MAX_THREADS']
     }  # Default is set in Dockerfile
-    info << build_info_record(:run_config,                        'Path to config file')
-    info << build_info_record(:tz,                                'Local timezone within the Docker-container of the applikation')
+    build_info_record(info, :run_config,                        'Path to config file')
+    build_info_record(info, :tz,                                'Local timezone within the Docker-container of the applikation')
 
     render json: { config_info: info  }, status: :ok
   end
@@ -263,7 +263,11 @@ class HealthCheckController < ApplicationController
 
   # Build a record for config_info
   # key should be lower case
-  def build_info_record(key, description)
+  # @param [Array] info_array Array to append the record
+  # @param [String] key Key of config parameter
+  # @param [String] description Description of config parameter
+  # @return [void]
+  def build_info_record(info_array, key, description)
     info_record = { name: key.upcase, description: description, value:nil, default_value: nil, startup_config_value: nil }
     info_record[:value] = MovexCdc::Application.config.send(key) if MovexCdc::Application.config.respond_to?(key)
     config_info = MovexCdc::Application.config_attributes(key)
@@ -271,7 +275,7 @@ class HealthCheckController < ApplicationController
       info_record[:default_value]         = config_info[:default_value]
       info_record[:startup_config_value]  = config_info[:startup_config_value]
     end
-    info_record
+    info_array << info_record if !info_record[:value].nil? || !info_record[:default_value].nil? || !info_record[:startup_config_value].nil?
   end
 
   def garbage_collector_info
