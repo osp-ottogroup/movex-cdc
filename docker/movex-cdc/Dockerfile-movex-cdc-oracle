@@ -130,7 +130,9 @@ COPY doc/movex-cdc.html doc/movex-cdc.pdf doc/images public/
 # use ARG not before this point, because ARGs are implicitly used by RUN commands and
 # this will force docker cache misses which results in not using cached layers
 ARG BUILD_VERSION
-RUN (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
+# xargs need to be installed by findutils
+RUN  microdnf -y install findutils && \
+     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
 
 EXPOSE 8080/tcp
 
