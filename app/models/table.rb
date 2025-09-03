@@ -127,7 +127,7 @@ class Table < ApplicationRecord
     Database.select_one sql
   rescue Exception => e
     msg = "#{e.class}:#{e.message} Table #{self.schema.name}.#{self.name} is not readable.\nSQL:\n#{sql}\n#{error_msg_add}"
-    Rails.logger.error msg
+    Rails.logger.error("Table.raise_if_table_not_readable_by_movex_cdc") { msg }
     raise msg
   end
 

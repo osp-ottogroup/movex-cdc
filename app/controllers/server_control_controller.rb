@@ -16,7 +16,7 @@ class ServerControlController < ApplicationController
     else
       level = params.permit(:log_level)[:log_level]&.upcase
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
-      Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn("ServerControl.set_log_level") { "setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
       ActivityLog.log_activity(action: "Set server log level to #{level}")
       Rails.logger.level = "Logger::#{level}".constantize
       MovexCdc::Application.config.log_level = level.downcase.to_sym
@@ -26,7 +26,7 @@ class ServerControlController < ApplicationController
         java_level = eval("Java::OrgApacheLoggingLog4j::Level::#{level}")
         Java::OrgApacheLoggingLog4jCoreConfig::Configurator.setRootLevel(java_level);
       rescue Exception => e
-        Rails.logger.warn "ServerControl.set_log_level: log4j not available, ignoring setting log level for log4j. Exception: #{e.class}:#{e.message}"
+        Rails.logger.warn("ServerControl.set_log_level") { "log4j not available, ignoring setting log level for log4j. Exception: #{e.class}:#{e.message}" }
       end
     end
   end
@@ -49,7 +49,7 @@ class ServerControlController < ApplicationController
       raise "Number of worker threads (#{worker_threads_count}) should not be negative" if worker_threads_count < 0
 
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn("ServerControl.set_worker_threads_count") { "Setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
       ActivityLog.log_activity(action: "Set number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}")
 
       if worker_threads_count == ThreadHandling.get_instance.thread_count
@@ -75,7 +75,7 @@ class ServerControlController < ApplicationController
       raise "Max. transaction size (#{max_transaction_size}) should not greater than 0 " if max_transaction_size < 1
       raise_if_restart_active                                                   # protect from multiple executions
       if max_transaction_size == MovexCdc::Application.config.max_transaction_size
-        Rails.logger.info "ServerControl.set_max_transaction_size: Nothing to do because max. transaction size = #{max_transaction_size} is still active"
+        Rails.logger.info("ServerControl.set_max_transaction_size") { "Nothing to do because max. transaction size = #{max_transaction_size} is still active"}
       else
         Rails.logger.warn("ServerControl.set_max_transaction_size") { "Setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
         ActivityLog.log_activity(action: "Set max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}")
@@ -91,7 +91,7 @@ class ServerControlController < ApplicationController
     if ApplicationController.current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
     else
-      Rails.logger.warn "ServerControl.terminate: shutdown requested by API function! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
+      Rails.logger.warn("ServerControl.terminate") { "shutdown requested by API function! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
       Process.kill(:TERM, Process.pid)                                          # send TERM signal to myself
     end
   end
