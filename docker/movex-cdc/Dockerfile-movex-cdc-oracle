@@ -117,8 +117,8 @@ ENV RUBYOPT="-W0"
 
 WORKDIR $WORKDIR
 
-COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
 COPY --from=build_stage $JRUBY_HOME $JRUBY_HOME
+COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
 COPY --from=build_stage $WORKDIR    $WORKDIR
 COPY --from=build_stage /opt/async-profiler-4.1-linux-x64  /opt/async-profiler
 

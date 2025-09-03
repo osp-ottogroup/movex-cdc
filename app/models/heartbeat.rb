@@ -40,10 +40,18 @@ class Heartbeat < ApplicationRecord
   # Cache the value in a class variable to avoid repeated queries
   # @return [String] IP address
   def self.current_ip_address
+
+
+
     if @@ip_address.nil?
-      addresses    = Heartbeat.find_by_sql("SELECT SYS_CONTEXT('USERENV', 'IP_ADDRESS') address from DUAL")
-      raise "Unable to determine IP address from database" if addresses.empty?
-      @@ip_address = addresses.first.address
+      @@ip_address = case MovexCdc::Application.config.db_type
+                     when 'ORACLE' then
+                       addresses    = Heartbeat.find_by_sql("SELECT SYS_CONTEXT('USERENV', 'IP_ADDRESS') address from DUAL")
+                       raise "Unable to determine IP address from database" if addresses.empty?
+                       addresses.first.address
+                     else
+                       "Dummy"
+                     end
     end
     @@ip_address
   end
