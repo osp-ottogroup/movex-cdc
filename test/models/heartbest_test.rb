@@ -26,11 +26,10 @@ class HeartbeatTest < ActiveSupport::TestCase
     other_hostname = "other_host"
     other_ip = "10.10.10.10"
     Heartbeat.create!(hostname: other_hostname, ip_address: other_ip, heartbeat_ts: Time.current)
-    assert_raises RuntimeError do
-      Heartbeat.check_for_concurrent_instance
-    end
-    # Remove the simulated record
-    Heartbeat.where(hostname: other_hostname, ip_address: other_ip).delete_all
+    Heartbeat.check_for_concurrent_instance
+    last_line = `tail -n 1 #{Rails.root.join('log', "test.log")}`.strip
+    assert last_line["This might be a false positive"], "Last line of log should contain 'This might be a false positive'"
+    Heartbeat.where(hostname: other_hostname, ip_address: other_ip).delete_all  # Remove the simulated record
   end
 
 end
