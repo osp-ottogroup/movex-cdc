@@ -5,6 +5,7 @@
 # Build image:      > docker pull jruby:x.x.x.x
 #                   > docker build -f docker/movex-cdc/Dockerfile-movex-cdc-oracle --no-cache --build-arg JRUBY_VERSION=9.4.13.0 --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t movex-cdc .
 # Run container:    > docker run -p 8080:8080 -e DB_PASSWORD=movex -e DB_USER=movex -e LOG_LEVEL=debug movex-cdc
+#                   > docker run -p 8080:8080 -e RUN_CONFIG=tmp/run_config.yml movex-cdc
 
 # STAGE 1: build movex-cdc frontend
 FROM node:16-alpine AS frontend_build
@@ -116,8 +117,8 @@ ENV RUBYOPT="-W0"
 
 WORKDIR $WORKDIR
 
-COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
 COPY --from=build_stage $JRUBY_HOME $JRUBY_HOME
+COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
 COPY --from=build_stage $WORKDIR    $WORKDIR
 COPY --from=build_stage /opt/async-profiler-4.1-linux-x64  /opt/async-profiler
 
@@ -129,7 +130,9 @@ COPY doc/movex-cdc.html doc/movex-cdc.pdf doc/images public/
 # use ARG not before this point, because ARGs are implicitly used by RUN commands and
 # this will force docker cache misses which results in not using cached layers
 ARG BUILD_VERSION
-RUN (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
+# xargs need to be installed by findutils
+RUN  microdnf -y install findutils && \
+     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
 
 EXPOSE 8080/tcp
 

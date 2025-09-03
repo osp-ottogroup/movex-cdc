@@ -65,7 +65,7 @@ class ApplicationRecord < ActiveRecord::Base
 
   private
   # ActiveRecord-Classes where DML activities should not be logged
-  ACTIVITY_LOG_EXCLUDED_CLASSES=['ActivityLog', 'EventLog', 'Statistic']
+  ACTIVITY_LOG_EXCLUDED_CLASSES=['ActivityLog', 'EventLog', 'Statistic', 'Heartbeat']
 
   # wtite activity log entry
   # @param [String] operation 'inserted', 'updated', 'deleted'

@@ -255,7 +255,7 @@ class TransferThread
 
         if loop_count > 1000                                                         # protect against infinite loop
           msg = "TransferThread.read_event_logs_steps: risk of infinite loop. Cancelled now! @max_key_event_logs_id = #{@max_key_event_logs_id}, max_sorted_id_distance = #{@max_sorted_id_distances[partition_name]}, max_records_to_read = #{max_records_to_read}, result.count = #{result.count}"
-          Rails.logger.error msg
+          Rails.logger.error("TransferThread.read_event_logs_steps") { msg }
           raise msg
         end
 

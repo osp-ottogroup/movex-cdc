@@ -27,7 +27,7 @@ class Housekeeping
   # Ensure distance between first non-interval and current partition remains valid
   def check_partition_interval
     if @last_partition_interval_check_started.nil?
-      Rails.logger.debug "Housekeeping.check_partition_interval: Start check"
+      Rails.logger.debug("Housekeeping.check_partition_interval") { "Start check" }
       check_partition_interval_internal
     else
       Rails.logger.error('Housekeeping.check_partition_interval') { "Last run started at #{@last_partition_interval_check_started} not yet finished!" }

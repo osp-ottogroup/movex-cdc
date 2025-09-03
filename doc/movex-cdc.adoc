@@ -272,13 +272,13 @@ Used only in combination with SASL_SSL or SSL/TLS client certificate.|FALSE
 |KAFKA_SSL_CLIENT_CERT_CHAIN|Path to client certificate chain file in pem format|
 |KAFKA_SSL_CLIENT_CERT_KEY|Path to client key in pem format|
 |KAFKA_SSL_KEY_PASSWORD|Password for client private key|
-|KAFKA_SSL_KEYSTORE_LOCATION|Path to keystore file in JKS format|
-|KAFKA_SSL_KEYSTORE_PASSWORD|Password of keystore file in JKS format|
+|KAFKA_SSL_KEYSTORE_LOCATION|Path to keystore file|
+|KAFKA_SSL_KEYSTORE_PASSWORD|Password of keystore file|
 |KAFKA_SSL_KEYSTORE_TYPE|Type of keystore. Valid values are: 'JKS', 'PEM'|JKS
 |KAFKA_SSL_TRUSTSTORE_LOCATION|Path to truststore file in JKS format|
 |KAFKA_SSL_TRUSTSTORE_PASSWORD|Password of truststore file in JKS format|
 |KAFKA_SSL_TRUSTSTORE_TYPE|Type of truststore. Valid values are: 'JKS', 'PEM'|JKS
-|KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte. Maximum for the allocated memory for buffered Kafka messages before delivery. +
+|KAFKA_TOTAL_BUFFER_SIZE_MB|Memory buffer size for Kafka message buffer in Megabyte (buffer.memory). Maximum for the allocated memory for buffered Kafka messages before delivery. +
 This amount of memory is per Thread so the maximum overall memory consumption for Kafka buffers is KAFKA_TOTAL_BUFFER_SIZE_MB * INITIAL_WORKER_THREADS.|100
 |KAFKA_TRANSACTIONAL_ID_PREFIX|Prefix string to be prepended before the system generated transactional ID. +
 Ensures compliance with possible naming conventions for the transactional IDs|MOVEX-CDC
@@ -595,6 +595,22 @@ At first this values are cumulated for each minute. Later on statistics data wil
 * After 3 months values per hour are compressed to values per day
 
 Compression is executed once a day as background job in the application.
+
+=== Throughput to expect ===
+The maximum throughput of MOVEX CDC depends on several factors like:
+
+* Database performance (especially the performance of the redo log generation)
+* Network performance between DB and MOVEX CDC
+* Network performance between MOVEX CDC and Kafka
+* Performance of Kafka cluster
+* Configuration of MOVEX CDC (number of worker threads, transaction size, number of columns to capture etc.)
+
+Max. values of an example with 18 CPU Oracle-DB and single node Kafka cluster were:
+
+* One worker thread: approx 8000 events/sec
+* Three worker threads: approx. 20000 events/sec
+
+Limiting factor in this example was the Oracle DB read performance.
 
 == Technical implementation ==
 === Structure of Kafka messages ===

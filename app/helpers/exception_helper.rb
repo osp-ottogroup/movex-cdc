@@ -91,7 +91,7 @@ module ExceptionHelper
   def self.limited_wait_for_mutex(mutex:, raise_exception: false, max_wait_time_secs: 3)
     1.upto(max_wait_time_secs) do
       return unless mutex.locked?                                               # Leave the function without any action
-      Rails.logger.warn("ExceptionHelper.limited_wait_for_mutex: Mutex is locked, waiting one second, called from #{Thread.current.backtrace.fifth}")
+      Rails.logger.warn("ExceptionHelper.limited_wait_for_mutex") { "Mutex is locked, waiting one second, called from #{Thread.current.backtrace.fifth}" }
       sleep 1
     end
     if raise_exception

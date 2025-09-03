@@ -258,13 +258,13 @@ module MovexCdc
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_producer_timeout, default: 5000) # milliseconds for max.block.ms
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_properties_file, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_security_protocol, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, accept_empty: true)  # nil defaults to false
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_location, accept_empty: true)

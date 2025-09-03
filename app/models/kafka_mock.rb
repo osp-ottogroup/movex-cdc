@@ -26,6 +26,7 @@ class KafkaMock < KafkaBase
     end
 
     def abort_transaction
+      @last_produced_id = 0                                                     # Reset ID check after aborted transaction, nothing was produced
     end
 
     # Create a single Kafka message

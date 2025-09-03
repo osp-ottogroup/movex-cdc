@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema.define(version: 2025_08_12_100000) do
+ActiveRecord::Schema.define(version: 2025_09_03_100000) do
 
   create_table "activity_logs", force: :cascade do |t|
     t.integer "user_id", precision: 38, null: false, comment: "Reference to user"
@@ -88,6 +88,13 @@ ActiveRecord::Schema.define(version: 2025_08_12_100000) do
     t.datetime "last_error_time", precision: 6, comment: "Last time processing resulted in error"
     t.integer "retry_count", precision: 38, default: 0, null: false, comment: "Number of processing retries after error"
     t.string "transaction_id", limit: 100, comment: "Original database transaction ID (if recorded)"
+  end
+
+  create_table "heartbeats", comment: "Heartbeat of server instance to ensure uniqueness (only one running server allowed)", force: :cascade do |t|
+    t.string "hostname", limit: 1000, null: false, comment: "The host name of the server instance"
+    t.string "ip_address", limit: 100, null: false, comment: "The IP address of the server instance as seen by the database"
+    t.datetime "heartbeat_ts", precision: 6, null: false, comment: "The timestamp of the last heartbeat received from the server instance"
+    t.index ["hostname", "ip_address"], name: "ix_heartbeats_hostname_ip", unique: true
   end
 
   create_table "schema_rights", force: :cascade do |t|
