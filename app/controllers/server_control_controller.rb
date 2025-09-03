@@ -2,6 +2,7 @@ require 'json'
 require 'java'
 class ServerControlController < ApplicationController
   @@restart_worker_threads_mutex = Mutex.new
+  @@restart_worker_threads_active=nil
 
   # GET /server_control/get_log_level
   def get_log_level
@@ -16,6 +17,7 @@ class ServerControlController < ApplicationController
       level = params.permit(:log_level)[:log_level]&.upcase
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
       Rails.logger.warn "ServerControl.set_log_level: setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
+      ActivityLog.log_activity(action: "Set server log level to #{level}")
       Rails.logger.level = "Logger::#{level}".constantize
       MovexCdc::Application.config.log_level = level.downcase.to_sym
 
@@ -35,7 +37,6 @@ class ServerControlController < ApplicationController
   end
 
   # POST /server_control/set_worker_threads_count
-  @@restart_worker_threads_active=nil
   def set_worker_threads_count
     if ApplicationController.current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
@@ -49,6 +50,8 @@ class ServerControlController < ApplicationController
 
       raise_if_restart_active                                                   # protect from multiple executions
       Rails.logger.warn "ServerControl.set_worker_threads_count: setting number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
+      ActivityLog.log_activity(action: "Set number of worker threads from #{MovexCdc::Application.config.initial_worker_threads} to #{worker_threads_count}")
+
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info('ServerControlController.set_worker_threads_count'){ ": Nothing to do because #{worker_threads_count} workers are still active" }
       else
@@ -64,7 +67,6 @@ class ServerControlController < ApplicationController
   end
 
   # POST /server_control/set_max_transaction_size
-  @@restart_worker_threads_active=nil
   def set_max_transaction_size
     if ApplicationController.current_user.yn_admin != 'Y'
       render json: { errors: ["Access denied! User #{ApplicationController.current_user.email} isn't tagged as admin"] }, status: :unauthorized
@@ -72,10 +74,11 @@ class ServerControlController < ApplicationController
       max_transaction_size = params.permit(:max_transaction_size)[:max_transaction_size].to_i
       raise "Max. transaction size (#{max_transaction_size}) should not greater than 0 " if max_transaction_size < 1
       raise_if_restart_active                                                   # protect from multiple executions
-      Rails.logger.warn "ServerControl.set_max_transaction_size: setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}"
       if max_transaction_size == MovexCdc::Application.config.max_transaction_size
         Rails.logger.info "ServerControl.set_max_transaction_size: Nothing to do because max. transaction size = #{max_transaction_size} is still active"
       else
+        Rails.logger.warn("ServerControl.set_max_transaction_size") { "Setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
+        ActivityLog.log_activity(action: "Set max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}")
         context = "max. transaction size: current=#{MovexCdc::Application.config.max_transaction_size}, new=#{max_transaction_size}"
         MovexCdc::Application.config.max_transaction_size = max_transaction_size
         restart_worker_threads context
@@ -189,6 +192,8 @@ class ServerControlController < ApplicationController
         ThreadHandling.get_instance.shutdown_processing
         @@restart_worker_threads_active = "Waiting for ensure_processing. #{context}"
         ThreadHandling.get_instance.ensure_processing
+        Rails.logger.warn('ServerControlController.restart_worker_threads') { "Restart of worker threads done for: #{context}" }
+        ActivityLog.log_activity(action: "Restart of worker threads done for: #{context}")
       rescue Exception => e
         ExceptionHelper.log_exception(e, "ServerControlController.restart_worker_threads")
       ensure
