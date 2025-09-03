@@ -23,6 +23,7 @@ class InitializationJob < ApplicationJob
 
     warmup_ar_classes
 
+    Heartbeat.check_for_concurrent_instance                                     # Terminate this instance if another instance is running with same DB schema
     ensure_admin_existence
 
     # LOG Datase and JDBC driver version
