@@ -23,7 +23,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
       ")
 
       # Sequence Event_Logs_Seq is handled in ExtendEventLogs2
-    else
+    when 'SQLITE' then
       create_table :event_logs do |t|
         t.references  :table,                   null: false,  comment: 'Reference to tables'
         t.string      :operation, limit: 1,     null: false,  comment: 'Operation type i/I/U/D'
@@ -32,6 +32,8 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
         t.string      :msg_key,   limit: 4000,  null: true,   comment: 'Optional Kafka message key to ensure all messages of same key are stored in same partition'
         t.timestamp   :created_at,              null: false,  comment: 'Record creation timestamp'
       end
+    else
+      raise "CreateEventLogs: DBTYPE '#{MovexCdc::Application.config.db_type}' is not supported"
     end
   end
 

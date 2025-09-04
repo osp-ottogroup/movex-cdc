@@ -110,6 +110,8 @@ module MovexCdc
 
     # Hash with MOVEX CDC's configs config_name: { default_value:, startup_config_value:}
     @@config_attributes = {}
+
+
     def self.config_attributes(key)
       @@config_attributes[key]
     end
@@ -311,22 +313,21 @@ module MovexCdc
       end
     end
 
+    @@db_partitioning = nil
     # check if database supports partitioning (possible and licensed)
-    def partitioning?
-      if !defined?(@db_partitioning) || @db_partitioning.nil?
-        @db_partitioning = case config.db_type
+    def self.partitioning?
+      if @@db_partitioning.nil?
+        @@db_partitioning = case MovexCdc::Application.config.db_type
                                  when 'ORACLE' then
-                                   puts "MovexCdc::Application.partitioning?: checking DB"
                                    Rails.logger.debug('MovexCdc::Application.partitioning?'){ "Checking DB if Partitioning is enabled" }
                                    Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
                                  else
                                    false
                                  end
-        Rails.logger.info('Application'){ "Partitioning = #{@db_partitioning} for this #{config.db_type} database" }
+        Rails.logger.info('Application'){ "Partitioning = #{@@db_partitioning} for this #{config.db_type} database" }
       end
-      puts "MovexCdc::Application.partitioning?: returning #{@db_partitioning}"
-      Rails.logger.debug('MovexCdc::Application.partitioning?'){ "returning #{@db_partitioning}" }
-      @db_partitioning
+      Rails.logger.debug('MovexCdc::Application.partitioning?'){ "returning #{@@db_partitioning}" }
+      @@db_partitioning
     end
   end
 end
