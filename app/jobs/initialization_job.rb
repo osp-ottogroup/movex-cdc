@@ -17,6 +17,14 @@ class InitializationJob < ApplicationJob
     if ENV['SUPPRESS_MIGRATION_AT_STARTUP']
       Rails.logger.info('InitializationJob.perform'){ "Migration suppressed because SUPPRESS_MIGRATION_AT_STARTUP is set in environment"}
     else
+      # db:seed ensures that the schema_migrations table exists in initial setup
+      # this is the precondition for db:migrate to really execute all pending migrations instead of building based on current schema.rb
+      # schema.rb does not include all DB objects like views, procedures, functions etc., so building based on schema.rb would miss these objects
+      begin
+        Rake::Task['db:seed'].invoke
+      rescue SystemExit => e
+        Rails.logger.info('InitializationJob.perform'){ "db:seed fail ignored, db:migrate follows: #{e.class}: '#{e.message}'" }
+      end
       Rake::Task['db:migrate'].invoke
     end
     Rails.logger.info('InitializationJob.perform'){ "Finished db:migrate" }
