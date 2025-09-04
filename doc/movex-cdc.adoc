@@ -313,7 +313,8 @@ Ensures that API calls and js/css loads are properly extended with the used sub-
 |SECRET_KEY_BASE|Server side key used for encryption and signing of the JWT that is used for authentication|
 |SECRET_KEY_BASE_FILE|Location of file with server side key used for encryption and signing of the JWT that is used for authentication|
 |TNS_ADMIN|Directory of config file tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
-|TZ|Sets local timezone within the Docker-container of the applikation. Must be directly set as environment of container during 'docker run' like '-e TZ="Europe/London"', does not work from config file.|Europe/Berlin
+|TZ|Sets local timezone within the Docker-container of the applikation. Must be directly set as environment of container like `docker run -e TZ="Europe/London"`. +
+Setting of TZ does not work of set in run_config file only.|UTC
 |===
 ==== Configure MOVEX-CDC for connecting to Kafka ====
 At least you have to specify the broker hosts and ports to use:
@@ -562,6 +563,26 @@ MOVEX CDC is running at the same host at port 8080. +
 The GUI URL is http://myhost/mysubpath in this case.
 
 The MOVEX CDC instance should be started in this case with PUBLIC_PATH="/mysubpath".
+
+==== Profiling performance issues ====
+To identify performance bottlenecks in processing of MOVEX CDC the Docker image contains the async-profiler tool. +
+To profile the running application you can:
+
+* Get into the running container with
+[source]
+docker exec -ti <container name/id> /bin/bash
+
+* Create a snapshot of the current CPU usage of the Java process of MOVEX CDC with the PID 1
+[source]
+cd /opt/async-profiler/bin
+./asprof -d 30 -f /profile.html 1
+
+* Copy the profile.html file from the container to your host with
+[source]
+docker cp <container name/id>:/profile.html .
+
+The profile.html contains a flame graph of the CPU usage by methods. +
+For getting information about other aspects like wait time for external resources (DB, Kafka) etc. please refer to https://github.com/async-profiler/async-profiler.
 
 === Logging ===
 Logging is done via console output of the Docker container. +
