@@ -4,7 +4,7 @@ class KafkaBaseTest < ActiveSupport::TestCase
   test "simple produce" do
     assert_nothing_raised do
       kafka = KafkaBase.create
-      producer = kafka.create_producer(transactional_id: 'hugo2')
+      producer = kafka.create_producer(worker_id: 2)
       producer.begin_transaction
 
       timestamp = case MovexCdc::Application.config.legacy_ts_format
@@ -22,7 +22,6 @@ class KafkaBaseTest < ActiveSupport::TestCase
                        key: 'Hugo',
                        headers: {Addition: 'Hugo'}
       )
-      producer.deliver_messages
       producer.commit_transaction
     rescue Exception => e
       log_on_failure("Exception #{e.class}: #{e.message}")
@@ -85,19 +84,18 @@ class KafkaBaseTest < ActiveSupport::TestCase
     assert !description.empty?, log_on_failure('group description should not be empty')
   end
 
-  test "deliver_messages with MessageSizeTooLarge" do
+  test "produce_messages with MessageSizeTooLarge" do
     assert_nothing_raised do
       if MovexCdc::Application.config.kafka_client_library != 'mock'            # real Kafka connected
         kafka = KafkaBase.create
         org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
         begin
           kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10') # Set a minimal value
-          producer = kafka.create_producer(transactional_id: 'hugo14')
+          producer = kafka.create_producer(worker_id: 2)
           producer.begin_transaction
           assert_raise do
             begin
               producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
-              producer.deliver_messages
               producer.commit_transaction
             ensure
               producer.abort_transaction

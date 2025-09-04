@@ -3,8 +3,9 @@
 
 # Usage:
 # Build image:      > docker pull jruby:x.x.x.x
-#                   > docker build -f docker/movex-cdc/Dockerfile-movex-cdc-oracle --no-cache --build-arg JRUBY_VERSION=9.4.5.0 --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t movex-cdc .
+#                   > docker build -f docker/movex-cdc/Dockerfile-movex-cdc-oracle --no-cache --build-arg JRUBY_VERSION=9.4.13.0 --build-arg BUILD_VERSION=`date "+%Y-%m-%d_%H-%M-%S"` -t movex-cdc .
 # Run container:    > docker run -p 8080:8080 -e DB_PASSWORD=movex -e DB_USER=movex -e LOG_LEVEL=debug movex-cdc
+#                   > docker run -p 8080:8080 -e RUN_CONFIG=tmp/run_config.yml movex-cdc
 
 # STAGE 1: build movex-cdc frontend
 FROM node:16-alpine AS frontend_build
@@ -46,8 +47,7 @@ RUN $JAVA_HOME/bin/jlink \
          --output /customjre
 
 # STAGE 3: build movex-cdc backend
-FROM oraclelinux:9-slim
-
+FROM oraclelinux:9-slim as build_stage
 
 ENV BACKEND_SRC_PATH=.
 # Default for RAILS_MAX_THREADS to work for every CMD in docker container
@@ -60,45 +60,68 @@ ENV RUBYOPT="-W0"
 
 COPY --from=openjdk /customjre $JAVA_HOME
 
-RUN   echo "### microdnf update" && \
-      microdnf -y update && \
-      echo "### apk add missing tools" && \
-      microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make && \
-        echo "### get jRuby $JRUBY_VERSION" && \
-      cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
-      echo "### untar jRuby" && \
-      cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz && \
-      echo "### link ruby to jruby" && \
-      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby && \
-      echo "### get ruby version info" && \
-      ruby -v && \
-      echo "### set timezone" && \
+RUN   echo "### microdnf update" && microdnf -y update
+RUN   echo "### apk add missing tools" && microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make
+RUN   echo "### get jRuby $JRUBY_VERSION" && \
+      cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz
+RUN   echo "### untar jRuby" && \
+      cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz
+RUN   echo "### link ruby to jruby" && \
+      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby
+RUN   echo "### get ruby version info" && ruby -v
+RUN   echo "### set timezone" && \
       echo 'Europe/Berlin' > /etc/timezone && \
       rm /etc/localtime && ln -s /usr/share/zoneinfo/Europe/Berlin /etc/localtime && \
-      date && \
-      echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
-      ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake && \
-      echo "### update installed system gems" && \
-      gem update --system --no-doc && \
-      echo "### install bundler gems" && \
-      gem install --no-doc bundler && \
-      echo "### set .gemrc" && \
-      echo "gem: --no-rdoc --no-ri" > ~/.gemrc && \
-      echo "### cleanup and list installed gems" && \
-      gem cleanup && gem list && \
-      microdnf clean all && \
-      rm -rf $HOME/.bundle/cache
+      date
+RUN   echo "### Install async-profiler 4.1" && \
+      wget -q https://github.com/async-profiler/async-profiler/releases/download/v4.1/async-profiler-4.1-linux-x64.tar.gz && \
+      tar -xvf async-profiler-4.1-linux-x64.tar.gz -C /opt && rm async-profiler-4.1-linux-x64.tar.gz
+RUN   echo 'due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found' && \
+      ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
+RUN   echo "### update installed system gems" && gem update --system --no-doc
+RUN   echo "### install bundler gems" && gem install --no-doc bundler
+RUN   echo "### set .gemrc" && echo "gem: --no-rdoc --no-ri" > ~/.gemrc
+RUN   echo "### cleanup and list installed gems" && gem cleanup && gem list && microdnf clean all
+RUN   rm -rf $HOME/.bundle/cache
 
 WORKDIR /app
 
 COPY ${BACKEND_SRC_PATH} .
-#COPY ${BACKEND_SRC_PATH}/Gemfile* ./
 
-RUN  bundle config set deployment 'true' && bundle install --jobs 4
-
+RUN  bundle config set deployment 'true'
+RUN  bundle config set --local without 'development test'
+RUN  bundle config install.args "--no-document"
+RUN  rm -rf vendor/bundle # remove old vendor gems
+# Ensure bundle install uses the correct JRE
+RUN  bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
+RUN  bundle install --jobs 4 --no-cache
+RUN  rm -f vendor/cache/* && rm -rf vendor/bundle/jruby/*/cache/*
 
 # Copy Frontend-Build into Rails-Project for static serve
 COPY --from=frontend_build /app/dist public/
+
+# STAGE 4: combine all and build final movex-cdc image
+FROM oraclelinux:9-slim
+
+ENV BACKEND_SRC_PATH=.
+# Default for RAILS_MAX_THREADS to work for every CMD in docker container
+ENV RAILS_MAX_THREADS=300
+ARG JRUBY_VERSION
+ENV JAVA_HOME=/opt/jre
+ENV JRUBY_HOME=/opt/jruby-$JRUBY_VERSION
+ENV WORKDIR=/app
+
+ENV PATH="${JAVA_HOME}/bin:$JRUBY_HOME/bin:$PATH"
+# Suppress warnings from several gems
+ENV RUBYOPT="-W0"
+
+WORKDIR $WORKDIR
+
+COPY --from=build_stage $JRUBY_HOME $JRUBY_HOME
+COPY --from=build_stage $JAVA_HOME  $JAVA_HOME
+COPY --from=build_stage $WORKDIR    $WORKDIR
+COPY --from=build_stage /opt/async-profiler-4.1-linux-x64  /opt/async-profiler
+
 
 # Show doc files for direct access
 # nonexistence of movex-cdc.html and movex-cdc.pdf is accepted for build outside CI pipeline
@@ -107,7 +130,9 @@ COPY doc/movex-cdc.html doc/movex-cdc.pdf doc/images public/
 # use ARG not before this point, because ARGs are implicitly used by RUN commands and
 # this will force docker cache misses which results in not using cached layers
 ARG BUILD_VERSION
-RUN (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
+# xargs need to be installed by findutils
+RUN  microdnf -y install findutils && \
+     (test -n "$BUILD_VERSION"  && echo $BUILD_VERSION || date "+%Y-%m-%d_%H-%M-%S") > /app/build_version
 
 EXPOSE 8080/tcp
 

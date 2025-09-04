@@ -4,25 +4,29 @@ class KafkaMock < KafkaBase
   class Producer < KafkaBase::Producer
     # Create producer instance
     # @param [KafkaMock] kafka Instance of KafkaMock
-    # @param [String] transactional_id Transactional id for the producer
+    # @param [Integer] worker_id for transactional id for the producer
     # @return [void]
-    def initialize(kafka, transactional_id:)
+    def initialize(kafka, worker_id:)
+      @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
-      @last_successfully_delivered_id = 0
-      super(kafka, transactional_id: transactional_id)
+      super(kafka, worker_id: worker_id)
       @events = []
     end
 
     def begin_transaction
+      @events = []                                                              # ensure to start with empty event list even after repeated errors
     end
 
     def commit_transaction
+      @events.each do |event|
+        unless @kafka.has_topic?(event[:topic])
+          raise "KafkaMock::Producer.commit_transaction: No topic for event #{event}"
+        end
+      end
     end
 
     def abort_transaction
-    end
-
-    def clear_buffer
+      @last_produced_id = 0                                                     # Reset ID check after aborted transaction, nothing was produced
     end
 
     # Create a single Kafka message
@@ -67,23 +71,24 @@ class KafkaMock < KafkaBase
       @events << { message: message, topic: table.topic_to_use, key: key, headers: headers}
     end
 
-    def deliver_messages
-      @events.each do |event|
-        unless @kafka.has_topic?(event[:topic])
-          @last_produced_id = @last_successfully_delivered_id                   # reset last produced ID because events will occur again
-          raise "KafkaMock::Producer.deliver_messages: No topic for event #{event}"
-        end
-      end
-      @last_successfully_delivered_id = @last_produced_id                       # remember last successfully delivered ID
-    ensure
-      @events = []                                                              # ensure to start with empty event list even after repeated errors
-    end
-
     def reset_kafka_producer
+      @transactional_id = generate_new_transactional_id(@worker_id)             # Simulate new transactional_id for each new producer
     end
 
     def shutdown;
     end
+
+    def producer_reset_needed?(exception)
+      false
+    end
+
+    # Get the metrics of the Kafka producer
+    # @return [Array<Hash>] List of metrics { name: 'name', description: 'description', value: value }
+    def metrics
+      []
+    end
+
+
 
     private
     # Check if the message content is valid
@@ -220,11 +225,11 @@ class KafkaMock < KafkaBase
 
 
   # Create instance of KafkaMock::Producer
-  # @param transactional_id [String] Transactional id for the producer
+  # @param worker_id [Integer] worker ID for transactional id for the producer
   # @return [KafkaMock::Producer] Instance of KafkaMock::Producer
-  def create_producer(transactional_id:)
+  def create_producer(worker_id:)
     if @producer.nil?
-      @producer = Producer.new(self, transactional_id: transactional_id)
+      @producer = Producer.new(self, worker_id: worker_id)
     else
       raise "KafkaMock::create_producer: producer already initialized! Only one producer per instance allowed."
     end

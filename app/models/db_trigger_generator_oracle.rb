@@ -245,7 +245,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       if columns.select{|c| c[:data_type] == 'CLOB'}.count > 0
         trigger_sql << " /* OF <column_list> suppressed because CLOBs would raise ORA-25006 */"
       else
-        trigger_sql << " OF #{columns.map{|x| x[:column_name]}.join(',')}"
+        trigger_sql << " OF #{columns.map{|x| x[:column_name]}.join(', ')}"
       end
     end
 

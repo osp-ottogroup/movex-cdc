@@ -170,6 +170,19 @@ module MovexCdc
       MovexCdc::Application.log_attribute(key.to_s.upcase, set_attrib_from_env(key, options))
     end
 
+    def self.check_for_deprecations
+      MovexCdc::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count, accept_empty: true)
+      if MovexCdc::Application.config.kafka_max_bulk_count
+        # TODO: Describe alternative
+        puts "WARNING: KAFKA_MAX_BULK_COUNT is deprecated, use other config instead for configuration"
+      end
+
+      MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true) # deprecated, use kafka_ssl_key_password instead
+      if MovexCdc::Application.config.kafka_ssl_client_cert_key_password
+        puts "WARNING: KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD is deprecated, use KAFKA_SSL_KEY_PASSWORD instead for configuration"
+      end
+    end
+
     puts "\nStarting MOVEX Change Data Capture application at #{Time.now}\n"
 
     puts "Configuration attributes (if defined):"
@@ -226,6 +239,8 @@ module MovexCdc
       build_version = 'File ./build_version does not exist'
     end
 
+    MovexCdc::Application.check_for_deprecations                                                      # Check if deprecated configuration attributes are used
+
     MovexCdc::Application.set_and_log_attrib_from_env(:build_version, default: build_version)
     MovexCdc::Application.set_and_log_attrib_from_env(:cloudevents_source, default: "MOVEX-CDC-#{Socket.gethostname}")
     MovexCdc::Application.set_and_log_attrib_from_env(:db_password)
@@ -245,22 +260,17 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_compression_codec, default: 'gzip')
     supported_compression_codecs = ['none', 'snappy', 'gzip', 'lz4', 'zstd']
     raise "KAFKA_COMPRESSION_CODEC=#{config.kafka_compression_codec} not supported! Allowed values are: #{supported_compression_codecs}" if ! supported_compression_codecs.include? config.kafka_compression_codec
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_max_bulk_count, default: 1000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_producer_timeout, default: 5000) # milliseconds for max.block.ms
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_properties_file, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_sasl_plain_username, accept_empty: true)
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_seed_broker, default: '<not specified>')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_security_protocol, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_cert, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_ca_certs_from_system, accept_empty: true)  # nil defaults to false
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_chain, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key, accept_empty: true)
-    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_client_cert_key_password, accept_empty: true) # deprecated, use kafka_ssl_key_password instead
-    if config.kafka_ssl_client_cert_key_password
-      puts "WARNING: KAFKA_SSL_CLIENT_CERT_KEY_PASSWORD is deprecated, use KAFKA_SSL_KEY_PASSWORD instead for configuration"
-    end
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_location, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_password, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_keystore_type, accept_empty: true)
@@ -270,6 +280,7 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_ssl_truststore_type, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_total_buffer_size_mb, default: 100, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_transactional_id_prefix, default: 'MOVEX-CDC')
+    MovexCdc::Application.set_and_log_attrib_from_env(:kafka_transaction_timeout, default: 600000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:legacy_ts_format, accept_empty: true)
     raise "LEGACY_TS_FORMAT has unsupported content '#{config.legacy_ts_format}! Valid values are TYPE_1, TYPE_2'" unless [nil, 'TYPE_1', 'TYPE_2'].include?(config.legacy_ts_format)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_failed_logons_before_account_locked, default: 3, integer: true, minimum: 0, maximum:99)

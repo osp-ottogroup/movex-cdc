@@ -10,7 +10,9 @@ class SystemValidationJob < ApplicationJob
     # Ensure that enough worker threads are operating for event transfer
     begin
       Database.set_application_info('SystemValidationJob/ensure_processing')
+      Heartbeat.record_heartbeat
       ThreadHandling.get_instance.ensure_processing
+      Heartbeat.check_for_concurrent_instance                                   # If exception is raised here, it means that another server instance is running with same hostname and IP address
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'SystemValidationJob.perform', additional_msg: "calling ThreadHandling.ensure_processing! Proceeding with housekeeping.\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)

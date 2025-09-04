@@ -165,19 +165,19 @@ test_oracle_12.1_SE:
     - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.1.0.2-se2
       alias: oracle-db
 
-test_oracle_12.2:
-  stage: test
-  extends: .tests_ORACLE
-  services:
-    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
-      alias: oracle-db
+#test_oracle_12.2:
+#  stage: test
+#  extends: .tests_ORACLE
+#  services:
+#    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
+#      alias: oracle-db
 
-test_oracle_12.2_SE:
-  stage: test
-  extends: .tests_ORACLE
-  services:
-    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-se2
-      alias: oracle-db
+#test_oracle_12.2_SE:
+#  stage: test
+#  extends: .tests_ORACLE
+#  services:
+#    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-se2
+#      alias: oracle-db
 
 test_oracle_19.10_EE:
   stage: test

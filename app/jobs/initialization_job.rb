@@ -23,6 +23,7 @@ class InitializationJob < ApplicationJob
 
     warmup_ar_classes
 
+    Heartbeat.check_for_concurrent_instance                                     # Terminate this instance if another instance is running with same DB schema
     ensure_admin_existence
 
     # LOG Datase and JDBC driver version
@@ -145,7 +146,7 @@ You possibly may need a direct GRANT SELECT ON #{object_name} to be enabled to s
   def warmup_ar_classes
     Rails.logger.debug('InitializationJob.warmup_ar_classes'){ "Warmup dictionary info for DB objects started" }
     [ActivityLog, Column, Condition, EventLog, Schema, SchemaRight, Statistic, Table, User].each do |ar_class|
-      ar_class.first                                                            # Load one record to provoke loading of dictionary info
+      ar_class.columns                                                            # Load one record to provoke loading of dictionary info
     end
     Rails.logger.debug('InitializationJob.warmup_ar_classes'){ "Warmup dictionary info for DB objects finished" }
   end

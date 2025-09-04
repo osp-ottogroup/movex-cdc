@@ -12,3 +12,6 @@ CVE-2022-34169
 # 2023-06-26 SQLite adapter for Rails 6 requires jdbc-sqlite3 (~> 3.8, < 3.30) which is vulnerable, used for test only
 # could be removed after update to Rails 7.1
 CVE-2023-32697
+
+# Temporary exclusion before update Rails to 8.0
+CVE-2025-24293

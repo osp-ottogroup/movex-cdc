@@ -14,7 +14,7 @@ class EventLog < ApplicationRecord
         msg << " because it is smaller than MAX_SIMULTANEOUS_TABLE_INITIALIZATIONS (#{MovexCdc::Application.config.max_simultaneous_table_initializations}) +"
         msg << " INITIAL_WORKER_THREADS (#{MovexCdc::Application.config.initial_worker_threads}) +"
         msg << " assumed number of simultaneous user transactions (#{assumed_simultaneous_user_tx})"
-        Rails.logger.error msg
+        Rails.logger.error("EventLog.adjust_simultaneous_transactions") { msg }
       end
 
       if MovexCdc::Application.partitioning?
@@ -170,14 +170,14 @@ class EventLog < ApplicationRecord
                                              FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
       if part_stat.max_partition_position == partition_position
         msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
-        Rails.logger.error msg
+        Rails.logger.error("EventLog.partition_allowed_for_drop?") { msg }
         self.error_log_partitions
         return false
       end
 
       if part_stat.partition_count < 3
         msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is one of the last two partitions of table EVENT_LOGS and should not be dropped"
-        Rails.logger.error msg
+        Rails.logger.error("EventLog.partition_allowed_for_drop?") { msg }
         self.error_log_partitions
         return false
       end
