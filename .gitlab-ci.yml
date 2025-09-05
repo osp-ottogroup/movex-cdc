@@ -94,6 +94,7 @@ prepare_tests:
         bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
       fi
     - bundle exec rake ci_preparation:create_user
+    - bundle exec rails db:seed
     - bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test
     - >
       if [ "$DB_TYPE" == "ORACLE" ]; then
