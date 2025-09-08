@@ -7,9 +7,9 @@ class KafkaMock < KafkaBase
     # @param [Integer] worker_id for transactional id for the producer
     # @return [void]
     def initialize(kafka, worker_id:)
-      @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
       @last_produced_id = 0                                                     # Check messages with key for proper ascending order
       super(kafka, worker_id: worker_id)
+      @transactional_id = generate_new_transactional_id(@worker_id)         # Use new transactional_id for each new producer
       @events = []
     end
 
