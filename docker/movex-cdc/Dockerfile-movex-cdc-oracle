@@ -66,8 +66,6 @@ RUN   echo "### get jRuby $JRUBY_VERSION" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz
 RUN   echo "### untar jRuby" && \
       cd /opt && tar -xf jruby-dist-$JRUBY_VERSION-bin.tar.gz && rm jruby-dist-$JRUBY_VERSION-bin.tar.gz
-RUN   echo "### link ruby to jruby" && \
-      ln -s /opt/jruby-$JRUBY_VERSION/bin/jruby /opt/jruby-$JRUBY_VERSION/bin/ruby
 RUN   echo "### get ruby version info" && ruby -v
 RUN   echo "### set timezone" && \
       echo 'Europe/Berlin' > /etc/timezone && \
