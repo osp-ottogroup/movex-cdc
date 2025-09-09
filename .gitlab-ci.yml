@@ -19,7 +19,7 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - code_analysis
+  #- code_analysis
   - test
   - pre_build
   - build
@@ -29,7 +29,8 @@ stages:
 # interactive edit config/brakemen.ignore by > brakeman -A -I
 # Use this to exclude findings after considering as false positives
 brakeman_analysis:
-  stage: code_analysis
+  # stage: code_analysis
+  stage: build
   script:
       # racc installed in addition due to error: no such file to load -- racc/info. Please install the appropriate dependency: ruby_parser.
     - gem install --no-doc racc brakeman
@@ -37,13 +38,15 @@ brakeman_analysis:
 
 test_frontend:
   image: node:14-alpine
-  stage: code_analysis
+  # stage: code_analysis
+  stage: build
   script:
     - npm install -g @vue/cli
     - cd frontend && npm ci && npm run test:unit
 
 prepare_tests:
-  stage: code_analysis
+  # stage: code_analysis
+  stage: build
   script:
     - date
     - gem install --no-doc bundler
