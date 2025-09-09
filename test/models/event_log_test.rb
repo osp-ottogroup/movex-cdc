@@ -30,7 +30,7 @@ class EventLogTest < ActiveSupport::TestCase
             msg = "EventLogTest.adjust_max_simultaneous_transactions: Could not read INI_TRANS for table EVENT_LOGS"
             Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { msg }
             Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { "Partitioned = " + Database.select_one("SELECT Partitioned FROM User_Tables WHERE Table_Name ='EVENT_LOGS'") }
-            Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { "Created = " + Database.select_one("SELECT Created FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
+            Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { "Created = " + Database.select_one("SELECT TO_CHAR(Created, 'YYYY-MM-DD HH24:MI:SS') FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
             raise msg
           end
           ini_trans = 2 if ini_trans < 2    # Minimum value is 2 for index to avoid ORA-02207

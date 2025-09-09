@@ -52,7 +52,7 @@ class ActiveSupport::TestCase
     Rails.logger.info('ActiveSupport::TestCase.setup') { "#{@test_start_time} : start of test #{self.class}.#{self.name}" } # set timestamp in test.logs
 
     # TODO: remove
-    Rails.logger.error("ActiveSupport::TestCase.setup") { "EVENT_LOG Created = " + Database.select_one("SELECT Created FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
+    Rails.logger.error("ActiveSupport::TestCase.setup") { "EVENT_LOG Created = " + Database.select_one("SELECT TO_CHAR(Created, 'YYYY-MM-DD HH24:MI:SS') FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
   end
 
   teardown do
