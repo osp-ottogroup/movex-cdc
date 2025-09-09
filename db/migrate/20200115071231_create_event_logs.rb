@@ -1,14 +1,7 @@
 class CreateEventLogs < ActiveRecord::Migration[6.0]
   def up
-    msg = "######## CreateEventLogs.up: Starting migration with DB adapter '#{MovexCdc::Application.config.db_type}'"
-    puts msg
-    Rails.logger.warn("CreateEventLogs.up") { msg }
-
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      msg =  "######## CreateEventLogs.up: Creating table Event_Logs with partitioning=#{MovexCdc::Application.partitioning?} interval=#{MovexCdc::Application.config.partition_interval} seconds"
-      puts msg
-      Rails.logger.warn("CreateEventLogs.up") { msg }
 
       # Start first partition with current date to ensure less than 1 Mio. partitions within the next years
       # NUMBER(18) is the maximum numeric value storable in 64bit long value
@@ -46,11 +39,6 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
   end
 
   def down
-
-    msg = "######## CreateEventLogs.down: Reverting migration with DB adapter '#{MovexCdc::Application.config.db_type}'"
-    puts msg
-    Rails.logger.warn("CreateEventLogs.down") { msg }
-
     drop_table(:event_logs)
   end
 end

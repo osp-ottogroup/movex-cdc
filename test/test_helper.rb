@@ -50,16 +50,6 @@ class ActiveSupport::TestCase
     GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
     @test_start_time = Time.now
     Rails.logger.info('ActiveSupport::TestCase.setup') { "#{@test_start_time} : start of test #{self.class}.#{self.name}" } # set timestamp in test.logs
-
-    # TODO: remove
-    if MovexCdc::Application.config.db_type == 'ORACLE'
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOGS Created = " + Database.select_one("SELECT TO_CHAR(Created, 'YYYY-MM-DD HH24:MI:SS') FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOGS Partitioned = " + Database.select_one("SELECT Partitioned FROM User_Tables WHERE Table_Name ='EVENT_LOGS'") }
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOGS Partitions = " + Database.select_one("SELECT TO_CHAR(COUNT(*)) FROM User_Tab_Partitions WHERE Table_Name ='EVENT_LOGS'") }
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOG_FINAL_ERRORS Created = " + Database.select_one("SELECT TO_CHAR(Created, 'YYYY-MM-DD HH24:MI:SS') FROM User_Objects WHERE Object_Name ='EVENT_LOG_FINAL_ERRORS'") }
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOG_FINAL_ERRORS Partitioned = " + Database.select_one("SELECT Partitioned FROM User_Tables WHERE Table_Name ='EVENT_LOG_FINAL_ERRORS'") }
-      Rails.logger.error("ActiveSupport::TestCase.setup") { "################# EVENT_LOG_FINAL_ERRORS Partitions = " + Database.select_one("SELECT TO_CHAR(COUNT(*)) FROM User_Tab_Partitions WHERE Table_Name ='EVENT_LOG_FINAL_ERRORS'") }
-    end
   end
 
   teardown do

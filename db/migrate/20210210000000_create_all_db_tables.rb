@@ -17,7 +17,7 @@ class CreateAllDbTables < ActiveRecord::Migration[6.0]
   end
 
   def down
-    # TODO: view_exists? 'ALL_DB_TABLES' does nor realize existence of view
+    # TODO: view_exists? 'ALL_DB_TABLES' does not realize existence of view
     ActiveRecord::Base.connection.execute "DROP VIEW All_DB_Tables" if view_exists? 'ALL_DB_TABLES'
   end
 end
