@@ -73,6 +73,8 @@ prepare_tests:
 
   script:
     - /opt/start-kafka.sh
+    # Ensure Kafka logs are available as artifact
+    - cp -f /opt/kafka/logs/* log/
     - date
     - java -version
     # - gem install --no-doc bundler
