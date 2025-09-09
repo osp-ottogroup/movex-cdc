@@ -19,7 +19,7 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  #- code_analysis
+  - code_analysis
   - test
   - pre_build
   - build
@@ -45,8 +45,7 @@ test_frontend:
     - cd frontend && npm ci && npm run test:unit
 
 prepare_tests:
-  # stage: code_analysis
-  stage: build
+  stage: code_analysis
   script:
     - date
     - gem install --no-doc bundler
