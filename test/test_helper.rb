@@ -50,6 +50,9 @@ class ActiveSupport::TestCase
     GlobalFixtures.initialize_testdata                                                   # Create fixtures only once for whole test, not once per particular test
     @test_start_time = Time.now
     Rails.logger.info('ActiveSupport::TestCase.setup') { "#{@test_start_time} : start of test #{self.class}.#{self.name}" } # set timestamp in test.logs
+
+    # TODO: remove
+    Rails.logger.error("ActiveSupport::TestCase.setup") { "EVENT_LOG Created = " + Database.select_one("SELECT Created FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
   end
 
   teardown do
