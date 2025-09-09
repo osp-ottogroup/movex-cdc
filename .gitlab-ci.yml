@@ -112,8 +112,8 @@ prepare_tests:
     when: always
     paths:
       - log/
+      - /opt/kafka/logs/server.log
       - tmp/screenshots/
-      - /opt/kafka/logs/*
     expire_in: 1 month
 #  rules:
 #    - when: never

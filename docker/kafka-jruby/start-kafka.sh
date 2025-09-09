@@ -210,9 +210,6 @@ do
   if [ $LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
     echo ""
     echo "Kafka not in operation after $WAIT_FOR_KAFKA_SECS seconds, terminating"
-    # echo ""
-    # echo "############# Zookeeper log ##############"
-    # cat $KAFKA_HOME/logs/zookeeper.out
     echo ""
     echo "############# Kafka log ##############"
     cat $KAFKA_HOME/logs/kafkaServer.out

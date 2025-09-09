@@ -18,6 +18,8 @@
 
 /db/development.sqlite3
 /db/test.sqlite3*
+# Do not provide schema.rb because views are missing and Event_Logs table may be not partitioned
+/db/schema.rb
 
 # Ignore uploaded files in development.
 /storage/*
