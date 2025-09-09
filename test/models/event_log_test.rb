@@ -21,14 +21,16 @@ class EventLogTest < ActiveSupport::TestCase
       case MovexCdc::Application.config.db_type
       when 'ORACLE' then
         get_ini_trans = proc do
-          if MovexCdc::Application.partitioning?
-            Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
-          else
-            Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
-          end
+          ini_trans = if MovexCdc::Application.partitioning?
+                        Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
+                      else
+                        Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
+                      end
+          ini_trans = 2 if ini_trans < 2    # Minimum value is 2 for index to avoid ORA-02207
+          raise "EventLogTest.adjust_max_simultaneous_transactions: Could not read INI_TRANS for table EVENT_LOGS" if ini_trans.nil?
+          ini_trans
         end
         current_value = get_ini_trans.call
-        current_value = 2 if current_value < 2    # Minimum value is 2 for index to avoid ORA-02207
         MovexCdc::Application.config.max_simultaneous_transactions = current_value + 5
         EventLog.adjust_max_simultaneous_transactions
         changed_value = get_ini_trans.call
