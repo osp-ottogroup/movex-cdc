@@ -226,20 +226,29 @@ class KafkaJava < KafkaBase
 
   def self.configure_log4j
     builder = Java::OrgApacheLoggingLog4jCoreConfigBuilderApi::ConfigurationBuilderFactory.newConfigurationBuilder
-    console = builder.newAppender("stdout", "Console")
-    file = builder.newAppender("log", "File")
-    logfile_path = File.join(Rails.root, 'log', "#{Rails.env}.log")
-    file.addAttribute("fileName", logfile_path)
     standard = builder.newLayout("PatternLayout")
     standard.addAttribute("pattern", "%d [%t] %-5level: %msg%n%throwable")
-    console.add(standard)
-    file.add(standard)
-    # TODO: Should depend on ENV["RAILS_LOG_TO_STDOUT_AND_FILE"] and ENV["RAILS_LOG_TO_STDOUT"]
-    # builder.add(console)
-    builder.add(file)
+    if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"] || ENV["RAILS_LOG_TO_STDOUT"]
+      # Log to stdout/console
+      console = builder.newAppender("stdout", "Console")
+      console.add(standard)
+      builder.add(console)
+    end
+
+    if !ENV["RAILS_LOG_TO_STDOUT"]
+      # Log to file only
+      file = builder.newAppender("log", "File")
+      logfile_path = File.join(Rails.root, 'log', "#{Rails.env}.log")
+      file.addAttribute("fileName", logfile_path)
+      file.add(standard)
+      builder.add(file)
+    end
+
     rootLogger = builder.newRootLogger(KeyHelper.log_level_as_string)           # Use the log level of the Rails logger as default
-    rootLogger.add(builder.newAppenderRef("stdout"))
-    rootLogger.add(builder.newAppenderRef("log"))
+
+    rootLogger.add(builder.newAppenderRef("stdout")) if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"] || ENV["RAILS_LOG_TO_STDOUT"]
+    rootLogger.add(builder.newAppenderRef("log")) if !ENV["RAILS_LOG_TO_STDOUT"]
+
     builder.add(rootLogger)
 
     Java::OrgApacheLoggingLog4jCoreConfig::Configurator.initialize(builder.build())
