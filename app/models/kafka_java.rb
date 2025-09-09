@@ -234,7 +234,8 @@ class KafkaJava < KafkaBase
     standard.addAttribute("pattern", "%d [%t] %-5level: %msg%n%throwable")
     console.add(standard)
     file.add(standard)
-    builder.add(console)
+    # TODO: Should depend on ENV["RAILS_LOG_TO_STDOUT_AND_FILE"] and ENV["RAILS_LOG_TO_STDOUT"]
+    # builder.add(console)
     builder.add(file)
     rootLogger = builder.newRootLogger(KeyHelper.log_level_as_string)           # Use the log level of the Rails logger as default
     rootLogger.add(builder.newAppenderRef("stdout"))
