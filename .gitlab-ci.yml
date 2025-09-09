@@ -95,7 +95,8 @@ prepare_tests:
       fi
     - bundle exec rake ci_preparation:create_user
     # rails db:seed return != 0 because of missing migrations, which follow immediately
-    - bundle exec rails db:seed; bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test
+    - bundle exec rails db:seed || true
+    - bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug RAILS_ENV=test
     - >
       if [ "$DB_TYPE" == "ORACLE" ]; then
         # Check if db:rollback is functional + restore migration
