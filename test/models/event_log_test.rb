@@ -28,6 +28,7 @@ class EventLogTest < ActiveSupport::TestCase
           end
         end
         current_value = get_ini_trans.call
+        current_value = 2 if current_value < 2    # Minimum value is 2 for index to avoid ORA-02207
         MovexCdc::Application.config.max_simultaneous_transactions = current_value + 5
         EventLog.adjust_max_simultaneous_transactions
         changed_value = get_ini_trans.call
