@@ -2,6 +2,7 @@
 ## Upcoming next release
 - Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
   Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+- Framework dependencies upgraded: JRuby 10.0.2.0, Rails 8.0.2.1, Kafka client 3.9.1
 
 ## 2025-09-02 1.12.3
 - Abort processing of a batch if certain Kafka errors occure. This avoids endless retries with divide & conquer processing.
