@@ -104,7 +104,7 @@ prepare_tests:
         bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug VERSION=0 
         bundle exec rails db:migrate --trace RAILS_LOG_LEVEL=debug 
       fi
-    - echo "#################### migration finished ################" >> log/test.log
+    - echo "##### migration finished ####" >> log/test.log
     - bundle exec rails test
   artifacts:
     when: always
