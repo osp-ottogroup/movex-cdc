@@ -9,12 +9,6 @@ Rake::TaskManager.class_eval do
     Rake.application.delete_task("db:test:load")
     Rake.application.delete_task("db:test:purge")
     Rake.application.delete_task("db:schema:dump")
-
-    msg = "Test-Environment at #{Time.now}:
-JAVA_OPTS                     = #{ENV['JAVA_OPTS']}
-JRUBY_OPTS                    = #{ENV['JRUBY_OPTS']}
-    "
-    puts msg
   end
 end
 

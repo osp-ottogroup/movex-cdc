@@ -37,7 +37,7 @@ default: &default
     end
   %>
 
-  # jdbc_connect_properties are not active yet. Needs accptance of https://github.com/rsim/oracle-enhanced/pull/2284 to work
+  # jdbc_connect_properties: see https://github.com/rsim/oracle-enhanced/pull/2284
 <%=
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then "

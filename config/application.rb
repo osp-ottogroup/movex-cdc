@@ -249,6 +249,8 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:final_errors_keep_hours, default: 240, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:info_contact_person, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:initial_worker_threads, default: 3, maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
+    MovexCdc::Application.log_attribute('JAVA_OPTS',  ENV['JAVA_OPTS'])   if ENV['JAVA_OPTS']
+    MovexCdc::Application.log_attribute('JRUBY_OPTS', ENV['JRUBY_OPTS'])  if ENV['JRUBY_OPTS']
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_client_library, default: 'java')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_compression_codec, default: 'gzip')
     supported_compression_codecs = ['none', 'snappy', 'gzip', 'lz4', 'zstd']

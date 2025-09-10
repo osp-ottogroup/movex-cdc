@@ -1,7 +1,8 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
-- Encrpyted SQL*Net connection if server has SQLNET.ENCRYPTION_SERVER != rejected<br>
-  Requires release of v6.1.7 for https://github.com/rsim/oracle-enhanced as precondition (https://github.com/rsim/oracle-enhanced/pull/2284)
+
+## 2025-09-10 1.12.4
+- Encrpyted SQL*Net connection is requested by client now by default (oracle.net.encryption_client=REQUESTED)
 - Framework dependencies upgraded: JRuby 10.0.2.0, Rails 8.0.2.1, Kafka client 3.9.1
 
 ## 2025-09-02 1.12.3
