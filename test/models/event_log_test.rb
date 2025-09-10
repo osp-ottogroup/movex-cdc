@@ -11,47 +11,62 @@ class EventLogTest < ActiveSupport::TestCase
   end
 
   test "select event log" do
-    event_logs = EventLog.all
+    assert_nothing_raised do
+      event_logs = EventLog.all
+    end
   end
 
   test "adjust_max_simultaneous_transactions" do
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      get_ini_trans = proc do
-        if MovexCdc::Application.partitioning?
-          Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
-        else
-          Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
+    assert_nothing_raised do
+      case MovexCdc::Application.config.db_type
+      when 'ORACLE' then
+        get_ini_trans = proc do
+          ini_trans = if MovexCdc::Application.partitioning?
+                        Database.select_one "SELECT def_ini_trans from User_Part_Tables WHERE Table_Name ='EVENT_LOGS'"
+                      else
+                        Database.select_one "SELECT ini_trans from User_Tables WHERE Table_Name ='EVENT_LOGS'"
+                      end
+          if ini_trans.nil?
+            msg = "EventLogTest.adjust_max_simultaneous_transactions: Could not read INI_TRANS for table EVENT_LOGS"
+            Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { msg }
+            Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { "Partitioned = " + Database.select_one("SELECT Partitioned FROM User_Tables WHERE Table_Name ='EVENT_LOGS'") }
+            Rails.logger.error("EventLogTest.adjust_max_simultaneous_transactions") { "Created = " + Database.select_one("SELECT TO_CHAR(Created, 'YYYY-MM-DD HH24:MI:SS') FROM User_Objects WHERE Object_Name ='EVENT_LOGS'") }
+            raise msg
+          end
+          ini_trans = 2 if ini_trans < 2    # Minimum value is 2 for index to avoid ORA-02207
+          ini_trans
         end
+        current_value = get_ini_trans.call
+        MovexCdc::Application.config.max_simultaneous_transactions = current_value + 5
+        EventLog.adjust_max_simultaneous_transactions
+        changed_value = get_ini_trans.call
+        if MovexCdc::Application.config.db_sys_user == 'SYS'
+          assert_equal current_value + 5, changed_value, log_on_failure('INI_TRANS should have been changed')
+        else
+          puts "EventLogTest.adjust_max_simultaneous_transactions: Check INI_TRANS suppressed for autonomous DB due to fixed values, see SR 3-32960331791"
+        end
+        MovexCdc::Application.config.max_simultaneous_transactions = current_value
+        EventLog.adjust_max_simultaneous_transactions                               # Restore original state
       end
-      current_value = get_ini_trans.call
-      MovexCdc::Application.config.max_simultaneous_transactions = current_value + 5
-      EventLog.adjust_max_simultaneous_transactions
-      changed_value = get_ini_trans.call
-      if MovexCdc::Application.config.db_sys_user == 'SYS'
-        assert_equal current_value + 5, changed_value, log_on_failure('INI_TRANS should have been changed')
-      else
-        puts "EventLogTest.adjust_max_simultaneous_transactions: Check INI_TRANS suppressed for autonomous DB due to fixed values, see SR 3-32960331791"
-      end
-      MovexCdc::Application.config.max_simultaneous_transactions = current_value
-      EventLog.adjust_max_simultaneous_transactions                               # Restore original state
     end
   end
 
   test "adjust interval" do
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
-        current_interval = EventLog.current_interval_seconds
-        CHANGE_DIFF = 300
-        MovexCdc::Application.config.partition_interval = current_interval + CHANGE_DIFF
-        EventLog.adjust_interval
-        new_interval = EventLog.current_interval_seconds
-        assert_equal current_interval + CHANGE_DIFF, new_interval, log_on_failure('Interval should have been changed')
-        MovexCdc::Application.config.partition_interval = current_interval + 120000
-        EventLog.adjust_interval                                                # Test a higher value
-        MovexCdc::Application.config.partition_interval = current_interval
-        EventLog.adjust_interval                                                # restore original state
+    assert_nothing_raised do
+      case MovexCdc::Application.config.db_type
+      when 'ORACLE' then
+        if MovexCdc::Application.partitioning?
+          current_interval = EventLog.current_interval_seconds
+          CHANGE_DIFF = 300
+          MovexCdc::Application.config.partition_interval = current_interval + CHANGE_DIFF
+          EventLog.adjust_interval
+          new_interval = EventLog.current_interval_seconds
+          assert_equal current_interval + CHANGE_DIFF, new_interval, log_on_failure('Interval should have been changed')
+          MovexCdc::Application.config.partition_interval = current_interval + 120000
+          EventLog.adjust_interval                                                # Test a higher value
+          MovexCdc::Application.config.partition_interval = current_interval
+          EventLog.adjust_interval                                                # restore original state
+        end
       end
     end
   end

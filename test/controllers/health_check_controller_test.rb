@@ -71,7 +71,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should get config_info" do
-    get health_check_config_info_url, headers: jwt_header, as: :json
+    get "/health_check/config_info", headers: jwt_header, as: :json
     assert_response :success
   end
 end

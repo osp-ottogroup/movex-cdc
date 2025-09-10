@@ -48,6 +48,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
       if Database.select_one("SELECT COUNT(*) FROM sqlite_master WHERE name = 'Allowed_DB_Tables'") > 0
         ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables"
       end
+      puts "Create VIEW Allowed_DB_Tables "
       ActiveRecord::Base.connection.execute "CREATE VIEW Allowed_DB_Tables AS SELECT 'main' Owner, 'main' Grantee, Name Table_Name FROM SQLite_Master WHERE type='table'"
     else
       raise "Declaration for view Allowed_DB_Tables missing for #{MovexCdc::Application.config.db_type}"
@@ -56,7 +57,7 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
 
   def down
     # TODO: view_exists? 'ALLOWED_DB_TABLES' does nor realize existence of view
-    ActiveRecord::Base.connection.execute "DROP VIEW All_DB_Tables" if view_exists? 'ALLOWED_DB_TABLES'
+    ActiveRecord::Base.connection.execute "DROP VIEW Allowed_DB_Tables" if view_exists? 'ALLOWED_DB_TABLES'
   end
 end
 

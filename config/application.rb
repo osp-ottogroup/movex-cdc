@@ -53,6 +53,10 @@ module MovexCdc
     # Initialize configuration defaults for originally generated Rails version.
     config.load_defaults 6.0
 
+    # Prevent the deprecation warning:
+    # DEPRECATION WARNING: `to_time` will always preserve the full timezone rather than offset of the receiver in Rails 8.1. To opt in to the new behavior, set `config.active_support.to_time_preserves_timezone = :zone`. (called from <main> at /Users/pramm/Documents/Projekte/gitlab.com/movex-cdc/config/environment.rb:5)
+    config.active_support.to_time_preserves_timezone = :zone
+
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers
     # -- all .rb files in that directory are automatically loaded after loading
@@ -78,21 +82,12 @@ module MovexCdc
     end
 
     if ENV["RAILS_LOG_TO_STDOUT_AND_FILE"].present?
-      # Variante für Raiils 6, deaktivieren nach Umstellung auf Rails 8
-      console_logger = ActiveSupport::Logger.new(STDOUT)
-      console_logger.formatter = CDCLogFormatter.new
-      tagged_console_logger = ActiveSupport::TaggedLogging.new(console_logger)
-      file_logger = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files á 10 MB)
-      file_logger.formatter = CDCLogFormatter.new
-      combined_logger = tagged_console_logger.extend(ActiveSupport::Logger.broadcast(file_logger))
-      config.logger = combined_logger
-
-      # Variante für Rails 8, Aktivieren nach Umstellung auf Rails 8
-      # console_logger  = ActiveSupport::Logger.new(STDOUT)
-      # file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
-      # config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
+      console_logger  = ActiveSupport::Logger.new(STDOUT)
+      file_logger     = ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ), 5 , 10*1024*1024 )  # max. 50 MB logfile ( 5 files with 10 MB)
+      config.logger   = ActiveSupport::TaggedLogging.new(ActiveSupport::BroadcastLogger.new(console_logger, file_logger))
     elsif ENV["RAILS_LOG_TO_STDOUT"].present?
-      config.logger = ActiveSupport::TaggedLogging.new(ActiveSupport::Logger.new(STDOUT))
+      console_logger  = ActiveSupport::Logger.new(STDOUT)
+      config.logger = ActiveSupport::TaggedLogging.new(console_logger)
     else
       file_logger = if Rails.env.test?
                       ActiveSupport::Logger.new( Rails.root.join("log", Rails.env + ".log" ))  # without limit
@@ -106,6 +101,8 @@ module MovexCdc
 
     # Hash with MOVEX CDC's configs config_name: { default_value:, startup_config_value:}
     @@config_attributes = {}
+
+
     def self.config_attributes(key)
       @@config_attributes[key]
     end
@@ -252,6 +249,8 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:final_errors_keep_hours, default: 240, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:info_contact_person, accept_empty: true)
     MovexCdc::Application.set_and_log_attrib_from_env(:initial_worker_threads, default: 3, maximum: maximum_initial_worker_threads, integer: true, minimum: 0)
+    MovexCdc::Application.log_attribute('JAVA_OPTS',  ENV['JAVA_OPTS'])   if ENV['JAVA_OPTS']
+    MovexCdc::Application.log_attribute('JRUBY_OPTS', ENV['JRUBY_OPTS'])  if ENV['JRUBY_OPTS']
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_client_library, default: 'java')
     MovexCdc::Application.set_and_log_attrib_from_env(:kafka_compression_codec, default: 'gzip')
     supported_compression_codecs = ['none', 'snappy', 'gzip', 'lz4', 'zstd']
@@ -307,18 +306,21 @@ module MovexCdc
       end
     end
 
+    @@db_partitioning = nil
     # check if database supports partitioning (possible and licensed)
-    def partitioning?
-      if !defined? @db_partitioning
-        @db_partitioning = case config.db_type
+    def self.partitioning?
+      if @@db_partitioning.nil?
+        @@db_partitioning = case MovexCdc::Application.config.db_type
                                  when 'ORACLE' then
+                                   Rails.logger.debug('MovexCdc::Application.partitioning?'){ "Checking DB if Partitioning is enabled" }
                                    Database.select_one("SELECT Value FROM v$Option WHERE Parameter='Partitioning'") == 'TRUE'
                                  else
                                    false
                                  end
-        Rails.logger.info('Application'){ "Partitioning = #{@db_partitioning} for this #{config.db_type} database" }
+        Rails.logger.info('Application'){ "Partitioning = #{@@db_partitioning} for this #{config.db_type} database" }
       end
-      @db_partitioning
+      Rails.logger.debug('MovexCdc::Application.partitioning?'){ "returning #{@@db_partitioning}" }
+      @@db_partitioning
     end
   end
 end

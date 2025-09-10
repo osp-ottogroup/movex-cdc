@@ -21,3 +21,8 @@ file_path = File.join(gem_path, 'lib', 'active_record', 'connection_adapters', '
 content = File.read(file_path)
 new_content = content.gsub("if RUBY_ENGINE == \"jruby\"", "if RUBY_ENGINE == \"xjruby\"")
 File.open(file_path, 'w') { |file| file.write(new_content) }
+
+file_path = File.join(gem_path, 'lib', 'active_record', 'connection_adapters', 'oracle_enhanced', 'jdbc_connection.rb')
+content = File.read(file_path)
+new_content = content.gsub(/ojdbc_jars =.*$/, "ojdbc_jars = %w(ojdbc17.jar ojdbc11.jar ojdbc8.jar ojdbc7.jar ojdbc6.jar)")
+File.open(file_path, 'w') { |file| file.write(new_content) }

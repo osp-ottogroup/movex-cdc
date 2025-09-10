@@ -1,5 +1,5 @@
 = image:osp.png[float="left" width=200 ] MOVEX Change Data Capture  =
-Author: Peter Ramm ( Peter.Ramm@ottogroup.com )
+Author: Peter Ramm ( Peter.Ramm@og1o.de )
 :Author Initials: PR
 :toc:
 :toclevels: 4

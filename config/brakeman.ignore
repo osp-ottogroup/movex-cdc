@@ -1,30 +1,6 @@
 {
   "ignored_warnings": [
     {
-      "warning_type": "Dangerous Eval",
-      "warning_code": 13,
-      "fingerprint": "1888ce6d9f7c6abecf847f5d72e27bd3463f41c8d2474c253ea358900b991058",
-      "check_name": "Evaluation",
-      "message": "Dynamic string evaluated as code",
-      "file": "app/controllers/server_control_controller.rb",
-      "line": 24,
-      "link": "https://brakemanscanner.org/docs/warning_types/dangerous_eval/",
-      "code": "eval(\"Java::OrgApacheLoggingLog4j::Level::#{:BRAKEMAN_SAFE_LITERAL}\")",
-      "render_path": null,
-      "location": {
-        "type": "method",
-        "class": "ServerControlController",
-        "method": "set_log_level"
-      },
-      "user_input": null,
-      "confidence": "Weak",
-      "cwe_id": [
-        913,
-        95
-      ],
-      "note": "level used for eval is ensured before to be in fixed list of allowed values"
-    },
-    {
       "warning_type": "Mass Assignment",
       "warning_code": 70,
       "fingerprint": "305ef047c6154ef6e8858825b1b1a90184a162ab8290a581a43b1334ea4bcde6",
@@ -160,12 +136,12 @@
     },
     {
       "warning_type": "Unmaintained Dependency",
-      "warning_code": 120,
-      "fingerprint": "d84924377155b41e094acae7404ec2e521629d86f97b0ff628e3d1b263f8101c",
-      "check_name": "EOLRails",
-      "message": "Support for Rails 6.1.7.10 ended on 2024-10-01",
-      "file": "Gemfile.lock",
-      "line": 124,
+      "warning_code": 121,
+      "fingerprint": "edf687f759ec9765bd5db185dbc615c80af77d6e7e19386fc42934e7a80307af",
+      "check_name": "EOLRuby",
+      "message": "Support for Ruby 0.0.2 ended on 2015-02-23",
+      "file": ".ruby-version",
+      "line": 1,
       "link": "https://brakemanscanner.org/docs/warning_types/unmaintained_dependency/",
       "code": null,
       "render_path": null,
@@ -175,8 +151,8 @@
       "cwe_id": [
         1104
       ],
-      "note": "During update to Rails 7.1 ignored"
+      "note": ""
     }
   ],
-  "brakeman_version": "7.0.0"
+  "brakeman_version": "7.1.0"
 }

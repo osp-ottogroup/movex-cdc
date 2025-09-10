@@ -17,6 +17,14 @@ class InitializationJob < ApplicationJob
     if ENV['SUPPRESS_MIGRATION_AT_STARTUP']
       Rails.logger.info('InitializationJob.perform'){ "Migration suppressed because SUPPRESS_MIGRATION_AT_STARTUP is set in environment"}
     else
+      # db:seed ensures that the schema_migrations table exists in initial setup
+      # this is the precondition for db:migrate to really execute all pending migrations instead of building based on current schema.rb
+      # schema.rb does not include all DB objects like views, procedures, functions etc., so building based on schema.rb would miss these objects
+      begin
+        Rake::Task['db:seed'].invoke
+      rescue SystemExit => e
+        Rails.logger.info('InitializationJob.perform'){ "db:seed fail ignored, db:migrate follows: #{e.class}: '#{e.message}'" }
+      end
       Rake::Task['db:migrate'].invoke
     end
     Rails.logger.info('InitializationJob.perform'){ "Finished db:migrate" }
@@ -28,9 +36,11 @@ class InitializationJob < ApplicationJob
 
     # LOG Datase and JDBC driver version
     Rails.logger.info('InitializationJob.perform'){ "JDBC driver version = #{Database.jdbc_driver_version}" }
-    MovexCdc::Application.log_attribute('JDBC driver version', Database.jdbc_driver_version)
-    Rails.logger.debug('InitializationJob.perform'){ "Database version = #{Database.db_version}"}
-    MovexCdc::Application.log_attribute('Database version', Database.db_version)
+    Rails.logger.info('InitializationJob.perform'){ "JDBC driver path    = #{Database.jdbc_driver_path}" }
+    Rails.logger.debug('InitializationJob.perform'){ "Database version   = #{Database.db_version}"}
+    MovexCdc::Application.log_attribute('JDBC driver version',  Database.jdbc_driver_version)
+    MovexCdc::Application.log_attribute('JDBC driver path',     Database.jdbc_driver_path)
+    MovexCdc::Application.log_attribute('Database version',     Database.db_version)
 
     EventLog.adjust_interval                                                    # Activate new MovexCdc::Application.config.partition_interval if necessary
     EventLog.adjust_max_simultaneous_transactions                               # Activate new MovexCdc::Application.config.max_simultaneous_transactions if necessary

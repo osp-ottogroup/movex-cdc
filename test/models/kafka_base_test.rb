@@ -2,32 +2,34 @@ require 'test_helper'
 
 class KafkaBaseTest < ActiveSupport::TestCase
   test "simple produce" do
-    kafka = KafkaBase.create
-    producer = kafka.create_producer(worker_id: 2)
-    producer.begin_transaction
+    assert_nothing_raised do
+      kafka = KafkaBase.create
+      producer = kafka.create_producer(worker_id: 2)
+      producer.begin_transaction
 
-    timestamp = case MovexCdc::Application.config.legacy_ts_format
-                when nil then "2025-08-04T12:34:56.789456+02:00"
-                when 'TYPE_1' then "2025-08-04T12:34:56,789456+0000"
-                when 'TYPE_2' then "2025-08-04T12:34:56,789456+02:00"
-                end
-    producer.produce(message: "{ \"id\": 1, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
-                     table: victim1_table,
-                     key: nil,
-                     headers: {}
-    )
-    producer.produce(message: "{ \"id\": 2, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
-                     table: victim1_table,
-                     key: 'Hugo',
-                     headers: {Addition: 'Hugo'}
-    )
-    producer.commit_transaction
-  rescue Exception => e
-    log_on_failure("Exception #{e.class}: #{e.message}")
-    producer&.abort_transaction
-    raise
-  ensure
-    producer&.shutdown
+      timestamp = case MovexCdc::Application.config.legacy_ts_format
+                  when nil then "2025-08-04T12:34:56.789456+02:00"
+                  when 'TYPE_1' then "2025-08-04T12:34:56,789456+0000"
+                  when 'TYPE_2' then "2025-08-04T12:34:56,789456+02:00"
+                  end
+      producer.produce(message: "{ \"id\": 1, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
+                       table: victim1_table,
+                       key: nil,
+                       headers: {}
+      )
+      producer.produce(message: "{ \"id\": 2, \"schema\": \"victim1\", \"tablename\": \"victim1_table\", \"operation\": \"INSERT\", \"timestamp\": \"#{timestamp}\" }",
+                       table: victim1_table,
+                       key: 'Hugo',
+                       headers: {Addition: 'Hugo'}
+      )
+      producer.commit_transaction
+    rescue Exception => e
+      log_on_failure("Exception #{e.class}: #{e.message}")
+      producer&.abort_transaction
+      raise
+    ensure
+      producer&.shutdown
+    end
   end
 
   test "topics" do
@@ -83,26 +85,28 @@ class KafkaBaseTest < ActiveSupport::TestCase
   end
 
   test "produce_messages with MessageSizeTooLarge" do
-    if MovexCdc::Application.config.kafka_client_library != 'mock'            # real Kafka connected
-      kafka = KafkaBase.create
-      org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
-      begin
-        kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10')                         # Set a minimal value
-        producer = kafka.create_producer(worker_id: 2)
-        producer.begin_transaction
-        assert_raise do
-          begin
-            producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
-            producer.commit_transaction
-          ensure
-            producer.abort_transaction
-            producer.shutdown
+    assert_nothing_raised do
+      if MovexCdc::Application.config.kafka_client_library != 'mock'            # real Kafka connected
+        kafka = KafkaBase.create
+        org_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes') # Save original value, value is of class String!
+        begin
+          kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => '10') # Set a minimal value
+          producer = kafka.create_producer(worker_id: 2)
+          producer.begin_transaction
+          assert_raise do
+            begin
+              producer.produce(message: 'abcdefghijklm' * 11, table: victim1_table, key: nil, headers: {})
+              producer.commit_transaction
+            ensure
+              producer.abort_transaction
+              producer.shutdown
+            end
           end
+          current_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes').to_i
+          assert(current_max_message_bytes > 10, log_on_failure("Should have increased max.message.bytes to more than 10 (#{current_max_message_bytes})"))
+        ensure
+          kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => org_max_message_bytes)       # Restore original value
         end
-        current_max_message_bytes = kafka.describe_topic_attr(victim1_table.topic_to_use, 'max.message.bytes').to_i
-        assert(current_max_message_bytes > 10, log_on_failure("Should have increased max.message.bytes to more than 10 (#{current_max_message_bytes})"))
-      ensure
-        kafka.alter_topic(victim1_table.topic_to_use, 'max.message.bytes' => org_max_message_bytes)       # Restore original value
       end
     end
   end

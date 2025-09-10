@@ -19,7 +19,7 @@ Rails.application.routes.draw do
   post '/db_triggers/generate',                       to: 'db_triggers#generate'
   post '/db_triggers/generate_all',                   to: 'db_triggers#generate_all'
   get  '/health_check',                               to: 'health_check#index'  # only one method for resource established
-  get  'health_check/config_info',                    to: 'health_check#config_info'
+  get  '/health_check/config_info',                   to: 'health_check#config_info'
   get  '/health_check/log_file',                      to: 'health_check#log_file'
   get  '/health_check/status',                        to: 'health_check#status'
   get  '/import_export/export',                       to: 'import_export#export'

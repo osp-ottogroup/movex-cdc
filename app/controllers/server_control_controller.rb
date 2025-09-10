@@ -18,7 +18,7 @@ class ServerControlController < ApplicationController
       raise "Unsupported log level '#{level}'" unless ['DEBUG', 'INFO', 'WARN', 'ERROR', 'FATAL'].include? level
       Rails.logger.warn("ServerControl.set_log_level") { "setting log level to #{level}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
       ActivityLog.log_activity(action: "Set server log level to #{level}")
-      Rails.logger.level = "Logger::#{level}".constantize
+      Rails.logger.level = Logger.const_get(level)
       MovexCdc::Application.config.log_level = level.downcase.to_sym
 
       # Set log level for log4j, ignore Exception if log4j is not available
@@ -175,7 +175,6 @@ class ServerControlController < ApplicationController
   end
 
   private
-  @@restart_worker_threads_active = nil
 
   def raise_if_restart_active
     if @@restart_worker_threads_mutex.locked?
@@ -248,5 +247,4 @@ class ServerControlController < ApplicationController
       raise "Missing rule for #{MovexCdc::Application.config.db_type}"
     end
   end
-
 end

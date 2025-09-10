@@ -19,7 +19,7 @@ class ApplicationJob < ActiveJob::Base
   # content of @@last_job_warnings should be added with leading line feed
   # !! If jobs are not still alive this should be handled by restart of Docker container after some time of unhealthy container !!
   def self.last_job_warnings
-    retval = ''                                                                 # default for :ok
+    retval = String.new                                                         # default for :ok
 
     # Number of cycles to wait before assuming job is not active no more and warning is issued
     wait_factor = 10

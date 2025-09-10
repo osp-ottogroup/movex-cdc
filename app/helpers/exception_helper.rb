@@ -52,7 +52,7 @@ module ExceptionHelper
   def self.warn_with_backtrace(context, message)
     Rails.logger.warn(context){ message }
     if Rails.logger.level == 0 # DEBUG
-      backtrace_msg = "Stacktrace for previous warning follows:\n"
+      backtrace_msg = "Stacktrace for previous warning follows:\n".dup
       Thread.current.backtrace.each do |bt|
         backtrace_msg << "#{bt}\n"
       end

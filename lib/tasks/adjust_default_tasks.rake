@@ -8,12 +8,7 @@ Rake::TaskManager.class_eval do
     # Ensure that existing test schema is used instead of schema.rb/structure.sql that regularly recreate schema by db:test:prepare
     Rake.application.delete_task("db:test:load")
     Rake.application.delete_task("db:test:purge")
-
-    msg = "Test-Environment at #{Time.now}:
-JAVA_OPTS                     = #{ENV['JAVA_OPTS']}
-JRUBY_OPTS                    = #{ENV['JRUBY_OPTS']}
-    "
-    puts msg
+    Rake.application.delete_task("db:schema:dump")
   end
 end
 
@@ -25,6 +20,11 @@ namespace :db do
     end
     task :purge do
       puts 'Task db:test:purge removed by lib/tasks/adjust_default_tasks.rake !'
+    end
+  end
+  namespace :schema do
+    task :dump do
+      puts 'Task db:schema:dump is removed by lib/tasks/adjust_default_tasks.rake !'
     end
   end
 

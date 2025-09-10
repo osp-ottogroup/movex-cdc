@@ -91,14 +91,6 @@ class ActiveSupport::TestCase
     raise msg
   end
 
-  def exec_db_user_sql(sql)
-    ActiveRecord::Base.connection.execute sql
-  rescue Exception => e
-    msg = "#{e.class} #{e.message}\nwhile executing\n#{sql}"
-    Rails.logger.error('ActiveSupport::TestCase.exec_db_user_sql'){ msg }
-    raise msg
-  end
-
   def create_victim_structures
     # Remove possible pending structures before recreating
     exec_drop = proc do |sql|
@@ -120,7 +112,7 @@ class ActiveSupport::TestCase
       # Ensure uniqueness of ID even if other PKey is used to test event keys from primary key columns
       exec_victim_sql("CREATE UNIQUE INDEX  #{victim_schema_prefix}UX_#{victim1_table.name} ON #{victim_schema_prefix}#{victim1_table.name}(ID)")
       exec_victim_sql("GRANT SELECT, FLASHBACK ON #{victim_schema_prefix}#{victim1_table.name} TO #{MovexCdc::Application.config.db_user}") # needed for table initialization
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} FOR INSERT ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
@@ -129,7 +121,7 @@ class ActiveSupport::TestCase
           END BEFORE STATEMENT;
         END #{DbTrigger.build_trigger_name(victim1_table, 'I')};
       ")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{victim1_drop_trigger_name} FOR UPDATE OF Name ON #{victim_schema_prefix}#{victim1_table.name}
         COMPOUND TRIGGER
           BEFORE STATEMENT IS
@@ -146,13 +138,13 @@ class ActiveSupport::TestCase
     when 'SQLITE' then
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), CHAR_NAME CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{DbTrigger.build_trigger_name(victim1_table, 'I')} INSERT ON #{victim1_table.name}
         BEGIN
           DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
-      exec_db_user_sql("\
+      Database.exec_unprepared("\
         CREATE TRIGGER #{victim1_drop_trigger_name} UPDATE ON #{victim1_table.name}
         BEGIN
           DELETE FROM Event_Logs WHERE 1=2;
@@ -179,7 +171,7 @@ class ActiveSupport::TestCase
 
     assert_instance_of(Hash, result, 'Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
-    assert_equal(0, result[:errors].count, 'Should not return errors from trigger generation')
+    assert_equal(0, result[:errors].count, "Should not return errors from trigger generation: #{result[:errors].inspect}")
 
     # create exactly 8 records in Event_Logs for Victim1
     event_logs_before = Database.select_one "SELECT COUNT(*) records FROM Event_Logs"
@@ -371,7 +363,7 @@ class ActiveSupport::TestCase
 
   # test for created activity log by previous action ( max. x seconds old)
   def assert_activity_log(user_id: nil, schema_name:nil, table_name:nil, column_name:nil)
-    sql = "SELECT COUNT(*) FROM Activity_Logs WHERE Created_At > "
+    sql = "SELECT COUNT(*) FROM Activity_Logs WHERE Created_At > ".dup
     sql << case MovexCdc::Application.config.db_type
            when 'ORACLE' then ":ts"
            when 'SQLITE' then ":ts"
@@ -477,9 +469,9 @@ class GlobalFixtures
         # User admin can be created without current user set, but from bow it is mandatory
         ApplicationController.set_current_user(User.where(email: 'admin').first) # current user is valid from now
         ApplicationController.set_current_client_ip_info('test-IP')
-        @@peter_user = User.new(email: 'Peter.Ramm@ottogroup.com', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Peter', last_name: 'Ramm')
+        @@peter_user = User.new(email: 'Peter.Ramm@og1o.de', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Peter', last_name: 'Ramm')
         @@peter_user.save!
-        @@sandro_user = User.new(email: 'Sandro.Preuss@ottogroup.com', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Sandro', last_name: 'Preuß')
+        @@sandro_user = User.new(email: 'Sandro.Preuss@og1o.de', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Sandro', last_name: 'Preuß')
         @@sandro_user.save!
         @@no_schema_user = User.new(email: 'no_schema_right@xy.com', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'No', last_name: 'Schema')
         @@no_schema_user.save!

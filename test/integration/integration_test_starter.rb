@@ -14,9 +14,10 @@ class IntegrationTestStarter < ActiveSupport::TestCase
   # Needed environment:
   def run
     puts "IntegrationTestStarter.run"
+    Rails.application.initialize!                                               # Ensure that scripts in config/initializers are executed
     db_config = Rails.application.config.database_configuration
     ActiveRecord::Base.establish_connection(db_config['test'])
-    Database.initialize_db_connection                                              # do some init actions for DB connection before use
+    Database.initialize_db_connection                                           # do some init actions for DB connection before use
     create_test_structures
     configure_schema
 

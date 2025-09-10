@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:9.4.13.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.0.2.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
@@ -48,6 +48,8 @@ prepare_tests:
     - date
     - gem install --no-doc bundler
     - bundle config set deployment 'true'
+    # Ensure bundle install uses the correct JRE
+    - bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
@@ -56,18 +58,17 @@ prepare_tests:
     paths:
       - vendor/bundle
       - .bundle
+      - Gemfile.lock
     expire_in: 1 month
 
 .tests:
   variables:
     RAILS_ENV: "test"
-  #    KAFKA_LISTENERS: LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0 :9093
-  #    KAFKA_ADVERTISED_LISTENERS: LISTENER_EXT://kafka:9092,LISTENER_INT://localhost:9093
-  #    KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: LISTENER_EXT:PLAINTEXT,LISTENER_INT:PLAINTEXT
-  #    KAFKA_INTER_BROKER_LISTENER_NAME: LISTENER_INT
 
   script:
     - /opt/start-kafka.sh
+    # Ensure Kafka logs are available as artifact
+    - cp -f /opt/kafka/logs/* log/
     - date
     - java -version
     # - gem install --no-doc bundler
@@ -91,20 +92,25 @@ prepare_tests:
         bundle exec rake ci_preparation:speedup_oracle_dictionary_calls
       fi
     - bundle exec rake ci_preparation:create_user
-    - bundle exec rails db:migrate RAILS_ENV=test
+    # rails db:seed return != 0 because of missing migrations, which follow immediately
+    - bundle exec rails db:seed || true
+    - bundle exec rails db:migrate RAILS_LOG_LEVEL=debug
     - >
       if [ "$DB_TYPE" == "ORACLE" ]; then
-        # Check if db:rollback is functional + restore migration
+        echo "Check if db:rollback is functional + restore migration"
         # SQLite does not support remove_foreign_key although it is implemented
-        bundle exec rails db:migrate RAILS_ENV=test VERSION=0 && bundle exec rails db:migrate RAILS_ENV=test
+        # add "--trace" after "db:migrate" to see details in output
+        bundle exec rails db:migrate RAILS_LOG_LEVEL=debug VERSION=0 
+        bundle exec rails db:migrate RAILS_LOG_LEVEL=debug 
+        echo "##### migration finished" >> log/test.log
       fi
-    - bundle exec rails test
+    - export RAILS_LOG_LEVEL=debug && bundle exec rails test
   artifacts:
     when: always
     paths:
       - log/
+      - /opt/kafka/logs/server.log
       - tmp/screenshots/
-      - /opt/kafka/logs/*
     expire_in: 1 month
 #  rules:
 #    - when: never

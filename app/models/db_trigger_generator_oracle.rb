@@ -260,7 +260,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     trigger_config  = table_config[operation]
     columns         = trigger_config[:columns]
 
-    body_sql = "COMPOUND TRIGGER\n"
+    body_sql = "COMPOUND TRIGGER\n".dup
     body_sql << generate_declare_section(table, operation, :body, trigger_config)
     body_sql << "
 BEFORE STATEMENT IS
@@ -292,14 +292,14 @@ END #{build_trigger_name(table, operation)};
     trigger_config  = table_config[operation.upcase]                            # Loads columns declared for insert trigger
     columns         = trigger_config[:columns]
 
-    where = ''                                                                  # optional conditions
+    where = String.new                                                          # optional conditions
     where << "\nWHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
     where << "\nAND " if table.initialization_filter && trigger_config[:condition]
     # replace trigger specific :new. qualifier from in trigger condition with the full table name
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, "#{table.schema.name}.#{table.name}.")})" if trigger_config[:condition]
 
-    load_sql = "DECLARE\n"
+    load_sql = "DECLARE\n".dup
     load_sql << generate_declare_section(table, operation, :load, trigger_config, addition: "  record_count      PLS_INTEGER := 0;") # use operation 'i' for event generation
     # use current SCN directly after creation of insert trigger if requested
     load_sql << "
@@ -399,7 +399,7 @@ END Flush;
     tab_size := 0;
   END IF;
 
-"
+".dup
     if include_conditions
       row_section << "  SELECT COUNT(*) INTO Condition_Result FROM Dual WHERE #{trigger_config[:condition]};\n" if separate_condition_sql_needed?(trigger_config[:condition])
       row_section << "  IF #{condition_if_expression(trigger_config[:condition])} THEN\n" if trigger_config[:condition]
@@ -473,7 +473,7 @@ END Flush;
   # @return [String] PL/SQL expression to convert column value to string
   def convert_col(column, old_new)
     column_name = ":#{old_new}.#{column[:column_name]}"
-    result = ''
+    result = String.new
     result << "CASE WHEN #{column_name} IS NULL THEN 'null' ELSE " if column[:nullable] == 'Y' # NULL must be lower case to comply JSON specification
     result << case column[:data_type]
               when 'CHAR', 'CLOB', 'NCHAR', 'NCLOB', 'NVARCHAR2', 'LONG', 'VARCHAR2'                 # character data types
@@ -521,7 +521,7 @@ END Flush;
       when 'D' then 'old'
       end
 
-    result = "'{'||"
+    result = "'{'||".dup
     result << table_config[:pk_columns]
       .map{|pkc| "'\"#{pkc[:column_name]}\": '||#{convert_col({column_name: pkc[:column_name] , data_type: pkc[:data_type]}, pk_accessor)}" }
       .join("||','||")
@@ -544,7 +544,7 @@ END Flush;
       errors = []
     else
       Rails.logger.info('DbTriggerGeneratorOracle.exec_trigger_sql'){ "Execute trigger action: #{sql}" }
-      ActiveRecord::Base.connection.execute(sql)
+      Database.exec_unprepared(sql)
       errors = Database.select_all(
         "SELECT * FROM All_Errors WHERE Owner = :owner AND Name = :name ORDER BY Sequence",
         {
@@ -562,7 +562,7 @@ END Flush;
       }
     else
       Database.execute "DROP TRIGGER #{trigger_name}"                           # Remove erroneous trigger to ensure proper DML on table
-      error_text = ''
+      error_text = String.new
       errors.each do |error|
         error_text << "Line #{error['line']} position #{error['position']}: #{error['text']}\n"
       end

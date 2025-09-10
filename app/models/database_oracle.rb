@@ -10,7 +10,16 @@ require 'database'
 # get access to private JDBC-Connection
 ActiveRecord::ConnectionAdapters::OracleEnhancedAdapter.class_eval do
   def get_jdbc_connection
-    @connection
+    jdbc_connection = if defined?(@connection) && !@connection.nil?
+                        @connection                                             # works for Rails 6
+                      else
+                        _connection                                             # works for Rails 8
+                      end
+    raise "DatabaseOracle: No active database connection detected" if jdbc_connection.nil?
+    jdbc_connection
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'OracleEnhancedAdapter.get_jdbc_connection', additional_msg: "No active database connection detected")
+    raise
   end
 end
 
@@ -59,7 +68,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 
     type_casted_binds = binds.map { |attr| TypeMapper.new.type_cast(attr.value_for_database) }
 
-    query_name = options[:query_name]
+    query_name = options[:query_name].dup
     query_name << " fetch_limit=#{options[:fetch_limit]}" if options[:fetch_limit]
     log(sql, query_name, binds, type_casted_binds) do
       cursor = nil
@@ -139,6 +148,17 @@ class DatabaseOracle
     end
   end
 
+  # Execute SQL without using bind variables (connection.createStatement instead of connection.prepareStatement)
+  # @param stmt SQL-Statement
+  # @return [void]
+  def self.exec_unprepared(sql)
+    Rails.logger.debug('DatabaseOracle.exec_unprepared'){ "Executing:\n#{sql}" }
+    ActiveRecord::Base.connection.get_jdbc_connection.exec(sql)
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}")
+    raise
+  end
+
   # Exec SQL with bound list of rowids
   # @param stmt SQL-Statement
   # @param rowid_array Array of rowids
@@ -185,6 +205,10 @@ class DatabaseOracle
   # @return [String] JDBC driver version
   def self.jdbc_driver_version
     ActiveRecord::Base.connection.raw_connection.getMetaData.getDriverVersion
+  end
+
+  def self.jdbc_driver_path
+    ActiveRecord::Base.connection.raw_connection.java_class.getProtectionDomain.getCodeSource.toString
   end
 
   def self.db_default_timezone

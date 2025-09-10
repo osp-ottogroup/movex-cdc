@@ -134,8 +134,15 @@ EOF
   echo "sasl.jaas.config=org.apache.kafka.common.security.plain.PlainLoginModule required serviceName=\"kafka\" username=\"admin\" password=\"admin-secret\";" >> $CLIENT_PROPERTIES
 fi
 
-# echo "Starting Zookeeper"
-# $KAFKA_HOME/bin/zookeeper-server-start.sh -daemon $KAFKA_HOME/config/zookeeper.properties
+echo ""
+if [ -f $CLIENT_PROPERTIES ]; then
+  echo "Content of client properties file $CLIENT_PROPERTIES:"
+  cat $CLIENT_PROPERTIES
+  echo ""
+  echo ""
+else
+  echo "No client properties file $CLIENT_PROPERTIES found, cannot show content"
+fi
 
 echo "Generate Cluster ID for Kafka"
 KAFKA_CLUSTER_ID="$($KAFKA_HOME/bin/kafka-storage.sh random-uuid)"
@@ -199,23 +206,10 @@ do
   #   echo "No server properties file $SERVER_PROPERTIES found, cannot show content"
   # fi
 
-  echo ""
-  if [ -f $CLIENT_PROPERTIES ]; then
-    echo "Content of client properties file $CLIENT_PROPERTIES:"
-    cat $CLIENT_PROPERTIES
-    echo ""
-    echo ""
-  else
-    echo "No client properties file $CLIENT_PROPERTIES found, cannot show content"
-  fi
-
   LOOP_COUNT=$LOOP_COUNT+1
   if [ $LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
     echo ""
     echo "Kafka not in operation after $WAIT_FOR_KAFKA_SECS seconds, terminating"
-    # echo ""
-    # echo "############# Zookeeper log ##############"
-    # cat $KAFKA_HOME/logs/zookeeper.out
     echo ""
     echo "############# Kafka log ##############"
     cat $KAFKA_HOME/logs/kafkaServer.out

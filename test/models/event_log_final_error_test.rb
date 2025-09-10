@@ -12,6 +12,8 @@ class EventLogFinalErrorTest < ActiveSupport::TestCase
   end
 
   test "an_error_message" do
-    EventLogFinalError.an_error_message
+    assert_nothing_raised do
+      EventLogFinalError.an_error_message
+    end
   end
 end

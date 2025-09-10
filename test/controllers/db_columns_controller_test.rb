@@ -11,7 +11,7 @@ class DbColumnsControllerTest < ActionDispatch::IntegrationTest
   end
 
   test "should raise error without parameters" do
-    get db_columns_url, headers: jwt_header, as: :json
+    get "/db_columns", headers: jwt_header, as: :json
     assert_response :internal_server_error
     assert response.body['ActionController::ParameterMissing'], log_on_failure('Should raise ActionController::ParameterMissing')
   end
