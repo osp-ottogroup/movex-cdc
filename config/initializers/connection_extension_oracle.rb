@@ -34,6 +34,7 @@ end
 # https://github.com/rsim/oracle-enhanced/issues/2470
 
 ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection::Cursor.class_eval do
+  puts "connection_extension_oracle.rb: patching OracleEnhanced::JDBCConnection::Cursor to fix issue #2470"
   def select_statement?
     # Only simple SELECT and WITH statements are considered SELECT statements.
     # because no other valid ojdbc method found to check it.
