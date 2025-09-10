@@ -12,7 +12,7 @@ FROM node:16-alpine AS frontend_build
 
 ENV FRONTEND_SRC_PATH=frontend
 
-RUN apk update && apk upgrade && apk add --no-cache git && \
+RUN apk update && apk upgrade && \
     npm install -g @vue/cli
 
 
@@ -62,7 +62,7 @@ ENV RUBYOPT="-W0"
 COPY --from=openjdk /customjre $JAVA_HOME
 
 RUN   echo "### microdnf update" && microdnf -y update
-RUN   echo "### apk add missing tools" && microdnf -y install curl bash tar wget gzip procps findutils vim tzdata make
+RUN   echo "### apk add missing tools" && microdnf -y install git curl bash tar wget gzip procps findutils vim tzdata make
 RUN   echo "### get jRuby $JRUBY_VERSION" && \
       cd /opt && wget -q https://repo1.maven.org/maven2/org/jruby/jruby-dist/$JRUBY_VERSION/jruby-dist-$JRUBY_VERSION-bin.tar.gz
 RUN   echo "### untar jRuby" && \

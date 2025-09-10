@@ -579,8 +579,8 @@ class KafkaJava < KafkaBase
                  attribute_info[entry.name][:info]
                else
                  if Rails.env.test?
-                   msg = "KafkaJava.describe_all_topic_attrs: No topic attribute info available for '#{entry.name}'! Please adjust topic_attributes_for_describe!"
-                    Rails.logger.warn('KafkaJava.describe_all_topic_attrs') { msg }
+                   msg = "KafkaJava.describe_all_topic_attrs: No topic attribute info available for '#{entry.name}' in topic_attributes_for_describe!"
+                    Rails.logger.info('KafkaJava.describe_all_topic_attrs') { msg }
                    puts msg
                  end
                  "No attribute info available"
