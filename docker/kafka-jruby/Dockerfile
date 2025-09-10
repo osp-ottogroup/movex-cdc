@@ -27,7 +27,7 @@ FROM oraclelinux:8-slim as build_stage
 MAINTAINER Peter.Ramm@og1o.de
 ARG JRUBY_VERSION=10.0.2.0
 # Kafka 3.5.0 has problems with transactions in a single broker setup
-ARG KAFKA_VERSION=3.7.2
+ARG KAFKA_VERSION=3.9.1
 ARG SCALA_VERSION=2.13
 ENV JRUBY_VERSION=$JRUBY_VERSION
 ENV KAFKA_VERSION=$KAFKA_VERSION
