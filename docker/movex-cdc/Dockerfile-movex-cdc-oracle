@@ -12,9 +12,9 @@ FROM node:16-alpine AS frontend_build
 
 ENV FRONTEND_SRC_PATH=frontend
 
-RUN apk update && apk upgrade && \
-    npm install -g @vue/cli && \
-    apk add git
+RUN apk update && apk upgrade && apk add --no-cache git && \
+    npm install -g @vue/cli
+
 
 WORKDIR /app
 
