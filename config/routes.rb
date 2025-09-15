@@ -8,6 +8,7 @@ Rails.application.routes.draw do
   post '/columns/select_all_columns',                 to: 'columns#tag_operation_for_all_columns'
   post '/columns/deselect_all_columns',               to: 'columns#untag_operation_for_all_columns'
   resources :conditions
+  resources :column_expressions
   get  '/db_columns',                                 to: 'db_columns#index'    # only one method for resource established
   get  '/db_schemas',                                 to: 'db_schemas#index'    # only one method for resource established
   get  '/db_schemas/authorizable_schemas',            to: 'db_schemas#authorizable_schemas'

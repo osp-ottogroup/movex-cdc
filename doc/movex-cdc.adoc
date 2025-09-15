@@ -471,19 +471,41 @@ This dialog shows:
 * already configured tables of a schema (limited to tables where the user has SELECT grants for)
 * columns of a configured table with marks for Insert/Update/Delete-trigger
 
-Possible configuration actions are:
+===== Possible configuration actions =====
 
-* add tables to configuration for a schema (only possible for tables where the user is allowed to select from)
-** modify topic name per table
-** choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
-** decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
-** decide if header values according to CloudEvents standard shout be set for each event
-** decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
-* modify triggering of change events per column
-** Define the operations (insert/update(delete) to capture for a column
-** Define optional filter conditions per operation +
-This filter conditions my rely on column values inside the trigger and may also contain subselects to other tables +
+====== Add tables to configuration for a schema (only possible for tables where the user is allowed to select from) ======
+* modify topic name per table
+* choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
+* decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
+* decide if header values according to CloudEvents standard shout be set for each event
+* decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
+
+====== Modify triggering of change events per column and operation ======
+* Define the operations (insert/update(delete) to capture for a certain column
+
+====== Optional filter conditions per operation ======
+This filter conditions may rely on column values inside the trigger and may also contain subselects to other tables +
 Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID)`
+
+====== Optional additional column expressions as SQL per operation ======
+* This feature allows to add additional information to the JSON event that is not directly available as columns in the changed table.
+* These expressions are evaluated inside the trigger and their result is added as an additional column to the event. +
+* The additional SQLs are executed at row level inside the trigger.
+Be careful to avoid "ORA-04091: table xxx is mutating, trigger/function may not see it". +
+* Each expression SQL must return exactly one value that is added into the "old" or "new" JSON objects.
+
+There are three flavors of additional column expressions:
+
+* Scalar values are directly added to the "old" or "new" JSON object +
+  Used for n:1 relation with a single result column. Example: +
+`SELECT Name FROM Country WHERE ID = :new.Country_ID`
+* JSON objects are expected to be valid JSON and are merged into the "old" or "new" JSON object +
+  Used for n:1 relations with multiple result columns. Example: +
+`SELECT JSON_OBJECT('Name' VALUE Name, 'Currency' VALUE Currency) FROM Country WHERE ID = :new.Country_ID`
+
+* JSON arrays are expected to be valid JSON arrays and are added as substructure into the "old" or "new" JSON object +
+  Used for 1:n relations with multiple result rows. Example array of cities per country: +
+`SELECT '[ '||LISTAGG(JSON_OBJECT('Name' VALUE Name, 'ZIP' VALUE ZIP), ', ')||' ]' FROM Cites WHERE Country_ID = :new.ID`
 
 NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
 

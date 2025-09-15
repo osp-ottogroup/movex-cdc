@@ -460,6 +460,7 @@ class GlobalFixtures
         SchemaRight.delete_all
         User.delete_all
         Condition.delete_all
+        ColumnExpression.delete_all
         Column.delete_all
         Table.delete_all
         Schema.delete_all
@@ -549,6 +550,25 @@ class GlobalFixtures
                               when 'ORACLE' then ":old.ID IS NOT NULL"
                               when 'SQLITE' then "old.ID IS NOT NULL"
                               end
+        ).save!
+
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                  when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined3' VALUE :old.Name || '-' || :old.num_val) FROM DUAL"
+                                  when 'SQLITE' then "SELECT old.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = old.ID"
+                                  end
         ).save!
 
         Column.new(table_id: @@victim2_table.id, name: 'ID',          info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
