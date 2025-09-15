@@ -93,14 +93,12 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     )
   end
 
-  # Build structure:
-  # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
+  # Build structure for expected triggers per table and operation:
+  # @return [Hash] table_name: { operation: { columns: [ {column_name:, ...} ], condition:, column_expressions: [] }}
   def build_expected_triggers_list
     expected_trigger_columns = Database.select_all(
       "SELECT c.Name Column_Name,
-              c.YN_Log_Insert,
-              c.YN_Log_Update,
-              c.YN_Log_Delete,
+              o.Operation,
               t.Name Table_Name,
               t.YN_Record_TxId,
               t.Kafka_Key_Handling,
@@ -109,9 +107,13 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
               tc.Nullable
        FROM   Columns c
        JOIN   Tables t ON t.ID = c.Table_ID
+       JOIN   (SELECT 'I' Operation FROM DUAL UNION ALL SELECT 'U' FROM DUAL UNION ALL SELECT 'D' FROM DUAL
+              ) o ON (   (o.Operation = 'I' AND c.YN_Log_Insert = 'Y')
+                      OR (o.Operation = 'U' AND c.YN_Log_Update = 'Y')
+                      OR (o.Operation = 'D' AND c.YN_Log_Delete = 'Y')
+                     )
        LEFT OUTER JOIN DBA_Tab_Columns tc ON tc.Owner = :schema_name AND tc.Table_Name = t.Name AND tc.Column_Name = c.Name
        WHERE  t.Schema_ID = :schema_id
-       AND    (c.YN_Log_Insert = 'Y' OR c.YN_Log_Update = 'Y' OR c.YN_Log_Delete = 'Y')
        AND    t.YN_Hidden = 'N'
       ", { schema_name: @schema.name, schema_id: @schema.id}
     )
@@ -122,6 +124,20 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
               cd.filter
        FROM   Conditions cd
        JOIN   Tables t ON t.ID = cd.Table_ID
+       WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
+      ", { schema_id: @schema.id}
+    )
+
+    expected_trigger_operation_expressions = Database.select_all(
+      "SELECT t.Name Table_Name,
+              ce.Operation,
+              ce.sql,
+              t.YN_Record_TxId,
+              t.Kafka_Key_Handling,
+              t.Fixed_Message_Key
+       FROM   Column_Expressions ce
+       JOIN   Tables t ON t.ID = ce.Table_ID
        WHERE  t.Schema_ID = :schema_id
        AND    t.YN_Hidden = 'N'
       ", { schema_id: @schema.id}
@@ -142,31 +158,55 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
      ", schema_name:     @schema.name)
 
     # Build structure:
-    # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
+    # table_name: { operation: { columns: [ {column_name:, ...} ], condition:, column_expressions: [] }}
+
+    table_operations_by_column = expected_trigger_columns.map do |tc|
+      {
+        table_name:         tc.table_name,
+        yn_record_txid:     tc.yn_record_txid,
+        kafka_key_handling: tc.kafka_key_handling,
+        fixed_message_key:  tc.fixed_message_key,
+        operation:          tc.operation,
+      }
+    end
+
+    table_operations_by_expression = expected_trigger_operation_expressions.map do |ce|
+      {
+        table_name:         ce.table_name,
+        yn_record_txid:     ce.yn_record_txid,
+        kafka_key_handling: ce.kafka_key_handling,
+        fixed_message_key:  ce.fixed_message_key,
+        operation:          ce.operation,
+      }
+    end
+
     expected_triggers = {}
-    expected_trigger_columns.each do |crec|
-      unless expected_triggers.has_key?(crec.table_name)
-        expected_triggers[crec.table_name] = {
-          table_name:         crec.table_name,
-          yn_record_txid:     crec.yn_record_txid,
-          kafka_key_handling: crec.kafka_key_handling,
-          fixed_message_key:  crec.fixed_message_key
+
+    # Mark table and operation if requested by column or expression
+    (table_operations_by_column + table_operations_by_expression).each do |to|
+      unless expected_triggers.has_key?(to[:table_name])
+        expected_triggers[to[:table_name]] = {
+          table_name:         to[:table_name],
+          yn_record_txid:     to[:yn_record_txid],
+          kafka_key_handling: to[:kafka_key_handling],
+          fixed_message_key:  to[:fixed_message_key]
         }
       end
-      ['I', 'U', 'D'].each do |operation|
-        if (operation == 'I' && crec.yn_log_insert == 'Y') ||
-          (operation == 'U' && crec.yn_log_update == 'Y') ||
-          (operation == 'D' && crec.yn_log_delete == 'Y')
-          unless expected_triggers[crec.table_name].has_key?(operation)
-            expected_triggers[crec.table_name][operation] = { columns: [] }
-          end
-          expected_triggers[crec.table_name][operation][:columns] << {
-            column_name: crec.column_name,
-            data_type:   crec.data_type,
-            nullable:    crec.nullable
-          }
-        end
+      unless expected_triggers[to[:table_name]].has_key?(to[:operation])
+        expected_triggers[to[:table_name]][to[:operation]] = {
+          columns: [],
+          column_expressions: []
+        }
       end
+    end
+
+    # Mark the requested columns
+    expected_trigger_columns.each do |tc|
+      expected_triggers[tc.table_name][tc.operation][:columns] << {
+        column_name: tc.column_name,
+        data_type:   tc.data_type,
+        nullable:    tc.nullable
+      }
     end
 
     # Add possible conditions at operation level
@@ -174,6 +214,11 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       if expected_triggers[cd.table_name] && expected_triggers[cd.table_name][cd.operation] # register filters only if operation has columns
         expected_triggers[cd.table_name][cd.operation][:condition] = cd['filter']   # Caution: filter is a method of ActiveRecord::Result and returns an Enumerator
       end
+    end
+
+    # Add possible column expressions at operation level
+    expected_trigger_operation_expressions.each do |ce|
+      expected_triggers[ce.table_name][ce.operation][:column_expressions] << ce.sql
     end
 
     # Add possible primary key columns
@@ -215,6 +260,9 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
   # Check for existence, than compare and create
   # This is the entry method for trigger generation from TriggerGeneratorBase
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @return [void]
   def create_or_rebuild_trigger(table, operation)
     trigger_name = build_trigger_name(table, operation)
     trigger_sql = generate_trigger_sql(table, operation)
@@ -230,7 +278,9 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   end
 
   # Generate SQLs for trigger creation and initial data load
-  # return trigger_sql
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @return [String] complete trigger SQL including CREATE OR REPLACE and body
   def generate_trigger_sql(table, operation)
     columns = @expected_triggers[table.name][operation][:columns]
     trigger_sql = "CREATE OR REPLACE TRIGGER #{MovexCdc::Application.config.db_user}.#{build_trigger_name(table, operation)}"
@@ -254,7 +304,10 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     trigger_sql
   end
 
-  # returns trigger_body_sql
+  # Create the trigger_body_sql
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @return [String] complete trigger body SQL
   def build_trigger_body(table, operation)
     table_config    = @expected_triggers[table.name]
     trigger_config  = table_config[operation]
