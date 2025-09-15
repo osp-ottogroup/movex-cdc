@@ -22,7 +22,7 @@ class ColumnExpressionsControllerTest < ActionDispatch::IntegrationTest
     end
     assert_response 201
 
-    run_with_current_user { ColumnExpression.where(sql: sql).first.destroy! } # restore previous state
+    run_with_current_user { ColumnExpression.where(table_id: victim1_table.id, operation: 'U').order(:created_at).last.destroy! } # restore previous state
 
     post "/column_expressions", headers: jwt_header(@jwt_no_schema_right_token), params: { column_expression: {  table_id: tables_table.id, operation: 'U', sql: sql  } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
