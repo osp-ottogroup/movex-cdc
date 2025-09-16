@@ -17,7 +17,7 @@ class Heartbeat < ApplicationRecord
 
   def self.check_for_concurrent_instance
     # Raise exception if there are other heartbeat records within the last 5 minutes
-    others = Heartbeat.where("(HostName != ? OR IP_Address != ?) AND Heartbeat_TS > ?", Socket.gethostname, current_ip_address, 2.minutes.ago)
+    others = execute_check_sql(2.minutes.ago)
     if !others.empty?
       msg = "Foreign heartbeat record found younger than 2 minutes for this DB schema other than (#{Socket.gethostname}/#{current_ip_address}): #{others.map { |h| "#{h.hostname}/#{h.ip_address} (last heartbeat at #{h.heartbeat_ts})" }.join(', ')}!\n" +
             " Only one server instance is allowed to run with the same DB schema at a time!\n"+
@@ -28,7 +28,7 @@ class Heartbeat < ApplicationRecord
     # Log error if there are other heartbeat records within the last 24 hours, log only one time if the heartbeat timestamp does not change
     # This should catch possible timezone issues where the other heartbeat record is older than 5 minutes but still from the same day
     # This is just a warning and does not raise an exception, because it might be a false positive if the instance was moved to another server
-    others = Heartbeat.where("(HostName != ? OR IP_Address != ?) AND Heartbeat_TS > ?", Socket.gethostname, current_ip_address, 24.hours.ago)
+    others = execute_check_sql(24.hours.ago)
     if !others.empty?
       others.each do |o|
         key = "#{o.hostname}/#{o.ip_address}"
@@ -58,5 +58,18 @@ class Heartbeat < ApplicationRecord
                      end
     end
     @@ip_address
+  end
+
+  # Execute the SQL using bind variables instead of string interpolation to avoid SQL injection
+  # @param [Time] time_limit maximum execution time in seconds
+  # @return [Array<Hash>] result set as array of hashes
+  def self.execute_check_sql(time_limit)
+    Database.select_all("SELECT * FROM Heartbeats WHERE (HostName != :hostname OR IP_Address != :ip_address) AND Heartbeat_TS > :time_limit",
+                        {
+                          hostname: Socket.gethostname,
+                          ip_address: current_ip_address,
+                          time_limit: time_limit
+                        }
+    )
   end
 end
