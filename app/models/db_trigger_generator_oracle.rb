@@ -94,7 +94,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   end
 
   # Build structure for expected triggers per table and operation:
-  # @return [Hash] table_name: { operation: { columns: [ {column_name:, ...} ], condition:, column_expressions: [] }}
+  # @return [Hash] table_name: { operation: { columns: [ {column_name:, ...} ], condition:, column_expressions: [sql:] }}
   def build_expected_triggers_list
     expected_trigger_columns = Database.select_all(
       "SELECT c.Name Column_Name,
@@ -130,12 +130,8 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     )
 
     expected_trigger_operation_expressions = Database.select_all(
-      "SELECT t.Name Table_Name,
-              ce.Operation,
-              ce.sql,
-              t.YN_Record_TxId,
-              t.Kafka_Key_Handling,
-              t.Fixed_Message_Key
+      "SELECT t.Name Table_Name, ce.ID, ce.Operation, ce.sql,
+              t.YN_Record_TxId, t.Kafka_Key_Handling, t.Fixed_Message_Key
        FROM   Column_Expressions ce
        JOIN   Tables t ON t.ID = ce.Table_ID
        WHERE  t.Schema_ID = :schema_id
@@ -218,7 +214,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
     # Add possible column expressions at operation level
     expected_trigger_operation_expressions.each do |ce|
-      expected_triggers[ce.table_name][ce.operation][:column_expressions] << ce.sql
+      expected_triggers[ce.table_name][ce.operation][:column_expressions] << { sql: ce.sql, id: ce.id }
     end
 
     # Add possible primary key columns
@@ -233,7 +229,145 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     end
     expected_triggers
   end
-  
+
+  # Extract column names from SQL expression and check if they exist in table
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @return [Hash] columns of the table/operation that are used in expressions
+  #   { :new|:old.colname: {
+  #     column_name:,
+  #     variable_name:,         /* The variable name used in record type, contains also the qualifier :new or :old */
+  #     column_expression_ids:  { id: target /* 'new' or 'old' */ } /* List of column expression IDs with the target in JSON object */
+  #     data_type:,
+  #     precision:,
+  #     scale:,
+  #     nullable:
+  #     }
+  #   }
+  def columns_from_expression(table, operation)
+    if !defined?(@columns_from_expression) || @columns_from_expression.nil?
+      @columns_from_expression = {}                                             # {table_name: {operation: {column_name: {data_type:, precision:, scale: }}}}
+
+      all_tab_columns = {}                                                      #  { table_name: { column_name: { data_type: }}}
+      # Get all columns of tables planned for triggers
+      Database.select_all("\
+        SELECT tc.Table_Name, tc.Column_Name, tc.Data_Type, tc.Nullable,
+               NVL(tc.Data_Precision, tc.Char_Length) Precision, tc.Data_Scale
+        FROM   DBA_Tab_Columns tc
+        JOIN   Tables t ON t.Name = tc.Table_Name
+        WHERE  tc.Owner = :schema_name
+        AND    t.Schema_ID = :schema_id
+      ", schema_name: @schema.name, schema_id: @schema.id).each do |ac|
+        all_tab_columns[ac.table_name] = {} unless all_tab_columns.has_key?(ac.table_name)
+        all_tab_columns[ac.table_name][ac.column_name] = {
+          data_type: ac.data_type,
+          precision: ac.precision,
+          scale: ac.data_scale,
+          nullable: ac.nullable
+        }
+      end
+
+      # TODO: replace DB select with @expected_triggers to avoid double DB access
+      Database.select_all("\
+        SELECT ce.ID, ce.Operation, ce.sql, t.Name Table_Name
+        FROM   Column_Expressions ce
+        JOIN   Tables t ON t.ID = ce.Table_ID
+        WHERE  t.Schema_ID = :schema_id
+      ", schema_id: @schema.id).each do |ce|
+        # Get all used names combined with :new or :old qualifier
+
+        column_regex = /:new\.([a-zA-Z0-9_]+)|:old\.([a-zA-Z0-9_]+)/i
+        matches = ce.sql.scan(column_regex).flatten.compact.uniq                   # get all column names used in expression
+
+        expression_columns = []                                                 # Array of Hash with { qualifier:, column_name: }
+        matches.each do |column_name|
+          if ce.sql.match(/:new\.#{column_name}\b/i)  # Check for :new.column_name
+            expression_columns << { qualifier: ':new', column_name: column_name.upcase, column_expression_id: ce.id }
+          elsif ce.sql.match(/:old\.#{column_name}\b/i) # Check for :old.column_name
+            expression_columns << { qualifier: ':old', column_name: column_name.upcase, column_expression_id: ce.id }
+          end
+        end
+
+        expression_columns.each do |c|
+          raise "Column expression '#{ce.sql}' does contain a reference to not existing column by #{c[:qualifier]}.#{c[:column_name]}" unless all_tab_columns[ce.table_name].has_key?(c[:column_name])
+          @columns_from_expression[ce.table_name] = {} unless @columns_from_expression.has_key?(ce.table_name)
+          all_tab_column = all_tab_columns[ce.table_name][c[:column_name]]      # Data structure for column
+          @columns_from_expression[ce.table_name][ce.operation] = {} unless @columns_from_expression[ce.table_name].has_key?(ce.operation)
+          col_key = "#{c[:qualifier]}.#{c[:column_name]}"
+          unless @columns_from_expression[ce.table_name][ce.operation].has_key?(col_key)
+            @columns_from_expression[ce.table_name][ce.operation][col_key] = {
+              column_name:          c[:column_name],
+              variable_name:        "#{c[:qualifier][1..4]}_#{c[:column_name]}"[0..29], # Use different variable names for :old and :new, max 30 chars
+              column_expression_ids: { c[:column_expression_id] => c[:qualifier][1..4] }, # List of column expression IDs with the target in JSON object
+              data_type:            all_tab_column[:data_type],
+              precision:            all_tab_column[:precision],
+              scale:                all_tab_column[:scale],
+              nullable:             all_tab_column[:nullable]
+            }
+          else
+            @columns_from_expression[ce.table_name][ce.operation][col_key][:column_expression_ids][c[:column_expression_id]] = c[:qualifier][1..4]
+          end
+        end
+      end
+    end
+
+    # build result for requested table
+    search_operation = operation == 'i' ? 'I' : operation                       # map 'i' to 'I' for load operation
+    if @columns_from_expression.has_key?(table.name) && @columns_from_expression[table.name].has_key?(search_operation)
+      @columns_from_expression[table.name][search_operation]
+    else
+      {}
+    end
+  end
+
+  # Build PL/SQL data type for column used in expressions
+  # @param [Hash] col_info Hash with column info { data_type:, precision:, scale: }
+  # @return [String] PL/SQL data type
+  def build_expression_data_type(col_info)
+    case col_info[:data_type]
+    when 'CHAR'     then "CHAR(#{col_info[:precision]})"
+    when 'VARCHAR2' then "VARCHAR2(#{col_info[:precision]})"
+    when 'NUMBER'   then if col_info[:precision].nil? || col_info[:precision] == 0
+                           "NUMBER"
+                         else
+                           if col_info[:scale] && col_info[:scale] > 0
+                             "NUMBER(#{col_info[:precision]}, #{col_info[:scale]})"
+                           else
+                             "NUMBER(#{col_info[:precision]})"
+                           end
+                         end
+    else
+      col_info[:data_type]                                                      # CLOB, DATE, TIMESTAMP(x), INTERVAL ...
+    end
+  end
+
+  # get the PL/SQL code for declaration of variables and types for columns needed for column expressions
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D, operation 'i' treated as 'I' at call
+  # @param [Hash] trigger_config Configuration for the trigger { columns: [], condition:, column_expressions: [] }
+  # @return [String] PL/SQL code for declaration section
+  def expression_types_and_arrays_sql(table, operation, trigger_config)
+    code = String.new
+    unless trigger_config[:column_expressions].empty?
+      code << "/* Types and arrays for columns needed to build column expressions */\n"
+      code << "TYPE Expression_Rec_Type IS RECORD (\n"
+      code << columns_from_expression(table, operation).map do |_k, col_info|
+        "  #{col_info[:variable_name]} #{ build_expression_data_type(col_info)}"
+      end.join(",\n")
+      code << "\n);\n"
+      code << "TYPE Expression_Tab_Type IS TABLE OF Expression_Rec_Type INDEX BY PLS_INTEGER;\n"
+      code << "Expression_Rec Expression_Rec_Type;\n"
+      code << "Expression_Tab Expression_Tab_Type;\n"
+      code << "Expression_Result CLOB;\n"
+      code << "Position INTEGER; /* Position for string operations */\n"
+    end
+    code
+  end
+
+  # Drop existing triggers for table and operation that are not expected anymore or have wrong name
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @return [void]
   def drop_obsolete_triggers(table, operation)
     @existing_triggers.select { |t|
       # filter existing triggers for considered table and operation
@@ -319,13 +453,14 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 BEFORE STATEMENT IS
 BEGIN
   payload_tab.DELETE; /* remove possible fragments of previous transactions */\
+  #{"\n  Expression_Tab.DELETE;" unless trigger_config[:column_expressions].empty?}
   #{"\n  transaction_id := DBMS_TRANSACTION.local_transaction_id;" if table_config[:yn_record_txid] == 'Y'}
 END BEFORE STATEMENT;
 
 #{position_from_operation(operation)} EACH ROW IS
 BEGIN
 "
-    body_sql << generate_row_section(table_config, operation)
+    body_sql << generate_row_section(table, table_config, operation)
     body_sql << "\
 END #{position_from_operation(operation)} EACH ROW;
 
@@ -339,6 +474,9 @@ END #{build_trigger_name(table, operation)};
     body_sql
   end
 
+  # Generate the PL/SQL code for initial load of existing table content
+  # @param [Table] table Table object
+  # @return [void]
   def create_load_sql(table)
     table_config    = @expected_triggers[table.name]
     operation       = 'i'                                                       # Lower case for initialization to distinguish between new inserts (I) and initial load (i)
@@ -363,7 +501,7 @@ BEGIN
              ) LOOP
 "
     # Conditions must not be included in row section because they are already part of the driving SQL
-    trigger_row_section = generate_row_section(table_config, operation.upcase, include_conditions: false)  # generate columns for insert operation (I)
+    trigger_row_section = generate_row_section(table, table_config, operation.upcase, include_conditions: false)  # generate columns for insert operation (I)
     load_sql << trigger_row_section.gsub(':new', 'rec')     # replace the record alias for insert trigger with loop variable for load sql
     load_sql << "
     record_count := record_count + 1;
@@ -398,10 +536,12 @@ END;
     end
   end
 
-  # @param table: Table object
-  # @param operation: I|U|D
-  # @param mode: :body | :load
-  # @param trigger_config: config for operation
+  # @param [Table] table Table object
+  # @param [String] operation I|U|D
+  # @param [Symbol] mode :body | :load
+  # @param [Hash] trigger_config config for operation of table { columns: [], condition:, column_expressions: [] }
+  # @param [String, nil] addition additional PL/SQL code to be added to declaration section
+  # @return [String] PL/SQL code for declaration section of trigger or load SQL
   def generate_declare_section(table, operation, mode, trigger_config, addition: nil)
     "\
 
@@ -415,11 +555,13 @@ payload_tab       Payload_Tab_Type;
 tab_size          PLS_INTEGER;
 dbuser            VARCHAR2(128) := SYS_CONTEXT('USERENV', 'SESSION_USER');
 transaction_id    VARCHAR2(100) := NULL;
+#{expression_types_and_arrays_sql(table, operation, trigger_config)}
 #{"condition_result  NUMBER;" if mode == :body && separate_condition_sql_needed?(trigger_config[:condition])}
 #{addition}
 
 PROCEDURE Flush IS
 BEGIN
+#{build_expression_execution_section(table, operation, trigger_config)}
   FORALL i IN 1..payload_tab.COUNT
     INSERT INTO #{MovexCdc::Application.config.db_user}.Event_Logs(ID, Table_ID, Operation, DBUser, Payload, Created_At, Msg_Key, Transaction_ID)
     VALUES (Event_Logs_Seq.NextVal,
@@ -431,20 +573,114 @@ BEGIN
             payload_tab(i).msg_key,
             transaction_id
     );
-  payload_tab.DELETE;
+  payload_tab.DELETE;#{"\n  Expression_Tab.DELETE;" unless trigger_config[:column_expressions].empty?}
   #{"COMMIT;" if mode == :load}
 END Flush;
 "
   end
 
+  # Build the execution of column expression SQL for each record of payload_tab
+  # @param [Table] table: Table object
+  # @param [String] operation: I|U|D
+  # @param [Hash] trigger_config: config for operation of table { columns: [], condition:, column_expressions: [] }
+  # @return [String] PL/SQL code for execution of column expressions
+  def build_expression_execution_section(table, operation, trigger_config)
+    code = String.new
+    unless trigger_config[:column_expressions].empty?
+      code << "\n  /* Execute column expressions for each record */\n"
+      code << "  FOR i IN 1..payload_tab.COUNT LOOP\n"
+      trigger_config[:column_expressions].each do |expression|
+        sql = expression[:sql].dup
+
+        # Insert the INTO clause before "FROM"
+        from_index = sql.index(/FROM/i) # Use /FROM/i for case-insensitive search
+        raise "Column expression \"#{expression[:sql]}\" for table #{table.name} and operation '#{operation}' does not contain a FROM clause" if from_index.nil?
+        target = determine_expression_json_object(expression, columns_from_expression(table, operation), operation)
+        #
+        sql = sql[0..from_index-1] + " INTO Expression_Result " + sql[from_index..-1]
+        # replace :new and :old qualifiers with Expression_Rec.
+        columns_from_expression(table, operation).each do |full_col_name, col_info|
+          sql.gsub!(/#{full_col_name}\b/i, "Expression_Tab(i).#{col_info[:variable_name]}") # \b for word boundary to avoid partial replacements
+        end
+        code << "    #{sql};\n"                                                 # Execute the expression SQL
+
+        # Prepare the JSON snippet to be inserted into payload
+        code << "    Expression_Result := TRIM(Expression_Result); /* remove leading and trailing whitespaces */\n"
+        code << "    IF Expression_Result IS NULL THEN\n"
+        code << "      RAISE_APPLICATION_ERROR(-20001, 'Column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' returned NULL!');\n"
+        code << "    END IF;\n"
+        code << "    IF SUBSTR(Expression_Result, 1, 1) = '{' THEN\n"
+        code << "      Expression_Result := SUBSTR(Expression_Result, 2, LENGTH(Expression_Result)-2); /* Remove the enclosing curly brackets */\n"
+        code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN\n"
+        code << "      NULL; -- TODO: Extract the field name by DBMS_SQL and form a JSON object without {} \n"
+        code << "    ELSE \n"
+        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array!');\n"
+        code << "    END IF; \n"
+
+        # Now insert the result into the JSON payload in the correct object ("new" or "old")
+        code << "    /* Insert result of column expression into object of JSON payload */\n"
+        if target == 'old' && operation == 'U'                                  # special handling for update because old and new object exist
+          code << "    Position := INSTR(payload_tab(i).Payload, '},\n"          # Position of last } of "old" object
+          code << "\"new\": {');\n"
+        else
+          code << "    Position := LENGTH(payload_tab(i).Payload);\n"            # Position of last } of "old" or "new" object
+        end
+        code << "    payload_tab(i).Payload := SUBSTR(payload_tab(i).Payload, 1, Position -1) ||',\n"
+        code << "'||Expression_Result||'\n"
+        code << "'||SUBSTR(payload_tab(i).Payload, Position);\n"
+      end
+      code << "  END LOOP;\n"
+    end
+    code
+  end
+
+  # determine the JSON object in payload for column expression results
+  # @param [Hash] expression column expression { sql:, column_expression_id: }
+  # @param [Hash] expression_columns columns for operation used in expression { :new|:old.colname: { column_name:, variable_name:, column_expression_id:, data_type:, precision:, scale:, nullable:  } }
+  # @param [String] operation I|U|D
+  # @return [String] the 'old' or 'new' JSON object for the expression
+  def determine_expression_json_object(expression, expression_columns, operation)
+    case operation
+    when 'I' then
+      expression_columns.each do |full_colname, col_info|
+        if col_info[:column_expression_ids].has_key?(expression[:id]) && col_info[:column_expression_ids][expression[:id]] == 'old'
+          raise ":old is not supported for INSERT at #{expression[:sql]}"
+        else
+          return 'new'
+        end
+      end
+      'new'                                                                     # default if no column found with :new qualifier
+    when 'U' then
+      retval = 'new'                                                            # default if no column found with :new or :old qualifier
+      expression_columns.each do |full_colname, col_info|
+        if col_info[:column_expression_ids].has_key?(expression[:id])
+          retval = col_info[:column_expression_ids][expression[:id]]            # The last found qualifier for this expression decides old or new
+        end
+      end
+      retval
+    when 'D' then
+          expression_columns.each do |full_colname, col_info|
+            if col_info[:column_expression_ids].has_key?(expression[:id]) && col_info[:column_expression_ids][expression[:id]] == 'new'
+              raise ":new is not supported for DELETE at #{expression[:sql]}"
+            else
+              return 'old'
+            end
+          end
+          'old'                                                                 # default if no column found with :old qualifier
+    end
+  end
+
   # generate the row level code for trigger as well as for load sql
-  # @param table_config
-  # @param operation
-  # @param include_conditions: Conditions should not be coded for load SQL because they are already checked as part of the driving SQL in this case
-  def generate_row_section(table_config, operation, include_conditions: true)
+  # @param [Table] table
+  # @param [Hash] table_config config for table { operation: { columns: [], condition:, column_expressions: [] }}
+  # @param [String] operation I|U|D
+  # @param [Boolean] include_conditions: Conditions should not be coded for load SQL because they are already checked as part of the driving SQL in this case
+  # @return [String] PL/SQL code for row section of trigger or load SQL
+  def generate_row_section(table, table_config, operation, include_conditions: true)
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent
     update_indent    = operation == 'U' ? '  ' : ''
+    # TODO: Replace 1000 with configuration parameter
     row_section = "
   tab_size := Payload_Tab.COUNT;
   IF tab_size >= 1000 THEN
@@ -457,7 +693,17 @@ END Flush;
       row_section << "  SELECT COUNT(*) INTO Condition_Result FROM Dual WHERE #{trigger_config[:condition]};\n" if separate_condition_sql_needed?(trigger_config[:condition])
       row_section << "  IF #{condition_if_expression(trigger_config[:condition])} THEN\n" if trigger_config[:condition]
     end
-    row_section << "  #{condition_indent}IF #{old_new_compare(trigger_config[:columns])} THEN\n" if operation == 'U'
+    row_section << "  #{condition_indent}IF #{old_new_compare(table, trigger_config)} THEN\n" if operation == 'U'
+
+    # Build the record with columns needed for expressions (if there are any)
+    columns_from_expression(table, operation).each do |full_col_name, col_info|
+      row_section << "  #{condition_indent}#{update_indent}Expression_Rec.#{col_info[:variable_name]} := #{full_col_name};\n" # full_col_name is :new.col or :old.col
+    end
+    unless columns_from_expression(table, operation).empty?
+      row_section << "  #{condition_indent}#{update_indent}Expression_Tab(tab_size + 1) := Expression_Rec;\n"
+    end
+
+    # Build the payload record
     row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
     row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
     row_section << "  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};\n"
@@ -468,16 +714,30 @@ END Flush;
   end
 
   # compare old and new values for update trigger
-  def old_new_compare(columns)
-    columns.map{|c|
-      column_name = c[:column_name]
-      result = ":old.#{column_name} != :new.#{column_name}"
-      if c[:nullable] == 'Y'
-        result << " OR (:old.#{column_name} IS NULL AND :new.#{column_name} IS NOT NULL)"
-        result << " OR (:old.#{column_name} IS NOT NULL AND :new.#{column_name} IS NULL)"
+  # @param [Table] table Table object
+  # @param [Hash] trigger_config config for operation of table { columns: [], condition:, column_expressions: [] }
+  # @return [String] PL/SQL expression for comparison of old and new values
+  def old_new_compare(table, trigger_config)
+    columns = {}
+    # Add all columns used in trigger
+    trigger_config[:columns].each do |column|
+      columns[column[:column_name]] = { nullable: column[:nullable] }  # use hash to avoid duplicate column names
+    end
+
+    # Add all columns used in expressions
+    columns_from_expression(table, 'U').each do |_k, col_info|
+      columns[col_info[:column_name]] = { nullable: col_info[:nullable] } unless columns.has_key?(col_info[:column_name])
+    end
+
+    columns.each do |column_name, column|
+      column[:result] = ":old.#{column_name} != :new.#{column_name}".dup
+      if column[:nullable] == 'Y'
+        column[:result] << " OR (:old.#{column_name} IS NULL AND :new.#{column_name} IS NOT NULL)"
+        column[:result] << " OR (:old.#{column_name} IS NOT NULL AND :new.#{column_name} IS NULL)"
       end
-      result
-    }.join(' OR ')
+    end
+
+    columns.map{|_name, col| col[:result] }.join(' OR ')
   end
 
   # generate concatenated PL/SQL-commands for payload
