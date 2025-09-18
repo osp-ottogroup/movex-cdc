@@ -1,6 +1,12 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
+- SQL expressions for JSON attributes are supported now in addition to table columns. This allows to include values from joined tables in the JSON event.
+- JDBC statement cache reduced from 100 to 50 to avoid ORA-01000: maximum number of open cursors exceeded   
+
+## 2025-09-16 1.12.4.1
+- Bufix: Bind variables are used for hearbeat check to prevent from ORA-01000: maximum number of open cursors exceeded
+
 ## 2025-09-10 1.12.4
 - Encrpyted SQL*Net connection is requested by client now by default (oracle.net.encryption_client=REQUESTED)
 - Framework dependencies upgraded: JRuby 10.0.2.0, Rails 8.0.2.1, Kafka client 3.9.1

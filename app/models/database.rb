@@ -77,7 +77,7 @@ class Database
     end
     result
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}\nUsed binds: #{filter}")
+    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}\nUsed binds: #{filter}", decorate_additional_message_next_lines: false)
     raise
   end
 
@@ -110,7 +110,7 @@ class Database
 
     ActiveRecord::Base.connection.exec_update(sql, "Database.execute", local_binds)  # returns the number of affected rows
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
+    ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}", decorate_additional_message_next_lines:false) unless options[:no_exception_logging]
     raise
   end
 

@@ -143,7 +143,7 @@ class DatabaseOracle
       Rails.logger.info('DatabaseOracle.select_all_limit'){ "Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}" }
       []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
     else
-      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt};\nUsed binds: #{filter}") # force exception other than ORA-xxx
+      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt};\nUsed binds: #{filter}", decorate_additional_message_next_lines:false) # force exception other than ORA-xxx
       raise
     end
   end
@@ -155,7 +155,7 @@ class DatabaseOracle
     Rails.logger.debug('DatabaseOracle.exec_unprepared'){ "Executing:\n#{sql}" }
     ActiveRecord::Base.connection.get_jdbc_connection.exec(sql)
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}", decorate_additional_message_next_lines:false)
     raise
   end
 
@@ -174,7 +174,7 @@ class DatabaseOracle
       end
     end
   rescue Exception => e
-    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}")
+    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}", decorate_additional_message_next_lines:false)
     raise
   ensure
     cursor.close if defined? cursor && !cursor.nil?

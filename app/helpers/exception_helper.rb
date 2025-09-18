@@ -17,18 +17,23 @@ module ExceptionHelper
   end
 
   # log exception as ERROR
-  # @param exception      The exception object
-  # @param context        The class and method name where the exception occured
-  # @param additional_msg Additional text to log in subseauent lines
-  def self.log_exception(exception, context, additional_msg: nil)
+  # @param [Exception] exception The exception object
+  # @param [String] context The class and method name where the exception occured
+  # @param [String] additional_msg Additional text to log in subseauent lines
+  # @param [Boolean] decorate_additional_message_next_lines If true, each line of additional_msg is decorated with context, otherwise only the first line
+  def self.log_exception(exception, context, additional_msg: nil, decorate_additional_message_next_lines: true)
     msg = "Exception: #{exception.class}: #{exception.message}"
     msg.split("\n").each do |line|
       Rails.logger.error(context){ line }
     end
     Rails.logger.error(context){ explain_exception(exception) } unless explain_exception(exception).nil?
     unless additional_msg.nil?
-      additional_msg.split("\n").each do |line|
-        Rails.logger.error(context){ line }
+      if decorate_additional_message_next_lines
+        additional_msg.split("\n").each do |line|
+          Rails.logger.error(context){ line }                                   # Each line of additional msg is decorated with context
+        end
+      else
+        Rails.logger.error(context){ additional_msg }                           # only the first line of additional msg is decorated with context
       end
     end
     Rails.logger.error(context) {"Stack-Trace for exception '#{exception.class}' is:"}

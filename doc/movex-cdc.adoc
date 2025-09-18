@@ -444,13 +444,14 @@ Depending on the database type you may run multiple MOVEX CDC container instance
 |Not allowed: No synchronization between multiple instances exist
 |Not allowed: No config-specific trigger names are used
 |ORACLE
-|Possible: Messages to transfer to Kafka are selected with FOR UPDATE.
+|Technically possible: Messages to transfer to Kafka are selected with FOR UPDATE. +
+** WARNING **: Be aware if running multiple container instances of MOVEX CDC on the same database schema (same configuration) simultaneously: +
+MOVEX CDC cannot guarantee the exact order of messages with key for transfer to Kafka in this case! +
+Therefore a warning is logged aech minute if multiple MOVEX CDC instances are detected on the same schema.
 |Possible: Trigger names contain numeric hash value of MOVEX CDC's owner schema. +
 Therefore multiple triggers from several independent MOVEX CDC configurations at one table are possible.
 |===
 
-WARNING: But be aware if running multiple container instances of MOVEX CDC on the same database schema (same configuration) simultaneously: +
-MOVEX CDC cannot guarantee the exact order of messages with key for transfer to Kafka in this case!
 
 
 === Configuration of capturing with GUI ===
