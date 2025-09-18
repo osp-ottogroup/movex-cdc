@@ -137,6 +137,7 @@ class ServerControlController < ApplicationController
                      else
                        raise "Missing rule for #{MovexCdc::Application.config.db_type}"
                      end.map{|p| p.partition_name}
+        raise "ServerControlController.reprocess_final_errors: Table Event_Log_Final_Errors is expected to be partitioned but no partitions exists" if partitions.empty?
       end
       partitions.each do |partition_name|
         begin
