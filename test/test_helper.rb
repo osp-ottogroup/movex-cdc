@@ -131,7 +131,7 @@ class ActiveSupport::TestCase
         END #{victim1_drop_trigger_name};
       ")
 
-      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Name VARCHAR2(20), Large_Text CLOB, PRIMARY KEY (ID))")
       exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{MovexCdc::Application.config.db_user}")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
@@ -574,13 +574,25 @@ class GlobalFixtures
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
         ).save!
-        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U  ',
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
                                       "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
                                     else
                                       "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        # Array result for update with multiple rows
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '12.1'
+                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ')||' ]' FROM DUAL"
+                                    else
+                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ')||' ]' FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
@@ -662,7 +674,9 @@ class GlobalFixtures
 
   def self.victim_connection
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then @@victim_connection
+    when 'ORACLE' then
+      raise "GlobalFixtures.victim_connection not initialized" if !defined?(@@victim_connection) || @@victim_connection.nil?
+      @@victim_connection
     when 'SQLITE' then ActiveRecord::Base.connection                            # use currently active connection
     end
   end
