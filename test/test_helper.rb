@@ -554,23 +554,50 @@ class GlobalFixtures
 
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
-                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                  when 'ORACLE' then
+                                    if Database.db_version > '12.1'
+                                      "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                    end
                                   when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
-                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                  when 'ORACLE' then
+                                    if Database.db_version > '12.1'
+                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U  ',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '12.1'
+                                      "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                    end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
                              sql: case MovexCdc::Application.config.db_type
-                                  when 'ORACLE' then "SELECT JSON_OBJECT('Combined3' VALUE :old.Name || '-' || :old.num_val) FROM DUAL"
+                                  when 'ORACLE' then
+                                    if Database.db_version > '12.1'
+                                      "SELECT JSON_OBJECT('Combined4' VALUE :old.Name || '-' || :old.num_val) FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' FROM DUAL"
+                                    end
                                   when 'SQLITE' then "SELECT old.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = old.ID"
                                   end
         ).save!
 
+        # VICTIM2 should nat have a column expression to test trigger generation without column expressions
         Column.new(table_id: @@victim2_table.id, name: 'ID',          info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
         Column.new(table_id: @@victim2_table.id, name: 'LARGE_TEXT',  info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
       ensure

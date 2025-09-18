@@ -612,7 +612,7 @@ END Flush;
         code << "    IF SUBSTR(Expression_Result, 1, 1) = '{' THEN\n"
         code << "      Expression_Result := SUBSTR(Expression_Result, 2, LENGTH(Expression_Result)-2); /* Remove the enclosing curly brackets */\n"
         code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN\n"
-        code << "      NULL; -- TODO: Extract the field name by DBMS_SQL and form a JSON object without {} \n"
+        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql])}\": '||Expression_Result;\n"
         code << "    ELSE \n"
         code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array!');\n"
         code << "    END IF; \n"
@@ -632,6 +632,37 @@ END Flush;
       code << "  END LOOP;\n"
     end
     code
+  end
+
+  # Determine the single column name for result of expression SQL (in case the result is a JSON array)
+  # @param [String] sql the expressions SQL without INTO
+  # @return [String] the column name to extract the JSON array from the result
+  def expression_result_column_name(sql)
+    escaped_sql = sql.gsub(/'/, "''")
+    dbms_sql_code ="\
+DECLARE
+  cursor    INTEGER;
+  desc_tab  DBMS_SQL.DESC_TAB;
+  col_count NUMBER;
+BEGIN
+  cursor := DBMS_SQL.OPEN_CURSOR;
+  DBMS_SQL.PARSE(cursor, '#{escaped_sql}', DBMS_SQL.NATIVE);
+  DBMS_SQL.DESCRIBE_COLUMNS(cursor, col_count, desc_tab);
+  IF col_count != 1 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Column expression SQL \"#{escaped_sql}\" does not return exactly one column but '||col_count||' columns!');
+  END IF;
+  :col_name := desc_tab(1).col_name;
+  DBMS_SQL.CLOSE_CURSOR(l_cursor);
+EXCEPTION
+  WHEN OTHERS THEN
+    IF DBMS_SQL.IS_OPEN(l_cursor) THEN
+      DBMS_SQL.CLOSE_CURSOR(l_cursor);
+    END IF;
+    RAISE;
+END;
+/"
+    column_name = Database.execute(dbms_sql_code, binds: { col_name: nil })[:col_name]
+    column_name
   end
 
   # determine the JSON object in payload for column expression results
