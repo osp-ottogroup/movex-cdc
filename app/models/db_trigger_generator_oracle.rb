@@ -604,32 +604,37 @@ END Flush;
         expression_columns.each do |full_col_name, col_info|
           sql.gsub!(/#{full_col_name}\b/i, "Expression_Tab(i).#{col_info[:variable_name]}") # \b for word boundary to avoid partial replacements
         end
+        code << "\n"
         code << "    #{sql};\n"                                                 # Execute the expression SQL
 
         # Prepare the JSON snippet to be inserted into payload
-        code << "    Expression_Result := TRIM(Expression_Result); /* remove leading and trailing whitespaces */\n"
-        code << "    IF Expression_Result IS NULL THEN\n"
-        code << "      RAISE_APPLICATION_ERROR(-20001, 'Column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' returned NULL!');\n"
-        code << "    END IF;\n"
-        code << "    IF SUBSTR(Expression_Result, 1, 1) = '{' THEN\n"
+        code << "    Expression_Result := TRIM(Expression_Result);              /* remove leading and trailing whitespaces */\n"
+        code << "    IF SUBSTR(Expression_Result, 1, 1) = '{' THEN              /* Is the returned JSON structure an object? */\n"
         code << "      Expression_Result := SUBSTR(Expression_Result, 2, LENGTH(Expression_Result)-2); /* Remove the enclosing curly brackets */\n"
-        code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN\n"
-        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\": '||Expression_Result;\n"
+        code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN           /* Is the returned JSON structure an array? */\n"
+        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\":'||Expression_Result;\n"
+        code << "    ELSIF Expression_Result IS NULL THEN                       /* Doesn't the expression return a result */\n"
+        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\":null';\n"
         code << "    ELSE \n"
-        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array!');\n"
+        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array nor NULL!');\n"
         code << "    END IF; \n"
 
         # Now insert the result into the JSON payload in the correct object ("new" or "old")
         code << "    /* Insert result of column expression into object of JSON payload */\n"
         if target == 'old' && operation == 'U'                                  # special handling for update because old and new object exist
-          code << "    Position := INSTR(payload_tab(i).Payload, '},\n"          # Position of last } of "old" object
-          code << "\"new\": {');\n"
+          code << "    Position := INSTR(payload_tab(i).Payload, '},\n\"new\": {');                                                    /* Position of last } of \"old\" object incl. newline and \"new\" in following line */\n"
+          code << "    IF Position = 0 THEN\n"
+          code << "      RAISE_APPLICATION_ERROR(-20001, 'Cannot find middle between old and new in JSON structure. Please raise an issue. Payload; '||payload_tab(i).Payload);\n"
+          code << "    END IF;\n"
         else
-          code << "    Position := LENGTH(payload_tab(i).Payload);\n"            # Position of last } of "old" or "new" object
+          code << "    Position := LENGTH(payload_tab(i).Payload);                /* Position of last '}' of \"old\" or \"new\" JSON object */\n"
         end
-        code << "    payload_tab(i).Payload := SUBSTR(payload_tab(i).Payload, 1, Position -1) ||',\n"
-        code << "'||Expression_Result||'\n"
-        code << "'||SUBSTR(payload_tab(i).Payload, Position);\n"
+        code << "    IF SUBSTR(payload_tab(i).Payload, Position-1, 1) != '{' THEN /* The current 'old' or 'new' object is not empty */\n"
+        code << "      Expression_Result := ','||Expression_Result;             /* add leading comma if object already contains elements */\n"
+        code << "    END IF;\n"
+        code << "    /* Insert the expression result at the end of the according section */\n"
+        code << "    payload_tab(i).Payload := SUBSTR(payload_tab(i).Payload, 1, Position -1) ||Expression_Result||SUBSTR(payload_tab(i).Payload, Position);\n"
+        code << "\n"
       end
       code << "  END LOOP;\n"
     end
@@ -790,7 +795,8 @@ END;
     trigger_config = table_config[operation]
     case operation
     when 'I' then payload_command_internal(trigger_config, 'new', indent)
-    when 'U' then "#{payload_command_internal(trigger_config, 'old', indent)}||',\n#{indent}'||#{payload_command_internal(trigger_config, 'new', indent)}"
+    # !!! the syntax of the end of of the 'old' object and start of 'new' object must be stable because it is used to find the position in PL/SQL for inserting column expression results in build_expression_execution_section !!!
+    when 'U' then "#{payload_command_internal(trigger_config, 'old', indent)}||',\n'||#{payload_command_internal(trigger_config, 'new', indent)}"
     when 'D' then payload_command_internal(trigger_config, 'old', indent)
     else
       raise "Unknown operation #{operation}"
