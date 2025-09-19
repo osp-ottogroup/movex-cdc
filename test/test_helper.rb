@@ -555,7 +555,7 @@ class GlobalFixtures
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '12.1'
+                                    if Database.db_version > '19.1'
                                       "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
                                       "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
@@ -566,7 +566,7 @@ class GlobalFixtures
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '12.1'
+                                    if Database.db_version > '19.1'
                                       "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
                                       "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
@@ -577,7 +577,7 @@ class GlobalFixtures
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '12.1'
+                                    if Database.db_version > '19.1'
                                       "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
                                       "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
@@ -589,7 +589,7 @@ class GlobalFixtures
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '12.1'
+                                    if Database.db_version > '19.1'
                                       "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ')||' ]' ArrayList FROM DUAL"
                                     else
                                       "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ')||' ]' ArrayList FROM DUAL"
@@ -600,7 +600,7 @@ class GlobalFixtures
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '12.1'
+                                    if Database.db_version > '19.1'
                                       "SELECT JSON_OBJECT('Combined4' VALUE :old.Name || '-' || :old.num_val) SingleObject FROM DUAL"
                                     else
                                       "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"

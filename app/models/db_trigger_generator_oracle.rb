@@ -683,7 +683,7 @@ END;
     raise "DbTriggerGeneratorOracle.expression_result_column_name: Error determining column name! Ensure valid column name in SQL!\nExpression SQL '#{rebound_sql}': #{e.message}"
   end
 
-  # determine the JSON object in payload for column expression results
+  # determine the JSON object in payload (old or new) for column expression results
   # @param [Hash] expression column expression { sql:, column_expression_id: }
   # @param [Hash] expression_columns columns for operation used in expression { :new|:old.colname: { column_name:, variable_name:, column_expression_id:, data_type:, precision:, scale:, nullable:  } }
   # @param [String] operation I|U|D
@@ -700,13 +700,13 @@ END;
       end
       'new'                                                                     # default if no column found with :new qualifier
     when 'U' then
-      retval = 'new'                                                            # default if no column found with :new or :old qualifier
+      retval = nil                                                              # default if no column found with :new or :old qualifier
       expression_columns.each do |full_colname, col_info|
         if col_info[:column_expression_ids].has_key?(expression[:id])
-          retval = col_info[:column_expression_ids][expression[:id]]            # The last found qualifier for this expression decides old or new
+          retval = col_info[:column_expression_ids][expression[:id]] unless retval == 'new' # if both :new and :old are used, prefer :new
         end
       end
-      retval
+      retval || 'new'                                                           # Use new as default if no column found with :new or :old qualifier
     when 'D' then
           expression_columns.each do |full_colname, col_info|
             if col_info[:column_expression_ids].has_key?(expression[:id]) && col_info[:column_expression_ids][expression[:id]] == 'new'
@@ -753,7 +753,7 @@ END;
     end
 
     # Build the payload record
-    row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
+    row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless c
     row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
     row_section << "  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};\n"
     row_section << "  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;\n"
