@@ -283,7 +283,8 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         matches.each do |column_name|
           if ce.sql.match(/:new\.#{column_name}\b/i)  # Check for :new.column_name
             expression_columns << { qualifier: ':new', column_name: column_name.upcase, column_expression_id: ce.id }
-          elsif ce.sql.match(/:old\.#{column_name}\b/i) # Check for :old.column_name
+          end
+          if ce.sql.match(/:old\.#{column_name}\b/i) # Check for :old.column_name
             expression_columns << { qualifier: ':old', column_name: column_name.upcase, column_expression_id: ce.id }
           end
         end
@@ -596,10 +597,11 @@ END Flush;
         from_index = sql.index(/FROM/i) # Use /FROM/i for case-insensitive search
         raise "Column expression \"#{expression[:sql]}\" for table #{table.name} and operation '#{operation}' does not contain a FROM clause" if from_index.nil?
         target = determine_expression_json_object(expression, columns_from_expression(table, operation), operation)
-        #
+        expression_columns = columns_from_expression(table, operation)          # Columns relevant for execution of this expression
+
         sql = sql[0..from_index-1] + " INTO Expression_Result " + sql[from_index..-1]
         # replace :new and :old qualifiers with Expression_Rec.
-        columns_from_expression(table, operation).each do |full_col_name, col_info|
+        expression_columns.each do |full_col_name, col_info|
           sql.gsub!(/#{full_col_name}\b/i, "Expression_Tab(i).#{col_info[:variable_name]}") # \b for word boundary to avoid partial replacements
         end
         code << "    #{sql};\n"                                                 # Execute the expression SQL
@@ -612,7 +614,7 @@ END Flush;
         code << "    IF SUBSTR(Expression_Result, 1, 1) = '{' THEN\n"
         code << "      Expression_Result := SUBSTR(Expression_Result, 2, LENGTH(Expression_Result)-2); /* Remove the enclosing curly brackets */\n"
         code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN\n"
-        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql])}\": '||Expression_Result;\n"
+        code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\": '||Expression_Result;\n"
         code << "    ELSE \n"
         code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array!');\n"
         code << "    END IF; \n"
@@ -636,33 +638,44 @@ END Flush;
 
   # Determine the single column name for result of expression SQL (in case the result is a JSON array)
   # @param [String] sql the expressions SQL without INTO
+  # @param [Hash] expression_columns columns for operation used in expression { :new|:old.colname: { column_name:, variable_name:, column_expression_id:, data_type:, precision:, scale:, nullable:  } }
   # @return [String] the column name to extract the JSON array from the result
-  def expression_result_column_name(sql)
-    escaped_sql = sql.gsub(/'/, "''")
+  def expression_result_column_name(sql, expression_columns)
+    rebound_sql = sql.dup
+    # replace :new and :old qualifiers for trigger with valid bind variables
+    expression_columns.each do |full_col_name, col_info|
+      rebound_sql.gsub!(/#{full_col_name}\b/i, ":#{col_info[:variable_name]}") # \b for word boundary to avoid partial replacements
+    end
+    # ensure single quote in SQL are doubled for embedding in PL/SQL
+    escaped_sql = rebound_sql.gsub(/'/, "''")
+
     dbms_sql_code ="\
 DECLARE
-  cursor    INTEGER;
+  cursor_id INTEGER;
   desc_tab  DBMS_SQL.DESC_TAB;
   col_count NUMBER;
 BEGIN
-  cursor := DBMS_SQL.OPEN_CURSOR;
-  DBMS_SQL.PARSE(cursor, '#{escaped_sql}', DBMS_SQL.NATIVE);
-  DBMS_SQL.DESCRIBE_COLUMNS(cursor, col_count, desc_tab);
+  cursor_id := DBMS_SQL.OPEN_CURSOR;
+  DBMS_SQL.PARSE(cursor_id, '#{escaped_sql}', DBMS_SQL.NATIVE);
+  DBMS_SQL.DESCRIBE_COLUMNS(cursor_id, col_count, desc_tab);
   IF col_count != 1 THEN
     RAISE_APPLICATION_ERROR(-20001, 'Column expression SQL \"#{escaped_sql}\" does not return exactly one column but '||col_count||' columns!');
   END IF;
   :col_name := desc_tab(1).col_name;
-  DBMS_SQL.CLOSE_CURSOR(l_cursor);
+  DBMS_SQL.CLOSE_CURSOR(cursor_id);
 EXCEPTION
   WHEN OTHERS THEN
-    IF DBMS_SQL.IS_OPEN(l_cursor) THEN
-      DBMS_SQL.CLOSE_CURSOR(l_cursor);
+    IF DBMS_SQL.IS_OPEN(cursor_id) THEN
+      DBMS_SQL.CLOSE_CURSOR(cursor_id);
     END IF;
     RAISE;
 END;
-/"
-    column_name = Database.execute(dbms_sql_code, binds: { col_name: nil })[:col_name]
+"
+    column_name = DatabaseOracle.exec_plsql_returning_string(dbms_sql_code, ":col_name")
     column_name
+  rescue Exception => e
+    Rails.logger.error('DbTriggerGeneratorOracle.expression_result_column_name'){ "Error determining column name for expression SQL '#{rebound_sql}': #{e.message}" }
+    raise "DbTriggerGeneratorOracle.expression_result_column_name: Error determining column name! Ensure valid column name in SQL!\nExpression SQL '#{rebound_sql}': #{e.message}"
   end
 
   # determine the JSON object in payload for column expression results

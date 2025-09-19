@@ -556,9 +556,9 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
-                                      "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                      "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
-                                      "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                      "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
@@ -567,9 +567,9 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
-                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
-                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
@@ -578,9 +578,9 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
-                                      "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) FROM DUAL"
+                                      "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
                                     else
-                                      "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' FROM DUAL"
+                                      "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
@@ -590,9 +590,9 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
-                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ')||' ]' FROM DUAL"
+                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ')||' ]' ArrayList FROM DUAL"
                                     else
-                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ')||' ]' FROM DUAL"
+                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ')||' ]' ArrayList FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
@@ -601,9 +601,9 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '12.1'
-                                      "SELECT JSON_OBJECT('Combined4' VALUE :old.Name || '-' || :old.num_val) FROM DUAL"
+                                      "SELECT JSON_OBJECT('Combined4' VALUE :old.Name || '-' || :old.num_val) SingleObject FROM DUAL"
                                     else
-                                      "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' FROM DUAL"
+                                      "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT old.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = old.ID"
                                   end
