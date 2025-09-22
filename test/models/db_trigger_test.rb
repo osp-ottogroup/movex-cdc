@@ -389,4 +389,11 @@ class DbTriggerTest < ActiveSupport::TestCase
       end
     end
   end
+
+  test "trigger without payload but with column expressions" do
+    run_with_current_user do
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+    end
+  end
 end

@@ -729,10 +729,9 @@ END;
     trigger_config = table_config[operation]
     condition_indent = trigger_config[:condition] ? '  ' : ''                   # Number of chars for row indent
     update_indent    = operation == 'U' ? '  ' : ''
-    # TODO: Replace 1000 with configuration parameter
     row_section = "
   tab_size := Payload_Tab.COUNT;
-  IF tab_size >= #{MovexCdc::Application.congig.memory_collection_flush_limit} THEN
+  IF tab_size >= #{MovexCdc::Application.config.memory_collection_flush_limit} THEN
     Flush;
     tab_size := 0;
   END IF;
