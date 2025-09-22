@@ -300,6 +300,9 @@ Reaching this limit with the number of simultaneous pending transactions at one 
 because SELECT FOR UPDATE SKIP LOCK skips also unlocked records in DB blocks with full ITL (interested transaction list).
 |60
 |MAX_WORKER_THREAD_SLEEP_TIME|Max. seconds an idle worker thread may sleep until next lookup for events to process. This value defines the maximum time an event may wait until transfer to Kafka. Smaller values increases the poll rate of transfer workers against the database.|60
+|MEMORY_COLLECTION_FLUSH_LIMIT|Max. number of stored events in memory collection in triggers before flush of the buffer into table Event_Logs. +
+This ensures for multi-record DML statements that costly insert into table Event_Logs is not done for each record separately. +
+Relevant for Oracle only.|1000
 |PARTITION_INTERVAL|Interval in seconds between partition changes for table EVENT_LOGS. +
 Partition change is used to free already used storage after some seconds and keep the footprint of table EVENT_LOGS as small as possible. +
 Relevant only if EVENT_LOGS is used partitioned. +
@@ -466,6 +469,8 @@ The application user is authorized for certain schemas for which tables can be t
 This schemas can be picked from the list of schemas where the user has select grants at at least one table of this schema.
 
 ==== Configuring events to capture at column level ====
+NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
+
 This dialog shows:
 
 * schemas for which the application user has the right to configure (set in user configuration)
@@ -490,25 +495,31 @@ Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.O
 
 ====== Optional additional column expressions as SQL per operation ======
 * This feature allows to add additional information to the JSON event that is not directly available as columns in the changed table.
+* This feature is supported only for Oracle DB, not for SQLITE.
 * These expressions are evaluated inside the trigger and their result is added as an additional column to the event. +
-* The additional SQLs are executed at row level inside the trigger.
-Be careful to avoid "ORA-04091: table xxx is mutating, trigger/function may not see it". +
-* Each expression SQL must return exactly one value that is added into the "old" or "new" JSON objects.
+* The additional SQLs are regularly executed at the "AFTER STATEMENT" section of the trigger. +
+But this is true only if the number of affected rows by the DML statement is below the setting of MEMORY_COLLECTION_FLUSH_LIMIT. +
+If this threshold is exceeded then the additional SQLs are executed also during flush of the memory collection in the "AFTER EACH ROW" section of the trigger. +
+In that case you may get "ORA-04091: table xxx is mutating, trigger/function may not see it" if your expressions selects from the same table where the trigger is declared on.
+* Each expression SQL must return exactly one JSON-formatted column that is added into the "old" or "new" JSON objects.
+* The target section ("old" or "new") depends on the operation (insert/update/delete) and the used pseudo-record (:old or :new).
+* If both pseudo-records are used in the expression at update operation then the 'new' section is preferred for the result of the expression.
 
-There are three flavors of additional column expressions:
+There are two flavors of additional column expressions:
 
-* Scalar values are directly added to the "old" or "new" JSON object +
-  Used for n:1 relation with a single result column. Example: +
-`SELECT Name FROM Country WHERE ID = :new.Country_ID`
-* JSON objects are expected to be valid JSON and are merged into the "old" or "new" JSON object +
-  Used for n:1 relations with multiple result columns. Example: +
-`SELECT JSON_OBJECT('Name' VALUE Name, 'Currency' VALUE Currency) FROM Country WHERE ID = :new.Country_ID`
+* elements of JSON objects are merged into the "old" or "new" JSON object +
+  Used for n:1 relations with multiple single or multiple result columns.
+```
+SELECT JSON_OBJECT('Name' VALUE Name, 'Currency' VALUE Currency)
+FROM Country WHERE ID = :new.Country_ID
+```
 
-* JSON arrays are expected to be valid JSON arrays and are added as substructure into the "old" or "new" JSON object +
-  Used for 1:n relations with multiple result rows. Example array of cities per country: +
-`SELECT '[ '||LISTAGG(JSON_OBJECT('Name' VALUE Name, 'ZIP' VALUE ZIP), ', ')||' ]' FROM Cites WHERE Country_ID = :new.ID`
-
-NOTE: The configuration in this screen is not user-specific. Each table/column configuration exists only once and can be manipulated by several permitted users.
+* JSON arrays are added as substructure into the "old" or "new" JSON object +
+  Used for 1:n relations with multiple result rows. Example array of cities per country:
+```
+SELECT '[ '||LISTAGG(JSON_OBJECT('Name' VALUE Name, 'ZIP' VALUE ZIP), ', ')||' ]'
+FROM Cities WHERE Country_ID = :new.ID
+```
 
 ==== Generation of database triggers ====
 

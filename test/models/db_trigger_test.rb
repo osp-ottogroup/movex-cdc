@@ -316,7 +316,7 @@ class DbTriggerTest < ActiveSupport::TestCase
           filtered_records_count = 0
           filtered_records_count += 1 unless init_filter.nil?
           filtered_records_count += 1 unless condition_filter.nil?
-          event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+          event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs WHERE Operation = 'i'"
           result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
           if result[:errors].length > 0
             result[:errors].each {|e| puts e}
@@ -344,12 +344,14 @@ class DbTriggerTest < ActiveSupport::TestCase
           assert_equal 0, table_init.running_threads_count, log_on_failure('There should not be running threads')
 
 
-          event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+          event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs WHERE Operation = 'i'"
           assert_equal(victim_record_count - filtered_records_count, event_logs_count_after - event_logs_count_before,
                        log_on_failure('Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records'))
 
-          check_event_logs_for_content('i', "\"Combined\":\"")    # the column expression added for insert
-          check_event_logs_for_content('i', "\"Combined2\":\"")   # the 2nd column expression added for insert
+          if MovexCdc::Application.config.db_type == 'ORACLE'                   # No support for column extensions yet in SQLITE
+            check_event_logs_for_content('i', "\"Combined\":\"")    # the column expression added for insert
+            check_event_logs_for_content('i', "\"Combined2\":\"")   # the 2nd column expression added for insert
+          end
 
           if condition_filter.nil?
             Condition.new(condition.attributes).save!                             # recreate the dropped condition

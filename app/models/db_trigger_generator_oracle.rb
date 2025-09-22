@@ -732,7 +732,7 @@ END;
     # TODO: Replace 1000 with configuration parameter
     row_section = "
   tab_size := Payload_Tab.COUNT;
-  IF tab_size >= 1000 THEN
+  IF tab_size >= #{MovexCdc::Application.congig.memory_collection_flush_limit} THEN
     Flush;
     tab_size := 0;
   END IF;
