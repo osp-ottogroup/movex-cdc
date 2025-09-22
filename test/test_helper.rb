@@ -590,9 +590,10 @@ class GlobalFixtures
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
                                     if Database.db_version > '19.1'
-                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ')||' ]' ArrayList FROM DUAL"
+                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ' )||' ]' ArrayList FROM DUAL"
                                     else
-                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ')||' ]' ArrayList FROM DUAL"
+                                      # Rel. 12 requires WITHIN GROUP clause and no JSON_OBJECT function
+                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ') WITHIN GROUP (ORDER BY 1)||' ]' ArrayList FROM DUAL"
                                     end
                                   when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
