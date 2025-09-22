@@ -7,6 +7,16 @@ class DbTriggerTest < ActiveSupport::TestCase
     create_victim_structures
   end
 
+  # Check records in Event_Logs for expected content in payload
+  # @param [String] operation the operation to check for
+  # @param [String] expectedt_fragment the fragment that should be contained in payload
+  # Raises an assertion error if record withOUT expected content is found
+  def check_event_logs_for_content(operation, expectedt_fragment)
+    Database.select_all("SELECT Payload FROM Event_Logs WHERE Operation = :operation", { operation: operation}).each do |e|
+      assert_not_nil e.payload.index(expectedt_fragment), log_on_failure("Event_Log payload for operation '#{operation}' should contain '#{expectedt_fragment}' but is '#{e.payload}'")
+    end
+  end
+
   test "find_all_by_schema_id" do
     real_count = case MovexCdc::Application.config.db_type
                  when 'ORACLE' then Database.select_one "SELECT COUNT(*) FROM All_Triggers WHERE Owner = :owner AND Table_Owner = :table_owner", { owner: MovexCdc::Application.config.db_user, table_owner: victim_schema.name}
@@ -337,6 +347,9 @@ class DbTriggerTest < ActiveSupport::TestCase
           event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
           assert_equal(victim_record_count - filtered_records_count, event_logs_count_after - event_logs_count_before,
                        log_on_failure('Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records'))
+
+          check_event_logs_for_content('i', "\"Combined\":\"")    # the column expression added for insert
+          check_event_logs_for_content('i', "\"Combined2\":\"")   # the 2nd column expression added for insert
 
           if condition_filter.nil?
             Condition.new(condition.attributes).save!                             # recreate the dropped condition
