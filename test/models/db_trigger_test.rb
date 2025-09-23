@@ -7,13 +7,34 @@ class DbTriggerTest < ActiveSupport::TestCase
     create_victim_structures
   end
 
+  # Create trigger config for table VICTIM3
+  def with_victim3_table
+    run_with_current_user do
+      victim3_table = Table.create_or_mark_visible(schema_id:  victim_schema.id,
+                                                   name:       'VICTIM3',
+                                                   info:       'Log column expressions without payload from original columns',
+                                                   topic:      KafkaHelper.existing_topic_for_test
+      )
+      victim3_table.save!
+      yield(victim3_table)
+      # restore original state
+      exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM3")
+      ColumnExpression.where({table_id: victim3_table.id}).delete_all
+      victim3_table.mark_hidden
+    end
+  end
+
+
   # Check records in Event_Logs for expected content in payload
+  # @param [Integer] table_id the table_id to check for
   # @param [String] operation the operation to check for
-  # @param [String] expectedt_fragment the fragment that should be contained in payload
+  # @param [String] expected_fragment the fragment that should be contained in payload
   # Raises an assertion error if record withOUT expected content is found
-  def check_event_logs_for_content(operation, expectedt_fragment)
-    Database.select_all("SELECT Payload FROM Event_Logs WHERE Operation = :operation", { operation: operation}).each do |e|
-      assert_not_nil e.payload.index(expectedt_fragment), log_on_failure("Event_Log payload for operation '#{operation}' should contain '#{expectedt_fragment}' but is '#{e.payload}'")
+  def check_event_logs_for_content(table_id, operation, expected_fragment)
+    event_logs = Database.select_all("SELECT Payload FROM Event_Logs WHERE Table_ID = :table_ID AND Operation = :operation", { table_id: table_id, operation: operation})
+    assert event_logs.count > 0, log_on_failure("There should be Event_Log records for operation '#{operation}' to check for content '#{expected_fragment}'")
+    event_logs.each do |e|
+      assert_not_nil e.payload.index(expected_fragment), log_on_failure("Event_Log payload for operation '#{operation}' should contain '#{expected_fragment}' but is '#{e.payload}'")
     end
   end
 
@@ -96,6 +117,10 @@ class DbTriggerTest < ActiveSupport::TestCase
         assert_not_nil result[:successes][0][:trigger_name],       log_on_failure(':trigger_name in successes result should be set for trigger')
         assert_not_nil result[:successes][0][:sql],                log_on_failure(':sql in successes result should be set for trigger')
 
+        if MovexCdc::Application.config.db_type == 'ORACLE'
+          # Check that trigger header contains the column list for update trigger
+          assert_not_nil result[:successes].select{|t| t[:trigger_name]["_U_"]}.first[:sql][" FOR UPDATE OF "], log_on_failure('Trigger SQL should contain column list for update trigger')
+        end
 
 =begin
     puts "Successes:" if result[:successes].count > 0
@@ -157,7 +182,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate trigger for not existing table or column" do
     run_with_current_user do
-      table = Table.new(schema_id: victim_schema.id, name: 'Dummy', info: 'Not existing table')
+      table = Table.create_or_mark_visible(schema_id: victim_schema.id, name: 'Dummy', info: 'Not existing table')
       table.save!
       column = Column.new(table_id: table.id, name: 'Dummy', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
       column.save!
@@ -166,7 +191,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 1, result[:errors].length,     log_on_failure('Not existing column should lead to error for this table')
 
       column.delete                                                               # Remove temporary object
-      table.delete                                                                # Remove temporary object
+      table.mark_hidden                                                           # Remove temporary object
     end
   end
 
@@ -349,8 +374,8 @@ class DbTriggerTest < ActiveSupport::TestCase
                        log_on_failure('Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records'))
 
           if MovexCdc::Application.config.db_type == 'ORACLE'                   # No support for column extensions yet in SQLITE
-            check_event_logs_for_content('i', "\"Combined\":\"")    # the column expression added for insert
-            check_event_logs_for_content('i', "\"Combined2\":\"")   # the 2nd column expression added for insert
+            check_event_logs_for_content(victim1_table.id, 'i', "\"Combined\":\"")    # the column expression added for insert
+            check_event_logs_for_content(victim1_table.id, 'i', "\"Combined2\":\"")   # the 2nd column expression added for insert
           end
 
           if condition_filter.nil?
@@ -390,10 +415,48 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
-  test "trigger without payload but with column expressions" do
-    run_with_current_user do
+  test "column expression with multiple result columns" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT :new.ID ID, :new.Name Name FROM DUAL").save!
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
-      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+      assert_equal 'VICTIM3', result[:errors].first[:table_name],     log_on_failure('Trigger creation should fail due to multiple columns in column expression')
     end
   end
+
+  test "trigger without payload but with column expressions" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      expr_sql = if Database.db_version > '19.1'
+                   "SELECT JSON_OBJECT('Expression' VALUE :new.ID || '-' || :new.Name) SingleObject FROM DUAL"
+                 else
+                   "SELECT '{\"Expression\":\"' || :new.ID || '-' || :new.Name || '\"}' SingleObject FROM DUAL"
+                 end
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql).save!
+
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+
+      assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
+                   'Event_Log record with column expression should have been created')
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"Expression\":\"1-Name1\"}")
+    end
+  end
+
+  test "update expression with old and new or without should end in new section" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL").save!
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL").save!
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM3 SET Name = 'Name2' WHERE ID = 1")
+      check_event_logs_for_content(victim3_table.id, 'U', "\"old\": {}")
+      check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\"Expression2\":\"Hugo\"}")
+    end
+  end
+
 end

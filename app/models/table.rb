@@ -14,6 +14,23 @@ class Table < ApplicationRecord
   validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
 
+  # create a table record or mark existing hidden table as visible
+  # used in TablesController#create and in DbTriggerGeneratorBase#create_load_sql
+  # @param [ActionController::Parameters|Hash] table_params the table parameters
+  # @return [Table] the created or updated table
+  def self.create_or_mark_visible(table_params)
+    tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
+    if tables.length > 0                                                        # table still exists
+      table = tables[0]
+      table.update(table_params.to_h.merge({yn_hidden: 'N'}))    # mark visible for GUI, store errors in table.errors if any
+      table
+    else
+      table = Table.new(table_params)
+      table.save                                                                # save-errors are in table.errors if any
+      table
+    end
+  end
+
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
     schema = Schema.find schema_id
@@ -221,6 +238,10 @@ class Table < ApplicationRecord
     end
     # Raise exception if none of previous checks has returned from method
     raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{ApplicationController.current_user.db_user}"
+  end
+
+  def delete
+    raise "Table #{self.schema.name}.#{self.name} cannot be deleted because of references! Use mark_hidden instead."
   end
 
   # Alternative to destroy a table because it should physically exist with its ID because old triggers may still produce event_logs with this table_id

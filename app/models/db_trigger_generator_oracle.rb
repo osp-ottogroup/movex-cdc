@@ -115,6 +115,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
        LEFT OUTER JOIN DBA_Tab_Columns tc ON tc.Owner = :schema_name AND tc.Table_Name = t.Name AND tc.Column_Name = c.Name
        WHERE  t.Schema_ID = :schema_id
        AND    t.YN_Hidden = 'N'
+       ORDER BY t.Name, o.Operation, tc.Column_ID /* ensure stable order for trigger code comparison and unit tests */
       ", { schema_name: @schema.name, schema_id: @schema.id}
     )
 
@@ -126,6 +127,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
        JOIN   Tables t ON t.ID = cd.Table_ID
        WHERE  t.Schema_ID = :schema_id
        AND    t.YN_Hidden = 'N'
+       ORDER BY t.Name, cd.Operation /* ensure stable order for trigger code comparison and unit tests */
       ", { schema_id: @schema.id}
     )
 
@@ -136,6 +138,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
        JOIN   Tables t ON t.ID = ce.Table_ID
        WHERE  t.Schema_ID = :schema_id
        AND    t.YN_Hidden = 'N'
+       ORDER BY ce.Table_ID, ce.Operation, ce.ID /* ensure stable order for trigger code comparison and unit tests */
       ", { schema_id: @schema.id}
     )
 
@@ -417,7 +420,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
   # @param [String] operation I|U|D
   # @return [String] complete trigger SQL including CREATE OR REPLACE and body
   def generate_trigger_sql(table, operation)
-    columns = @expected_triggers[table.name][operation][:columns]
     trigger_sql = "CREATE OR REPLACE TRIGGER #{MovexCdc::Application.config.db_user}.#{build_trigger_name(table, operation)}"
     trigger_sql << " FOR #{DbTriggerGeneratorBase.long_operation_from_short(operation)}"
 
@@ -427,6 +429,16 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       #
       # UPDATE OF clob_column is not supported (ORA-25006)
       # Therefore no UPDATE OF column_list filter is possible in this case to ensure trigger fires also if only CLOB column has changed
+      columns = @expected_triggers[table.name][operation][:columns].dup            # real table columns
+      columns_from_expression(table, 'U').each do |_k, col_info|
+        if columns.select{|c| c[:column_name] == col_info[:column_name]}.count == 0 # add columns from expressions only if not already part of real table columns
+          columns << {
+            column_name: col_info[:column_name],
+            data_type:   col_info[:data_type],
+            nullable:    col_info[:nullable]
+          }
+        end
+      end
       if columns.select{|c| c[:data_type] == 'CLOB'}.count > 0
         trigger_sql << " /* OF <column_list> suppressed because CLOBs would raise ORA-25006 */"
       else

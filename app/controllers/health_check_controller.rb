@@ -73,6 +73,7 @@ class HealthCheckController < ApplicationController
     build_info_record(info, :max_simultaneous_table_initializations, '')
     build_info_record(info, :max_simultaneous_transactions,     'For insert in EVENT_LOGS')
     build_info_record(info, :max_worker_thread_sleep_time,      'Max. seconds an idle worker thread may sleep')
+    build_info_record(info, :memory_collection_flush_limit,     'Max. size of the in-memory collection of change events in trigger before flushing to DB')
     build_info_record(info, :partition_interval,                'For table EVENT_LOGS')
     info << {
       name: 'RAILS_MAX_THREADS',

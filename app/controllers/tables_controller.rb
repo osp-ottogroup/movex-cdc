@@ -28,6 +28,7 @@ class TablesController < ApplicationController
     schema = Schema.find(table_params[:schema_id].to_i)
     Table.check_table_allowed_for_db_user(schema_name: schema.name, table_name: table_params[:name])
 
+=begin
     tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
     if tables.length > 0                                                        # table still exists
       @table = tables[0]
@@ -38,6 +39,13 @@ class TablesController < ApplicationController
     end
 
     if save_result
+      render json: @table, status: :created, location: @table
+    else
+      render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
+    end
+=end
+    @table = Table.create_or_mark_visible(table_params)
+    if @table.errors.empty?
       render json: @table, status: :created, location: @table
     else
       render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
