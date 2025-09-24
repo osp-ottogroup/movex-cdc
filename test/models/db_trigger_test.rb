@@ -461,6 +461,7 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "expression without old or new reference should not build Extension_Rec or Extension_Tab" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
       ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL").save!
       ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE2\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val2 FROM DUAL").save!
