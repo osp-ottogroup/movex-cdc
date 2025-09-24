@@ -6,7 +6,7 @@
         <button class="delete" @click="$emit('close')"></button>
       </header>
       <section class="modal-card-body">
-        <b-table :data="expressions" :striped="true" :hoverable="true">
+        <b-table :data="localExpressions" :striped="true" :hoverable="true">
           <b-table-column field="sql" label="SQL Expression" v-slot="props">
             <span @click="editExpression(props.row)" style="cursor:pointer; color:#3273dc;">{{ props.row.sql }}</span>
           </b-table-column>
@@ -28,6 +28,7 @@
 </template>
 
 <script>
+import CRUDService from '@/services/CRUDService';
 import EditColumnExpressionModal from './EditColumnExpressionModal.vue';
 
 export default {
@@ -37,16 +38,44 @@ export default {
     show: Boolean,
     expressions: Array,
     operation: String,
+    tableId: [String, Number],
   },
   data() {
     return {
+      localExpressions: [],
       editModal: {
         show: false,
         expression: {},
       },
     };
   },
+  watch: {
+    expressions: {
+      immediate: true,
+      handler(newVal) {
+        this.localExpressions = [...newVal];
+      },
+    },
+    operation: {
+      immediate: true,
+      handler() {
+        this.reloadExpressions();
+      },
+    },
+    show(val) {
+      if (val) this.reloadExpressions();
+    },
+  },
   methods: {
+    async reloadExpressions() {
+      if (!this.tableId || !this.operation) return;
+      try {
+        const allExpr = await CRUDService.columnExpressions.getAll({ table_id: this.tableId });
+        this.localExpressions = allExpr.filter((e) => e.operation === this.operation);
+      } catch (e) {
+        // Fehlerbehandlung optional
+      }
+    },
     openNewExpressionModal() {
       this.editModal.expression = { sql: '', operation: this.operation };
       this.editModal.show = true;
@@ -58,13 +87,20 @@ export default {
     closeEditModal() {
       this.editModal.show = false;
     },
-    saveExpression(expr) {
-      this.$emit('save-expression', expr);
+    async saveExpression(expr) {
+      const newExpr = { ...expr };
+      if (!newExpr.table_id) {
+        newExpr.table_id = this.tableId;
+      }
+      this.$emit('save-expression', newExpr);
       this.editModal.show = false;
+      await this.reloadExpressions();
     },
-    removeExpression(expr) {
-      this.$emit('remove-expression', expr);
+    async removeExpression(expr) {
+      const newExpr = { ...expr };
+      this.$emit('remove-expression', newExpr);
       this.editModal.show = false;
+      await this.reloadExpressions();
     },
   },
 };

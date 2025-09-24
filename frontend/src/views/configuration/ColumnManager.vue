@@ -24,6 +24,7 @@
         :show="columnExpressionModal.show"
         :operation="columnExpressionModal.operation"
         :expressions="columnExpressionModal.expressions"
+        :table-id="table.id"
         @close="onCloseColumnExpressionModal"
         @save-expression="onSaveColumnExpression"
         @remove-expression="onRemoveColumnExpression"
@@ -249,14 +250,19 @@ export default {
       this.columnExpressionModal.show = false;
     },
     async onSaveColumnExpression(expr) {
+      this.isLoading = true;
+      // Kopie von expr erstellen, um ESLint no-param-reassign zu vermeiden
+      const newExpr = { ...expr };
+      if (!newExpr.table_id) {
+        newExpr.table_id = this.table.id;
+      }
+      const payload = { column_expression: newExpr };
       try {
-        this.isLoading = true;
-        if (expr.id) {
-          await CRUDService.columnExpressions.update(expr.id, expr);
+        if (newExpr.id) {
+          await CRUDService.columnExpressions.update(newExpr.id, payload);
         } else {
-          await CRUDService.columnExpressions.create(expr);
+          CRUDService.columnExpressions.create_sync(payload);
         }
-        await this.reload(this.table);
         this.$buefy.toast.open({
           message: 'Expression gespeichert!',
           type: 'is-success',
@@ -269,6 +275,7 @@ export default {
           position: 'is-top',
         });
       } finally {
+        await this.reload(this.table);
         this.isLoading = false;
       }
     },
