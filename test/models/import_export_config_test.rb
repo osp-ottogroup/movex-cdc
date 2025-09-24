@@ -127,15 +127,28 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       'tables'        => [{
                             'name'          => 'NEW_TABLE',
                             'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                            'columns'       => [{
-                                                  'name' => 'NEW_COL',
-                                                  'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                                                }],
-                            'conditions'    => [{
-                                                  'operation' => 'I',
-                                                  'filter'    => '1 = 2',
-                                                  'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                                                }]
+                            'columns'       => [
+                              {
+                                'name' => 'NEW_COL',
+                                'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
+                              }
+                            ],
+                            'conditions'    => [
+                              {
+                                'operation' => 'I',
+                                'filter'    => '1 = 2',
+                                'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
+                              }
+                            ],
+                            'column_expressions' => [{
+                                "operation": "I",
+                                "sql": "SELECT JSON_OBJECT('SYSDATE' VALUE SYSDATE) Val1 FROM DUAL"
+                              },
+                              {
+                                "operation": "I",
+                                "sql": "SELECT JSON_OBJECT('DATUM' VALUE SYSDATE) Val2 FROM DUAL"
+                              }
+                            ]
                           }],
       'schema_rights' => [{
                             'email'         => 'admin',
