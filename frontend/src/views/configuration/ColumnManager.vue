@@ -19,6 +19,13 @@
                        @removed="onConditionRemoved"
                        @close="onCloseConditionModal"/>
     </template>
+    <template v-if="columnExpressionModal.show">
+      <column-expression-modal
+        :show="columnExpressionModal.show"
+        :operation="columnExpressionModal.operation"
+        :expressions="columnExpressionModal.expressions"
+        @close="onCloseColumnExpressionModal"/>
+    </template>
   </div>
 </template>
 
@@ -27,12 +34,14 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 import ColumnTable from './ColumnTable.vue';
 import ConditionModal from './ConditionModal.vue';
+import ColumnExpressionModal from './ColumnExpressionModal.vue';
 
 export default {
   name: 'ColumnManager',
   components: {
     ColumnTable,
     ConditionModal,
+    ColumnExpressionModal,
   },
   props: {
     schema: { type: Object, default: () => {} },
@@ -49,6 +58,11 @@ export default {
       conditionModal: {
         show: false,
         condition: {},
+      },
+      columnExpressionModal: {
+        show: false,
+        operation: '',
+        expressions: [],
       },
     };
   },
@@ -224,9 +238,12 @@ export default {
       this.conditionModal.show = false;
     },
     onEditColumnExpression(triggerType) {
-      alert(`Edit column expression (${triggerType}) is not implemented yet in GUI!
-Please use either the API to create/update column expressions
-or import config from JSON file.`);
+      this.columnExpressionModal.operation = triggerType;
+      this.columnExpressionModal.expressions = this.activeColumnExpressionTypes[triggerType] || [];
+      this.columnExpressionModal.show = true;
+    },
+    onCloseColumnExpressionModal() {
+      this.columnExpressionModal.show = false;
     },
   },
   watch: {

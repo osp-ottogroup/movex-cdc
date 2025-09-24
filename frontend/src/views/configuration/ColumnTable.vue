@@ -145,7 +145,7 @@ export default {
       return this.isConditionActive(type) ? 'filter-outline' : 'filter-off-outline';
     },
     columnExpressionIcon(type) {
-      return this.activeColumnExpressionTypes[type].length === 0 ? 'set-none' : 'set-all';
+      return this.activeColumnExpressionTypes[type] !== undefined && this.activeColumnExpressionTypes[type].length === 0 ? 'set-none' : 'set-all';
     },
     onColumnChanged(column) {
       this.$emit('column-changed', column);
