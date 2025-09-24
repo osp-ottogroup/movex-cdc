@@ -7,19 +7,13 @@
       </header>
       <section class="modal-card-body">
         <b-table :data="expressions" :striped="true" :hoverable="true">
-          <b-table-column field="id" label="ID" width="40" v-slot="props">
-            {{ props.row.id }}
-          </b-table-column>
           <b-table-column field="expression" label="Expression" v-slot="props">
-            {{ props.row.expression }}
-          </b-table-column>
-          <b-table-column field="description" label="Description" v-slot="props">
-            {{ props.row.description }}
+            {{ props.row.sql }}
           </b-table-column>
         </b-table>
       </section>
       <footer class="modal-card-foot">
-        <button class="button" @click="$emit('close')">Schließen</button>
+        <b-button type="is-primary" @click="$emit('close')">Close</b-button>
       </footer>
     </div>
   </b-modal>
