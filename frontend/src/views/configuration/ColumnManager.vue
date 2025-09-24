@@ -24,7 +24,10 @@
         :show="columnExpressionModal.show"
         :operation="columnExpressionModal.operation"
         :expressions="columnExpressionModal.expressions"
-        @close="onCloseColumnExpressionModal"/>
+        @close="onCloseColumnExpressionModal"
+        @save-expression="onSaveColumnExpression"
+        @remove-expression="onRemoveColumnExpression"
+      />
     </template>
   </div>
 </template>
@@ -244,6 +247,52 @@ export default {
     },
     onCloseColumnExpressionModal() {
       this.columnExpressionModal.show = false;
+    },
+    async onSaveColumnExpression(expr) {
+      try {
+        this.isLoading = true;
+        if (expr.id) {
+          await CRUDService.columnExpressions.update(expr.id, expr);
+        } else {
+          await CRUDService.columnExpressions.create(expr);
+        }
+        await this.reload(this.table);
+        this.$buefy.toast.open({
+          message: 'Expression gespeichert!',
+          type: 'is-success',
+        });
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    async onRemoveColumnExpression(expr) {
+      try {
+        this.isLoading = true;
+        if (expr.id) {
+          await CRUDService.columnExpressions.delete(expr.id, { lock_version: expr.lock_version });
+          await this.reload(this.table);
+          this.$buefy.toast.open({
+            message: 'Expression entfernt!',
+            type: 'is-success',
+          });
+        }
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
     },
   },
   watch: {
