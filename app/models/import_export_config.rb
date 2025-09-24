@@ -20,12 +20,13 @@ class ImportExportConfig
   # export schema info for all or one schemas
   # @param single_schema_name nil for all schemas or limited for one schema
   def export(single_schema_name: nil)
-    schema_columns        = self.class.extract_column_names(Schema)
-    schema_columns        = schema_columns.select{|c| c != 'last_trigger_deployment'} # remove column "last_trigger_deployment" from export
-    table_columns         = self.class.extract_column_names(Table)
-    column_columns        = self.class.extract_column_names(Column)
-    condition_columns     = self.class.extract_column_names(Condition)
-    schema_right_columns  = self.class.extract_column_names(SchemaRight)
+    schema_columns            = self.class.extract_column_names(Schema)
+    schema_columns            = schema_columns.select{|c| c != 'last_trigger_deployment'} # remove column "last_trigger_deployment" from export
+    table_columns             = self.class.extract_column_names(Table)
+    column_columns            = self.class.extract_column_names(Column)
+    condition_columns         = self.class.extract_column_names(Condition)
+    column_expression_columns = self.class.extract_column_names(ColumnExpression)
+    schema_right_columns      = self.class.extract_column_names(SchemaRight)
 
     schemas_list = []
     Schema.order(:name).select{|s| single_schema_name.nil? || single_schema_name == s.name}.each do |schema|
@@ -44,6 +45,12 @@ class ImportExportConfig
         table.conditions.order(:operation).each do |condition|
           table_hash['conditions'] << generate_export_object(condition, condition_columns)
         end
+
+        table_hash['column_expressions'] = []
+        table.column_expressions.order(:operation, :id).each do |column_expression|
+          table_hash['column_expressions'] << generate_export_object(column_expression, column_expression_columns)
+        end
+
         schema_hash['tables'] << table_hash
       end
 
@@ -206,8 +213,7 @@ class ImportExportConfig
     result = {}
     relevant_ar_columns = self.class.extract_column_names(ar_class)
     record_hash.each do |key, value|
-      if !relevant_ar_columns.find{|c| c == key}.nil? &&                        # Hash entry in relevant AR columns
-        value.class != Array                                                    # Entry is not a substructure
+      if !relevant_ar_columns.find{|c| c == key}.nil? && value.class != Array   # Hash entry in relevant AR columns & Entry is not a substructure
         result[key] = value
       end
     end
@@ -339,7 +345,26 @@ class ImportExportConfig
         existing_condition.update!(relevant_import_data(condition_hash, Condition))
       end
     end
-    if yn_initialization == 'Y'                                                 # Exeute postponed setting
+
+    # delete column_expressions of table missed in current import data
+    ColumnExpression.where(table_id: table.id).each do |ce|
+      if table_hash['column_expressions'].find{|c| c['operation'] == ce.operation && c['sql'] ==  ce.sql}.nil? # existing column_expression not found in import data for table
+        ce.destroy!
+      end
+    end
+
+    # Insert or update column_expressions
+    table_hash['column_expressions']&.each do |ce_hash|
+      raise "ColumnExpression element of table '#{table_hash['name']}' should be of type Hash but is a #{ce_hash.class} with content '#{ce_hash}'" unless ce_hash.is_a? Hash
+      existing_ce = ColumnExpression.where(table_id: table.id, operation: ce_hash['operation']).select{|ce| ce.sql == ce_hash[:sql] }.first
+      if existing_ce.nil?
+        ColumnExpression.new(relevant_import_data(ce_hash, ColumnExpression).merge('table_id' => table.id)).save!
+      else
+        existing_ce.update!(relevant_import_data(ce_hash, ColumnExpression))
+      end
+    end
+
+    if yn_initialization == 'Y'                                                 # Execute postponed setting
       table_hash['yn_initialization'] = 'Y'                                     # restore previous state of config data to prevent from confusion is reused later
       table.update!(yn_initialization: 'Y')
     end

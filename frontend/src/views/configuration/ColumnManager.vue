@@ -6,10 +6,12 @@
                   :table="table"
                   :columns="mergedColumns"
                   :activeConditionTypes="activeConditionTypes"
+                  :activeColumnExpressionTypes="activeColumnExpressionTypes"
                   @column-changed="onColumnChanged"
                   @select-all="onSelectAll"
                   @deselect-all="onDeselectAll"
                   @edit-condition="onEditCondition"
+                  @edit-column-expression="onEditColumnExpression"
                   @remove-column="onRemoveColumn"/>
     <template v-if="conditionModal.show">
       <condition-modal :condition="conditionModal.condition"
@@ -42,6 +44,7 @@ export default {
       dbColumns: [],
       mergedColumns: [],
       activeConditionTypes: {},
+      activeColumnExpressionTypes: {},
       isLoading: false,
       conditionModal: {
         show: false,
@@ -124,6 +127,17 @@ export default {
         conditions.forEach((condition) => {
           this.$set(this.activeConditionTypes, condition.operation, condition);
         });
+
+        // load all column expressions per table
+        const columnExpressions = await CRUDService.columnExpressions.getAll({ table_id: table.id });
+        this.activeColumnExpressionTypes = {};
+        const result = { I: [], U: [], D: [] };
+        columnExpressions.forEach((colExpr) => {
+          result[colExpr.operation].push(colExpr);
+        });
+        this.$set(this.activeColumnExpressionTypes, 'I', result.I);
+        this.$set(this.activeColumnExpressionTypes, 'U', result.U);
+        this.$set(this.activeColumnExpressionTypes, 'D', result.D);
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
@@ -208,6 +222,11 @@ export default {
     },
     onCloseConditionModal() {
       this.conditionModal.show = false;
+    },
+    onEditColumnExpression(triggerType) {
+      alert(`Edit column expression (${triggerType}) is not implemented yet in GUI!
+Please use either the API to create/update column expressions
+or import config from JSON file.`);
     },
   },
   watch: {

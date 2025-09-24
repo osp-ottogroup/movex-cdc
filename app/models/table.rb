@@ -2,6 +2,7 @@ class Table < ApplicationRecord
   belongs_to  :schema, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   has_many    :columns
   has_many    :conditions
+  has_many    :column_expressions
 
   # Tables that do not exist in database no more but are configured for MOVEX CDC
   attribute   :yn_deleted_in_db, :string, limit: 1, default: 'N'

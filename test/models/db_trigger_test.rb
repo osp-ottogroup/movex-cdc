@@ -16,6 +16,7 @@ class DbTriggerTest < ActiveSupport::TestCase
                                                    topic:      KafkaHelper.existing_topic_for_test
       )
       victim3_table.save!
+      Database.execute "DELETE FROM Event_Logs WHERE Table_ID = :table_id", binds: { table_id: victim3_table.id }
       yield(victim3_table)
       # restore original state
       exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM3")
@@ -459,4 +460,16 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
+  test "expression without old or new reference should not build Extension_Rec or Extension_Tab" do
+    with_victim3_table do |victim3_table|
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL").save!
+      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE2\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val2 FROM DUAL").save!
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"SYSDATE1\":\"")
+    end
+
+
+  end
 end

@@ -26,6 +26,18 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
     end
 
     raw_connection                                                              # return result of original method
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'JDBCConnection.new_connection', additional_msg: "Error establishing connection to DB", decorate_additional_message_next_lines: false)
+    raise
+  end
+
+  # Workaround for issue #2476 (method reset missing)
+  def reset
+    reset!
+  end
+
+  def connect
+    new_connection(@config)
   end
 end
 

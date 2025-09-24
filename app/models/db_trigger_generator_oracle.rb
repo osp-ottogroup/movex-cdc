@@ -318,6 +318,8 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     # build result for requested table
     search_operation = operation == 'i' ? 'I' : operation                       # map 'i' to 'I' for load operation
     if @columns_from_expression.has_key?(table.name) && @columns_from_expression[table.name].has_key?(search_operation)
+      # TODO: Remove debug output
+      puts "Columns from expressions for table #{table.name} and operation #{search_operation}: #{@columns_from_expression[table.name][search_operation].count}" if Rails.env.test?
       @columns_from_expression[table.name][search_operation]
     else
       {}
@@ -354,14 +356,16 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     code = String.new
     unless trigger_config[:column_expressions].empty?
       code << "/* Types and arrays for columns needed to build column expressions */\n"
-      code << "TYPE Expression_Rec_Type IS RECORD (\n"
-      code << columns_from_expression(table, operation).map do |_k, col_info|
-        "  #{col_info[:variable_name]} #{ build_expression_data_type(col_info)}"
-      end.join(",\n")
-      code << "\n);\n"
-      code << "TYPE Expression_Tab_Type IS TABLE OF Expression_Rec_Type INDEX BY PLS_INTEGER;\n"
-      code << "Expression_Rec Expression_Rec_Type;\n"
-      code << "Expression_Tab Expression_Tab_Type;\n"
+      unless columns_from_expression(table, operation).empty?                   # This structure is not needed if there are no columns from expressions
+        code << "TYPE Expression_Rec_Type IS RECORD (\n"
+        code << columns_from_expression(table, operation).map do |_k, col_info|
+          "  #{col_info[:variable_name]} #{ build_expression_data_type(col_info)}"
+        end.join(",\n")
+        code << "\n);\n"
+        code << "TYPE Expression_Tab_Type IS TABLE OF Expression_Rec_Type INDEX BY PLS_INTEGER;\n"
+        code << "Expression_Rec Expression_Rec_Type;\n"
+        code << "Expression_Tab Expression_Tab_Type;\n"
+      end
       code << "Expression_Result CLOB;\n"
       code << "Position INTEGER; /* Position for string operations */\n"
     end
@@ -466,7 +470,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 BEFORE STATEMENT IS
 BEGIN
   payload_tab.DELETE; /* remove possible fragments of previous transactions */\
-  #{"\n  Expression_Tab.DELETE;" unless trigger_config[:column_expressions].empty?}
+  #{"\n  Expression_Tab.DELETE;" unless columns_from_expression(table, operation).empty?}
   #{"\n  transaction_id := DBMS_TRANSACTION.local_transaction_id;" if table_config[:yn_record_txid] == 'Y'}
 END BEFORE STATEMENT;
 
@@ -586,7 +590,7 @@ BEGIN
             payload_tab(i).msg_key,
             transaction_id
     );
-  payload_tab.DELETE;#{"\n  Expression_Tab.DELETE;" unless trigger_config[:column_expressions].empty?}
+  payload_tab.DELETE;#{"\n  Expression_Tab.DELETE;" unless columns_from_expression(table, operation).empty?}
   #{"COMMIT;" if mode == :load}
 END Flush;
 "
@@ -608,8 +612,8 @@ END Flush;
         # Insert the INTO clause before "FROM"
         from_index = sql.index(/FROM/i) # Use /FROM/i for case-insensitive search
         raise "Column expression \"#{expression[:sql]}\" for table #{table.name} and operation '#{operation}' does not contain a FROM clause" if from_index.nil?
-        target = determine_expression_json_object(expression, columns_from_expression(table, operation), operation)
         expression_columns = columns_from_expression(table, operation)          # Columns relevant for execution of this expression
+        target = determine_expression_json_object(expression, expression_columns, operation)
 
         sql = sql[0..from_index-1] + " INTO Expression_Result " + sql[from_index..-1]
         # replace :new and :old qualifiers with Expression_Rec.
@@ -692,7 +696,7 @@ END;
     column_name
   rescue Exception => e
     Rails.logger.error('DbTriggerGeneratorOracle.expression_result_column_name'){ "Error determining column name for expression SQL '#{rebound_sql}': #{e.message}" }
-    raise "DbTriggerGeneratorOracle.expression_result_column_name: Error determining column name! Ensure valid column name in SQL!\nExpression SQL '#{rebound_sql}': #{e.message}"
+    raise "DbTriggerGeneratorOracle.expression_result_column_name: Error determining column name! Ensure valid column name (<=30 chars) for expression result in SQL!\nExpression SQL '#{rebound_sql}': #{e.message}"
   end
 
   # determine the JSON object in payload (old or new) for column expression results

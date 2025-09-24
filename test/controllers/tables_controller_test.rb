@@ -19,7 +19,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
       Database.execute "DELETE FROM Tables WHERE Schema_ID = :schema_id AND Name = :name", binds: {schema_id:victim_schema.id, name: table_name}
     end
 
-    assert_difference('Table.count') do
+    assert_difference('Table.all.select{|t| t.yn_hidden == "N" }.count') do
       post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info' } }, as: :json
     end
     assert_response 201
@@ -27,7 +27,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
     remove_created_table('VICTIM3')                                             # Remove Tables-record for next try with same name
 
-    assert_difference('Table.count') do
+    assert_difference('Table.all.select{|t| t.yn_hidden == "N" }.count') do
       post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
     end
     assert_response 201

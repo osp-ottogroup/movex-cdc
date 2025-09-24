@@ -87,6 +87,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
         table.conditions.each do |condition|
           compare_hash_with_ar_record(exported_table['conditions']&.find{|e| e['operation'] == condition.operation}, condition)
         end
+        table.column_expressions.each do |ce|
+          compare_hash_with_ar_record(exported_table['column_expressions']&.find{|e| e['operation'] == ce.operation && e['sql'] == ce.sql}, ce)
+        end
       end
       schema.schema_rights.each do |schema_right|
         compare_hash_with_ar_record(exported_schema['schema_rights']&.find{|e| e['email'] == schema_right.user.email}, schema_right)

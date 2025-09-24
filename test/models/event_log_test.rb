@@ -72,7 +72,9 @@ class EventLogTest < ActiveSupport::TestCase
   end
 
   test "health_check_status" do
-    EventLog.health_check_status
+    assert_nothing_raised do
+      EventLog.health_check_status
+    end
   end
 
   test "check_and_drop_partition" do
