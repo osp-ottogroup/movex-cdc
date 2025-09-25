@@ -318,8 +318,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     # build result for requested table
     search_operation = operation == 'i' ? 'I' : operation                       # map 'i' to 'I' for load operation
     if @columns_from_expression.has_key?(table.name) && @columns_from_expression[table.name].has_key?(search_operation)
-      # TODO: Remove debug output
-      puts "Columns from expressions for table #{table.name} and operation #{search_operation}: #{@columns_from_expression[table.name][search_operation].count}" if Rails.env.test?
       @columns_from_expression[table.name][search_operation]
     else
       {}

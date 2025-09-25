@@ -87,7 +87,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       Rails.logger.debug('HousekeepingTest.check_partition_interval'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
       log_partition_state(false, 'set_high_value_time before splitting')
       # TODO: Is something missing here? SET INTERVAL ()
-      Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"                     # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
+      # Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()"                     # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
       # Remove all range partitions except the first partition
       Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO' AND Partition_Position > 1").each do |p|
@@ -97,7 +97,9 @@ class HousekeepingTest < ActiveSupport::TestCase
       Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
-      Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
+      # Do not remove the younger partition because it may be needed to keep the number of partitions >= 2
+      # This is needed because otherwise the Interval will not set the intavl to a valid value
+      # Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
       log_partition_state(false, 'set_high_value_time after splitting')
     end
     EventLog.adjust_interval                                                    # adjust in DB according to MovexCdc::Application.config.partition_interval
