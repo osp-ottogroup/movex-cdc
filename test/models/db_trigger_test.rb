@@ -419,9 +419,11 @@ class DbTriggerTest < ActiveSupport::TestCase
   test "column expression with multiple result columns" do
     return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT :new.ID ID, :new.Name Name FROM DUAL").save!
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT :new.ID ID, :new.Name Name FROM DUAL")
+      ce.save!
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
       assert_equal 'VICTIM3', result[:errors].first[:table_name],     log_on_failure('Trigger creation should fail due to multiple columns in column expression')
+      ce.delete                                                                 # Restore original state
     end
   end
 
@@ -433,7 +435,8 @@ class DbTriggerTest < ActiveSupport::TestCase
                  else
                    "SELECT '{\"Expression\":\"' || :new.ID || '-' || :new.Name || '\"}' SingleObject FROM DUAL"
                  end
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql).save!
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
+      ce.save!
 
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
       assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
@@ -443,34 +446,41 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
                    'Event_Log record with column expression should have been created')
       check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"Expression\":\"1-Name1\"}")
+      ce.delete                                                                 # Restore original state
     end
   end
 
   test "update expression with old and new or without should end in new section" do
     return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL").save!
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL").save!
+      ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL")
+      ce1.save!
+      ce2 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL")
+      ce2.save!
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
       assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM3 SET Name = 'Name2' WHERE ID = 1")
       check_event_logs_for_content(victim3_table.id, 'U', "\"old\": {}")
       check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\"Expression2\":\"Hugo\"}")
+      ce1.delete                                                                # Restore original state
+      ce2.delete                                                                # Restore original state
     end
   end
 
   test "expression without old or new reference should not build Extension_Rec or Extension_Tab" do
     return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL").save!
-      ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE2\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val2 FROM DUAL").save!
+      ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL")
+      ce1.save!
+      ce2 = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE2\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val2 FROM DUAL")
+      ce2.save!
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
       assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
       check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"SYSDATE1\":\"")
+      ce1.delete                                                                # Restore original state
+      ce2.delete                                                                # Restore original state
     end
-
-
   end
 end
