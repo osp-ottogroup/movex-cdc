@@ -820,9 +820,14 @@ END;
 
   def payload_command_internal(trigger_config, old_new, indent)
     if @use_json_object
-      result = "'\"#{old_new}\": ' ||\n#{indent}JSON_OBJECT(\n"
-      result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
-      result << "\n#{indent})"
+      result = "'\"#{old_new}\": ' ||"
+      if trigger_config[:columns].empty?                                        # empty object if no columns defined
+        result << "'{}'"                                                        # JSON_OBJECT in PL/SQL < 23ai raises for empty column list PLS-00103: Encountered the symbol ")" when expecting one of the following:
+      else
+        result << "\n#{indent}JSON_OBJECT(\n"
+        result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
+        result << "\n#{indent})"
+      end
     else
       result = "'\"#{old_new}\": {'||\n"
       result << trigger_config[:columns].map {|c| "  #{indent}'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
