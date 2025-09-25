@@ -139,7 +139,7 @@ class HousekeepingTest < ActiveSupport::TestCase
                              OR     (    Interval = 'NO'
                                      AND EXISTS (SELECT 1 FROM Partitions pi
                                                  WHERE  pi.Interval = 'NO'
-                                                 AND    pi.Partition_Position > p.Partition_Position
+                                                 AND    pi.Partition_Position < p.Partition_Position
                                                 )
                                     )
                              ORDER BY Partition_Position
