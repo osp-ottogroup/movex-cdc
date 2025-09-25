@@ -241,7 +241,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         log_partition_state(false, 'before check_partition_interval')
         Housekeeping.get_instance.check_partition_interval
         log_partition_state(false, 'after check_partition_interval')
-        assert_equal 2, Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"), log_on_failure("There should be two partitions")
+        assert_equal 2, Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"), log_on_failure("There should be two or more partitions")
         current_hv = get_time_from_high_value(1)
         assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
