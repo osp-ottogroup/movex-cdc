@@ -826,7 +826,7 @@ END;
         result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
         result << "\n#{indent})"
       else
-        result = "{'||\n"
+        result << "{'||\n"
         result << trigger_config[:columns].map {|c| "  #{indent}'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
         result << "#{indent}||'}'"
       end
