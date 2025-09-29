@@ -137,10 +137,10 @@ class HousekeepingTest < ActiveSupport::TestCase
                              FROM   Partitions p
                              WHERE  Interval = 'YES'
                              OR     (    Interval = 'NO'
-                                     AND EXISTS (SELECT 1 FROM Partitions pi
-                                                 WHERE  pi.Interval = 'NO'
-                                                 AND    pi.Partition_Position < p.Partition_Position
-                                                )
+                                     /* Do not drop the last range partition to avoid ORA-14758, at least for Rel. 12.1 */
+                                     AND Partition_Position != (SELECT MAX(pi.Partition_Position)
+                                                                FROM   Partitions pi
+^^                                                              WHERE  pi.Interval = 'NO')
                                     )
                              ORDER BY Partition_Position
                             ").each do |p|
