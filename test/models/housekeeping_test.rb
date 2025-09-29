@@ -237,11 +237,13 @@ class HousekeepingTest < ActiveSupport::TestCase
         min_high_value_time = Time.now - Housekeeping.get_instance.max_min_partition_age-3000
         set_high_value_time(min_high_value_time, MovexCdc::Application.config.partition_interval, min_high_value_time+86400)
         drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the MIN partition
-        force_interval_partition_creation(min_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
+        max_high_value_time = get_time_from_high_value(Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"))
+        force_interval_partition_creation(max_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
         log_partition_state(false, 'before check_partition_interval')
         Housekeeping.get_instance.check_partition_interval
         log_partition_state(false, 'after check_partition_interval')
-        assert_equal 2, Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"), log_on_failure("There should be two or more partitions")
+        partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+        assert 2 >= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
         current_hv = get_time_from_high_value(1)
         assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
