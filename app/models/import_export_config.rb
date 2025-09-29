@@ -356,7 +356,7 @@ class ImportExportConfig
     # Insert or update column_expressions
     table_hash['column_expressions']&.each do |ce_hash|
       raise "ColumnExpression element of table '#{table_hash['name']}' should be of type Hash but is a #{ce_hash.class} with content '#{ce_hash}'" unless ce_hash.is_a? Hash
-      existing_ce = ColumnExpression.where(table_id: table.id, operation: ce_hash['operation']).select{|ce| ce.sql == ce_hash[:sql] }.first
+      existing_ce = ColumnExpression.where(table_id: table.id, operation: ce_hash['operation']).select{|ce| ce.sql == ce_hash['sql'] }.first
       if existing_ce.nil?
         ColumnExpression.new(relevant_import_data(ce_hash, ColumnExpression).merge('table_id' => table.id)).save!
       else

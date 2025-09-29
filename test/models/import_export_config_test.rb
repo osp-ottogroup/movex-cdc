@@ -8,6 +8,10 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version', 'last_trigger_deployment'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
   end
 
+  # Compare a hash from export with an AR record
+  # The hash must contain all relevant column names of the AR record
+  # # param [Hash] export_hash Hash from export
+  # # param [ActiveRecord] ar_record AR record to compare with
   def compare_hash_with_ar_record(export_hash, ar_record)
     assert(!export_hash.nil?, "#{ar_record.class} (#{ar_record}) should exist in result" )
     extract_column_names(ar_record.class).each do |col|

@@ -179,14 +179,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       }
     end
 
-    # TODO: remove debug output
-    if Rails.env.test?
-      msg = "Build expected trigger list : #{expected_trigger_operation_expressions.count}"
-      Rails.logger.debug('DbTriggerGeneratorOracle.build_expected_trigger_list'){ msg }
-      puts msg
-    end
-
-
     expected_triggers = {}
 
     # Mark table and operation if requested by column or expression
@@ -608,12 +600,6 @@ END Flush;
   # @param [Hash] trigger_config: config for operation of table { columns: [], condition:, column_expressions: [] }
   # @return [String] PL/SQL code for execution of column expressions
   def build_expression_execution_section(table, operation, trigger_config)
-    # TODO: remove debug output
-    if Rails.env.test?
-      msg = "Build expression execution section for table #{table.name} and operation #{operation}, column expressions: #{trigger_config[:column_expressions].count}"
-      Rails.logger.debug('DbTriggerGeneratorOracle.build_expression_execution_section'){ msg }
-      puts msg
-    end
     code = String.new
     unless trigger_config[:column_expressions].empty?
       code << "\n  /* Execute column expressions for each record */\n"
