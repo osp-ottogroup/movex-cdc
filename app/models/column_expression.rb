@@ -11,7 +11,7 @@ class ColumnExpression < ApplicationRecord
   def validate_for_duplicates
     ColumnExpression.where(table_id: table_id, operation: operation).where.not(id: id).each do |ce|
       if ce.sql == sql
-        errors.add(:base, "Duplicate entry found for table_id: #{table_id} and operation: #{operation} with same SQL. Existing record id: #{ce.id}")
+        errors.add(:base, "Duplicate entry found in Column_Expressions for table: #{table.name} and operation: #{operation} with same SQL. Existing record id: #{ce.id}")
       end
     end
   end

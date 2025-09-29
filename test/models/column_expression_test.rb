@@ -22,7 +22,7 @@ class ColumnExpressionTest < ActiveSupport::TestCase
       assert_not_nil(existing, log_on_failure('Should find existing column_expression for duplicate test'))
       duplicate = ColumnExpression.new(table_id: existing.table_id, operation: existing.operation, sql: existing.sql)
       run_with_current_user { assert_not(duplicate.valid?, 'Duplicate column_expression should not be valid') }
-      assert(duplicate.errors[:base].any? { |e| e.include?('Duplicate entry found for table_id') }, log_on_failure('Should have duplicate error message'))
+      assert(duplicate.errors[:base].any? { |e| e.include?('Duplicate entry found') }, log_on_failure('Should have duplicate error message'))
     end
   end
 end

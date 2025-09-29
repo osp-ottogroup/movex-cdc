@@ -582,7 +582,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT new.Name AS Combined3 FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
         ).save!
         # Array result for update with multiple rows
@@ -595,7 +595,7 @@ class GlobalFixtures
                                       # Rel. 12 requires WITHIN GROUP clause and no JSON_OBJECT function
                                       "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ') WITHIN GROUP (ORDER BY 1)||' ]' ArrayList FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT new.Name AS ArrayList FROM #{@@victim1_table.name} WHERE ID = new.ID"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
@@ -606,7 +606,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT old.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = old.ID"
+                                  when 'SQLITE' then "SELECT old.Name AS Combined4 FROM #{@@victim1_table.name} WHERE ID = old.ID"
                                   end
         ).save!
 
