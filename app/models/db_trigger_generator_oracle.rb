@@ -320,7 +320,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     if @columns_from_expression.has_key?(table.name) && @columns_from_expression[table.name].has_key?(search_operation)
       # TODO: Remove debug output
       if Rails.env.test?
-        msg = "Columns from expressions for table #{table.name} and operation #{search_operation}: #{@columns_from_expression[table.name][search_operation].count}"
+        msg = "Columns from expressions for table #{table.name} and operation #{search_operation}: #{@columns_from_expression[table.name][search_operation].count}, caller: #{caller[0]}"
         Rails.logger.debug('DbTriggerGeneratorOracle.columns_from_expression'){ msg }
       end
       @columns_from_expression[table.name][search_operation]
