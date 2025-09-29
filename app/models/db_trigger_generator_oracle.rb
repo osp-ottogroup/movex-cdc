@@ -179,6 +179,14 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
       }
     end
 
+    # TODO: remove debug output
+    if Rails.env.test?
+      msg = "Build expected trigger list : #{expected_trigger_operation_expressions.count}"
+      Rails.logger.debug('DbTriggerGeneratorOracle.build_expected_trigger_list'){ msg }
+      puts msg
+    end
+
+
     expected_triggers = {}
 
     # Mark table and operation if requested by column or expression
@@ -318,11 +326,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
     # build result for requested table
     search_operation = operation == 'i' ? 'I' : operation                       # map 'i' to 'I' for load operation
     if @columns_from_expression.has_key?(table.name) && @columns_from_expression[table.name].has_key?(search_operation)
-      # TODO: Remove debug output
-      if Rails.env.test?
-        msg = "Columns from expressions for table #{table.name} and operation #{search_operation}: #{@columns_from_expression[table.name][search_operation].count}, caller: #{caller[0]}"
-        Rails.logger.debug('DbTriggerGeneratorOracle.columns_from_expression'){ msg }
-      end
       @columns_from_expression[table.name][search_operation]
     else
       {}
