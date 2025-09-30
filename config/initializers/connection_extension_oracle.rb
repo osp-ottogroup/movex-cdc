@@ -25,6 +25,18 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
       raw_connection.setStatementCacheSize(JDBC_STATEMENT_CACHE_SIZE)
     end
 
+    if !Rails.env.production?
+      begin
+        statement = raw_connection.createStatement
+        statement.executeUpdate("ALTER SESSION SET Statistics_Level = ALL")
+        Rails.logger.debug('..JDBCConnection.new_connection'){ "Oracle session statistics level set to ALL" }
+      rescue Exception => e
+        Rails.logger.error('..JDBCConnection.new_connection'){ "Unable to set Oracle session statistics level to ALL: #{e.message}" }
+      ensure
+        statement.close if statement
+      end
+    end
+
     raw_connection                                                              # return result of original method
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'JDBCConnection.new_connection', additional_msg: "Error establishing connection to DB", decorate_additional_message_next_lines: false)

@@ -120,7 +120,6 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
       cursor.close if defined?(cursor) && !cursor.nil?
     end
   end #iterate_query
-
 end #class_eval
 
 class DatabaseOracle

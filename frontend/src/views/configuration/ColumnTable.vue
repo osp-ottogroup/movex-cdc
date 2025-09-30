@@ -35,7 +35,7 @@
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('I')" @click="onEditCondition('I')"></b-button>
             </b-tooltip>
-            <b-tooltip label="Maintain additional columns by SQL expressions for the insert trigger">
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the insert trigger">
               <b-button size="is-small" :icon-left="columnExpressionIcon('I')" @click="onEditColumnExpression('I')"></b-button>
             </b-tooltip>
           </div>
@@ -60,7 +60,7 @@
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('U')" @click="onEditCondition('U')"></b-button>
             </b-tooltip>
-            <b-tooltip label="Maintain additional columns by SQL expressions for the update trigger">
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the update trigger">
               <b-button size="is-small" :icon-left="columnExpressionIcon('U')" @click="onEditColumnExpression('U')"></b-button>
             </b-tooltip>
           </div>
@@ -85,7 +85,7 @@
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('D')" @click="onEditCondition('D')"></b-button>
             </b-tooltip>
-            <b-tooltip label="Maintain additional columns by SQL expressions for the delete trigger">
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the delete trigger">
               <b-button size="is-small" :icon-left="columnExpressionIcon('D')" @click="onEditColumnExpression('D')"></b-button>
             </b-tooltip>
           </div>
