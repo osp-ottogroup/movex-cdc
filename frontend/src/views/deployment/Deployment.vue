@@ -167,6 +167,10 @@ export default {
         }
         if (response.data) {
           this.deployResultList = this.prepareResults(response.data.results);
+          this.$buefy.toast.open({
+            message: 'Deployment completed! Please check the results in the list below.',
+            type: 'is-info',
+          });
         }
       } catch (e) {
         this.showErrorNotification(e, 'An error occurred while deploying the triggers');

@@ -1,9 +1,11 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
+# 2025-10-01 1.13.1
 - SQL expressions for JSON attributes are supported now in addition to table columns. This allows to include values from joined tables in the JSON event.
 - JDBC statement cache reduced from 100 to 50 to avoid ORA-01000: maximum number of open cursors exceeded   
 - New configuration parameter MEMORY_COLLECTION_FLUSH_LIMIT introduced to control the memory consumption of the in-memory collection of change events before flushing to DB. Default is 1,000 events.
+- New configuration parameter SYSTEM_VALIDATION_JOB_CYCLE introduced to control the job for housekeeping and worker thread restart. Default is 60 seconds.
 
 ## 2025-09-16 1.12.4.1
 - Bufix: Bind variables are used for hearbeat check to prevent from ORA-01000: maximum number of open cursors exceeded

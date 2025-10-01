@@ -449,7 +449,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
 
       assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
-                   'Event_Log record with column expression should have been created')
+                   'Event_Log record with SQL expression should have been created')
       check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"Expression\":\"1-Name1\"}")
       ce.delete                                                                 # Restore original state
     end

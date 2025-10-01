@@ -293,7 +293,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         end
 
         expression_columns.each do |c|
-          raise "Column expression '#{ce.sql}' does contain a reference to not existing column by #{c[:qualifier]}.#{c[:column_name]}" unless all_tab_columns[ce.table_name].has_key?(c[:column_name])
+          raise "SQL expression '#{ce.sql}' does contain a reference to not existing column by #{c[:qualifier]}.#{c[:column_name]}" unless all_tab_columns[ce.table_name].has_key?(c[:column_name])
           @columns_from_expression[ce.table_name] = {} unless @columns_from_expression.has_key?(ce.table_name)
           all_tab_column = all_tab_columns[ce.table_name][c[:column_name]]      # Data structure for column
           @columns_from_expression[ce.table_name][ce.operation] = {} unless @columns_from_expression[ce.table_name].has_key?(ce.operation)
@@ -609,7 +609,7 @@ END Flush;
 
         # Insert the INTO clause before "FROM"
         from_index = sql.index(/FROM/i) # Use /FROM/i for case-insensitive search
-        raise "Column expression \"#{expression[:sql]}\" for table #{table.name} and operation '#{operation}' does not contain a FROM clause" if from_index.nil?
+        raise "SQL expression \"#{expression[:sql]}\" for table #{table.name} and operation '#{operation}' does not contain a FROM clause" if from_index.nil?
         expression_columns = columns_from_expression(table, operation)          # Columns relevant for execution of this expression
         target = determine_expression_json_object(expression, expression_columns, operation)
 
@@ -630,11 +630,11 @@ END Flush;
         code << "    ELSIF Expression_Result IS NULL THEN                       /* Doesn't the expression return a result */\n"
         code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\":null';\n"
         code << "    ELSE \n"
-        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of column expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array nor NULL!');\n"
+        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of SQL expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array nor NULL!');\n"
         code << "    END IF; \n"
 
         # Now insert the result into the JSON payload in the correct object ("new" or "old")
-        code << "    /* Insert result of column expression into object of JSON payload */\n"
+        code << "    /* Insert result of SQL expression into object of JSON payload */\n"
         if target == 'old' && operation == 'U'                                  # special handling for update because old and new object exist
           code << "    Position := INSTR(payload_tab(i).Payload, '},\n\"new\": {');                                                    /* Position of last } of \"old\" object incl. newline and \"new\" in following line */\n"
           code << "    IF Position = 0 THEN\n"
@@ -678,7 +678,7 @@ BEGIN
   DBMS_SQL.PARSE(cursor_id, '#{escaped_sql}', DBMS_SQL.NATIVE);
   DBMS_SQL.DESCRIBE_COLUMNS(cursor_id, col_count, desc_tab);
   IF col_count != 1 THEN
-    RAISE_APPLICATION_ERROR(-20001, 'Column expression SQL \"#{escaped_sql}\" does not return exactly one column but '||col_count||' columns!');
+    RAISE_APPLICATION_ERROR(-20001, 'SQL expression \"#{escaped_sql}\" does not return exactly one column but '||col_count||' columns!');
   END IF;
   :col_name := desc_tab(1).col_name;
   DBMS_SQL.CLOSE_CURSOR(cursor_id);
