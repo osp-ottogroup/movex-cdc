@@ -260,7 +260,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   end
 
   # only check for not touching other schemas during import
-  test 'import single schema' do
+  test 'import single schema from full export' do
     exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
     schema0 = Schema.where(name: exported_data['schemas'][0]['name']).first
     org_topic = schema0.topic
@@ -277,6 +277,33 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
     # Restore original state
     run_with_current_user { Schema.find(schema0.id).update!(topic: org_topic) }
+  end
+
+  test 'import all from single schema export' do
+    exported_data = ImportExportConfig.new.export(single_schema_name: victim_schema.name) # get JSON data for single schema to test for import
+    org_topic = victim_schema.topic
+    exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }  # Import the whole document
+
+    Schema.all.each do |schema|
+      if schema.id == victim_schema.id
+        assert_equal('CHANGED_TOPIC', schema.topic, 'The victim_schema should be updated')
+      else
+        assert_not_equal('CHANGED_TOPIC', schema.topic, 'The other schemas should not be updated')
+      end
+    end
+
+    SchemaRight.all.each do |sr|
+      assert_equal(victim_schema.id, sr.schema_id, log_on_failure('Only schema rights for the victim_schema should remain, all others should be deleted'))
+    end
+
+    Table.where(yn_hidden: 'N').each do |t|
+      assert_equal(victim_schema.id, t.schema_id, log_on_failure('Only tables for the victim_schema should remain, all others should be marked hidden'))
+    end
+
+
+    # Restore original state
+    run_with_current_user { Schema.find(victim_schema.id).update!(topic: org_topic) }
   end
 
   test 'import schema with missing user' do
