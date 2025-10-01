@@ -77,26 +77,38 @@ export default {
   },
   methods: {
     async onImportClicked() {
-      try {
-        this.isLoading = true;
-        const jsonText = await this.file.text();
-        const json = JSON.parse(jsonText);
-        // TODO: Reduce JSON-File to all or selected schemas + 'users' section
-        await CRUDService.config.import({ json_data: json });
-        this.$buefy.toast.open({
-          message: 'Import was successful!',
-          type: 'is-success',
-        });
-      } catch (e) {
-        this.$buefy.notification.open({
-          message: getErrorMessageAsHtml(e),
-          type: 'is-danger',
-          indefinite: true,
-          position: 'is-top',
-        });
-      } finally {
-        this.isLoading = false;
-      }
+      this.$buefy.dialog.confirm({
+        title: 'Acknowledge import',
+        message: 'Do you really want to import the whole document?<br><br>'
+          + 'If an existing schema is not contained in the document, it\'s schema rights and tables will be deleted !',
+        confirmText: 'Yes',
+        cancelText: 'No',
+        type: 'is-warning',
+        hasIcon: true,
+        canCancel: true,
+        onConfirm: async () => {
+          try {
+            this.isLoading = true;
+            const jsonText = await this.file.text();
+            const json = JSON.parse(jsonText);
+            // TODO: Reduce JSON-File to all or selected schemas + 'users' section
+            await CRUDService.config.import({ json_data: json });
+            this.$buefy.toast.open({
+              message: 'Import was successful!',
+              type: 'is-success',
+            });
+          } catch (e) {
+            this.$buefy.notification.open({
+              message: getErrorMessageAsHtml(e),
+              type: 'is-danger',
+              indefinite: true,
+              position: 'is-top',
+            });
+          } finally {
+            this.isLoading = false;
+          }
+        },
+      });
     },
     async onExportClicked() {
       try {
