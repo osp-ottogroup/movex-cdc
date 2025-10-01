@@ -308,7 +308,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       init_filter_date = case MovexCdc::Application.config.db_type
                          when 'ORACLE' then "Date_Val > TO_DATE('01.10.2020', 'DD.MM.YYYY')"
-                         when 'SQLITE' then "Date_Val > '2020-10-01'"
+                         when 'SQLITE' then "Date_Val > '2010-02-01'"
                          end
 
       [nil, "ID != #{max_victim_id}", init_filter_date].each do |init_filter|
