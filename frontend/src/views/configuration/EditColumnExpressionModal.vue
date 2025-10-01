@@ -9,6 +9,9 @@
         <b-field label="SQL Expression">
           <b-input v-model="localExpression.sql" type="textarea" rows="6" />
         </b-field>
+        <b-field label="Info">
+          <b-input type="textarea" rows="1" v-model="localExpression.info" />
+        </b-field>
       </section>
       <footer class="modal-card-foot">
         <b-button type="is-primary" @click="onSave">Save</b-button>

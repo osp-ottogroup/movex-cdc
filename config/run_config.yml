@@ -79,3 +79,6 @@
 
 # optional directory for tnsnames.ora for resolution if Oracle DB aliases
 # TNS_ADMIN: /etc
+
+# Number of seconds between two executions of the system validation job which controls housekeeping and restarts worker threads if needed.
+# SYSTEM_VALIDATION_JOB_CYCLE: 60

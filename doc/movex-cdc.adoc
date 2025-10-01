@@ -315,6 +315,7 @@ Ensures that API calls and js/css loads are properly extended with the used sub-
 |RUN_CONFIG|Path and name of configuration file in YML format as alternative to configuration by environment variables|APP_ROOT/config/run_config.yml
 |SECRET_KEY_BASE|Server side key used for encryption and signing of the JWT that is used for authentication|
 |SECRET_KEY_BASE_FILE|Location of file with server side key used for encryption and signing of the JWT that is used for authentication|
+|SYSTEM_VALIDATION_JOB_CYCLE|Number of seconds between two executions of the system validation job which controls housekeeping and restarts worker threads if needed.|60
 |TNS_ADMIN|Directory of config file tnsnames.ora for resolution of Oracle DB aliases (File tnsnames.ora is usually mounted into Docker-Container). Valid for Oracle only.|
 |TZ|Sets local timezone within the Docker-container of the applikation. Must be directly set as environment of container like `docker run -e TZ="Europe/London"`. +
 Setting of TZ does not work of set in run_config file only.|UTC

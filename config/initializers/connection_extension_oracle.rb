@@ -46,6 +46,9 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
   # Workaround for issue #2476 (method reset missing)
   def reset
     reset!
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'JDBCConnection.reset', additional_msg: "Error resetting connection to DB", decorate_additional_message_next_lines: false)
+    raise
   end
 
   def connect

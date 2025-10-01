@@ -4,7 +4,7 @@ class ColumnExpressionsController < ApplicationController
   # GET /column_expressions
   def index
     table_id = params.require(:table_id)                                        # Should only list column_expressions of specific table
-    table = Table.find table_id
+    table = Table.includes(:schema).find table_id
     Table.check_table_allowed_for_db_user(schema_name: table.schema.name, table_name: table.name)
     @column_expression = ColumnExpression.where table_id: table_id
     render json: @column_expression
@@ -55,6 +55,6 @@ class ColumnExpressionsController < ApplicationController
 
   # Only allow a trusted parameter "white list" through.
   def column_expression_params
-    params.fetch(:column_expression, {}).permit(:table_id, :operation, :sql, :lock_version)
+    params.fetch(:column_expression, {}).permit(:table_id, :operation, :sql, :info, :lock_version)
   end
 end
