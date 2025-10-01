@@ -26,7 +26,7 @@ class TableInitializationThread
     ApplicationController.set_current_user(@current_user)                       # set thread-specific info for the new thread
     ApplicationController.set_current_client_ip_info(@current_client_ip_info)   # set thread-specific info for the new thread
     table = Table.find(@table_id)                                               # Use only for short time because of possible concurrent updates
-    ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Start initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+    ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Start initial transfer of current table content. Filter = '#{table.initialization_filter}'")
     @db_session_info = Database.db_session_info                                 # Session ID etc., get information from within separate thread
     Database.set_current_session_network_timeout(timeout_seconds: 86400)        # ensure hanging sessions are cancelled at least after one day
     sleep 1                                                                     # prevent from ORA-01466 if table.raise_if_table_not_readable_by_movex_cdc is executed too quickly
@@ -34,7 +34,7 @@ class TableInitializationThread
     Database.execute @sql                                                       # Execute the load script, may take a long time
     table = Table.find(@table_id)                                               # Re-read table to get possible updates
     if MovexCdc::Application.config.db_type != 'ORACLE'                         # For Oracle the activity is logged in the load sql including the result count
-      ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+      ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{table.initialization_filter}'")
     end
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'TableInitializationThread.process', additional_msg: "Table_ID = #{@table_id}: Terminating thread due to exception")
