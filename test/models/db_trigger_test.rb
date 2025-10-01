@@ -306,7 +306,12 @@ class DbTriggerTest < ActiveSupport::TestCase
       sleep(4)                                                                  # avoid ORA-01466
       msgkeys = []                                                              # all valid keys are added again if list is empty
 
-      [nil, "ID != #{max_victim_id}"].each do |init_filter|
+      init_filter_date = case MovexCdc::Application.config.db_type
+                         when 'ORACLE' then "Date_Val > TO_DATE('01.10.2020', 'DD.MM.YYYY')"
+                         when 'SQLITE' then "Date_Val > '2020-10-01'"
+                         end
+
+      [nil, "ID != #{max_victim_id}", init_filter_date].each do |init_filter|
         init_order_by   = init_filter ? 'ID' : nil
         init_flashback  = init_filter ? 'Y' : 'N'
         [nil, insert_condition1, insert_condition2].each do |condition_filter|  # condition filter should be valid for execution inside trigger
@@ -340,7 +345,7 @@ class DbTriggerTest < ActiveSupport::TestCase
           end
 
           filtered_records_count = 0
-          filtered_records_count += 1 unless init_filter.nil?
+          filtered_records_count += 1 if !init_filter.nil? && init_filter["ID != "]
           filtered_records_count += 1 unless condition_filter.nil?
           event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs WHERE Operation = 'i'"
           result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
@@ -349,8 +354,8 @@ class DbTriggerTest < ActiveSupport::TestCase
             assert_equal 0, result[:errors].length, log_on_failure('No errors should occur')
           end
           assert_equal 1, result[:load_sqls].length, log_on_failure('load SQLs should be generated')
-          assert(result[:load_sqls][0][:sql]["ORDER BY #{init_order_by}"], "ORDER BY should be set in load_sql to '#{init_order_by}'") if init_order_by
-          assert(result[:load_sqls][0][:sql]["ORDER BY"].nil?, "ORDER BY should not be set in load_sql") if init_order_by.nil?
+          assert(result[:load_sqls][0][:sql]["ORDER BY #{init_order_by}"], log_on_failure("ORDER BY should be set in load_sql to '#{init_order_by}'")) if init_order_by
+          assert(result[:load_sqls][0][:sql]["ORDER BY"].nil?, log_on_failure("ORDER BY should not be set in load_sql")) if init_order_by.nil?
           case MovexCdc::Application.config.db_type
           when 'ORACLE' then
             assert(result[:load_sqls][0][:sql]["SCN"], "Flashback Query should be used according to yn_initialize_with_flashback") if init_flashback == 'Y'

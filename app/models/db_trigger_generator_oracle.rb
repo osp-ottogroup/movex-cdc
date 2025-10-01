@@ -527,7 +527,7 @@ BEGIN
           #{ApplicationController.current_user.id},
           '#{table.schema.name}',
           '#{table.name}',
-          'Initially transferred '||record_count||' records of current table content. Filter = \"#{table.initialization_filter}\"',
+          'Initially transferred '||record_count||' records of current table content. Filter = \"#{table.initialization_filter&.gsub("'", "''")}\"',
           '#{ApplicationController.current_client_ip_info}',
           CURRENT_TIMESTAMP, /* Time according to client timezone setting */
           CURRENT_TIMESTAMP
