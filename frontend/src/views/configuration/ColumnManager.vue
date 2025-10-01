@@ -21,6 +21,7 @@
     </template>
     <template v-if="columnExpressionModal.show">
       <column-expression-modal
+        ref="columnExpressionModal"
         :show="columnExpressionModal.show"
         :operation="columnExpressionModal.operation"
         :expressions="columnExpressionModal.expressions"
@@ -261,12 +262,14 @@ export default {
         if (newExpr.id) {
           await CRUDService.columnExpressions.update(newExpr.id, payload);
         } else {
-          CRUDService.columnExpressions.create_sync(payload);
+          await CRUDService.columnExpressions.create(payload);
         }
         this.$buefy.toast.open({
-          message: 'Expression gespeichert!',
+          message: 'Expression saved!',
           type: 'is-success',
         });
+        // inform the modal that an expression was saved and list should be reloaded
+        this.$refs.columnExpressionModal.$emit('expression-saved');
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
@@ -289,6 +292,8 @@ export default {
             message: 'Expression entfernt!',
             type: 'is-success',
           });
+          // inform the modal that an expression was removed and list should be reloaded
+          this.$refs.columnExpressionModal.$emit('expression-saved');
         }
       } catch (e) {
         this.$buefy.notification.open({

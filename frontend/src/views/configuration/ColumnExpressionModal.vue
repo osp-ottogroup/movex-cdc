@@ -66,6 +66,9 @@ export default {
       if (val) this.reloadExpressions();
     },
   },
+  mounted() {
+    this.$on('expression-saved', this.reloadExpressions);
+  },
   methods: {
     async reloadExpressions() {
       if (!this.tableId || !this.operation) return;
@@ -73,7 +76,7 @@ export default {
         const allExpr = await CRUDService.columnExpressions.getAll({ table_id: this.tableId });
         this.localExpressions = allExpr.filter((e) => e.operation === this.operation);
       } catch (e) {
-        // Fehlerbehandlung optional
+        console.log(`error in reloadExpressions ${e}`);
       }
     },
     openNewExpressionModal() {
@@ -94,13 +97,11 @@ export default {
       }
       this.$emit('save-expression', newExpr);
       this.editModal.show = false;
-      await this.reloadExpressions();
     },
     async removeExpression(expr) {
       const newExpr = { ...expr };
       this.$emit('remove-expression', newExpr);
       this.editModal.show = false;
-      await this.reloadExpressions();
     },
   },
 };
