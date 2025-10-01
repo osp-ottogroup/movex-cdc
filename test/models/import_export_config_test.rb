@@ -280,8 +280,8 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   end
 
   test 'import all from single schema export' do
+    org_exported_data = ImportExportConfig.new.export # get the whole JSON data to restore after test
     exported_data = ImportExportConfig.new.export(single_schema_name: victim_schema.name) # get JSON data for single schema to test for import
-    org_topic = victim_schema.topic
     exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
     run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }  # Import the whole document
 
@@ -301,9 +301,8 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       assert_equal(victim_schema.id, t.schema_id, log_on_failure('Only tables for the victim_schema should remain, all others should be marked hidden'))
     end
 
-
     # Restore original state
-    run_with_current_user { Schema.find(victim_schema.id).update!(topic: org_topic) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(org_exported_data) }
   end
 
   test 'import schema with missing user' do
