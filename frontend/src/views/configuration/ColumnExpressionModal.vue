@@ -1,14 +1,19 @@
 <template>
   <b-modal :active="show" @close="$emit('close')">
-    <div class="modal-card">
+    <div class="modal-card" style="width: 100%">
       <header class="modal-card-head">
-        <p class="modal-card-title">Column Expressions ({{ operation }})</p>
+        <p class="modal-card-title">SQL Expressions for operation '{{ operation }}'</p>
         <button class="delete" @click="$emit('close')"></button>
       </header>
       <section class="modal-card-body">
         <b-table :data="localExpressions" :striped="true" :hoverable="true">
           <b-table-column field="sql" label="SQL Expression" v-slot="props">
-            <span @click="editExpression(props.row)" style="cursor:pointer; color:#3273dc;">{{ props.row.sql }}</span>
+            {{ props.row.sql }}
+          </b-table-column>
+          <b-table-column label="" v-slot="props" class="is-pulled-right">
+            <b-tooltip label="Edit">
+              <b-button icon-right="pencil" size="is-small" @click="editExpression(props.row)"/>
+            </b-tooltip>
           </b-table-column>
         </b-table>
       </section>

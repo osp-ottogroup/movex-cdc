@@ -1,6 +1,6 @@
 <template>
   <b-modal :active="show" @close="$emit('close')">
-    <div class="modal-card">
+    <div class="modal-card" style="width: 100%">
       <header class="modal-card-head">
         <p class="modal-card-title">Edit Column Expression</p>
         <button class="delete" @click="$emit('close')"></button>
