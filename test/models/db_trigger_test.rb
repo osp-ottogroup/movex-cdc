@@ -80,11 +80,11 @@ class DbTriggerTest < ActiveSupport::TestCase
 
       key_expression_1 = case MovexCdc::Application.config.db_type
                           when 'ORACLE' then ":new.Name"
-                          when 'SQLITE' then "new.Name"  # SQLITE does not support colon before new/old
+                          when 'SQLITE' then "new.NAME"  # SQLITE does not support colon before new/old
                          end
       key_expression_2 = case MovexCdc::Application.config.db_type
                          when 'ORACLE' then "SELECT :new.Name FROM DUAL"  # Should be executed into variable
-                         when 'SQLITE' then "SELECT Bla"  # SQLITE does not support colon before new/old
+                         when 'SQLITE' then "SELECT new.NAME"  # SQLITE does not support colon before new/old
                          end
       # Execute test for each key handling type
       [
@@ -134,13 +134,6 @@ class DbTriggerTest < ActiveSupport::TestCase
           assert_not_nil result[:successes].select{|t| t[:trigger_name]["_U_"]}.first[:sql][" FOR UPDATE OF "], log_on_failure('Trigger SQL should contain column list for update trigger')
         end
 
-=begin
-    puts "Successes:" if result[:successes].count > 0
-    result[:successes].each do |s|
-      puts s
-    end
-=end
-
         if result[:errors].count > 0
           puts "Errors:"
           result[:errors].each do |e|
@@ -175,6 +168,13 @@ class DbTriggerTest < ActiveSupport::TestCase
           Rails.logger.info('DbTriggerTest.generate_triggers'){ e }
           JSON.parse("{ #{e['payload']} }")                                       # Check in generated JSON is valid
         end
+        last_event_log = EventLog.last
+        case key[:kafka_key_handling]
+        when 'E' then
+          # The column Name should be used as key
+          assert_equal(JSON.parse("{ #{last_event_log.payload} }")['new']['NAME'], last_event_log.msg_key, log_on_failure("Message key for E should be the column Name") )
+        end
+
       end
     end
   end

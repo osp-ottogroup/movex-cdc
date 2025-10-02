@@ -150,7 +150,7 @@ class ActiveSupport::TestCase
           DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
-      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, Name VARCHAR(20), PRIMARY KEY (ID))")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
     else

@@ -258,6 +258,7 @@ FROM   main.#{table.name}
     when 'P' then primary_key_sql(table, operation)
     when 'F' then "'#{table.fixed_message_key}'"
     when 'T' then "'Dummy Tx-ID'"
+    when 'E' then key_expression_sql(table, operation)
     else
       raise "Unsupported Kafka key handling type '#{table.kafka_key_handling}'"
     end
@@ -284,6 +285,25 @@ FROM   main.#{table.name}
     result << "||'}'"
 
     result
+  end
+
+  # get key expression sql for conversion to string
+  # called only if table.kafka_key_handling == 'E'
+  # @param table [Table] table object
+  # @param operation [String] 'I', 'U', 'D'
+  # @return [String] SQL expression
+  def key_expression_sql(table, operation)
+    expression = table.key_expression.dup
+    expression.strip!
+    case operation
+    when 'I', 'U' then expression.gsub!(/old\./i, 'new.')
+    when 'D' then expression.gsub!(/new\./i, 'old.')
+    end
+    if expression.match(/^SELECT/i) or expression.match(/^WITH/i)               # it is a SELECT statement
+      "(#{expression})"                                                         # Directly use susbselect in insert statement
+    else
+      expression
+    end
   end
 
   def old_new_compare(columns)
