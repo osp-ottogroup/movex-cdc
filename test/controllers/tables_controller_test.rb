@@ -16,6 +16,7 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
 
   test "should create table" do
     def remove_created_table(table_name)
+      StatisticCounterConcentrator.get_instance.flush_to_db                     # Make sure all table dependent data in memory is flushed to DB
       Database.execute "DELETE FROM Tables WHERE Schema_ID = :schema_id AND Name = :name", binds: {schema_id:victim_schema.id, name: table_name}
     end
 
