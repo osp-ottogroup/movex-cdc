@@ -284,7 +284,9 @@ module MovexCdc
     MovexCdc::Application.set_and_log_attrib_from_env(:max_simultaneous_transactions, default: 60, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_transaction_size, default: 10000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:max_worker_thread_sleep_time, default: 60, integer: true, minimum: 1)
+    MovexCdc::Application.set_and_log_attrib_from_env(:memory_collection_flush_limit, default: 1000, integer: true, minimum: 1)
     MovexCdc::Application.set_and_log_attrib_from_env(:partition_interval, default: 60, integer: true, minimum: 1, maximum: 6000000)
+    MovexCdc::Application.set_and_log_attrib_from_env(:system_validation_job_cycle, default: 60, integer: true, minimum: 10)
     MovexCdc::Application.set_and_log_attrib_from_env(:threads_for_api_requests, default: 20, integer: true)  # Number of threads and DB-sessions in pool to reserve for API request handling and jobs
 
     # Puma allocates 7 internal threads + one thread per allowed connection in connection pool

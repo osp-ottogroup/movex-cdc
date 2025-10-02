@@ -69,10 +69,12 @@ class EventLog < ApplicationRecord
   end
 
   def self.current_interval_seconds
-    Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) *
+    interval = Database.select_one "SELECT TO_NUMBER(SUBSTR(Interval, INSTR(Interval, '(')+1, INSTR(Interval, ',')-INSTR(Interval, '(')-1)) *
                                                        CASE WHEN INSTR(Interval, 'MINUTE') > 0 THEN 60 ELSE 1 /* seconds */ END
                                                 FROM   User_Part_Tables
                                                 WHERE  Table_Name = 'EVENT_LOGS'"
+    raise "Table EVENT_LOGS is not partitioned but should be for a DB supporting partitioning! Remove schema.rb and start again with an empty schema!" if interval.nil?
+    interval
   end
 
   # Adjust interval

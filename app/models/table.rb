@@ -2,6 +2,7 @@ class Table < ApplicationRecord
   belongs_to  :schema, optional: true  # optional: true is to avoid the extra lookup on reference for every DML. Integrity is ensured by FK constraint
   has_many    :columns
   has_many    :conditions
+  has_many    :column_expressions
 
   # Tables that do not exist in database no more but are configured for MOVEX CDC
   attribute   :yn_deleted_in_db, :string, limit: 1, default: 'N'
@@ -13,6 +14,23 @@ class Table < ApplicationRecord
   validate    :validate_yn_initialization
   validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
+
+  # create a table record or mark existing hidden table as visible
+  # used in TablesController#create and in DbTriggerGeneratorBase#create_load_sql
+  # @param [ActionController::Parameters|Hash] table_params the table parameters
+  # @return [Table] the created or updated table
+  def self.create_or_mark_visible(table_params)
+    tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
+    if tables.length > 0                                                        # table still exists
+      table = tables[0]
+      table.update(table_params.to_h.merge({yn_hidden: 'N'}))    # mark visible for GUI, store errors in table.errors if any
+      table
+    else
+      table = Table.new(table_params)
+      table.save                                                                # save-errors are in table.errors if any
+      table
+    end
+  end
 
   # get all tables for schema where the current user has SELECT grant
   def self.all_allowed_tables_for_schema(schema_id, db_user)
@@ -40,7 +58,7 @@ class Table < ApplicationRecord
     end
   end
 
-  VALID_KAFKA_KEY_HANDLINGS = ['N', 'P', 'F', 'T']
+  VALID_KAFKA_KEY_HANDLINGS = ['N', 'P', 'F', 'T', 'E']
   def kafka_key_handling_validate
     unless Table::VALID_KAFKA_KEY_HANDLINGS.include? kafka_key_handling
       errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{Table::VALID_KAFKA_KEY_HANDLINGS}")
@@ -56,6 +74,10 @@ class Table < ApplicationRecord
 
     if kafka_key_handling == 'T' && (yn_record_txid != 'Y')
       errors.add(:kafka_key_handling, "Kafka key handling 'T' (Transaction-ID) is not possible if transaction-ID is not recorded")
+    end
+
+    if kafka_key_handling == 'E' && key_expression.nil?
+      errors.add(:kafka_key_handling, "Kafka key handling 'E' (Expression) is not possible if no key expression is defined")
     end
   end
 
@@ -223,6 +245,10 @@ class Table < ApplicationRecord
     raise "Maintenance of table #{schema_name}.#{table_name} not allowed for DB user #{ApplicationController.current_user.db_user}"
   end
 
+  def delete
+    raise "Table #{self.schema.name}.#{self.name} cannot be deleted because of references! Use mark_hidden instead."
+  end
+
   # Alternative to destroy a table because it should physically exist with its ID because old triggers may still produce event_logs with this table_id
   def mark_hidden
     ActiveRecord::Base.transaction do
@@ -239,5 +265,18 @@ class Table < ApplicationRecord
     }
   end
 
+  def delete
+    # Ensure that all accumulated statistics are written to DB before table is deleted
+    # Otherwise flush_to_db may run in error because of missing Tables record for table_id
+    StatisticCounterConcentrator.get_instance.flush_to_db if Rails.env.test?
+    super
+  end
+
+  def destroy!
+    # Ensure that all accumulated statistics are written to DB before table is deleted
+    # Otherwise flush_to_db may run in error because of missing Tables record for table_id
+    StatisticCounterConcentrator.get_instance.flush_to_db if Rails.env.test?
+    super
+  end
 
 end

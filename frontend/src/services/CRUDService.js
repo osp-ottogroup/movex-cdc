@@ -16,6 +16,7 @@ export default {
     deselectAll: async (object) => (await HttpService.post(`${backendUrl}/columns/deselect_all_columns`, object)).data,
   },
   conditions: BaseCRUDService('conditions'),
+  columnExpressions: BaseCRUDService('column_expressions'),
   schemaRights: BaseCRUDService('schema_rights'),
   schemas: BaseCRUDService('schemas'),
   tables: {

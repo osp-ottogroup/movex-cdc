@@ -28,6 +28,7 @@ class TablesController < ApplicationController
     schema = Schema.find(table_params[:schema_id].to_i)
     Table.check_table_allowed_for_db_user(schema_name: schema.name, table_name: table_params[:name])
 
+=begin
     tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
     if tables.length > 0                                                        # table still exists
       @table = tables[0]
@@ -38,6 +39,13 @@ class TablesController < ApplicationController
     end
 
     if save_result
+      render json: @table, status: :created, location: @table
+    else
+      render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
+    end
+=end
+    @table = Table.create_or_mark_visible(table_params)
+    if @table.errors.empty?
       render json: @table, status: :created, location: @table
     else
       render json: { errors: @table.errors.full_messages }, status: :unprocessable_entity
@@ -71,9 +79,28 @@ class TablesController < ApplicationController
 
   # Only allow a trusted parameter "white list" through.
   def table_params
-    result = params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key,
-                                             :lock_version, :yn_record_txid, :yn_initialization, :initialization_filter,
-                                             :initialization_order_by, :yn_initialize_with_flashback, :yn_add_cloudevents_header)
+    result = params.fetch(:table, {}).permit(
+      :created_at,
+      :updated_at,
+      :encryption_key_id,
+      :id,
+      :schema_id,
+      :name,
+      :info,
+      :topic,
+      :kafka_key_handling,
+      :fixed_message_key,
+      :lock_version,
+      :yn_deleted_in_db,                                                        # pseudo column but returned by GUI
+      :yn_hidden,
+      :yn_record_txid,
+      :yn_initialization,
+      :initialization_filter,
+      :initialization_order_by,
+      :yn_initialize_with_flashback,
+      :yn_add_cloudevents_header,
+      :key_expression
+    )
     result[:initialization_filter]    = nil if result[:initialization_filter]&.strip   == ''  # catch empty strings with blanks
     result[:initialization_order_by]  = nil if result[:initialization_order_by]&.strip == ''
     result

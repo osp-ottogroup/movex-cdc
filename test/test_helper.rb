@@ -131,7 +131,7 @@ class ActiveSupport::TestCase
         END #{victim1_drop_trigger_name};
       ")
 
-      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Name VARCHAR2(20), Large_Text CLOB, PRIMARY KEY (ID))")
       exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{MovexCdc::Application.config.db_user}")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
@@ -150,7 +150,7 @@ class ActiveSupport::TestCase
           DELETE FROM Event_Logs WHERE 1=2;
         END;
       ")
-      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, Name VARCHAR(20), PRIMARY KEY (ID))")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
     else
@@ -460,6 +460,7 @@ class GlobalFixtures
         SchemaRight.delete_all
         User.delete_all
         Condition.delete_all
+        ColumnExpression.delete_all
         Column.delete_all
         Table.delete_all
         Schema.delete_all
@@ -551,6 +552,65 @@ class GlobalFixtures
                               end
         ).save!
 
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '19.1'
+                                      "SELECT JSON_OBJECT('Combined' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '19.1'
+                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '19.1'
+                                      "SELECT JSON_OBJECT('Combined3' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS Combined3 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        # Array result for update with multiple rows
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '19.1'
+                                      "SELECT '[ '||LISTAGG(JSON_OBJECT('New_Name' VALUE :new.Name, 'Old_Name' VALUE :old.name), ', ' )||' ]' ArrayList FROM DUAL"
+                                    else
+                                      # Rel. 12 requires WITHIN GROUP clause and no JSON_OBJECT function
+                                      "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ') WITHIN GROUP (ORDER BY 1)||' ]' ArrayList FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT new.Name AS ArrayList FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  end
+        ).save!
+        ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
+                             sql: case MovexCdc::Application.config.db_type
+                                  when 'ORACLE' then
+                                    if Database.db_version > '19.1'
+                                      "SELECT JSON_OBJECT('Combined4' VALUE :old.Name || '-' || :old.num_val) SingleObject FROM DUAL"
+                                    else
+                                      "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"
+                                    end
+                                  when 'SQLITE' then "SELECT old.Name AS Combined4 FROM #{@@victim1_table.name} WHERE ID = old.ID"
+                                  end
+        ).save!
+
+        # VICTIM2 should nat have a column expression to test trigger generation without column expressions
         Column.new(table_id: @@victim2_table.id, name: 'ID',          info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
         Column.new(table_id: @@victim2_table.id, name: 'LARGE_TEXT',  info: 'CLOB test',    yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y').save!
       ensure
@@ -615,7 +675,9 @@ class GlobalFixtures
 
   def self.victim_connection
     case MovexCdc::Application.config.db_type
-    when 'ORACLE' then @@victim_connection
+    when 'ORACLE' then
+      raise "GlobalFixtures.victim_connection not initialized" if !defined?(@@victim_connection) || @@victim_connection.nil?
+      @@victim_connection
     when 'SQLITE' then ActiveRecord::Base.connection                            # use currently active connection
     end
   end

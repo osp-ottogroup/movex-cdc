@@ -120,7 +120,6 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
       cursor.close if defined?(cursor) && !cursor.nil?
     end
   end #iterate_query
-
 end #class_eval
 
 class DatabaseOracle
@@ -143,7 +142,7 @@ class DatabaseOracle
       Rails.logger.info('DatabaseOracle.select_all_limit'){ "Exception #{e.class}:'#{e.message}' suppressed for SQL:\n#{stmt}" }
       []                                                                        # return empty result and proceed if empty partition has been dropped by housekeeping in the meantime
     else
-      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt};\nUsed binds: #{filter}") # force exception other than ORA-xxx
+      ExceptionHelper.log_exception(e, 'DatabaseOracle.select_all_limit',  additional_msg: "Erroneous SQL:\n#{stmt};\nUsed binds: #{filter}", decorate_additional_message_next_lines:false) # force exception other than ORA-xxx
       raise
     end
   end
@@ -155,7 +154,7 @@ class DatabaseOracle
     Rails.logger.debug('DatabaseOracle.exec_unprepared'){ "Executing:\n#{sql}" }
     ActiveRecord::Base.connection.get_jdbc_connection.exec(sql)
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}")
+    ExceptionHelper.log_exception(e, 'DatabaseOracle.exec_unprepared', additional_msg: "Erroneous SQL:\n#{sql}", decorate_additional_message_next_lines:false)
     raise
   end
 
@@ -174,7 +173,7 @@ class DatabaseOracle
       end
     end
   rescue Exception => e
-    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}")
+    ExceptionHelper.log_exception(e, name, additional_msg: "Erroneous SQL:\n#{stmt}", decorate_additional_message_next_lines:false)
     raise
   ensure
     cursor.close if defined? cursor && !cursor.nil?
@@ -200,6 +199,41 @@ class DatabaseOracle
     end
     @@cached_db_version
   end
+
+  # Execute a PL/SQL that returns a String/VARCHAR2
+  # @param [String] code  the PL/SQL code to execute, e.g. "DBMS_SQLDIAG.Report_SQL(SQL_ID => ?, Level => 'ALL')"
+  # @param [String] out_bind_name  the name of the out bind parameter, e.g. ":result"
+  # @param [Array] binds  the in parameters to bind [{name:, java_type:, value:}, ...]
+  # @return [String] the result of the bound out parameter as a String
+  def self.exec_plsql_returning_string(code, out_bind_name, binds = [])
+    begin
+      cs = ActiveRecord::Base.connection.raw_connection.prepare_call(code)
+      cs.register_out_parameter(out_bind_name, java.sql.Types::VARCHAR);        # Register the output parameter (return value) as an OUT parameter
+
+      binds.each do |bind|
+        case bind[:java_type]
+        when "STRING"
+          cs.set_string(bind[:name], bind[:value])                              # Set the input parameter
+        when "NUMBER"
+          cs.set_int(bind[:name], bind[:value])                                 # Set the input parameter
+        when "DATE"
+          cs.set_date(bind[:name], java.sql.Date.value_of(bind[:value]))        # Set the input parameter
+        else
+          raise ArgumentError, "Unsupported java_type: #{bind[:java_type]}"
+        end
+      end
+
+      cs.execute();
+      result = cs.get_string(out_bind_name);                                    # Result is of class oracle.sql.???
+      result
+    rescue Exception => e
+      Rails.logger.error('DatabaseOracle.exec_plsql_returning_string') { "Error '#{e.class} : #{e.message}' at execution of #{code}" }
+      raise e
+    ensure
+      cs&.close
+    end
+  end
+
 
   # Return the JDBC driver version as string
   # @return [String] JDBC driver version

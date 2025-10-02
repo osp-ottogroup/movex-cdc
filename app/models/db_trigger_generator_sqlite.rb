@@ -192,7 +192,7 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       when 'D' then ['old']
       end
 
-    payload = ''
+    payload = String.new
     accessors.each do |accessor|
       payload << "\"#{accessor}\": #{payload_json(trigger_config, accessor)}"
       payload << "," if accessors.length == 2 && accessor == 'old'
@@ -213,7 +213,7 @@ END;"
   end
 
   def payload_json(trigger_config, accessor)
-    json = "{"
+    json = "{".dup
     json << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
     json << "}"
     json
@@ -225,7 +225,7 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-SELECT #{table.id}, 'I', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'N')},
+SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'N')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
 FROM   main.#{table.name}
 "
@@ -258,6 +258,7 @@ FROM   main.#{table.name}
     when 'P' then primary_key_sql(table, operation)
     when 'F' then "'#{table.fixed_message_key}'"
     when 'T' then "'Dummy Tx-ID'"
+    when 'E' then key_expression_sql(table, operation)
     else
       raise "Unsupported Kafka key handling type '#{table.kafka_key_handling}'"
     end
@@ -277,13 +278,32 @@ FROM   main.#{table.name}
     pk_columns = Database.select_all("PRAGMA table_info(#{table.name})").select{|c| c.pk > 0}
     raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if pk_columns.length == 0
 
-    result = "'{'||"
+    result = "'{'||".dup
     result << pk_columns
                 .map{|pkc| "'\"#{pkc['name']}\": '||#{convert_col({column_name: pkc['name'], type: pkc['type']}, pk_accessor)}" }
                 .join("||','||")
     result << "||'}'"
 
     result
+  end
+
+  # get key expression sql for conversion to string
+  # called only if table.kafka_key_handling == 'E'
+  # @param table [Table] table object
+  # @param operation [String] 'I', 'U', 'D'
+  # @return [String] SQL expression
+  def key_expression_sql(table, operation)
+    expression = table.key_expression.dup
+    expression.strip!
+    case operation
+    when 'I', 'U' then expression.gsub!(/old\./i, 'new.')
+    when 'D' then expression.gsub!(/new\./i, 'old.')
+    end
+    if expression.match(/^SELECT/i) or expression.match(/^WITH/i)               # it is a SELECT statement
+      "(#{expression})"                                                         # Directly use susbselect in insert statement
+    else
+      expression
+    end
   end
 
   def old_new_compare(columns)
@@ -322,7 +342,7 @@ FROM   main.#{table.name}
   def convert_col(column_hash, accessor)
     local_accessor = accessor.nil? ? '' : "#{accessor}."
     col_expr = "#{local_accessor}#{column_hash[:column_name]}"
-    result = ''
+    result = String.new
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] =~ /datetime/i
     result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] =~ /number/i || column_hash[:type] =~ /int/i

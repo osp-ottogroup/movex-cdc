@@ -25,21 +25,23 @@ class TableInitializationThread
     Database.set_application_info("table init worker #{@table_id}/process")
     ApplicationController.set_current_user(@current_user)                       # set thread-specific info for the new thread
     ApplicationController.set_current_client_ip_info(@current_client_ip_info)   # set thread-specific info for the new thread
-    ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Start initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+    table = Table.find(@table_id)                                               # Use only for short time because of possible concurrent updates
+    ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Start initial transfer of current table content. Filter = '#{table.initialization_filter}'")
     @db_session_info = Database.db_session_info                                 # Session ID etc., get information from within separate thread
     Database.set_current_session_network_timeout(timeout_seconds: 86400)        # ensure hanging sessions are cancelled at least after one day
-    sleep 1                                                                     # prevent from ORA-01466 if @table.raise_if_table_not_readable_by_movex_cdc is executed too quickly
-    @table.raise_if_table_not_readable_by_movex_cdc                             # Check if flashback query is possible on table
-    Database.execute @sql
+    sleep 1                                                                     # prevent from ORA-01466 if table.raise_if_table_not_readable_by_movex_cdc is executed too quickly
+    table.raise_if_table_not_readable_by_movex_cdc                              # Check if flashback query is possible on table
+    Database.execute @sql                                                       # Execute the load script, may take a long time
+    table = Table.find(@table_id)                                               # Re-read table to get possible updates
     if MovexCdc::Application.config.db_type != 'ORACLE'                         # For Oracle the activity is logged in the load sql including the result count
-      ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{@table.initialization_filter}'")
+      ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Successfully finished initial transfer of current table content. Filter = '#{table.initialization_filter}'")
     end
   rescue Exception => e
     ExceptionHelper.log_exception(e, 'TableInitializationThread.process', additional_msg: "Table_ID = #{@table_id}: Terminating thread due to exception")
-    ActivityLog.log_activity(schema_name: @table.schema.name, table_name: @table.name, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}\nExecuted SQL:\n#{@sql}")
+    ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}\nExecuted SQL:\n#{@sql}")
   ensure
     begin
-      @table.update!(yn_initialization: 'N')                                    # Mark initialization as finished no matter if succesful or not
+      table.update!(yn_initialization: 'N')                                    # Mark initialization as finished no matter if succesful or not
       TableInitialization.get_instance.remove_from_thread_pool(self)            # unregister from threadpool
       TableInitialization.get_instance.check_for_next_processing                # start next thread if there are still unprocessed requests
     rescue Exception => e
@@ -70,7 +72,6 @@ class TableInitializationThread
     @sql                    = request[:sql]
     @db_session_info        = 'set later in new thread'                         # Session ID etc.
     @start_time             = Time.now
-    @table                  = Table.find(@table_id)
     @current_user           = request[:current_user]
     @current_client_ip_info = request[:current_client_ip_info]
     @thread                 = nil                                               # set in process

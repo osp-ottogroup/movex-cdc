@@ -6,16 +6,30 @@
                   :table="table"
                   :columns="mergedColumns"
                   :activeConditionTypes="activeConditionTypes"
+                  :activeColumnExpressionTypes="activeColumnExpressionTypes"
                   @column-changed="onColumnChanged"
                   @select-all="onSelectAll"
                   @deselect-all="onDeselectAll"
                   @edit-condition="onEditCondition"
+                  @edit-column-expression="onEditColumnExpression"
                   @remove-column="onRemoveColumn"/>
     <template v-if="conditionModal.show">
       <condition-modal :condition="conditionModal.condition"
                        @saved="onConditionSaved"
                        @removed="onConditionRemoved"
                        @close="onCloseConditionModal"/>
+    </template>
+    <template v-if="columnExpressionModal.show">
+      <column-expression-modal
+        ref="columnExpressionModal"
+        :show="columnExpressionModal.show"
+        :operation="columnExpressionModal.operation"
+        :expressions="columnExpressionModal.expressions"
+        :table-id="table.id"
+        @close="onCloseColumnExpressionModal"
+        @save-expression="onSaveColumnExpression"
+        @remove-expression="onRemoveColumnExpression"
+      />
     </template>
   </div>
 </template>
@@ -25,12 +39,14 @@ import CRUDService from '@/services/CRUDService';
 import { getErrorMessageAsHtml } from '@/helpers';
 import ColumnTable from './ColumnTable.vue';
 import ConditionModal from './ConditionModal.vue';
+import ColumnExpressionModal from './ColumnExpressionModal.vue';
 
 export default {
   name: 'ColumnManager',
   components: {
     ColumnTable,
     ConditionModal,
+    ColumnExpressionModal,
   },
   props: {
     schema: { type: Object, default: () => {} },
@@ -42,10 +58,16 @@ export default {
       dbColumns: [],
       mergedColumns: [],
       activeConditionTypes: {},
+      activeColumnExpressionTypes: {},
       isLoading: false,
       conditionModal: {
         show: false,
         condition: {},
+      },
+      columnExpressionModal: {
+        show: false,
+        operation: '',
+        expressions: [],
       },
     };
   },
@@ -124,6 +146,17 @@ export default {
         conditions.forEach((condition) => {
           this.$set(this.activeConditionTypes, condition.operation, condition);
         });
+
+        // load all column expressions per table
+        const columnExpressions = await CRUDService.columnExpressions.getAll({ table_id: table.id });
+        this.activeColumnExpressionTypes = {};
+        const result = { I: [], U: [], D: [] };
+        columnExpressions.forEach((colExpr) => {
+          result[colExpr.operation].push(colExpr);
+        });
+        this.$set(this.activeColumnExpressionTypes, 'I', result.I);
+        this.$set(this.activeColumnExpressionTypes, 'U', result.U);
+        this.$set(this.activeColumnExpressionTypes, 'D', result.D);
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
@@ -208,6 +241,70 @@ export default {
     },
     onCloseConditionModal() {
       this.conditionModal.show = false;
+    },
+    onEditColumnExpression(triggerType) {
+      this.columnExpressionModal.operation = triggerType;
+      this.columnExpressionModal.expressions = this.activeColumnExpressionTypes[triggerType] || [];
+      this.columnExpressionModal.show = true;
+    },
+    onCloseColumnExpressionModal() {
+      this.columnExpressionModal.show = false;
+    },
+    async onSaveColumnExpression(expr) {
+      this.isLoading = true;
+      // Kopie von expr erstellen, um ESLint no-param-reassign zu vermeiden
+      const newExpr = { ...expr };
+      if (!newExpr.table_id) {
+        newExpr.table_id = this.table.id;
+      }
+      const payload = { column_expression: newExpr };
+      try {
+        if (newExpr.id) {
+          await CRUDService.columnExpressions.update(newExpr.id, payload);
+        } else {
+          await CRUDService.columnExpressions.create(payload);
+        }
+        this.$buefy.toast.open({
+          message: 'Expression saved!',
+          type: 'is-success',
+        });
+        // inform the modal that an expression was saved and list should be reloaded
+        this.$refs.columnExpressionModal.$emit('expression-saved');
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        await this.reload(this.table);
+        this.isLoading = false;
+      }
+    },
+    async onRemoveColumnExpression(expr) {
+      try {
+        this.isLoading = true;
+        if (expr.id) {
+          await CRUDService.columnExpressions.delete(expr.id, { lock_version: expr.lock_version });
+          await this.reload(this.table);
+          this.$buefy.toast.open({
+            message: 'Expression entfernt!',
+            type: 'is-success',
+          });
+          // inform the modal that an expression was removed and list should be reloaded
+          this.$refs.columnExpressionModal.$emit('expression-saved');
+        }
+      } catch (e) {
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+      } finally {
+        this.isLoading = false;
+      }
     },
   },
   watch: {

@@ -7,6 +7,38 @@ class DbTriggerTest < ActiveSupport::TestCase
     create_victim_structures
   end
 
+  # Create trigger config for table VICTIM3
+  def with_victim3_table
+    run_with_current_user do
+      victim3_table = Table.create_or_mark_visible(schema_id:  victim_schema.id,
+                                                   name:       'VICTIM3',
+                                                   info:       'Log column expressions without payload from original columns',
+                                                   topic:      KafkaHelper.existing_topic_for_test
+      )
+      victim3_table.save!
+      Database.execute "DELETE FROM Event_Logs WHERE Table_ID = :table_id", binds: { table_id: victim3_table.id }
+      yield(victim3_table)
+      # restore original state
+      exec_victim_sql("DELETE FROM #{victim_schema_prefix}VICTIM3")
+      ColumnExpression.where({table_id: victim3_table.id}).delete_all
+      victim3_table.mark_hidden
+    end
+  end
+
+
+  # Check records in Event_Logs for expected content in payload
+  # @param [Integer] table_id the table_id to check for
+  # @param [String] operation the operation to check for
+  # @param [String] expected_fragment the fragment that should be contained in payload
+  # Raises an assertion error if record withOUT expected content is found
+  def check_event_logs_for_content(table_id, operation, expected_fragment)
+    event_logs = Database.select_all("SELECT Payload FROM Event_Logs WHERE Table_ID = :table_ID AND Operation = :operation", { table_id: table_id, operation: operation})
+    assert event_logs.count > 0, log_on_failure("There should be Event_Log records for operation '#{operation}' to check for content '#{expected_fragment}'")
+    event_logs.each do |e|
+      assert_not_nil e.payload.index(expected_fragment), log_on_failure("Event_Log payload for operation '#{operation}' should contain '#{expected_fragment}' but is '#{e.payload}'")
+    end
+  end
+
   test "find_all_by_schema_id" do
     real_count = case MovexCdc::Application.config.db_type
                  when 'ORACLE' then Database.select_one "SELECT COUNT(*) FROM All_Triggers WHERE Owner = :owner AND Table_Owner = :table_owner", { owner: MovexCdc::Application.config.db_user, table_owner: victim_schema.name}
@@ -46,22 +78,33 @@ class DbTriggerTest < ActiveSupport::TestCase
         end
       end
 
+      key_expression_1 = case MovexCdc::Application.config.db_type
+                          when 'ORACLE' then ":new.Name"
+                          when 'SQLITE' then "new.NAME"  # SQLITE does not support colon before new/old
+                         end
+      key_expression_2 = case MovexCdc::Application.config.db_type
+                         when 'ORACLE' then "SELECT :new.Name FROM DUAL"  # Should be executed into variable
+                         when 'SQLITE' then "SELECT new.NAME"  # SQLITE does not support colon before new/old
+                         end
       # Execute test for each key handling type
       [
-        {kafka_key_handling: 'N', fixed_message_key: nil, yn_record_txid: 'N'},
-        {kafka_key_handling: 'P', fixed_message_key: nil, yn_record_txid: 'Y'},
-        {kafka_key_handling: 'F', fixed_message_key: 'hugo', yn_record_txid: 'N'},
-        {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
+        {kafka_key_handling: 'N', fixed_message_key: nil,     yn_record_txid: 'N'},
+        {kafka_key_handling: 'P', fixed_message_key: nil,     yn_record_txid: 'Y'},
+        {kafka_key_handling: 'F', fixed_message_key: 'hugo',  yn_record_txid: 'N'},
+        {kafka_key_handling: 'T', fixed_message_key: nil,     yn_record_txid: 'Y'},
+        {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_1},
+        {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_2},
       ].each do |key|
         # Modify tables with attributes
         [victim1_table, victim2_table].each do |table|
           current_table = Table.find(table.id)
           unless current_table.update(kafka_key_handling: key[:kafka_key_handling],
                                       fixed_message_key:  key[:fixed_message_key],
+                                      key_expression:     key[:key_expression],
                                       yn_record_txid:     key[:yn_record_txid],
                                       lock_version:       current_table.lock_version
           )
-            raise table.errors.full_messages
+            raise current_table.errors.full_messages
           end
         end
 
@@ -86,13 +129,10 @@ class DbTriggerTest < ActiveSupport::TestCase
         assert_not_nil result[:successes][0][:trigger_name],       log_on_failure(':trigger_name in successes result should be set for trigger')
         assert_not_nil result[:successes][0][:sql],                log_on_failure(':sql in successes result should be set for trigger')
 
-
-=begin
-    puts "Successes:" if result[:successes].count > 0
-    result[:successes].each do |s|
-      puts s
-    end
-=end
+        if MovexCdc::Application.config.db_type == 'ORACLE'
+          # Check that trigger header contains the column list for update trigger
+          assert_not_nil result[:successes].select{|t| t[:trigger_name]["_U_"]}.first[:sql][" FOR UPDATE OF "], log_on_failure('Trigger SQL should contain column list for update trigger')
+        end
 
         if result[:errors].count > 0
           puts "Errors:"
@@ -128,6 +168,13 @@ class DbTriggerTest < ActiveSupport::TestCase
           Rails.logger.info('DbTriggerTest.generate_triggers'){ e }
           JSON.parse("{ #{e['payload']} }")                                       # Check in generated JSON is valid
         end
+        last_event_log = EventLog.last
+        case key[:kafka_key_handling]
+        when 'E' then
+          # The column Name should be used as key
+          assert_equal(JSON.parse("{ #{last_event_log.payload} }")['new']['NAME'], last_event_log.msg_key, log_on_failure("Message key for E should be the column Name") )
+        end
+
       end
     end
   end
@@ -147,7 +194,7 @@ class DbTriggerTest < ActiveSupport::TestCase
 
   test "generate trigger for not existing table or column" do
     run_with_current_user do
-      table = Table.new(schema_id: victim_schema.id, name: 'Dummy', info: 'Not existing table')
+      table = Table.create_or_mark_visible(schema_id: victim_schema.id, name: 'Dummy', info: 'Not existing table')
       table.save!
       column = Column.new(table_id: table.id, name: 'Dummy', yn_log_insert: 'Y', yn_log_update: 'Y', yn_log_delete: 'Y')
       column.save!
@@ -156,7 +203,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       assert_equal 1, result[:errors].length,     log_on_failure('Not existing column should lead to error for this table')
 
       column.delete                                                               # Remove temporary object
-      table.delete                                                                # Remove temporary object
+      table.mark_hidden                                                           # Remove temporary object
     end
   end
 
@@ -202,6 +249,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       {kafka_key_handling: 'P', fixed_message_key: nil, yn_record_txid: 'Y'},
       {kafka_key_handling: 'F', fixed_message_key: 'hugo', yn_record_txid: 'N'},
       {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
+      {kafka_key_handling: 'E', fixed_message_key: nil, yn_record_txid: 'N', key_expression: "'Hugo'"},
     ].each do |key|
       # Modify tables with attributes
       run_with_current_user do
@@ -209,6 +257,7 @@ class DbTriggerTest < ActiveSupport::TestCase
           current_table = Table.find(table.id)                                  # load fresh state from DB
           unless current_table.update(kafka_key_handling: key[:kafka_key_handling],
                                       fixed_message_key:  key[:fixed_message_key],
+                                      key_expression:     key[:key_expression],
                                       yn_record_txid:     key[:yn_record_txid],
                                       lock_version:       current_table.lock_version
           )
@@ -270,7 +319,12 @@ class DbTriggerTest < ActiveSupport::TestCase
       sleep(4)                                                                  # avoid ORA-01466
       msgkeys = []                                                              # all valid keys are added again if list is empty
 
-      [nil, "ID != #{max_victim_id}"].each do |init_filter|
+      init_filter_date = case MovexCdc::Application.config.db_type
+                         when 'ORACLE' then "Date_Val > TO_DATE('01.10.2020', 'DD.MM.YYYY')"
+                         when 'SQLITE' then "Date_Val > '2010-02-01'"
+                         end
+
+      [nil, "ID != #{max_victim_id}", init_filter_date].each do |init_filter|
         init_order_by   = init_filter ? 'ID' : nil
         init_flashback  = init_filter ? 'Y' : 'N'
         [nil, insert_condition1, insert_condition2].each do |condition_filter|  # condition filter should be valid for execution inside trigger
@@ -279,8 +333,9 @@ class DbTriggerTest < ActiveSupport::TestCase
           # Start again with using next key for next test
           msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false) if msgkeys.count == 0
           kafka_key_handling = msgkeys.delete_at(0)                               # Remove used key handling so next test loop will use the next one for test
-          fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo' : nil
-          yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'
+          fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo'   : nil
+          yn_record_txid     = kafka_key_handling == 'T' ? 'Y'      : 'N'
+          key_expression     = kafka_key_handling == 'E' ? "'Hugo'" : nil
           # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
           # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
 
@@ -291,6 +346,7 @@ class DbTriggerTest < ActiveSupport::TestCase
                                         yn_initialize_with_flashback: init_flashback,
                                         kafka_key_handling:     kafka_key_handling,
                                         fixed_message_key:      fixed_message_key,
+                                        key_expression:         key_expression,
                                         yn_record_txid:         yn_record_txid,
                                         lock_version:           current_victim1_table.lock_version
           ) # set a init filter for one record
@@ -304,17 +360,17 @@ class DbTriggerTest < ActiveSupport::TestCase
           end
 
           filtered_records_count = 0
-          filtered_records_count += 1 unless init_filter.nil?
+          filtered_records_count += 1 if !init_filter.nil? && init_filter["ID != "]
           filtered_records_count += 1 unless condition_filter.nil?
-          event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+          event_logs_count_before = Database.select_one "SELECT COUNT(*) FROM Event_Logs WHERE Operation = 'i'"
           result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
           if result[:errors].length > 0
             result[:errors].each {|e| puts e}
             assert_equal 0, result[:errors].length, log_on_failure('No errors should occur')
           end
           assert_equal 1, result[:load_sqls].length, log_on_failure('load SQLs should be generated')
-          assert(result[:load_sqls][0][:sql]["ORDER BY #{init_order_by}"], "ORDER BY should be set in load_sql to '#{init_order_by}'") if init_order_by
-          assert(result[:load_sqls][0][:sql]["ORDER BY"].nil?, "ORDER BY should not be set in load_sql") if init_order_by.nil?
+          assert(result[:load_sqls][0][:sql]["ORDER BY #{init_order_by}"], log_on_failure("ORDER BY should be set in load_sql to '#{init_order_by}'")) if init_order_by
+          assert(result[:load_sqls][0][:sql]["ORDER BY"].nil?, log_on_failure("ORDER BY should not be set in load_sql")) if init_order_by.nil?
           case MovexCdc::Application.config.db_type
           when 'ORACLE' then
             assert(result[:load_sqls][0][:sql]["SCN"], "Flashback Query should be used according to yn_initialize_with_flashback") if init_flashback == 'Y'
@@ -334,9 +390,14 @@ class DbTriggerTest < ActiveSupport::TestCase
           assert_equal 0, table_init.running_threads_count, log_on_failure('There should not be running threads')
 
 
-          event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs"
+          event_logs_count_after = Database.select_one "SELECT COUNT(*) FROM Event_Logs WHERE Operation = 'i'"
           assert_equal(victim_record_count - filtered_records_count, event_logs_count_after - event_logs_count_before,
                        log_on_failure('Each record in Victim1 should have caused an additional init record in Event_Logs except x filtered records'))
+
+          if MovexCdc::Application.config.db_type == 'ORACLE'                   # No support for column extensions yet in SQLITE
+            check_event_logs_for_content(victim1_table.id, 'i', "\"Combined\":\"")    # the column expression added for insert
+            check_event_logs_for_content(victim1_table.id, 'i', "\"Combined2\":\"")   # the 2nd column expression added for insert
+          end
 
           if condition_filter.nil?
             Condition.new(condition.attributes).save!                             # recreate the dropped condition
@@ -372,6 +433,95 @@ class DbTriggerTest < ActiveSupport::TestCase
 
         Condition.find(condition.id).update!(filter: original_condition_filter)     # restore original
       end
+    end
+  end
+
+  test "column expression with multiple result columns" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT :new.ID ID, :new.Name Name FROM DUAL")
+      ce.save!
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 'VICTIM3', result[:errors].first[:table_name],     log_on_failure('Trigger creation should fail due to multiple columns in column expression')
+      ce.delete                                                                 # Restore original state
+    end
+  end
+
+  test "trigger without payload but with column expressions" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      expr_sql = if Database.db_version > '19.1'
+                   "SELECT JSON_OBJECT('Expression' VALUE :new.ID || '-' || :new.Name) SingleObject FROM DUAL"
+                 else
+                   "SELECT '{\"Expression\":\"' || :new.ID || '-' || :new.Name || '\"}' SingleObject FROM DUAL"
+                 end
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
+      ce.save!
+
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+
+      assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
+                   'Event_Log record with SQL expression should have been created')
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"Expression\":\"1-Name1\"}")
+      ce.delete                                                                 # Restore original state
+    end
+  end
+
+  test "trigger with column expressions as array" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      expr_sql = "SELECT '[' || LISTAGG('{\"Level\":' || Level || '}', ',') WITHIN GROUP (ORDER BY 1) || ']' Array FROM DUAL CONNECT BY LEVEL <= 5"
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
+      ce.save!
+
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+
+      assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
+                   'Event_Log record with SQL expression should have been created')
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"ARRAY\":[{\"Level\":1},{\"Level\":2},{\"Level\":3},{\"Level\":4},{\"Level\":5}]}")
+      ce.delete                                                                 # Restore original state
+    end
+  end
+
+
+
+  test "update expression with old and new or without should end in new section" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL")
+      ce1.save!
+      ce2 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL")
+      ce2.save!
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+      exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM3 SET Name = 'Name2' WHERE ID = 1")
+      check_event_logs_for_content(victim3_table.id, 'U', "\"old\": {}")
+      check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\"Expression2\":\"Hugo\"}")
+      ce1.delete                                                                # Restore original state
+      ce2.delete                                                                # Restore original state
+    end
+  end
+
+  test "expression without old or new reference should not build Extension_Rec or Extension_Tab" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL")
+      ce1.save!
+      ce2 = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE2\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val2 FROM DUAL")
+      ce2.save!
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"SYSDATE1\":\"")
+      ce1.delete                                                                # Restore original state
+      ce2.delete                                                                # Restore original state
     end
   end
 end

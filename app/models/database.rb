@@ -77,7 +77,7 @@ class Database
     end
     result
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}\nUsed binds: #{filter}")
+    ExceptionHelper.log_exception(e, 'Database.select_all', additional_msg: "Erroneous SQL:\n#{sql}\nUsed binds: #{filter}", decorate_additional_message_next_lines: false)
     raise
   end
 
@@ -110,7 +110,7 @@ class Database
 
     ActiveRecord::Base.connection.exec_update(sql, "Database.execute", local_binds)  # returns the number of affected rows
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}") unless options[:no_exception_logging]
+    ExceptionHelper.log_exception(e, 'Database.execute', additional_msg: "Erroneous SQL:\n#{sql}", decorate_additional_message_next_lines:false) unless options[:no_exception_logging]
     raise
   end
 
@@ -166,12 +166,20 @@ class Database
     end
   end
 
+  # Ensure that AR connection exists and is valid
+  def self.verify_db_connection
+    ActiveRecord::Base.connection&.active?                                       # Ensure that connection is established and valid
+  rescue Exception => e
+    Rails.logger.error('Database.verify_db_connection') { "DB connection lost, try to re-establish it: #{e.class}: #{e.message}" }
+    Database.close_db_connection
+    raise
+  end
+
   # Physically close the DB connection of the current thread and ensure that the next DB access in that thread will re-open the connection again
   def self.close_db_connection
     # Return Connection to pool only if Application retains, otherwhise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
     if !Rails.env.test?                                                       # not for test because threads have all the same DB connection in test
-      ActiveRecord::Base.connection.disconnect!                               # Physically disconnect from DB to ensure that a new fresh connection is established at next request in this thread
-      ActiveRecord::Base.clear_active_connections!                            # Ensure tha a new connection is established at next request in this thread
+      ActiveRecord::Base.connection&.disconnect!                              # Physically disconnect from DB to ensure that a new fresh connection is established at next request in this thread
       ActiveRecord::Base.connection_handler.clear_active_connections!         # Ensure that connections are freed in connection pool
     end
   end

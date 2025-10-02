@@ -35,6 +35,9 @@
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('I')" @click="onEditCondition('I')"></b-button>
             </b-tooltip>
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the insert trigger">
+              <b-button size="is-small" :icon-left="columnExpressionIcon('I')" @click="onEditColumnExpression('I')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -57,6 +60,9 @@
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('U')" @click="onEditCondition('U')"></b-button>
             </b-tooltip>
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the update trigger">
+              <b-button size="is-small" :icon-left="columnExpressionIcon('U')" @click="onEditColumnExpression('U')"></b-button>
+            </b-tooltip>
           </div>
         </template>
         <template v-slot="props">
@@ -78,6 +84,9 @@
             </b-tooltip>
             <b-tooltip label="Add a condition which acts like a Filter for the trigger">
               <b-button size="is-small" :icon-left="conditionIcon('D')" @click="onEditCondition('D')"></b-button>
+            </b-tooltip>
+            <b-tooltip label="Maintain additional event attributes by SQL expressions for the delete trigger">
+              <b-button size="is-small" :icon-left="columnExpressionIcon('D')" @click="onEditColumnExpression('D')"></b-button>
             </b-tooltip>
           </div>
         </template>
@@ -110,6 +119,7 @@ export default {
     table: { type: Object, default: () => {} },
     columns: { type: Array, default: () => [] },
     activeConditionTypes: { type: Object, default: () => {} },
+    activeColumnExpressionTypes: { type: Object, default: () => {} },
   },
   components: {
     ActivityLogModal,
@@ -134,6 +144,9 @@ export default {
     conditionIcon(type) {
       return this.isConditionActive(type) ? 'filter-outline' : 'filter-off-outline';
     },
+    columnExpressionIcon(type) {
+      return this.activeColumnExpressionTypes[type] !== undefined && this.activeColumnExpressionTypes[type].length === 0 ? 'set-none' : 'set-all';
+    },
     onColumnChanged(column) {
       this.$emit('column-changed', column);
     },
@@ -145,6 +158,9 @@ export default {
     },
     onEditCondition(type) {
       this.$emit('edit-condition', type);
+    },
+    onEditColumnExpression(type) {
+      this.$emit('edit-column-expression', type);
     },
     onRemoveColumn(column) {
       this.$emit('remove-column', column);

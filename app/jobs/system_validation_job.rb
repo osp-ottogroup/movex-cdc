@@ -1,11 +1,10 @@
 # This Job runs repeats itself permanent
 class SystemValidationJob < ApplicationJob
   queue_as :default
-  CYCLE = 60
 
   def perform(*args)
-    SystemValidationJob.set(wait: CYCLE.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
-    reset_job_warnings(CYCLE)
+    SystemValidationJob.set(wait: MovexCdc::Application.config.system_validation_job_cycle.seconds).perform_later unless Rails.env.test?  # Ensure next execution independent from following operations
+    reset_job_warnings(MovexCdc::Application.config.system_validation_job_cycle)
 
     # Ensure that enough worker threads are operating for event transfer
     begin

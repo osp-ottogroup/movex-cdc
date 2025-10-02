@@ -79,11 +79,18 @@ class ApplicationController < ActionController::API
   # If user not exist it will return ActiveRecord::RecordNotFound and it will render error message with http status unauthorized.
   @@authorize_exceptions = [
     { controller: :login,         action: :do_logon},
-    { controller: :login,         action: :index,         without_set_application_info: true},
-    { controller: :login,         action: :release_info,  without_set_application_info: true},
+    { controller: :login,         action: :index },
+    { controller: :login,         action: :release_info },
     { controller: :health_check,  action: :index},
-    { controller: :help,          action: :doc_html,      without_set_application_info: true},
-    { controller: :help,          action: :doc_pdf,       without_set_application_info: true}
+    { controller: :help,          action: :doc_html },
+    { controller: :help,          action: :doc_pdf }
+  ]
+
+  # requests that do not need DB connection and do not need setting application info
+  @@set_application_info_exceptions = [
+    { controller: :login,         action: :release_info },
+    { controller: :help,          action: :doc_html },
+    { controller: :help,          action: :doc_pdf }
   ]
 
   # Terminate further processing if request is not authorized
@@ -93,7 +100,9 @@ class ApplicationController < ActionController::API
 
     self.class.set_current_client_ip_info(client_ip_info)
 
-    if @@authorize_exceptions.select{|e| e[:controller] == controller_name.to_sym && e[:action] == action_name.to_sym && e[:without_set_application_info]} == []
+    if @@set_application_info_exceptions.select{|e| e[:controller] == controller_name.to_sym && e[:action] == action_name.to_sym } == []
+      # requires DB connection
+      Database.verify_db_connection
       Database.set_application_info("#{controller_name}/#{action_name}")
     end
 

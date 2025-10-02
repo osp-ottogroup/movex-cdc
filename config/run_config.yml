@@ -74,5 +74,11 @@
 # Number of messages to process within one transaction
 # MAX_TRANSACTION_SIZE: 10000
 
+# control the memory consumption of the in-memory collection of change events in trigger before flushing to DB.
+# MEMORY_COLLECTION_FLUSH_LIMIT: 1000
+
 # optional directory for tnsnames.ora for resolution if Oracle DB aliases
 # TNS_ADMIN: /etc
+
+# Number of seconds between two executions of the system validation job which controls housekeeping and restarts worker threads if needed.
+# SYSTEM_VALIDATION_JOB_CYCLE: 60

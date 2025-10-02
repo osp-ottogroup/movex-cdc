@@ -8,6 +8,10 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     ar_class.columns.select{|c| !['id', 'created_at', 'updated_at', 'lock_version', 'last_trigger_deployment'].include?(c.name) && !c.name.match?(/_id$/)}.map{|c| c.name}
   end
 
+  # Compare a hash from export with an AR record
+  # The hash must contain all relevant column names of the AR record
+  # # param [Hash] export_hash Hash from export
+  # # param [ActiveRecord] ar_record AR record to compare with
   def compare_hash_with_ar_record(export_hash, ar_record)
     assert(!export_hash.nil?, "#{ar_record.class} (#{ar_record}) should exist in result" )
     extract_column_names(ar_record.class).each do |col|
@@ -87,6 +91,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
         table.conditions.each do |condition|
           compare_hash_with_ar_record(exported_table['conditions']&.find{|e| e['operation'] == condition.operation}, condition)
         end
+        table.column_expressions.each do |ce|
+          compare_hash_with_ar_record(exported_table['column_expressions']&.find{|e| e['operation'] == ce.operation && e['sql'] == ce.sql}, ce)
+        end
       end
       schema.schema_rights.each do |schema_right|
         compare_hash_with_ar_record(exported_schema['schema_rights']&.find{|e| e['email'] == schema_right.user.email}, schema_right)
@@ -124,15 +131,28 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       'tables'        => [{
                             'name'          => 'NEW_TABLE',
                             'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                            'columns'       => [{
-                                                  'name' => 'NEW_COL',
-                                                  'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                                                }],
-                            'conditions'    => [{
-                                                  'operation' => 'I',
-                                                  'filter'    => '1 = 2',
-                                                  'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
-                                                }]
+                            'columns'       => [
+                              {
+                                'name' => 'NEW_COL',
+                                'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
+                              }
+                            ],
+                            'conditions'    => [
+                              {
+                                'operation' => 'I',
+                                'filter'    => '1 = 2',
+                                'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
+                              }
+                            ],
+                            'column_expressions' => [{
+                                "operation": "I",
+                                "sql": "SELECT JSON_OBJECT('SYSDATE' VALUE SYSDATE) Val1 FROM DUAL"
+                              },
+                              {
+                                "operation": "I",
+                                "sql": "SELECT JSON_OBJECT('DATUM' VALUE SYSDATE) Val2 FROM DUAL"
+                              }
+                            ]
                           }],
       'schema_rights' => [{
                             'email'         => 'admin',
@@ -240,7 +260,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   end
 
   # only check for not touching other schemas during import
-  test 'import single schema' do
+  test 'import single schema from full export' do
     exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
     schema0 = Schema.where(name: exported_data['schemas'][0]['name']).first
     org_topic = schema0.topic
@@ -257,6 +277,32 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
     # Restore original state
     run_with_current_user { Schema.find(schema0.id).update!(topic: org_topic) }
+  end
+
+  test 'import all from single schema export' do
+    org_exported_data = ImportExportConfig.new.export # get the whole JSON data to restore after test
+    exported_data = ImportExportConfig.new.export(single_schema_name: victim_schema.name) # get JSON data for single schema to test for import
+    exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }  # Import the whole document
+
+    Schema.all.each do |schema|
+      if schema.id == victim_schema.id
+        assert_equal('CHANGED_TOPIC', schema.topic, 'The victim_schema should be updated')
+      else
+        assert_not_equal('CHANGED_TOPIC', schema.topic, 'The other schemas should not be updated')
+      end
+    end
+
+    SchemaRight.all.each do |sr|
+      assert_equal(victim_schema.id, sr.schema_id, log_on_failure('Only schema rights for the victim_schema should remain, all others should be deleted'))
+    end
+
+    Table.where(yn_hidden: 'N').each do |t|
+      assert_equal(victim_schema.id, t.schema_id, log_on_failure('Only tables for the victim_schema should remain, all others should be marked hidden'))
+    end
+
+    # Restore original state
+    run_with_current_user { ImportExportConfig.new.import_schemas(org_exported_data) }
   end
 
   test 'import schema with missing user' do

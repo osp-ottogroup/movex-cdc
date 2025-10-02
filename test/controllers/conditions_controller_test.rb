@@ -3,6 +3,7 @@ require 'test_helper'
 class ConditionsControllerTest < ActionDispatch::IntegrationTest
   setup do
     @condition = Condition.where(table_id: victim1_table.id, operation: 'I').first
+    raise "ConditionsControllerTest.setup: Condition not found for VICTIM1 and Insert" if @condition.nil?
     create_victim_structures
   end
 
