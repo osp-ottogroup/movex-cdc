@@ -60,31 +60,29 @@
         </div>
 
         <b-field label="Kafka Key Handling">
-          <b-field>
-            <b-select v-model="internalTable.kafka_key_handling" expanded>
-              <option v-for="option in kafkaKeyHandlingOptions" :key="option.value" :value="option.value" :disabled="optionDisabled(option.value)">
-                {{ option.label }}
-              </option>
-            </b-select>
-            <b-field v-if="internalTable.kafka_key_handling === 'F'">
-              <b-input v-model="internalTable.fixed_message_key"
-                       placeholder="Fixed Message Key"
-                       required/>
-            </b-field>
-            <b-field v-if="internalTable.kafka_key_handling === 'E'">
-              <b-input type="textarea"
-                       rows="4"
-                       v-model="internalTable.key_expression"
-                       placeholder="Message key expression as SQL statement or SQL expression which returns a single value.
+          <b-select v-model="internalTable.kafka_key_handling" expanded>
+            <option v-for="option in kafkaKeyHandlingOptions" :key="option.value" :value="option.value" :disabled="optionDisabled(option.value)">
+              {{ option.label }}
+            </option>
+          </b-select>
+        </b-field>
+        <b-field v-if="internalTable.kafka_key_handling === 'F'" label="Fixed Message Key">
+          <b-input v-model="internalTable.fixed_message_key"
+                   placeholder="Fixed value for message key"
+                   required/>
+        </b-field>
+        <b-field v-if="internalTable.kafka_key_handling === 'E'" label="Key expression">
+          <b-input type="textarea"
+                   rows="4"
+                   v-model="internalTable.key_expression"
+                   placeholder="Message key expression as SQL statement or SQL expression which returns a single value.
 You can use the pseudo-records :new and :old of the trigger in the expression definition.
 At trigger generation these pseudo record aliases are adjusted to the operation (insert and update uses :new, delete uses :old).
 If the expression is not a SQL statement then it is treated as a direct assignment e.g. of a column value.
 Example expressions:
 - :new.ID
 - SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID"
-                       required/>
-            </b-field>
-          </b-field>
+                   required/>
         </b-field>
 
         <b-field label="Info">
