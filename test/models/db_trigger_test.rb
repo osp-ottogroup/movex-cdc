@@ -455,6 +455,27 @@ class DbTriggerTest < ActiveSupport::TestCase
     end
   end
 
+  test "trigger with column expressions as array" do
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    with_victim3_table do |victim3_table|
+      expr_sql = "SELECT '[' || LISTAGG('{\"Level\":' || Level || '}', ',') WITHIN GROUP (ORDER BY 1) || ']' Array FROM DUAL CONNECT BY LEVEL <= 5"
+      ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
+      ce.save!
+
+      result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
+      assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
+
+      exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
+
+      assert_equal(1, Database.select_one("SELECT COUNT(*) FROM Event_Logs WHERE Table_ID = :table_id", { table_id: victim3_table.id, }),
+                   'Event_Log record with SQL expression should have been created')
+      check_event_logs_for_content(victim3_table.id, 'I', "\"new\": {\"ARRAY\":[{\"Level\":1},{\"Level\":2},{\"Level\":3},{\"Level\":4},{\"Level\":5}]}")
+      ce.delete                                                                 # Restore original state
+    end
+  end
+
+
+
   test "update expression with old and new or without should end in new section" do
     return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
