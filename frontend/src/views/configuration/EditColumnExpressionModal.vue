@@ -7,7 +7,14 @@
       </header>
       <section class="modal-card-body">
         <b-field label="SQL Expression">
-          <b-input v-model="localExpression.sql" type="textarea" rows="6" />
+          <b-input v-model="localExpression.sql" type="textarea" rows="6"
+                   placeholder="SQL statement which returns a single named column with a well formatted JSON object or JSON array of objects.
+e.g.:
+SELECT JSON_OBJECT('key1' VALUE col1, 'key2' VALUE col2) result FROM tab WHERE ID = :new.tab_id
+or
+SELECT '[ '||LISTAGG(JSON_OBJECT('Name' VALUE Name), ', ')||' ]' FROM tab WHERE Ref_ID = :new.ID
+"
+          />
         </b-field>
         <b-field label="Info">
           <b-input type="textarea" rows="1" v-model="localExpression.info" />

@@ -81,6 +81,7 @@ export default {
         const allExpr = await CRUDService.columnExpressions.getAll({ table_id: this.tableId });
         this.localExpressions = allExpr.filter((e) => e.operation === this.operation);
       } catch (e) {
+        // eslint-disable-next-line
         alert(`error in reloadExpressions ${e}`);
       }
     },
