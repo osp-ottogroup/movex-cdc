@@ -53,18 +53,36 @@ For Kafka consumers the original sequence of messages is guaranteed only for mes
 Therefore you must place messages within the same partition of a topic if you want to consume them in original order. +
 Kafka has the concept of message keys for that. Kafka ensures that messages with the same key value are placed in the same partition and this way are consumed in original sequence.
 
-MOVEX CDC supports four kinds of message keys for Kafka that can be defined by GUI at table level:
-
-* *No message key*: Messages are placed randomly in partitions. MOVEX CDC transmits events in multiple simultaneous threads, therefore sequential order is not guaranteed,
-even if the target topic has only one partition.
-* *Fixed value*: All change events of a table are placed in the same single partition.
-* *Primary key values*: Ensures that the change history of a single DB record is always consumed in original sequence
-* *Transaction-ID*: Ensures that all events of a particular DB transaction can be consumed in original sequence
-
 Events with the same key value are always transferred by exactly one transfer worker thread (to ensure the sequence).
 That means the strategy of key creation influences the horizontal scalability over multiple worker threads and this way the overall transfer bandwith of your MOVEX CDC instance.
 
 NOTE: For Oracle-DB: If using RAC the sequential event ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
+
+
+MOVEX CDC supports five kinds of message keys for Kafka that can be defined by GUI at table level:
+
+===== No message key =====
+Messages are placed randomly in partitions. MOVEX CDC transmits events in multiple simultaneous threads, therefore sequential order is not guaranteed,
+even if the target topic has only one partition.
+
+===== Fixed value =====
+A given value is used as key for all produced events. All change events of a table are placed in the same single Kafka partition.
+
+===== Primary key values =====
+Ensures that the change history of a single DB record is always consumed in original sequence
+
+===== Transaction-ID =====
+Ensures that all events of a particular DB transaction can be consumed in original sequence
+
+===== Expression =====
+A SQL expression or SQL statement which returns a single value. This allows to define own strategies for key creation. +
+Definition of the expression is done at table level.
+You can use the pseudo-records :new and :old of the trigger in the expression definition.
+At trigger generation these pseudo record aliases are adjusted to the operation (insert and update uses :new, delete uses :old). +
+If the expression is not a SQL statement then it is treated as a direct assignment e.g. of a column value. +
+Example expressions: +
+- `:new.ID` +
+- `SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID`
 
 ==== Uniqueness of incoming events in Kafka ====
 * MOVEX CDC works with transactions at both DB and Kafka.
@@ -482,7 +500,7 @@ This dialog shows:
 
 ====== Add tables to configuration for a schema (only possible for tables where the user is allowed to select from) ======
 * modify topic name per table
-* choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID )
+* choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID / Expression )
 * decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
 * decide if header values according to CloudEvents standard shout be set for each event
 * decide wether the current content of the table should be initially transferred to Kafka at trigger deployment or nor

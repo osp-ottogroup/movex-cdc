@@ -58,7 +58,7 @@ class Table < ApplicationRecord
     end
   end
 
-  VALID_KAFKA_KEY_HANDLINGS = ['N', 'P', 'F', 'T']
+  VALID_KAFKA_KEY_HANDLINGS = ['N', 'P', 'F', 'T', 'E']
   def kafka_key_handling_validate
     unless Table::VALID_KAFKA_KEY_HANDLINGS.include? kafka_key_handling
       errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{Table::VALID_KAFKA_KEY_HANDLINGS}")
@@ -74,6 +74,10 @@ class Table < ApplicationRecord
 
     if kafka_key_handling == 'T' && (yn_record_txid != 'Y')
       errors.add(:kafka_key_handling, "Kafka key handling 'T' (Transaction-ID) is not possible if transaction-ID is not recorded")
+    end
+
+    if kafka_key_handling == 'E' && key_expression.nil?
+      errors.add(:kafka_key_handling, "Kafka key handling 'E' (Expression) is not possible if no key expression is defined")
     end
   end
 

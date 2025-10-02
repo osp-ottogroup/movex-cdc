@@ -79,9 +79,28 @@ class TablesController < ApplicationController
 
   # Only allow a trusted parameter "white list" through.
   def table_params
-    result = params.fetch(:table, {}).permit(:schema_id, :name, :info, :topic, :kafka_key_handling, :fixed_message_key,
-                                             :lock_version, :yn_record_txid, :yn_initialization, :initialization_filter,
-                                             :initialization_order_by, :yn_initialize_with_flashback, :yn_add_cloudevents_header)
+    result = params.fetch(:table, {}).permit(
+      :created_at,
+      :updated_at,
+      :encryption_key_id,
+      :id,
+      :schema_id,
+      :name,
+      :info,
+      :topic,
+      :kafka_key_handling,
+      :fixed_message_key,
+      :lock_version,
+      :yn_deleted_in_db,                                                        # pseudo column but returned by GUI
+      :yn_hidden,
+      :yn_record_txid,
+      :yn_initialization,
+      :initialization_filter,
+      :initialization_order_by,
+      :yn_initialize_with_flashback,
+      :yn_add_cloudevents_header,
+      :key_expression
+    )
     result[:initialization_filter]    = nil if result[:initialization_filter]&.strip   == ''  # catch empty strings with blanks
     result[:initialization_order_by]  = nil if result[:initialization_order_by]&.strip == ''
     result

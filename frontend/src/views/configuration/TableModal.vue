@@ -71,6 +71,19 @@
                        placeholder="Fixed Message Key"
                        required/>
             </b-field>
+            <b-field v-if="internalTable.kafka_key_handling === 'E'">
+              <b-input type="textarea"
+                       rows="4"
+                       v-model="internalTable.key_expression"
+                       placeholder="Message key expression as SQL statement or SQL expression which returns a single value.
+You can use the pseudo-records :new and :old of the trigger in the expression definition.
+At trigger generation these pseudo record aliases are adjusted to the operation (insert and update uses :new, delete uses :old).
+If the expression is not a SQL statement then it is treated as a direct assignment e.g. of a column value.
+Example expressions:
+- :new.ID
+- SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID"
+                       required/>
+            </b-field>
           </b-field>
         </b-field>
 
@@ -178,6 +191,7 @@ export default {
         { value: 'F', label: 'Fixed Key' },
         { value: 'P', label: 'Primary Key' },
         { value: 'T', label: 'Transaction-ID' },
+        { value: 'E', label: 'Expression' },
       ],
     };
   },
