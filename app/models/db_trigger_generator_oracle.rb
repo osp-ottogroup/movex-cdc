@@ -103,6 +103,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
               t.YN_Record_TxId,
               t.Kafka_Key_Handling,
               t.Fixed_Message_Key,
+              t.Key_Expression,
               tc.Data_Type,
               tc.Nullable
        FROM   Columns c
@@ -133,7 +134,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
 
     expected_trigger_operation_expressions = Database.select_all(
       "SELECT t.Name Table_Name, ce.ID, ce.Operation, ce.sql,
-              t.YN_Record_TxId, t.Kafka_Key_Handling, t.Fixed_Message_Key
+              t.YN_Record_TxId, t.Kafka_Key_Handling, t.Fixed_Message_Key, t.Key_Expression
        FROM   Column_Expressions ce
        JOIN   Tables t ON t.ID = ce.Table_ID
        WHERE  t.Schema_ID = :schema_id
@@ -165,6 +166,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         yn_record_txid:     tc.yn_record_txid,
         kafka_key_handling: tc.kafka_key_handling,
         fixed_message_key:  tc.fixed_message_key,
+        key_expression:     tc.key_expression,
         operation:          tc.operation,
       }
     end
@@ -175,6 +177,7 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
         yn_record_txid:     ce.yn_record_txid,
         kafka_key_handling: ce.kafka_key_handling,
         fixed_message_key:  ce.fixed_message_key,
+        key_expression:     ce.key_expression,
         operation:          ce.operation,
       }
     end
@@ -188,7 +191,8 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
           table_name:         to[:table_name],
           yn_record_txid:     to[:yn_record_txid],
           kafka_key_handling: to[:kafka_key_handling],
-          fixed_message_key:  to[:fixed_message_key]
+          fixed_message_key:  to[:fixed_message_key],
+          key_expression:     to[:key_expression]
         }
       end
       unless expected_triggers[to[:table_name]].has_key?(to[:operation])
@@ -768,7 +772,7 @@ END;
     # Build the payload record
     row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
     row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
-    row_section << "  #{condition_indent}#{update_indent}payload_rec.msg_key := #{message_key_sql(table_config, operation)};\n"
+    row_section << "  #{condition_indent}#{update_indent}#{message_key_sql(table_config, operation)}\n"
     row_section << "  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;\n"
     row_section << "  #{condition_indent}END IF;\n" if operation == 'U'
     row_section << "  END IF;\n" if trigger_config[:condition] && include_conditions
@@ -882,10 +886,11 @@ END;
   # Build SQL expression for message key
   def message_key_sql(table_config, operation)
     case table_config[:kafka_key_handling]
-    when 'N' then 'NULL'
-    when 'P' then primary_key_sql(table_config, operation)
-    when 'F' then "'#{table_config[:fixed_message_key]}'"
-    when 'T' then "transaction_id"
+    when 'N' then "payload_rec.msg_key := NULL;"
+    when 'P' then "payload_rec.msg_key := #{primary_key_sql(table_config, operation)};"
+    when 'F' then "payload_rec.msg_key := '#{table_config[:fixed_message_key]}';"
+    when 'T' then "payload_rec.msg_key := transaction_id;"
+    when 'E' then key_expression_sql(table_config, operation)
     else
       raise "Unsupported Kafka key handling type '#{table_config[:kafka_key_handling]}'"
     end
@@ -908,6 +913,27 @@ END;
       .join("||','||")
     result << "||'}'"
     result
+  end
+
+  # Generate SQL for key expression
+  # @param [Hash] table_config config for table { operation: { columns: [], condition:, column_expressions: [] }}
+  # @param [String] operation I|U|D
+  # @return [String] SQL expression for key
+  def key_expression_sql(table_config, operation)
+    expression = table_config[:key_expression].dup
+    expression.strip!
+    if expression.match(/^SELECT/i) or expression.match(/^WITH/i)               # it is a SELECT statement
+      # replace :new and :old qualifiers for trigger value according to peration
+      case operation
+      when 'I', 'U' then expression.gsub!(/:old\./i, ':new.')
+      when 'D' then expression.gsub!(/:new\./i, ':old.')
+      end
+      from_pos = find_from_of_outer_select(expression)
+      raise "Key expression SELECT SQL for table #{table_config[:table_name]} has no FROM clause! #{expression}" if from_pos.nil?
+      expression.insert(from_pos+1, " INTO payload_rec.msg_key ") + ";"
+    else                                                                        # it is a PL/SQL expression assignment
+      "payload_rec.msg_key := #{expression};"
+    end
   end
 
   def position_from_operation(operation)
@@ -980,5 +1006,39 @@ END;
     else
       condition
     end
+  end
+
+  # @param [String] sql SQL-String
+  # @return [String] SQL with brackets in comments replaced by spaces
+  def replace_brackets_in_comments(sql)
+    # Block comments /* ... */
+    sql = sql.gsub(/\/\*.*?\*\//m) do |comment|
+      comment.gsub(/[()]/, ' ')
+    end
+    # Line comments -- ...
+    sql = sql.gsub(/--.*?(\n|$)/) do |comment|
+      comment.gsub(/[()]/, ' ')
+    end
+    sql
+  end
+
+  # Find position of FROM in outer SELECT in SQL string, ignoring brackets in comments
+  # @param [String] sql SQL-String
+  # @return [Integer, nil] Position of FROM in outer SELECT or nil if not found
+  def find_from_of_outer_select(sql)
+    sql_clean = replace_brackets_in_comments(sql.dup)
+    pos = 0
+    level = 0
+    while pos < sql_clean.length
+      if sql_clean[pos] == '('
+        level += 1
+      elsif sql_clean[pos] == ')'
+        level -= 1 if level > 0
+      elsif sql_clean[pos..pos+5].match(/\sFROM\s/i) && level == 0
+        return pos # Position des äußeren SELECT
+      end
+      pos += 1
+    end
+    nil # Kein äußeres SELECT gefunden
   end
 end

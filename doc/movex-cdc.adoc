@@ -75,7 +75,7 @@ Ensures that the change history of a single DB record is always consumed in orig
 Ensures that all events of a particular DB transaction can be consumed in original sequence
 
 ===== Expression =====
-A SQL expression or SQL statement which returns a single value. This allows to define own strategies for key creation. +
+A SQL expression or SQL statement which returns a single text/char value. This allows to define own strategies for key creation. +
 Definition of the expression is done at table level.
 You can use the pseudo-records :new and :old of the trigger in the expression definition.
 At trigger generation these pseudo record aliases are adjusted to the operation (insert and update uses :new, delete uses :old). +
@@ -512,8 +512,8 @@ This dialog shows:
 This filter conditions may rely on column values inside the trigger and may also contain subselects to other tables +
 Example `:new.Amount > 12 AND 2=(SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID)`
 
-====== Optional additional column expressions as SQL per operation ======
-* This feature allows to add additional information to the JSON event that is not directly available as columns in the changed table.
+====== Optional additional values from SQL expressions per operation ======
+* This feature allows to add additional information to the JSON payload of the event that is not directly available as columns in the changed table.
 * This feature is supported only for Oracle DB, not for SQLITE.
 * These expressions are evaluated inside the trigger and their result is added as an additional column to the event. +
 * The additional SQLs are regularly executed at the "AFTER STATEMENT" section of the trigger. +
