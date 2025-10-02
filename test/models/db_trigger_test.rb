@@ -249,6 +249,7 @@ class DbTriggerTest < ActiveSupport::TestCase
       {kafka_key_handling: 'P', fixed_message_key: nil, yn_record_txid: 'Y'},
       {kafka_key_handling: 'F', fixed_message_key: 'hugo', yn_record_txid: 'N'},
       {kafka_key_handling: 'T', fixed_message_key: nil, yn_record_txid: 'Y'},
+      {kafka_key_handling: 'E', fixed_message_key: nil, yn_record_txid: 'N', key_expression: "'Hugo'"},
     ].each do |key|
       # Modify tables with attributes
       run_with_current_user do
@@ -256,6 +257,7 @@ class DbTriggerTest < ActiveSupport::TestCase
           current_table = Table.find(table.id)                                  # load fresh state from DB
           unless current_table.update(kafka_key_handling: key[:kafka_key_handling],
                                       fixed_message_key:  key[:fixed_message_key],
+                                      key_expression:     key[:key_expression],
                                       yn_record_txid:     key[:yn_record_txid],
                                       lock_version:       current_table.lock_version
           )
@@ -331,8 +333,9 @@ class DbTriggerTest < ActiveSupport::TestCase
           # Start again with using next key for next test
           msgkeys = Table::VALID_KAFKA_KEY_HANDLINGS.clone(freeze: false) if msgkeys.count == 0
           kafka_key_handling = msgkeys.delete_at(0)                               # Remove used key handling so next test loop will use the next one for test
-          fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo' : nil
-          yn_record_txid     = kafka_key_handling == 'T' ? 'Y'    : 'N'
+          fixed_message_key  = kafka_key_handling == 'F' ? 'Hugo'   : nil
+          yn_record_txid     = kafka_key_handling == 'T' ? 'Y'      : 'N'
+          key_expression     = kafka_key_handling == 'E' ? "'Hugo'" : nil
           # update yn_init.. forces COMMIT and SELECT AS OF SCN before. This may clash with ActiveRecord SavePoint sometimes
           # see also for ORA-01466 https://stackoverflow.com/questions/34047160/table-definition-changed-despite-restore-point-creation-after-table-create-alt
 
@@ -343,6 +346,7 @@ class DbTriggerTest < ActiveSupport::TestCase
                                         yn_initialize_with_flashback: init_flashback,
                                         kafka_key_handling:     kafka_key_handling,
                                         fixed_message_key:      fixed_message_key,
+                                        key_expression:         key_expression,
                                         yn_record_txid:         yn_record_txid,
                                         lock_version:           current_victim1_table.lock_version
           ) # set a init filter for one record

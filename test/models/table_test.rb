@@ -64,6 +64,9 @@ class TableTest < ActiveSupport::TestCase
       result = tables_table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
       assert !result, log_on_failure('Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
 
+      result = tables_table.update(kafka_key_handling: 'E', key_expression: nil)
+      assert !result, log_on_failure('Validation should raise error for key expression if empty')
+
       result = tables_table.update(kafka_key_handling: 'X')
       assert !result, log_on_failure('Validation should raise error for wrong kafka_key_handling')
 
