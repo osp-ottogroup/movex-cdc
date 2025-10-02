@@ -265,5 +265,18 @@ class Table < ApplicationRecord
     }
   end
 
+  def delete
+    # Ensure that all accumulated statistics are written to DB before table is deleted
+    # Otherwise flush_to_db may run in error because of missing Tables record for table_id
+    StatisticCounterConcentrator.get_instance.flush_to_db if Rails.env.test?
+    super
+  end
+
+  def destroy!
+    # Ensure that all accumulated statistics are written to DB before table is deleted
+    # Otherwise flush_to_db may run in error because of missing Tables record for table_id
+    StatisticCounterConcentrator.get_instance.flush_to_db if Rails.env.test?
+    super
+  end
 
 end
