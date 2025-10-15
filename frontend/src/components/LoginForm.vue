@@ -4,7 +4,6 @@
     <form @submit.prevent="onSubmit">
       <header class="modal-card-head">
         <div class="modal-card-title is-flex is-justify-content-space-between">
-          <div>Login</div>
           <OSPBranding></OSPBranding>
         </div>
       </header>

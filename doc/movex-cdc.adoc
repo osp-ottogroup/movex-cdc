@@ -1,4 +1,4 @@
-= image:osp.png[float="left" width=200 ] MOVEX Change Data Capture  =
+= image:one.o.svg[float="left" width=200 ] MOVEX Change Data Capture  =
 Author: Peter Ramm ( Peter.Ramm@og1o.de )
 :Author Initials: PR
 :toc:
@@ -7,8 +7,8 @@ Author: Peter Ramm ( Peter.Ramm@og1o.de )
 :imagesdir: ./images
 :numbered:
 :sectnumlevels: 6
-:homepage: https://www.osp.de
-:title-logo-image: osp.png
+:homepage: https://www.og1o.com
+:title-logo-image: one.o.svg
 :description: Solution for change data capture from Oracle to Kafka
 :keywords: Oracle, Kafka, Change Data Capture, CDC, Trigger
 
@@ -253,7 +253,7 @@ Environment variables overrides values from configuration file.
 |DB_URL|Database-URL for JDBC Connect:
 Example for Oracle: "MY_TNS_ALIAS" or "machine:port/service"
 |DB_USER|Username of MOVEX CDC's DB schema in the observed database
-|KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.osp-dd.de:9092, kafka2.osp-dd.de:9092"
+|KAFKA_SEED_BROKER|Comma-separated list of seed-brokers for Kafka logon (Host:Port), Example: "kafka1.og1o.de:9092, kafka2.og1o.de:9092"
 |===
 
 .Optional environment parameters for evaluation at appliction start
