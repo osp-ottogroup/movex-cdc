@@ -78,23 +78,7 @@ class DbTriggerTest < ActiveSupport::TestCase
         end
       end
 
-      key_expression_1 = case MovexCdc::Application.config.db_type
-                          when 'ORACLE' then ":new.Name"
-                          when 'SQLITE' then "new.NAME"  # SQLITE does not support colon before new/old
-                         end
-      key_expression_2 = case MovexCdc::Application.config.db_type
-                         when 'ORACLE' then "SELECT :new.Name FROM DUAL"  # Should be executed into variable
-                         when 'SQLITE' then "SELECT new.NAME"  # SQLITE does not support colon before new/old
-                         end
-      # Execute test for each key handling type
-      [
-        {kafka_key_handling: 'N', fixed_message_key: nil,     yn_record_txid: 'N'},
-        {kafka_key_handling: 'P', fixed_message_key: nil,     yn_record_txid: 'Y'},
-        {kafka_key_handling: 'F', fixed_message_key: 'hugo',  yn_record_txid: 'N'},
-        {kafka_key_handling: 'T', fixed_message_key: nil,     yn_record_txid: 'Y'},
-        {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_1},
-        {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_2},
-      ].each do |key|
+      key_handling_options.each do |key|
         # Modify tables with attributes
         [victim1_table, victim2_table].each do |table|
           current_table = Table.find(table.id)
