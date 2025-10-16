@@ -76,6 +76,16 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       ", { schema_id: @schema.id}
     )
 
+    expected_trigger_operation_expressions = Database.select_all(
+      "SELECT t.Name table_name, ce.id, ce.operation, ce.sql
+       FROM   Column_Expressions ce
+       JOIN   Tables t ON t.ID = ce.Table_ID
+       WHERE  t.Schema_ID = :schema_id
+       AND    t.YN_Hidden = 'N'
+       ORDER BY ce.Table_ID, ce.Operation, ce.ID /* ensure stable order for trigger code comparison and unit tests */
+      ", { schema_id: @schema.id}
+    )
+
     expected_trigger_operation_filters = Database.select_all(
       "SELECT t.Name table_name,
               cd.Operation,
@@ -90,8 +100,9 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
     # Build structure:
     # table_name: { operation: { columns: [ {column_name:, ...} ], condition: }}
     expected_triggers = {}
-    expected_trigger_columns.each do |crec|
 
+    # Create table and operation entries, add columns by columns
+    expected_trigger_columns.each do |crec|
       unless expected_triggers.has_key?(crec.table_name)
         expected_triggers[crec.table_name] = {
           table_name:         crec.table_name
@@ -102,13 +113,22 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
           (operation == 'U' && crec.yn_log_update == 'Y') ||
           (operation == 'D' && crec.yn_log_delete == 'Y')
           unless expected_triggers[crec.table_name].has_key?(operation)
-            expected_triggers[crec.table_name][operation] = { columns: [] }
+            expected_triggers[crec.table_name][operation] = { columns: [], column_expressions: [] }
           end
           expected_triggers[crec.table_name][operation][:columns] << {
             column_name: crec.column_name,
           }
         end
       end
+    end
+
+    # Add missing table/operation entries for operations with column expressions only
+    expected_trigger_operation_expressions.each do |ce|
+      expected_triggers[ce.table_name] = { table_name: ce.table_name } unless expected_triggers.has_key?(ce.table_name)
+      unless expected_triggers[ce.table_name].has_key?(ce.operation)
+        expected_triggers[ce.table_name][ce.operation] = { columns: [], column_expressions: [] }
+      end
+      expected_triggers[ce.table_name][ce.operation][:column_expressions] << { sql: ce.sql, id: ce.id  } # Caution: id is needed to ensure stable order for trigger code comparison and unit tests
     end
 
     # Add possible conditions at operation level
@@ -194,7 +214,7 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
     payload = String.new
     accessors.each do |accessor|
-      payload << "\"#{accessor}\": #{payload_json(trigger_config, accessor)}"
+      payload << "\"#{accessor}\": #{payload_json(trigger_config, accessor, operation: operation)}"
       payload << "," if accessors.length == 2 && accessor == 'old'
     end
 
@@ -212,11 +232,35 @@ BEGIN
 END;"
   end
 
-  def payload_json(trigger_config, accessor)
+  # Build JSON payload for new or old values
+  # @param trigger_config [Hash] configuration for trigger { }
+  # @param accessor [String | NilClass] 'new', 'old' or nil for initialization
+  # @param operation [String] 'I', 'U', 'D' or 'i' for initialization
+  # @return [String] SQL expression for JSON payload
+  def payload_json(trigger_config, accessor, operation:)
     json = "{".dup
     json << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
+    unless trigger_config[:column_expressions].nil? || trigger_config[:column_expressions].empty?
+      json << ",\n" unless trigger_config[:columns].empty?
+      json << trigger_config[:column_expressions].sort_by{|ce| ce[:id]}.map{|ce| prepare_column_expressions(ce[:sql], operation)}.join(",\n")
+    end
     json << "}"
     json
+  end
+
+  # Decorate column expressions if needed
+  # @param sql [String] SQL expression from Column_Expressions
+  # @param operation [String] 'I', 'U', 'D', 'i'
+  # @return [String] Decorated SQL expression
+  def prepare_column_expressions(sql, operation)
+    dup_sql = sql.dup                                                           # do not modify original
+    if dup_sql.match(/^SELECT/i) or dup_sql.match(/^WITH/i)
+      dup_sql = "(#{dup_sql})"                                                  # it is a SELECT statement, use subselect
+    end
+    if operation == 'i'
+      dup_sql.gsub!(/(old|new)\./i, '')                                         # initialization of table data
+    end
+    "'||#{dup_sql}||'"
   end
 
   # called only if operation == 'I' and yn_initialization == 'Y'
@@ -225,7 +269,7 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'i')},
+SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil, operation: 'i')}', #{message_key_sql(table, 'i')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
 FROM   main.#{table.name}
 "

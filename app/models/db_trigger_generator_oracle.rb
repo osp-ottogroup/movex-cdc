@@ -631,10 +631,12 @@ END Flush;
         code << "      Expression_Result := SUBSTR(Expression_Result, 2, LENGTH(Expression_Result)-2); /* Remove the enclosing curly brackets */\n"
         code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '[' THEN           /* Is the returned JSON structure an array? */\n"
         code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\":'||Expression_Result;\n"
-        code << "    ELSIF Expression_Result IS NULL THEN                       /* Doesn't the expression return a result */\n"
+        code << "    ELSIF SUBSTR(Expression_Result, 1, 1) = '\"' THEN          /* Is the returned value a single JSON attribute starting with double quote? */\n"
+        code << "      NULL;                                                    /* keep as is, just a JSON fragment */\n"
+        code << "    ELSIF Expression_Result IS NULL THEN                       /* Does not the expression return a result */\n"
         code << "      Expression_Result := '\"#{expression_result_column_name(expression[:sql], expression_columns)}\":null';\n"
         code << "    ELSE \n"
-        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of SQL expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array nor NULL!');\n"
+        code << "      RAISE_APPLICATION_ERROR(-20001, 'Result of SQL expression with ID = #{expression[:id]} for table #{table.name} and operation ''#{operation}'' is neither a JSON object nor a JSON array nor a JSON fragment nor NULL!');\n"
         code << "    END IF; \n"
 
         # Now insert the result into the JSON payload in the correct object ("new" or "old")

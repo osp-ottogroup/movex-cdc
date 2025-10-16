@@ -502,7 +502,13 @@ class TransferThread
 #{event_log['payload']}
 }"
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
-    JSON.parse(msg) if Rails.env.test?                                          # Check valid JSON structure for all test modes
+    if Rails.env.test?                                          # Check valid JSON structure for all test modes
+      begin
+        JSON.parse(msg)
+      rescue JSON::ParserError => e
+        raise "Error #{e.class}:#{e.message} while parsing #{msg}"
+      end
+    end
     msg
   end
 

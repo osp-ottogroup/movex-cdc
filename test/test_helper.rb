@@ -582,18 +582,14 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '19.1'
-                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
-                                    else
-                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
-                                    end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                    "SELECT '\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"' SingleObject FROM DUAL"
+                                  when 'SQLITE' then "SELECT '\"Combined2\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
@@ -604,7 +600,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined3 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined3\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         # Array result for update with multiple rows
@@ -617,7 +613,7 @@ class GlobalFixtures
                                       # Rel. 12 requires WITHIN GROUP clause and no JSON_OBJECT function
                                       "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ') WITHIN GROUP (ORDER BY 1)||' ]' ArrayList FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS ArrayList FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"ArrayList\": [ '||GROUP_CONCAT('{\"New_Name\":\"'||new.name||'\", \"Old_Name\": \"'||old.name||'\"}', ', ') ||' ]'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
@@ -628,7 +624,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT old.Name AS Combined4 FROM #{@@victim1_table.name} WHERE ID = old.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined4\": \"'||old.name||' - '||old.num_val||'\"'"
                                   end
         ).save!
 
