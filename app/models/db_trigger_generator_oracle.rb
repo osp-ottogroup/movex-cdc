@@ -86,7 +86,6 @@ class DbTriggerGeneratorOracle < DbTriggerGeneratorBase
          AND    (   t.Trigger_Name LIKE '#{TRIGGER_NAME_PREFIX}%'
                  OR t.Trigger_Name LIKE 'TRIXX_%' /* replace former triggers from the TRIXX era by M_CDC. Remove in 2022 */
                 )
-         AND    t.Table_Name NOT LIKE 'BIN$%' /* exclude logically dropped tables */
         ",
       {
         table_owner:  @schema.name,
