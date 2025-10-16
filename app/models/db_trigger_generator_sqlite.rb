@@ -225,7 +225,7 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'N')},
+SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil)}', #{message_key_sql(table, 'i')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
 FROM   main.#{table.name}
 "
@@ -272,7 +272,7 @@ FROM   main.#{table.name}
       when 'I' then 'new'
       when 'U' then 'new'
       when 'D' then 'old'
-      when 'N' then nil                                                         # initialization of table data
+      when 'i' then nil                                                         # initialization of table data
       end
 
     pk_columns = Database.select_all("PRAGMA table_info(#{table.name})").select{|c| c.pk > 0}
@@ -298,6 +298,7 @@ FROM   main.#{table.name}
     case operation
     when 'I', 'U' then expression.gsub!(/old\./i, 'new.')
     when 'D' then expression.gsub!(/new\./i, 'old.')
+    when 'i' then expression.gsub!(/(old|new)\./i, '')                            # initialization of table data
     end
     if expression.match(/^SELECT/i) or expression.match(/^WITH/i)               # it is a SELECT statement
       "(#{expression})"                                                         # Directly use susbselect in insert statement
