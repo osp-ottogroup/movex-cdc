@@ -1,4 +1,4 @@
-= image:one.o.svg[float="left" width=200 ] MOVEX Change Data Capture  =
+= image:one.o_small.svg[float="left" width=200 ] MOVEX Change Data Capture  =
 Author: Peter Ramm ( Peter.Ramm@og1o.de )
 :Author Initials: PR
 :toc:
