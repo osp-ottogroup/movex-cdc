@@ -190,13 +190,14 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
     table_config    = @expected_triggers[table.name]
     trigger_config  = table_config[operation]
     trigger_name = build_trigger_name(table, operation)
+    old_new_compare_list = operation == 'U' ? old_new_compare(trigger_config[:columns]) : ''
 
     result = "CREATE TRIGGER #{trigger_name} #{DbTriggerGeneratorBase.long_operation_from_short(operation)}"
     result << " ON #{table.name} FOR EACH ROW"
-    result << " WHEN " if trigger_config[:condition] || operation == 'U'
+    result << " WHEN " if trigger_config[:condition] || !old_new_compare_list.empty?
     result << " (#{trigger_config[:condition]})" if trigger_config[:condition]
-    result << " AND " if trigger_config[:condition] && operation == 'U'
-    result << " (#{old_new_compare(trigger_config[:columns])}) " if operation == 'U'
+    result << " AND " if trigger_config[:condition] && !old_new_compare_list.empty?
+    result << " (#{old_new_compare_list}) " unless old_new_compare_list.empty?
     result
   end
 
@@ -240,12 +241,32 @@ END;"
   def payload_json(trigger_config, accessor, operation:)
     json = "{".dup
     json << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
-    unless trigger_config[:column_expressions].nil? || trigger_config[:column_expressions].empty?
+    expressions_to_use = trigger_config[:column_expressions].select {|ce| place_expression_in_section?(ce[:sql], accessor, operation) }
+    unless expressions_to_use.empty?
       json << ",\n" unless trigger_config[:columns].empty?
-      json << trigger_config[:column_expressions].sort_by{|ce| ce[:id]}.map{|ce| prepare_column_expressions(ce[:sql], operation)}.join(",\n")
+      json << expressions_to_use
+                .sort_by{|ce| ce[:id]}
+                .map{|ce| prepare_column_expressions(ce[:sql], operation)}
+                .join(",\n")
     end
     json << "}"
     json
+  end
+
+  # Check if the expression should be placed in the section
+  # @param expression [String] SQL expression from Column_Expressions
+  # @param accessor [String | NilClass] 'new', 'old' or nil for initialization
+  # @param operation [String] 'I', 'U', 'D' or 'i' for initialization
+  # @return [Boolean] true if expression should be placed in trigger code
+  def place_expression_in_section?(expression, accessor, operation)
+    return true unless operation == 'U'
+    if accessor == 'new'
+      !expression.match(/old\./i) || expression.match(/new\./i)                 # new section, expression must not contain old. or also new.
+    elsif accessor == 'old'
+      expression.match(/old\./i) && !expression.match(/new\./i)                 # old section, expression must conatin old. but not new.
+    else
+      raise "DBTriggerGeneratorSqlite.place_expression_in_section? : Invalid accessor '#{accessor}' for operation '#{operation}'"
+    end
   end
 
   # Decorate column expressions if needed

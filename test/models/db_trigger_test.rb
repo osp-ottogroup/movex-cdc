@@ -150,7 +150,11 @@ class DbTriggerTest < ActiveSupport::TestCase
         Rails.logger.info('DbTriggerTest.generate_triggers'){ "======== Dump all event_logs =========" }
         Database.select_all("SELECT * FROM Event_Logs").each do |e|
           Rails.logger.info('DbTriggerTest.generate_triggers'){ e }
-          JSON.parse("{ #{e['payload']} }")                                       # Check in generated JSON is valid
+          begin
+            JSON.parse("{ #{e['payload']} }")                                       # Check in generated JSON is valid
+          rescue Exception => ex
+            raise "#{ex.class}:#{ex.message} : Payload in Event_Logs record #{e['id']} is not valid JSON: #{e['payload']}"
+          end
         end
         last_event_log = EventLog.last
         case key[:kafka_key_handling]
@@ -421,7 +425,7 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "column expression with multiple result columns" do
-    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    return if MovexCdc::Application.config.db_type != 'ORACLE' # this feature is not checked for SQLITE
     with_victim3_table do |victim3_table|
       ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT :new.ID ID, :new.Name Name FROM DUAL")
       ce.save!
@@ -432,12 +436,16 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "trigger without payload but with column expressions" do
-    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
-      expr_sql = if Database.db_version > '19.1'
-                   "SELECT JSON_OBJECT('Expression' VALUE :new.ID || '-' || :new.Name) SingleObject FROM DUAL"
-                 else
-                   "SELECT '{\"Expression\":\"' || :new.ID || '-' || :new.Name || '\"}' SingleObject FROM DUAL"
+      expr_sql = case MovexCdc::Application.config.db_type
+                 when 'ORACLE' then
+                   if Database.db_version > '19.1'
+                     "SELECT JSON_OBJECT('Expression' VALUE :new.ID || '-' || :new.Name) SingleObject FROM DUAL"
+                   else
+                     "SELECT '{\"Expression\":\"' || :new.ID || '-' || :new.Name || '\"}' SingleObject FROM DUAL"
+                   end
+                 when 'SQLITE' then
+                    "SELECT '\"Expression\":\"' || new.id || '-' || new.name || '\"'"
                  end
       ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
       ce.save!
@@ -455,9 +463,14 @@ class DbTriggerTest < ActiveSupport::TestCase
   end
 
   test "trigger with column expressions as array" do
-    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    # return if MovexCdc::Application.config.db_type != 'ORACLE' #
     with_victim3_table do |victim3_table|
-      expr_sql = "SELECT '[' || LISTAGG('{\"Level\":' || Level || '}', ',') WITHIN GROUP (ORDER BY 1) || ']' Array FROM DUAL CONNECT BY LEVEL <= 5"
+      expr_sql = case MovexCdc::Application.config.db_type
+                 when 'ORACLE' then
+                   "SELECT '[' || LISTAGG('{\"Level\":' || Level || '}', ',') WITHIN GROUP (ORDER BY 1) || ']' Array FROM DUAL CONNECT BY LEVEL <= 5"
+                 when 'SQLITE' then
+                    "SELECT '\"ARRAY\":[' || GROUP_CONCAT('{\"Level\":' || Level || '}', ',') || ']' Array FROM (SELECT 1 AS Level UNION ALL SELECT 2 UNION ALL SELECT 3 UNION ALL SELECT 4 UNION ALL SELECT 5)"
+                 end
       ce = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: expr_sql)
       ce.save!
 
@@ -476,24 +489,34 @@ class DbTriggerTest < ActiveSupport::TestCase
 
 
   test "update expression with old and new or without should end in new section" do
-    return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
+    # return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
-      ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL")
+      ce1 = case MovexCdc::Application.config.db_type
+            when 'ORACLE' then ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression1\":\"' || :new.Name || '\"}' Expr FROM DUAL")
+            when 'SQLITE' then ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '\"Expression1\":\"' || new.name || '\"'")
+            end
       ce1.save!
-      ce2 = ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL")
+      ce2 = case MovexCdc::Application.config.db_type
+            when 'ORACLE' then ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '{\"Expression2\":\"Hugo\"}' Expr FROM DUAL")
+            when 'SQLITE' then ColumnExpression.new(table_id: victim3_table.id, operation: 'U', sql: "SELECT '\"Expression2\":\"Hugo\"'")
+            end
       ce2.save!
       result = DbTrigger.generate_schema_triggers(schema_id: victim_schema.id)
       assert_equal 0, result[:errors].length,     log_on_failure('trigger should not have errors')
       exec_victim_sql("INSERT INTO #{victim_schema_prefix}VICTIM3 (ID, Name) VALUES (1, 'Name1')")
       exec_victim_sql("UPDATE #{victim_schema_prefix}VICTIM3 SET Name = 'Name2' WHERE ID = 1")
       check_event_logs_for_content(victim3_table.id, 'U', "\"old\": {}")
-      check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\"Expression2\":\"Hugo\"}")
+      case MovexCdc::Application.config.db_type
+      when 'ORACLE' then check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\"Expression2\":\"Hugo\"}")
+      when 'SQLITE' then check_event_logs_for_content(victim3_table.id, 'U', "\"new\": {\"Expression1\":\"Name2\",\n\"Expression2\":\"Hugo\"}")
+      end
       ce1.delete                                                                # Restore original state
       ce2.delete                                                                # Restore original state
     end
   end
 
   test "expression without old or new reference should not build Extension_Rec or Extension_Tab" do
+    # TODO: Open test for SQLITE
     return if MovexCdc::Application.config.db_type != 'ORACLE' # No support for column extensions yet in SQLITE
     with_victim3_table do |victim3_table|
       ce1 = ColumnExpression.new(table_id: victim3_table.id, operation: 'I', sql: "SELECT '{\"SYSDATE1\":\"' || TO_CHAR(SYSDATE, 'YYYY-MM-DD') || '\"}' Val1 FROM DUAL")
