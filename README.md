@@ -17,7 +17,7 @@ The full documentation of this product you may find here:
 
 
 ## Usage
-MOVEX Change Data Capture is offered as a comprehensive Docker image.<br>
+MOVEX Change Data Capture is available as a comprehensive [Docker image](https://hub.docker.com/r/ottogroupsolutionproviderosp/movex-cdc).<br>
 
 ## Quick start demo
 Establish change data capture on Oracle DB including event transfer to Kafka within 10 minutes.<br/>

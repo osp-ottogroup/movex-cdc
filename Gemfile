@@ -10,7 +10,7 @@ ruby '3.4.2'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.2.1'
+gem 'rails', '8.0.3'
 
 # Use jdbcsqlite3 as the database for gem ctive Record
 # gem 'activerecord-jdbcsqlite3-adapter', '~> 80.2'
