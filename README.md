@@ -1,4 +1,6 @@
-# <div style="display: block; text-align: center;"><img src="doc/images/one.o_small.svg" style="height: 1.1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #5f696e;">M<span style="color: red;">O</span>VEX<span style="font-weight: normal;">| Change Data Capture</span></span><br/><br/>Track changes in relational databases and transfer them to Kafka </div>
+<h1 style="display: block; text-align: center;"><img src="doc/images/one.o_small.svg" style="height: 1.1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #5f696e;">M<span style="color: red;">O</span>VEX<span style="font-weight: normal;">| Change Data Capture</span></span></h1>
+
+# Track changes in relational databases and transfer them to Kafka 
 
 This product captures data change events (Insert/Update/Delete) in relational databases by database triggers and immediately transfers the data changes to a Kafka event hub.
 
