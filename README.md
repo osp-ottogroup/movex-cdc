@@ -1,4 +1,5 @@
-<div style="display: block; text-align: center; font-size: xx-large"><img src="doc/images/one.o_small.svg" style="height: 1.1em;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color: #5f696e;">M<span style="color: red;">O</span>VEX<span style="font-weight: normal;">| Change Data Capture</span></span></div>
+
+![](doc/images/one.o_and_movex-cdc.png)
 
 # Track changes in relational databases and transfer them to Kafka 
 
