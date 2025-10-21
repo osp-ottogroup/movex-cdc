@@ -14,6 +14,7 @@ class Table < ApplicationRecord
   validate    :validate_yn_initialization
   validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
+  validate    :validate_primary_key_needed
 
   # create a table record or mark existing hidden table as visible
   # used in TablesController#create and in DbTriggerGeneratorBase#create_load_sql
@@ -86,6 +87,7 @@ class Table < ApplicationRecord
     validate_yn_column :yn_hidden
     validate_yn_column :yn_initialization
     validate_yn_column :yn_initialize_with_flashback
+    validate_yn_column :yn_payload_pkey_only
   end
 
   def validate_unchanged_attributes
@@ -122,6 +124,29 @@ class Table < ApplicationRecord
         errors.add(:initialization_filter, "Error '#{e.class}:#{e.message}' at check of initialization filter with '#{sql}'")
       end
     end
+  end
+
+  def validate_primary_key_needed
+    errors.add(:kafka_key_handling, "'Primary key' not possible because the table does not have a primary key") if self.kafka_key_handling == 'P' && pkey_columns.empty?
+  end
+
+  # @return [Array] the columns names of the primary key as array
+  def pkey_columns
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      sql = "SELECT cc.Column_Name
+             FROM   DBA_Constraints c
+             JOIN   DBA_Cons_Columns cc ON cc.Owner = c.Owner AND cc.Constraint_Name = c.Constraint_Name
+             WHERE  c.Owner           = :owner
+             AND    c.Table_Name      = :table_name
+             AND    c.Constraint_Type = 'P'
+             ORDER BY cc.Position"
+      Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| row['column_name'] }
+    when 'SQLITE' then
+      sql = "SELECT * FROM #{self.schema.name}.PRAGMA_table_info(:table_name) WHERE pk > 0 ORDER BY pk"
+      Database.select_all(sql, table_name: self.name).map { |row| row['name'] }
+    end
+
   end
 
   # check if table is readable by MOVEX CDC's DB user and raise exception if not

@@ -47,6 +47,14 @@
                 false-value="N"/>
               </b-tooltip>
             </b-field>
+            <b-field label="Record Transaction-ID">
+              <b-tooltip label="Add DB transaction ID to JSON data of event?" position="is-right" size="is-small">
+                <b-switch v-model="internalTable.yn_record_txid"
+                          @input="onRecordTxIdChanged"
+                          true-value="Y"
+                          false-value="N"/>
+              </b-tooltip>
+            </b-field>
           </div>
           <div class="column">
             <b-field label="CloudEvents header">
