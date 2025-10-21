@@ -244,6 +244,28 @@ class ActiveSupport::TestCase
     end
   end
 
+  # Options for mesg key handling to test
+  # @return [Array] of Hash with options { kafka_key_handling, fixed_message_key, yn_record_txid, key_expression }
+  def key_handling_options
+    key_expression_1 = case MovexCdc::Application.config.db_type
+                       when 'ORACLE' then ":new.Name"
+                       when 'SQLITE' then "new.NAME"  # SQLITE does not support colon before new/old
+                       end
+    key_expression_2 = case MovexCdc::Application.config.db_type
+                       when 'ORACLE' then "SELECT :new.Name FROM DUAL"  # Should be executed into variable
+                       when 'SQLITE' then "SELECT new.NAME"  # SQLITE does not support colon before new/old
+                       end
+
+    [
+      {kafka_key_handling: 'N', fixed_message_key: nil,     yn_record_txid: 'N'},
+      {kafka_key_handling: 'P', fixed_message_key: nil,     yn_record_txid: 'Y'},
+      {kafka_key_handling: 'F', fixed_message_key: 'hugo',  yn_record_txid: 'N'},
+      {kafka_key_handling: 'T', fixed_message_key: nil,     yn_record_txid: 'Y'},
+      {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_1},
+      {kafka_key_handling: 'E', fixed_message_key: nil,     yn_record_txid: 'Y', key_expression: key_expression_2},
+    ]
+  end
+
   def insert_victim1_records(number_of_records_to_insert:, last_max_id:, name: 'Record', num_val: 1, log_count: false, expected_count: nil)
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
@@ -560,18 +582,14 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'I',
                              sql: case MovexCdc::Application.config.db_type
                                   when 'ORACLE' then
-                                    if Database.db_version > '19.1'
-                                      "SELECT JSON_OBJECT('Combined2' VALUE :new.Name || '-' || :new.num_val) SingleObject FROM DUAL"
-                                    else
-                                      "SELECT '{\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
-                                    end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined2 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                    "SELECT '\"Combined2\":\"' || :new.Name || '-' || :new.num_val || '\"' SingleObject FROM DUAL"
+                                  when 'SQLITE' then "SELECT '\"Combined2\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'U',
@@ -582,7 +600,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined3\":\"' || :new.Name || '-' || :new.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS Combined3 FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined3\": \"'||new.name||' - '||new.num_val||'\"'"
                                   end
         ).save!
         # Array result for update with multiple rows
@@ -595,7 +613,7 @@ class GlobalFixtures
                                       # Rel. 12 requires WITHIN GROUP clause and no JSON_OBJECT function
                                       "SELECT '[ '||LISTAGG('{\"New_Name\":\"'||:new.Name||'\", \"Old_Name\": \"'||:old.name||'\"}', ', ') WITHIN GROUP (ORDER BY 1)||' ]' ArrayList FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT new.Name AS ArrayList FROM #{@@victim1_table.name} WHERE ID = new.ID"
+                                  when 'SQLITE' then "SELECT '\"ArrayList\": [ '||GROUP_CONCAT('{\"New_Name\":\"'||new.name||'\", \"Old_Name\": \"'||old.name||'\"}', ', ') ||' ]'"
                                   end
         ).save!
         ColumnExpression.new(table_id: @@victim1_table.id, operation: 'D',
@@ -606,7 +624,7 @@ class GlobalFixtures
                                     else
                                       "SELECT '{\"Combined4\":\"' || :old.Name || '-' || :old.num_val || '\"}' SingleObject FROM DUAL"
                                     end
-                                  when 'SQLITE' then "SELECT old.Name AS Combined4 FROM #{@@victim1_table.name} WHERE ID = old.ID"
+                                  when 'SQLITE' then "SELECT '\"Combined4\": \"'||old.name||' - '||old.num_val||'\"'"
                                   end
         ).save!
 

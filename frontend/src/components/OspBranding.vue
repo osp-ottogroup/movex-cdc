@@ -1,9 +1,10 @@
 <template>
   <div>
-    <span class="osp-red has-text-weight-medium">O</span>
-    <span class="osp-gray has-text-weight-medium">SP</span>
+    <span class="osp-gray has-text-weight-bold">M</span>
+    <span class="osp-red has-text-weight-bold">O</span>
+    <span class="osp-gray has-text-weight-bold">VEX</span>
     <span class="osp-gray osp-stroke has-text-weight-light">|</span>
-    <span class="osp-gray ml-1">MOVEX</span>
+    <span class="osp-gray ml-1  has-text-weight-light" >Change Data Capture</span>
   </div>
 </template>
 

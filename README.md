@@ -1,4 +1,7 @@
-# MOVEX Change Data Capture: track changes in relational databases and transfer them to Kafka
+
+![](doc/images/one.o_and_movex-cdc.png)
+
+# Track changes in relational databases and transfer them to Kafka 
 
 This product captures data change events (Insert/Update/Delete) in relational databases by database triggers and immediately transfers the data changes to a Kafka event hub.
 
@@ -14,7 +17,7 @@ The full documentation of this product you may find here:
 
 
 ## Usage
-MOVEX Change Data Capture is offered as one single compact Docker image.<br>
+MOVEX Change Data Capture is available as a comprehensive [Docker image](https://hub.docker.com/r/ottogroupsolutionproviderosp/movex-cdc).<br>
 
 ## Quick start demo
 Establish change data capture on Oracle DB including event transfer to Kafka within 10 minutes.<br/>
@@ -33,8 +36,11 @@ The latest build of the development master branch is available by:<br/>
 ## Release notes
 [See CHANGELOG.md](CHANGELOG.md)
 
-## Support
-If you have bug reports or questions please file an issue inside the product or mail to movex-cdc@osp.de.
+## License / Support
+MOVEX Change Data Capture is a product of the Otto Group One.O Gmbh.<br/>
+This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/osp-silver/oss/movex-cdc/-/blob/master/LICENSE).<br/>
+One.O is the IT service provider of the Otto Group, formery known as Otto Group Solution Provider (OSP) GmbH.<br/>
+If you are interested in commercial support please reach out to [movex-cdc@osp.de](mailto:movex-cdc@osp.de).<br/>
 
 ## Roadmap
 The tool has been developed independently of a particular database system.
@@ -43,9 +49,6 @@ First implementations have been for SQLite and Oracle with focus on productive u
 Further planned implementations are:
 - Production readyness for Oracle Standard Edition / EE without Partitiong Option
 - Adaptation for PostgreSQL and MS SQL Server, but only if there will be significant advantages compared to the existing solution [Debezium](https://debezium.io)
-
-## License
-This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/osp-silver/oss/movex-cdc/-/blob/master/LICENSE).
 
 ## Project status
 It is already used in production with Oracle databases.
