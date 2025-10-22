@@ -99,7 +99,8 @@ class TablesController < ApplicationController
       :initialization_order_by,
       :yn_initialize_with_flashback,
       :yn_add_cloudevents_header,
-      :key_expression
+      :key_expression,
+      :yn_payload_pkey_only
     )
     result[:initialization_filter]    = nil if result[:initialization_filter]&.strip   == ''  # catch empty strings with blanks
     result[:initialization_order_by]  = nil if result[:initialization_order_by]&.strip == ''

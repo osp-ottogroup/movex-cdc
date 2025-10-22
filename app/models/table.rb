@@ -14,7 +14,7 @@ class Table < ApplicationRecord
   validate    :validate_yn_initialization
   validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
-  validate    :validate_primary_key_needed
+  validate    :validate_yn_payload_pkey_only
 
   # create a table record or mark existing hidden table as visible
   # used in TablesController#create and in DbTriggerGeneratorBase#create_load_sql
@@ -80,6 +80,7 @@ class Table < ApplicationRecord
     if kafka_key_handling == 'E' && key_expression.nil?
       errors.add(:kafka_key_handling, "Kafka key handling 'E' (Expression) is not possible if no key expression is defined")
     end
+    errors.add(:kafka_key_handling, "'Primary key' not possible because the table does not have a primary key") if self.kafka_key_handling == 'P' && pkey_columns.empty?
   end
 
   def validate_yn_columns
@@ -126,8 +127,8 @@ class Table < ApplicationRecord
     end
   end
 
-  def validate_primary_key_needed
-    errors.add(:kafka_key_handling, "'Primary key' not possible because the table does not have a primary key") if self.kafka_key_handling == 'P' && pkey_columns.empty?
+  def validate_yn_payload_pkey_only
+    errors.add(:yn_payload_pkey_only, "Setting not possible because the table does not have a primary key") if self.yn_payload_pkey_only == 'Y' && pkey_columns.empty?
   end
 
   # @return [Array] the columns names of the primary key as array

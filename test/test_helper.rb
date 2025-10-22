@@ -11,6 +11,7 @@ module TestHelper
   def tables_table;   GlobalFixtures.tables_table;    end
   def victim1_table;  GlobalFixtures.victim1_table;   end
   def victim2_table;  GlobalFixtures.victim2_table;   end
+  def victim4_table;  GlobalFixtures.victim4_table;   end
 
   # get schemaname if used for DB
   def victim_schema_prefix
@@ -101,6 +102,7 @@ class ActiveSupport::TestCase
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM1")
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM2")
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM4")
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
     victim1_drop_trigger_name = "#{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}I_#{victim_schema.id}_#{victim1_table.id}_TO_DROP"
@@ -135,6 +137,7 @@ class ActiveSupport::TestCase
       exec_victim_sql("GRANT SELECT ON #{victim_schema_prefix}VICTIM2 TO #{MovexCdc::Application.config.db_user}")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR2(20), PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM4 (ID NUMBER, Name VARCHAR2(20))") # without pkey
     when 'SQLITE' then
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}#{victim1_table.name} (
         ID NUMBER, Num_Val NUMBER, Name VARCHAR(20), CHAR_NAME CHAR(1), Date_Val DateTime, TS_Val DateTime(6), Raw_Val BLOB, TSTZ_Val DateTime(6), RowID_Val TEXT, #{pkey_list})")
@@ -153,6 +156,7 @@ class ActiveSupport::TestCase
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM2 (ID NUMBER, Large_Text CLOB, Name VARCHAR(20), PRIMARY KEY (ID))")
       # Table VICTIM3 without fixture in Tables
       exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM3 (ID NUMBER, Name VARCHAR(20), PRIMARY KEY (ID))")
+      exec_victim_sql("CREATE TABLE #{victim_schema_prefix}VICTIM4 (ID NUMBER, Name VARCHAR(20))") # without pkey
     else
       raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
     end
@@ -546,6 +550,13 @@ class GlobalFixtures
         )
         @@victim2_table.save!
 
+        @@victim4_table = Table.new(schema_id:  @@victim_schema.id,
+                                    name:       'VICTIM4',
+                                    info:       'Victim table in separate schema without primary key constraint.',
+                                    topic:      KafkaHelper.existing_topic_for_test
+        )
+        @@victim4_table.save!
+
         Column.new(table_id: @@tables_table.id, name: 'SCHEMA_ID', info: 'Mein Text', yn_log_insert: 'N', yn_log_update: 'N', yn_log_delete: 'N').save!
         Condition.new(table_id: @@tables_table.id, operation: 'I', filter: 'ID IS NOT NULL').save!
         Condition.new(table_id: @@tables_table.id, operation: 'D', filter: 'ID IS NOT NULL').save!
@@ -690,6 +701,7 @@ class GlobalFixtures
   def self.tables_table;      @@tables_table;       end
   def self.victim1_table;     @@victim1_table;      end
   def self.victim2_table;     @@victim2_table;      end
+  def self.victim4_table;     @@victim4_table;      end
 
   def self.victim_connection
     case MovexCdc::Application.config.db_type

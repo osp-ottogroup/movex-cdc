@@ -20,3 +20,7 @@ $label-weight: $weight-medium;
 // Import Bulma and Buefy styles
 @import "~bulma";
 @import "~buefy/src/scss/buefy";
+
+.b-tooltip .tooltip-content {
+  white-space: pre; // allow line breaks in tooltip by line break in source line
+}
