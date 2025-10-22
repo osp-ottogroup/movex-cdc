@@ -172,7 +172,7 @@ echo "
 
 
 == Start capture in MOVEX CDC's GUI
-Open the application in browser: `http://localhost:8080` and login with the predefined user "admin" and the passwort of the MOVEX DB user.
+Open the application in browser: `http://localhost:8080` and login with the predefined user "admin" and the password of the MOVEX DB user.
 
 image:login_admin.png[format=png, width=300]
 
@@ -183,8 +183,8 @@ image:users_initial.png[format=png, width=800]
 In the "Create User" dialog:
 
 * Add name and email,
-* Choose an existing DB-user for authentication with it's password. +
-This can be every DB user including the MOVEX CDC schema owner.
+* Choose an existing DB-user for authentication with its password. +
+This can be any DB user including the MOVEX CDC schema owner.
 * Check "Admin User" to allow this user administrative tasks
 * Click "Create" to establish the user
 * Open the user again to add schema rights now
@@ -208,23 +208,23 @@ image:config_select_schema.png[format=png, width=700]
 Select a table from the list, then:
 
  * Set the name of the previously created Kafka topic 'hugo'
- * Decide wether to include the Oracle transaction ID into the event or not
+ * Decide whether to include the Oracle transaction ID into the event or not
  * Choose the kind of message key handling https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html#_using_kafka_keys_to_ensure_sequential_order_of_messages[(See documentation for details)]
- * Choose wether to transfer the current content of the table into the Kafka topic before tracking further changes or not
- ** Decide if flashback query should by used to initialize with existing records only up to the SCN of trigger creation
+ * Choose whether to transfer the current content of the table into the Kafka topic before tracking further changes or not
+ ** Decide if flashback query should be used to initialize with existing records only up to the SCN of trigger creation
  ** Optionally place a filter condition to the initialization
  ** Optionally define the order of records for initialization
 
 image:add_table.png[format=png, width=600]
 
-Now tap on the table to mark it as current, then configuration of columns appear.
-Check the columns you want to transfer to Kafka for the particular operation.
+Now tap on the table to mark it as current, then the configuration of columns appear.
+Select the columns you want to transfer to Kafka for the particular operation.
 
 image:config_columns.png[format=png, width=800]
 
 If you want to add filter conditions to the three operations,
-then click at the filter icon for the operation and add the filter condition. +
-Be aware that these conditions are executed within a trigger, so refer to columns of the table by qualifier ":new.column" or ":old.column".
+then click on the filter icon for the operation and add the filter condition. +
+Be aware that these conditions are executed within a trigger, so refer to columns of the table by its qualifier ":new.column" or ":old.column".
 
 image:add_filter.png[format=png, width=800]
 
@@ -240,7 +240,7 @@ Check the "Deploy" switch for the tables you want to deploy and hit "Deploy"
 
 image:deploy_trigger.png[format=png, width=800]
 
-Now the triggers are activated in the DB  . If requested the inialization tasks are starting in background. +
+Now the triggers are activated in the DB  . If requested the initialization tasks are starting in background. +
 After no more than one minute the MOVEX Change Data Capture will stop sleeping idle and recognize the existence of events to transfer to Kafka. +
 You can evaluate the incoming events in Kafka at your already waiting consumer session.
 

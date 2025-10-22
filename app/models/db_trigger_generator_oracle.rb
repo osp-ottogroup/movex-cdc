@@ -773,7 +773,7 @@ END;
 
     # Build the payload record
     row_section << "  /* JSON_OBJECT not used here to generate JSON because it is buggy for numeric values < 0 and DB version < 19.1 */\n" unless @use_json_object
-    row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
+    row_section << "  #{condition_indent}#{update_indent}payload_rec.payload := #{payload_command(table, table_config, operation, "  #{condition_indent}#{update_indent}")};\n"
     row_section << "  #{condition_indent}#{update_indent}#{message_key_sql(table_config, operation)}\n"
     row_section << "  #{condition_indent}#{update_indent}payload_tab(tab_size + 1) := payload_rec;\n"
     row_section << "  #{condition_indent}END IF;\n" if operation == 'U'
@@ -809,31 +809,45 @@ END;
   end
 
   # generate concatenated PL/SQL-commands for payload
-  # - mode: :body or :load
-  def payload_command(table_config, operation, indent)
-    trigger_config = table_config[operation]
+  # @param [Table] table
+  # @param [Hash] table_config config for table { operation: { columns: [], condition:, column_expressions: [] }}
+  # @param [String] operation I|U|D
+  # @param [String] indent indentation for generated PL/SQL code
+  # @return [String] PL/SQL code for building JSON payload
+  def payload_command(table, table_config, operation, indent)
+    columns = table_config[operation][:columns]                                 # default if nothing special is defined
+    if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
+      columns = table.pkey_columns                                              # only primary key columns
+    end
+
     case operation
-    when 'I' then payload_command_internal(trigger_config, 'new', indent)
-    # !!! the syntax of the end of of the 'old' object and start of 'new' object must be stable because it is used to find the position in PL/SQL for inserting column expression results in build_expression_execution_section !!!
-    when 'U' then "#{payload_command_internal(trigger_config, 'old', indent)}||',\n'||#{payload_command_internal(trigger_config, 'new', indent)}"
-    when 'D' then payload_command_internal(trigger_config, 'old', indent)
+    when 'I' then payload_command_internal(table, columns, 'new', indent)
+    # !!! the syntax of the end of the 'old' object and start of 'new' object must be stable because it is used to find the position in PL/SQL for inserting column expression results in build_expression_execution_section !!!
+    when 'U' then "#{payload_command_internal(table,  columns, 'old', indent)}||',\n'||#{payload_command_internal(table, columns, 'new', indent)}"
+    when 'D' then payload_command_internal(table, columns, 'old', indent)
     else
       raise "Unknown operation #{operation}"
     end
   end
 
-  def payload_command_internal(trigger_config, old_new, indent)
+  # generate concatenated PL/SQL-commands for payload for one of 'old' or 'new' object
+  # @param [Table] table
+  # @param [Array] columns configured columns  for operation of table { column_name:, data_type:, nullable: }
+  # @param [String] old_new 'old' or 'new'
+  # @param [String] indent indentation for generated PL/SQL code
+  # @return [String] PL/SQL code for building JSON payload for 'old' or 'new' object
+  def payload_command_internal(table, columns, old_new, indent)
     result = "'\"#{old_new}\": ' ||"
-    if trigger_config[:columns].empty?                                        # empty object if no columns defined
-      result << "'{}'"                                                        # JSON_OBJECT in PL/SQL < 23ai raises for empty column list PLS-00103: Encountered the symbol ")" when expecting one of the following:
+    if columns.empty?                                                           # empty object if no columns defined
+      result << "'{}'"                                                          # JSON_OBJECT in PL/SQL < 23ai raises for empty column list PLS-00103: Encountered the symbol ")" when expecting one of the following:
     else
       if @use_json_object
         result << "\n#{indent}JSON_OBJECT(\n"
-        result << trigger_config[:columns].map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
+        result << columns.map {|c| "  #{indent}'#{c[:column_name]}' VALUE #{convert_col_json_object(c, old_new)}"}.join(",\n")
         result << "\n#{indent})"
       else
         result << "'{'||\n"
-        result << trigger_config[:columns].map {|c| "  #{indent}'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
+        result << columns.map {|c| "  #{indent}'\"#{c[:column_name]}\": '||#{convert_col(c, old_new)}"}.join("||','\n||")
         result << "#{indent}||'}'"
       end
     end

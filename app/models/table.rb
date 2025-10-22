@@ -14,6 +14,7 @@ class Table < ApplicationRecord
   validate    :validate_yn_initialization
   validate    :validate_yn_initialization_update, on: :update                   # allow initialization='Y' at table creation and tag columns after that
   validate    :validate_initialization_filter
+  validate    :validate_yn_payload_pkey_only
 
   # create a table record or mark existing hidden table as visible
   # used in TablesController#create and in DbTriggerGeneratorBase#create_load_sql
@@ -52,6 +53,11 @@ class Table < ApplicationRecord
     )
   end
 
+  def initialize(attributes = nil)
+    super
+    @_cached_pkey_columns = nil
+  end
+
   def topic_in_table_or_schema
     if (topic.nil? || topic == '')
       errors.add(:topic, "cannot be empty if topic of schema is also empty") if (schema.topic.nil? || schema.topic == '')
@@ -79,6 +85,7 @@ class Table < ApplicationRecord
     if kafka_key_handling == 'E' && key_expression.nil?
       errors.add(:kafka_key_handling, "Kafka key handling 'E' (Expression) is not possible if no key expression is defined")
     end
+    errors.add(:kafka_key_handling, "'Primary key' not possible because the table does not have a primary key") if self.kafka_key_handling == 'P' && pkey_columns.empty?
   end
 
   def validate_yn_columns
@@ -86,6 +93,7 @@ class Table < ApplicationRecord
     validate_yn_column :yn_hidden
     validate_yn_column :yn_initialization
     validate_yn_column :yn_initialize_with_flashback
+    validate_yn_column :yn_payload_pkey_only
   end
 
   def validate_unchanged_attributes
@@ -122,6 +130,32 @@ class Table < ApplicationRecord
         errors.add(:initialization_filter, "Error '#{e.class}:#{e.message}' at check of initialization filter with '#{sql}'")
       end
     end
+  end
+
+  def validate_yn_payload_pkey_only
+    errors.add(:yn_payload_pkey_only, "Setting not possible because the table does not have a primary key") if self.yn_payload_pkey_only == 'Y' && pkey_columns.empty?
+  end
+
+  # @return [Array] the attributes of the primary key columns as array { column_name [String], data_type [String], nullable [Boolean] }
+  def pkey_columns
+    if @_cached_pkey_columns.nil?
+      @_cached_pkey_columns = case MovexCdc::Application.config.db_type
+                              when 'ORACLE' then
+                                sql = "SELECT cc.Column_Name, tc.Data_type, tc.Nullable
+                                       FROM   DBA_Constraints c
+                                       JOIN   DBA_Cons_Columns cc ON cc.Owner = c.Owner AND cc.Constraint_Name = c.Constraint_Name
+                                       JOIN   DBA_Tab_Columns  tc ON tc.Owner = c.Owner AND tc.Table_Name = cc.Table_Name AND tc.Column_Name = cc.Column_Name
+                                       WHERE  c.Owner           = :owner
+                                       AND    c.Table_Name      = :table_name
+                                       AND    c.Constraint_Type = 'P'
+                                       ORDER BY cc.Position"
+                                Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| { column_name: row['column_name'], data_type: row['data_type'], nullable: row['nullable']=='Y' } }
+                              when 'SQLITE' then
+                                sql = "SELECT * FROM #{self.schema.name}.PRAGMA_table_info(:table_name) WHERE pk > 0 ORDER BY pk"
+                                Database.select_all(sql, table_name: self.name).map { |row| { column_name: row['name'], data_type: row['type'], nullable: row['notnull'] == 0 } }
+                              end
+    end
+    @_cached_pkey_columns
   end
 
   # check if table is readable by MOVEX CDC's DB user and raise exception if not

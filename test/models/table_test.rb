@@ -55,32 +55,38 @@ class TableTest < ActiveSupport::TestCase
 
   test "table validations" do
     run_with_current_user do
-      result = tables_table.update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
       assert !result, log_on_failure('Validation should raise error for fixed_message_key if not empty')
 
-      result = tables_table.update(kafka_key_handling: 'F', fixed_message_key: nil)
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'F', fixed_message_key: nil)
       assert !result, log_on_failure('Validation should raise error for fixed_message_key if empty')
 
-      result = tables_table.update(kafka_key_handling: 'T', yn_record_txid: 'N')
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'T', yn_record_txid: 'N')
       assert !result, log_on_failure('Validation should raise error for kafka_key_handling = T and yn_record_txid = N')
 
-      result = tables_table.update(kafka_key_handling: 'E', key_expression: nil)
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'E', key_expression: nil)
       assert !result, log_on_failure('Validation should raise error for key expression if empty')
 
-      result = tables_table.update(kafka_key_handling: 'X')
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'X')
       assert !result, log_on_failure('Validation should raise error for wrong kafka_key_handling')
+
+      result = Table.find(tables_table.id).update(kafka_key_handling: 'P')
+      assert result, log_on_failure('Validation should be successful for kafka_key_handling P on table with primary key')
+
+      result = Table.find(victim4_table.id).update(kafka_key_handling: 'P')
+      assert !result, log_on_failure('Validation should fail for kafka_key_handling P on table without primary key')
 
       org_topic = Schema.find(tables_table.schema_id).topic
       schema = Schema.find(user_schema.id)
       schema.tables.each {|t| t.update!(topic: KafkaHelper.existing_topic_for_test) if t.topic.nil?}  # Topic may have been changed by previous tests
       schema.update!(topic: nil)
-      result = tables_table.update(topic: nil)
+      result = Table.find(tables_table.id).update(topic: nil)
       assert !result, log_on_failure('Validation should raise error if neither table nor schema have valid topic')
 
-      result = tables_table.update(yn_record_txid: 'f')
+      result = Table.find(tables_table.id).update(yn_record_txid: 'f')
       assert !result, log_on_failure('Validation should raise error if YN-column does not contain Y or N')
 
-      result = tables_table.update(yn_initialization: 'f')
+      result = Table.find(tables_table.id).update(yn_initialization: 'f')
       assert !result, log_on_failure('Validation should raise error if YN-column does not contain Y or N')
 
       non_existing_table = Table.new(schema_id: victim_schema.id, name: 'NON_EXISTING', topic: 'Hugo')
@@ -89,8 +95,12 @@ class TableTest < ActiveSupport::TestCase
       result = non_existing_table.update(yn_initialization: 'Y')
       assert !result, log_on_failure('Validation should raise error if yn_initialization=Y for not readable table')
 
+      result = Table.find(victim4_table.id).update(yn_payload_pkey_only: 'Y')
+      assert !result, log_on_failure('Validation should fail for yn_payload_pkey_only = Y on table without primary key')
+
+      # restore original state
       non_existing_table.destroy!
-      Schema.find(tables_table.schema_id).update!(topic: org_topic)             # restore original state
+      Schema.find(tables_table.schema_id).update!(topic: org_topic)
     end
   end
 

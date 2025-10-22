@@ -39,23 +39,41 @@
 
         <div class="columns is-1 is-variable">
           <div class="column">
-            <b-field label="Record Transaction-ID">
-              <b-tooltip label="Add DB transaction ID to JSON data of event?" position="is-right" size="is-small">
+            <b-tooltip label="Add the DB
+transaction ID to
+the JSON data
+of the event?" position="is-bottom" size="is-small">
+              <b-field label="Record Tx.-ID">
                 <b-switch v-model="internalTable.yn_record_txid"
                 @input="onRecordTxIdChanged"
                 true-value="Y"
                 false-value="N"/>
-              </b-tooltip>
-            </b-field>
+              </b-field>
+            </b-tooltip>
           </div>
           <div class="column">
-            <b-field label="CloudEvents header">
-              <b-tooltip label="Add CloudEvents header to each event?" position="is-bottom" size="is-small">
+            <b-tooltip label="Add the predefined
+CloudEvents header
+to each event?" position="is-bottom" size="is-small">
+              <b-field label="CloudEvents header">
                 <b-switch v-model="internalTable.yn_add_cloudevents_header"
                 true-value="Y"
                 false-value="N"/>
-              </b-tooltip>
-            </b-field>
+              </b-field>
+            </b-tooltip>
+          </div>
+          <div class="column">
+            <b-tooltip label="Put only the primary key
+columns into the JSON data
+of the event?
+But check all marked
+columns for changes." position="is-bottom" size="is-small">
+              <b-field label="Primary Key Only">
+                <b-switch v-model="internalTable.yn_payload_pkey_only"
+                          true-value="Y"
+                          false-value="N"/>
+              </b-field>
+            </b-tooltip>
           </div>
         </div>
 
@@ -96,7 +114,8 @@ Example expressions:
           <div class="columns is-1 is-variable">
             <div class="column">
               <b-field label="Initialize data">
-                <b-tooltip label="Initially transfer existing records as insert events at next deployment?" position="is-right" size="is-small">
+                <b-tooltip label="Initially transfer existing records
+as insert events at next deployment?" position="is-right" size="is-small">
                   <b-switch v-model="internalTable.yn_initialization"
                             true-value="Y"
                             false-value="N"/>

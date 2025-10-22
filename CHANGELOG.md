@@ -1,6 +1,12 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
+# 2025-10-22 1.13.2
+- Optional suppression of non-pkey columns in JSON payload of events. <br/>
+  This allows to send only primary key columns but react on changes of marked columns.<br/>
+  Used to process small change events in Kafka without sending the whole set of interested columns.<br/>
+  These columns can be gotten from the source table in a following step possibly after additional filtering and deduplication.<br/>
+
 # 2025-10-02 1.13.1
 - SQL expressions for JSON attributes are supported now in addition to table columns. This allows to include values from joined tables in the JSON event.
 - SQL expressions for the message key are supported now as fifth type of key definition. This allows to include values from joined tables in the message key.
