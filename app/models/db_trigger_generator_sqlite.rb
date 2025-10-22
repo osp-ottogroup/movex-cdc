@@ -246,7 +246,7 @@ END;"
     if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
       columns = trigger_config[:columns].select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
       table.pkey_columns.each do |pkc|
-        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation if only primary key columns in payload are expected'" if columns.empty?
+        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation '#{operation}' if only primary key columns in payload are expected" unless columns.map{|c|c[:column_name]}.include?(pkc)
       end
     end
 

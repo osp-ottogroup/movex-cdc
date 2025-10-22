@@ -815,12 +815,20 @@ END;
   # @param [String] indent indentation for generated PL/SQL code
   # @return [String] PL/SQL code for building JSON payload
   def payload_command(table, table_config, operation, indent)
-    trigger_config = table_config[operation]
+    columns = table_config[operation][:columns]                                 # default if nothing special is defined
+    if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
+      columns = columns.select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
+      table.pkey_columns.each do |pkc|
+        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation '#{operation}' if only primary key columns in payload are expected" unless columns.map{|c|c[:column_name]}.include?(pkc)
+      end
+    end
+
+
     case operation
-    when 'I' then payload_command_internal(table, trigger_config, 'new', indent)
+    when 'I' then payload_command_internal(table, columns, 'new', indent)
     # !!! the syntax of the end of the 'old' object and start of 'new' object must be stable because it is used to find the position in PL/SQL for inserting column expression results in build_expression_execution_section !!!
-    when 'U' then "#{payload_command_internal(table,  trigger_config, 'old', indent)}||',\n'||#{payload_command_internal(table, trigger_config, 'new', indent)}"
-    when 'D' then payload_command_internal(table, trigger_config, 'old', indent)
+    when 'U' then "#{payload_command_internal(table,  columns, 'old', indent)}||',\n'||#{payload_command_internal(table, columns, 'new', indent)}"
+    when 'D' then payload_command_internal(table, columns, 'old', indent)
     else
       raise "Unknown operation #{operation}"
     end
@@ -828,18 +836,11 @@ END;
 
   # generate concatenated PL/SQL-commands for payload for one of 'old' or 'new' object
   # @param [Table] table
-  # @param [Hash] trigger_config config for operation of table { columns: [], condition:, column_expressions: [] }
+  # @param [Array] columns configured columns  for operation of table
   # @param [String] old_new 'old' or 'new'
   # @param [String] indent indentation for generated PL/SQL code
   # @return [String] PL/SQL code for building JSON payload for 'old' or 'new' object
-  def payload_command_internal(table, trigger_config, old_new, indent)
-    columns = trigger_config[:columns]                                          # default if nothing special is defined
-    if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
-      columns = trigger_config[:columns].select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
-      table.pkey_columns.each do |pkc|
-        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation if only primary key columns in payload are expected'" if columns.empty?
-      end
-    end
+  def payload_command_internal(table, columns, old_new, indent)
 
     result = "'\"#{old_new}\": ' ||"
     if columns.empty?                                                           # empty object if no columns defined
