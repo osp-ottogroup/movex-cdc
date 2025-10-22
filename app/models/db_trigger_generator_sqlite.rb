@@ -160,14 +160,14 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
       Database.select_all("PRAGMA table_info(#{table.name})").each do |table_column|
         columns.each do |trigger_column|
           if table_column.name.upcase == trigger_column[:column_name].upcase
-            trigger_column[:type]     = table_column.type
-            trigger_column[:notnull]  = table_column.notnull
+            trigger_column[:data_type]  = table_column.type
+            trigger_column[:nullable]  = table_column.notnull == 0
           end
         end
       end
 
       columns.each do |trigger_column|
-        raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:type].nil?
+        raise "Column #{trigger_column[:column_name]} does not exist in table #{@schema.name}.#{table.name}" if trigger_column[:data_type].nil?
       end
     end
   end
@@ -244,10 +244,7 @@ END;"
   def payload_json(table, trigger_config, accessor, operation:)
     columns = trigger_config[:columns]
     if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
-      columns = trigger_config[:columns].select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
-      table.pkey_columns.each do |pkc|
-        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation '#{operation}' if only primary key columns in payload are expected" unless columns.map{|c|c[:column_name]}.include?(pkc)
-      end
+      columns = table.pkey_columns                                              # only primary key columns { column_name: 'COL1', data_type: 'NUMBER', nullable: false }, ...
     end
 
     json = "{".dup
@@ -351,12 +348,11 @@ FROM   main.#{table.name}
       when 'i' then nil                                                         # initialization of table data
       end
 
-    pk_columns = Database.select_all("PRAGMA table_info(#{table.name})").select{|c| c.pk > 0}
-    raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if pk_columns.length == 0
+    raise "DbTriggerSqlite.message_key_sql: Table #{table_name} does not have any primary key column" if table.pkey_columns.empty?
 
     result = "'{'||".dup
-    result << pk_columns
-                .map{|pkc| "'\"#{pkc['name']}\": '||#{convert_col({column_name: pkc['name'], type: pkc['type']}, pk_accessor)}" }
+    result << table.pkey_columns
+                .map{|pkc| "'\"#{pkc[:column_name]}\": '||#{convert_col(pkc, pk_accessor)}" }
                 .join("||','||")
     result << "||'}'"
 
@@ -386,7 +382,7 @@ FROM   main.#{table.name}
   def old_new_compare(columns)
     columns.map{|c|
       result = "old.#{c[:column_name]} != new.#{c[:column_name]}"
-      if c[:notnull] == 0
+      if c[:nullable]
         result << " OR (old.#{c[:column_name]} IS NULL AND new.#{c[:column_name]} IS NOT NULL)"
         result << " OR (old.#{c[:column_name]} IS NOT NULL AND new.#{c[:column_name]} IS NULL)"
       end
@@ -420,13 +416,13 @@ FROM   main.#{table.name}
     local_accessor = accessor.nil? ? '' : "#{accessor}."
     col_expr = "#{local_accessor}#{column_hash[:column_name]}"
     result = String.new
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] == 'BLOB'
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:type] =~ /datetime/i
-    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:type] =~ /number/i || column_hash[:type] =~ /int/i
-    if column_hash[:type] =~ /char/i || column_hash[:type] =~ /text/i || column_hash[:type] =~ /varchar/i || column_hash[:type] =~ /clob/i
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:data_type] == 'BLOB'
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||#{col_expr}||'\"' END"        if column_hash[:data_type] =~ /datetime/i
+    result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE #{col_expr} END"                    if column_hash[:data_type] =~ /number/i || column_hash[:data_type] =~ /int/i
+    if column_hash[:data_type] =~ /char/i || column_hash[:data_type] =~ /text/i || column_hash[:data_type] =~ /varchar/i || column_hash[:data_type] =~ /clob/i
       result << "CASE WHEN #{col_expr} IS NULL THEN 'null' ELSE '\"'||REPLACE(#{col_expr}, '\"', '\\\"')||'\"' END"
     end
-    raise "Unsupported data type '#{column_hash[:type]}'" if result.length == 0
+    raise "Unsupported data type '#{column_hash[:data_type]}'" if result.length == 0
     result
   end
 

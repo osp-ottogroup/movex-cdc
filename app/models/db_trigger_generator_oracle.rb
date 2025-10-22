@@ -817,12 +817,8 @@ END;
   def payload_command(table, table_config, operation, indent)
     columns = table_config[operation][:columns]                                 # default if nothing special is defined
     if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
-      columns = columns.select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
-      table.pkey_columns.each do |pkc|
-        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation '#{operation}' if only primary key columns in payload are expected" unless columns.map{|c|c[:column_name]}.include?(pkc)
-      end
+      columns = table.pkey_columns                                              # only primary key columns
     end
-
 
     case operation
     when 'I' then payload_command_internal(table, columns, 'new', indent)
@@ -836,12 +832,11 @@ END;
 
   # generate concatenated PL/SQL-commands for payload for one of 'old' or 'new' object
   # @param [Table] table
-  # @param [Array] columns configured columns  for operation of table
+  # @param [Array] columns configured columns  for operation of table { column_name:, data_type:, nullable: }
   # @param [String] old_new 'old' or 'new'
   # @param [String] indent indentation for generated PL/SQL code
   # @return [String] PL/SQL code for building JSON payload for 'old' or 'new' object
   def payload_command_internal(table, columns, old_new, indent)
-
     result = "'\"#{old_new}\": ' ||"
     if columns.empty?                                                           # empty object if no columns defined
       result << "'{}'"                                                          # JSON_OBJECT in PL/SQL < 23ai raises for empty column list PLS-00103: Encountered the symbol ")" when expecting one of the following:

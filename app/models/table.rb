@@ -136,22 +136,23 @@ class Table < ApplicationRecord
     errors.add(:yn_payload_pkey_only, "Setting not possible because the table does not have a primary key") if self.yn_payload_pkey_only == 'Y' && pkey_columns.empty?
   end
 
-  # @return [Array] the columns names of the primary key as array
+  # @return [Array] the attributes of the primary key columns as array { column_name [String], data_type [String], nullable [Boolean] }
   def pkey_columns
     if @_cached_pkey_columns.nil?
       @_cached_pkey_columns = case MovexCdc::Application.config.db_type
                               when 'ORACLE' then
-                                sql = "SELECT cc.Column_Name
+                                sql = "SELECT cc.Column_Name, tc.Data_type, tc.Nullable
                                        FROM   DBA_Constraints c
                                        JOIN   DBA_Cons_Columns cc ON cc.Owner = c.Owner AND cc.Constraint_Name = c.Constraint_Name
+                                       JOIN   DBA_Tab_Columns  tc ON tc.Owner = c.Owner AND tc.Table_Name = cc.Table_Name AND tc.Column_Name = cc.Column_Name
                                        WHERE  c.Owner           = :owner
                                        AND    c.Table_Name      = :table_name
                                        AND    c.Constraint_Type = 'P'
                                        ORDER BY cc.Position"
-                                Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| row['column_name'] }
+                                Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| { column_name: row['column_name'], data_type: row['data_type'], nullable: row['nullable']=='Y' } }
                               when 'SQLITE' then
                                 sql = "SELECT * FROM #{self.schema.name}.PRAGMA_table_info(:table_name) WHERE pk > 0 ORDER BY pk"
-                                Database.select_all(sql, table_name: self.name).map { |row| row['name'] }
+                                Database.select_all(sql, table_name: self.name).map { |row| { column_name: row['name'], data_type: row['type'], nullable: row['notnull'] == 0 } }
                               end
     end
     @_cached_pkey_columns
