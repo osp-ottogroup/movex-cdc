@@ -150,7 +150,7 @@ but in this case there are some disadvantages:
 
 
 ==== SQLite ====
-SQLite is used as development database for MOVEX CDC. There might be no useful production use case but it works.
+SQLite is used as a second database for development of MOVEX CDC. It can also be used for productive purposes.
 
 ==== PostgreSQL, Microsoft SQL Server ====
 Support for PostgreSQL and MS SQL Server is planned in the future. +
@@ -503,6 +503,7 @@ This dialog shows:
 * choose a value for Kafka key (None / Primary key / Fixed value / Transaction-ID / Expression )
 * decide if transaction-ID should be recorded in events (adds approx. 0.3 ms per triggering SQL execution)
 * decide if header values according to CloudEvents standard should be set for each event
+* decide if only the primary key columns should be sent as event payload or all marked columns (default).
 * decide whether the current content of the table should be initially transferred to Kafka at trigger deployment or nor
 
 ====== Modify triggering of change events per column and operation ======
@@ -553,7 +554,12 @@ or substructures like: `"Address": { "Street": "Main St.", "City": "London" }` o
 SELECT '\"ArrayList\": [ '||GROUP_CONCAT('{\"New_Name\":\"'||new.name||'\", \"Old_Name\": \"'||old.name||'\"}', ', ') ||' ]'
 ```
 
-==== Generation of database triggers ====
+==== Generation of database triggers per GUI ====
+* Select a particular schema or all schemas for the first check for changed trigger configuration
+* Generate the code for all triggers where the configuration has changed compared to the existing triggers in DB
+* Also load SQLs are generated where initialization of table data is requested
+* Mark certain or all tables for deployment of generated triggers and load SQLs
+* Hit "Deploy" to immediately create or replace triggers and to execute load SQLs for initial transfer of table data in background
 
 === Troubleshooting ===
 ==== Backward compatibility ====
@@ -1067,7 +1073,7 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "log_level=ERROR" \
 http://localhost:8080/server_control/set_log_level
 
-===== API example for trigger deployment without executing DDL =====
+===== API example for trigger deployment without executing DDL (dry run)  =====
 ```
 JWT=`curl -s -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | \
