@@ -33,6 +33,20 @@ class TransferThreadTest < ActiveSupport::TestCase
     assert_equal 0, remaining_event_log_count, log_on_failure('Last error record from Event_Logs should be processed and deleted now')
   end
 
+  test "process with pkey_only" do
+    run_with_current_user {
+      Table.find(victim1_table.id).update!(yn_payload_pkey_only: 'Y')
+      create_event_logs_for_test(20)
+
+      assert !EventLog.last.payload['CHAR_NAME'], log_on_failure('Payload should not contain the column CHAR_NAME which is not part of the primary key')
+
+      remaining_event_log_count = process_eventlogs(max_wait_time: 30, title: 'Processing with pkey only')
+      assert_equal 0, remaining_event_log_count, log_on_failure('All Event_Logs should be processed and deleted now')
+
+      Table.find(victim1_table.id).update!(yn_payload_pkey_only: 'N')           # restore original state
+    }
+  end
+
   test "process with error" do
     # Save original state
     org_error_retry_start_delay = MovexCdc::Application.config.error_retry_start_delay

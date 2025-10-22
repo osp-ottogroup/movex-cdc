@@ -53,6 +53,11 @@ class Table < ApplicationRecord
     )
   end
 
+  def initialize(attributes = nil)
+    super
+    @_cached_pkey_columns = nil
+  end
+
   def topic_in_table_or_schema
     if (topic.nil? || topic == '')
       errors.add(:topic, "cannot be empty if topic of schema is also empty") if (schema.topic.nil? || schema.topic == '')
@@ -133,21 +138,23 @@ class Table < ApplicationRecord
 
   # @return [Array] the columns names of the primary key as array
   def pkey_columns
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      sql = "SELECT cc.Column_Name
-             FROM   DBA_Constraints c
-             JOIN   DBA_Cons_Columns cc ON cc.Owner = c.Owner AND cc.Constraint_Name = c.Constraint_Name
-             WHERE  c.Owner           = :owner
-             AND    c.Table_Name      = :table_name
-             AND    c.Constraint_Type = 'P'
-             ORDER BY cc.Position"
-      Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| row['column_name'] }
-    when 'SQLITE' then
-      sql = "SELECT * FROM #{self.schema.name}.PRAGMA_table_info(:table_name) WHERE pk > 0 ORDER BY pk"
-      Database.select_all(sql, table_name: self.name).map { |row| row['name'] }
+    if @_cached_pkey_columns.nil?
+      @_cached_pkey_columns = case MovexCdc::Application.config.db_type
+                              when 'ORACLE' then
+                                sql = "SELECT cc.Column_Name
+                                       FROM   DBA_Constraints c
+                                       JOIN   DBA_Cons_Columns cc ON cc.Owner = c.Owner AND cc.Constraint_Name = c.Constraint_Name
+                                       WHERE  c.Owner           = :owner
+                                       AND    c.Table_Name      = :table_name
+                                       AND    c.Constraint_Type = 'P'
+                                       ORDER BY cc.Position"
+                                Database.select_all(sql, owner: self.schema.name, table_name: self.name).map { |row| row['column_name'] }
+                              when 'SQLITE' then
+                                sql = "SELECT * FROM #{self.schema.name}.PRAGMA_table_info(:table_name) WHERE pk > 0 ORDER BY pk"
+                                Database.select_all(sql, table_name: self.name).map { |row| row['name'] }
+                              end
     end
-
+    @_cached_pkey_columns
   end
 
   # check if table is readable by MOVEX CDC's DB user and raise exception if not

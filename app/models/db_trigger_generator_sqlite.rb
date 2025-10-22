@@ -202,6 +202,8 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
   end
 
   # Build trigger code from hash
+  # @param [Table] table table object
+  # @param [String] operation 'I', 'U', 'D'
   def build_trigger_body(table, operation)
     table_config    = @expected_triggers[table.name]
     trigger_config  = table_config[operation]
@@ -215,7 +217,7 @@ class DbTriggerGeneratorSqlite < DbTriggerGeneratorBase
 
     payload = String.new
     accessors.each do |accessor|
-      payload << "\"#{accessor}\": #{payload_json(trigger_config, accessor, operation: operation)}"
+      payload << "\"#{accessor}\": #{payload_json(table, trigger_config, accessor, operation: operation)}"
       payload << "," if accessors.length == 2 && accessor == 'old'
     end
 
@@ -234,16 +236,25 @@ END;"
   end
 
   # Build JSON payload for new or old values
+  # @param table [Table] table object
   # @param trigger_config [Hash] configuration for trigger { }
   # @param accessor [String | NilClass] 'new', 'old' or nil for initialization
   # @param operation [String] 'I', 'U', 'D' or 'i' for initialization
   # @return [String] SQL expression for JSON payload
-  def payload_json(trigger_config, accessor, operation:)
+  def payload_json(table, trigger_config, accessor, operation:)
+    columns = trigger_config[:columns]
+    if table.yn_payload_pkey_only == 'Y'                                        # only primary key columns in payload requested
+      columns = trigger_config[:columns].select{|c| table.pkey_columns.include?(c[:column_name]) } # only primary key columns
+      table.pkey_columns.each do |pkc|
+        raise "PKey column #{table.name}.#{pkc} needs to be checked for operation if only primary key columns in payload are expected'" if columns.empty?
+      end
+    end
+
     json = "{".dup
-    json << trigger_config[:columns].map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
+    json << columns.map{|c| "\"#{c[:column_name]}\": '||#{convert_col(c, accessor)}||'"}.join(",\n")
     expressions_to_use = trigger_config[:column_expressions].select {|ce| place_expression_in_section?(ce[:sql], accessor, operation) }
     unless expressions_to_use.empty?
-      json << ",\n" unless trigger_config[:columns].empty?
+      json << ",\n" unless columns.empty?
       json << expressions_to_use
                 .sort_by{|ce| ce[:id]}
                 .map{|ce| prepare_column_expressions(ce[:sql], operation)}
@@ -290,7 +301,7 @@ END;"
 
     sql = "\
 INSERT INTO Event_Logs(Table_ID, Operation, DBUser, Created_At, Payload, Msg_Key, Transaction_ID)
-SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(trigger_config, nil, operation: 'i')}', #{message_key_sql(table, 'i')},
+SELECT #{table.id}, 'i', 'main', strftime('%Y-%m-%d %H-%M-%f','now'), '\"new\": #{payload_json(table, trigger_config, nil, operation: 'i')}', #{message_key_sql(table, 'i')},
         #{table.yn_record_txid == 'Y' ? "'Dummy Tx-ID'" : "NULL" }
 FROM   main.#{table.name}
 "
