@@ -1,6 +1,9 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
+# 2025-10-23 1.13.3
+- Bugfix: Correct writing of pending statistics after termination of worker threads at shutdown
+
 # 2025-10-22 1.13.2
 - Optional suppression of non-pkey columns in JSON payload of events. <br/>
   This allows to send only primary key columns but react on changes of marked columns.<br/>
@@ -22,7 +25,7 @@
 - Framework dependencies upgraded: JRuby 10.0.2.0, Rails 8.0.2.1, Kafka client 3.9.1
 
 ## 2025-09-02 1.12.3
-- Abort processing of a batch if certain Kafka errors occure. This avoids endless retries with divide & conquer processing.
+- Abort processing of a batch if certain Kafka errors occur. This avoids endless retries with divide & conquer processing.
 - Add the timestamp of worker thread start to the transactional ID of the Kafka producer to avoid collisions of transactional IDs if a worker thread is restarted quickly after termination.
 - Use new transactional ID each time a new Kafka producer is created
 - Config attribute KAFKA_MAX_BULK_COUNT is not used anymore
@@ -67,7 +70,7 @@
 ## 2025-05-26 1.11.
 - Docker container becomes unhealthy if regular job cycle is exceeded by factor of 10
 - Jobs are not restarted at massive job execution delay possibly due to out of memory, this should by handled outside the container with restart of container
-- Timeout at commit_transaction may raise IllegalStateException at following abort_transaction, catched now
+- Timeout at commit_transaction may raise IllegalStateException at following abort_transaction, caught now
 ## 2025-05-20 1.11.2
 - Alternative Ruby client library for Kafka removed, using only Apache Kafka client library now
 - The number of created change events at initialization is recorded now in activity logs
