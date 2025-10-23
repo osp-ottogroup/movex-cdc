@@ -219,6 +219,19 @@ generate_asciidoc:
       - doc/images/
       - doc/movex-cdc.pdf
 
+build_movex_cdc_with_podman:
+  stage: test
+  script:
+    - |
+      echo "Building Docker image with Podman"
+      BUILD_VERSION=${CI_COMMIT_REF_NAME#"prod_"}_`date "+%Y-%m-%d_%H-%M-%S"`
+      JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
+      $PODMAN build \
+        --build-arg BUILD_VERSION=$BUILD_VERSION \
+        --build-arg JRUBY_VERSION=$JRUBY_VERSION \
+        -f $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle \
+        -t $TEMP_DOCKER_IMAGE .
+
 build_movex_cdc:
   stage: build
 
