@@ -9,13 +9,13 @@ class CreateAllowedDbTables < ActiveRecord::Migration[6.0]
                 /* Own schema has tables */
                 SELECT Owner, Owner Grantee, Table_Name FROM DBA_Tables
                 UNION
-                /* Explicite table grants for user */
+                /* Explicit table grants for user */
                 SELECT Owner, Grantee, Table_Name
                 FROM   DBA_TAB_PRIVS
                 WHERE  Privilege = 'SELECT'
                 AND    Type      = 'TABLE'
                 UNION
-                /* Implicite table grants for users's roles */
+                /* Implicit table grants for users's roles */
                 SELECT tp.Owner, rp.Grantee, tp.Table_Name
                 FROM   DBA_Tab_Privs tp
                 JOIN   (SELECT Granted_Role, CONNECT_BY_ROOT GRANTEE Grantee

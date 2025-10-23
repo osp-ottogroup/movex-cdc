@@ -71,11 +71,13 @@ class ThreadHandling
       Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nevertheless" }
     end
 
-    Database.close_db_connection                                                # Ensure connections are closed. This is regularly the case after Puma/Rails shutdown, but in some rare cases connections may remain open otherwise
-    ActiveRecord::Base.establish_connection                                     # Recreate the connection for writing the final statistics
-    Database.select_all "SELECT COUNT(*) FROM Schemas"                      # Workaround to ensure connection is open because next ActiveRecord::Base.transaction unfortunately does not open connection automatically here
-    StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB after stop of worker threads
-    Database.close_db_connection                                                # Final close of DB connections now
+    if StatisticCounterConcentrator.get_instance.pending_values?
+      Database.close_db_connection                                              # Ensure connections are closed. This is regularly the case after Puma/Rails shutdown, but in some rare cases connections may remain open otherwise
+      ActiveRecord::Base.establish_connection                                   # Recreate the connection for writing the final statistics
+      Database.select_all "SELECT COUNT(*) FROM Schemas"                    # Workaround to ensure connection is open because next ActiveRecord::Base.transaction unfortunately does not open connection automatically here
+      StatisticCounterConcentrator.get_instance.flush_to_db                     # write statistics to DB after stop of worker threads
+      Database.close_db_connection                                              # Final close of DB connections now
+    end
   end
 
   # remove worker from pool: called from other threads after finishing TransferThread.process

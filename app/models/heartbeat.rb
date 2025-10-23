@@ -33,7 +33,7 @@ class Heartbeat < ApplicationRecord
       others.each do |o|
         key = "#{o.hostname}/#{o.ip_address}"
         if !(@@known_concurrent_instances.key?(key) && @@known_concurrent_instances[key] == o.heartbeat_ts)
-          @@known_concurrent_instances[key] = o.heartbeat_ts                    # Remenber the known concurrent instance to avoid repeated warnings
+          @@known_concurrent_instances[key] = o.heartbeat_ts                    # Remember the known concurrent instance to avoid repeated warnings
           msg = "Foreign heartbeat records of the last 24 hours found for this DB schema other than (#{Socket.gethostname}/#{current_ip_address}): #{o.hostname}/#{o.ip_address} (last heartbeat at #{o.heartbeat_ts})!\n" +
                 "Only one server instance is allowed to run with the same DB schema at a time!\n" +
                 "This might be a false positive if the instance was recreated in a new Docker container."

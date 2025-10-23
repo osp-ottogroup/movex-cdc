@@ -42,6 +42,15 @@ class StatisticCounterConcentrator
     end
   end
 
+  # Check if flush needs to be called at shutdown
+  def pending_values?
+    pending = false
+    @values_mutex.synchronize do
+      pending = !@values.empty?
+    end
+    pending
+  end
+
   def flush_to_db
     cloned_values = nil
     ExceptionHelper.warn_with_backtrace 'StatisticCounterConcentrator.flush_to_db', "Mutex @values_mutex is locked by another thread! Waiting until Mutex is freed." if @values_mutex.locked?

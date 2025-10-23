@@ -31,7 +31,7 @@ class KafkaJava < KafkaBase
       super(kafka, worker_id: worker_id)
       @pending_transaction       = nil                                          # Is there a pending transaction? nil or timestamp
       @kafka_producer            = nil
-      @produce_callback = ProduceCallback.new                                   # This callback method is called asychronously once for each event
+      @produce_callback = ProduceCallback.new                                   # This callback method is called asynchronously once for each event
       @reset_needed_ask_count    = 0                                            # Count how often a reset of the producer was needed
       create_kafka_producer
     end
@@ -64,7 +64,7 @@ class KafkaJava < KafkaBase
       # The documentation says (https://kafka.apache.org/10/javadoc/org/apache/kafka/clients/producer/KafkaProducer.html#send-org.apache.kafka.clients.producer.ProducerRecord-org.apache.kafka.clients.producer.Callback-):
       # Some transactional send errors cannot be resolved with a call to abortTransaction().
       # In particular, if a transactional send finishes with a ProducerFencedException, a OutOfOrderSequenceException, a UnsupportedVersionException, or an AuthorizationException, then the only option left is to call close().
-      # Fatal errors cause the producer to enter a defunct state in which future API calls will continue to raise the same underyling error wrapped in a new KafkaException.
+      # Fatal errors cause the producer to enter a defunct state in which future API calls will continue to raise the same underlying error wrapped in a new KafkaException.
       # That means:
       # If a send call fails, the following commit_transaction will fail with the same exception.
       # The exception at commit_transaction should be handled with an abort_transaction
@@ -158,7 +158,7 @@ class KafkaJava < KafkaBase
       org_metrics.each do |metric_name, metric|
         metrics << {
           name: metric_name.name,
-          decription: metric_name.description,
+          description: metric_name.description,
           value: metric.metric_value.is_a?(Float) && metric.metric_value.nan? ? nil: metric.metric_value,
           tags: metric_name.tags.to_h
         }
@@ -205,7 +205,7 @@ class KafkaJava < KafkaBase
           if init_transactions_retry_count < MAX_INIT_TRANSACTION_RETRY
             sleep 1
             init_transactions_retry_count += 1
-            Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException catched (#{e.message}). Retry #{init_transactions_retry_count} with new transactional id . Possible reason: missing abort_transaction before reuse of transactional id" }
+            Rails.logger.warn('KafkaJava::Producer.create_kafka_producer'){"KafkaException caught (#{e.message}). Retry #{init_transactions_retry_count} with new transactional id . Possible reason: missing abort_transaction before reuse of transactional id" }
           else
             raise                                                               # exit the while loop and reraise the exception
           end

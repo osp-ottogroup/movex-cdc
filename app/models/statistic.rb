@@ -15,7 +15,7 @@ class Statistic < ApplicationRecord
     stat = Statistic.new(attribs.merge({end_timestamp: Time.now}))
     stat.save!
   rescue Exception => e
-    ExceptionHelper.log_exception(e, 'Statistic.write_record')                  # No further escalation if write failes
+    ExceptionHelper.log_exception(e, 'Statistic.write_record')                  # No further escalation if write fails
   end
 
   private

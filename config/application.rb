@@ -153,7 +153,7 @@ module MovexCdc
       MovexCdc::Application.config.send("#{key}=", value)                          # ensure all config methods are defined whether with values or without
       @@config_attributes[key] = {} unless @@config_attributes.has_key?(key)    # records from config file may already exist
       @@config_attributes[key][:default_value]        = options[:default]
-      @@config_attributes[key][:startup_config_value] = value if ENV[up_key]    # remember startup config only if set explicitely by environment
+      @@config_attributes[key][:startup_config_value] = value if ENV[up_key]    # remember startup config only if set explicitly by environment
 
       raise "Missing configuration value for '#{up_key}'! Aborting..." if !options[:accept_empty] && MovexCdc::Application.config.send(key).nil?
       log_value

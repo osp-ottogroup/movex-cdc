@@ -63,7 +63,6 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
   # but without storing whole result in memory
   # options: :query_name, :query_timeout, :fetch_limit
   def select_all_limit(sql, binds = [], options = {})
-    # Variante für Rails 5
     options[:query_name] = 'SQL' unless options[:query_name]
 
     type_casted_binds = binds.map { |attr| TypeMapper.new.type_cast(attr.value_for_database) }

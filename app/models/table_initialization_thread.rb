@@ -41,12 +41,12 @@ class TableInitializationThread
     ActivityLog.log_activity(schema_name: table.schema.name, table_name: table.name, action: "Error at initial transfer of current table content! #{e.class}:#{e.message}\nExecuted SQL:\n#{@sql}")
   ensure
     begin
-      table.update!(yn_initialization: 'N')                                    # Mark initialization as finished no matter if succesful or not
+      table.update!(yn_initialization: 'N')                                    # Mark initialization as finished no matter if successful or not
       TableInitialization.get_instance.remove_from_thread_pool(self)            # unregister from threadpool
       TableInitialization.get_instance.check_for_next_processing                # start next thread if there are still unprocessed requests
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'TableInitializationThread.process', additional_msg: "Table_ID = #{@table_id}: In termination of thread due to exception")
-      raise                                                                     # this raise may not be catched because it is the last operation of this thread
+      raise                                                                     # this raise may not be caught because it is the last operation of this thread
     end
   end
 

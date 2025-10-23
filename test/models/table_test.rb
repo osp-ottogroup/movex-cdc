@@ -155,7 +155,7 @@ class TableTest < ActiveSupport::TestCase
           )
         end
 
-        # TODO: Test for user with SELECT ANY TABLE and implicite table grants for users's roles still missing
+        # TODO: Test for user with SELECT ANY TABLE and implicit table grants for users's roles still missing
       end
     end
   end
