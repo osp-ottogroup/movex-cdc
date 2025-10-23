@@ -70,14 +70,6 @@ class Table < ApplicationRecord
       errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{Table::VALID_KAFKA_KEY_HANDLINGS}")
     end
 
-    if kafka_key_handling != 'F' && !(fixed_message_key.nil? || fixed_message_key == '')
-      errors.add(:fixed_message_key, "Fixed message key must be empty if Kafka key handling is not 'F' (Fixed)")
-    end
-
-    if kafka_key_handling == 'F' && (fixed_message_key.nil? || fixed_message_key == '')
-      errors.add(:fixed_message_key, "Fixed message key must not be empty if Kafka key handling is 'F' (Fixed)")
-    end
-
     if kafka_key_handling == 'T' && (yn_record_txid != 'Y')
       errors.add(:kafka_key_handling, "Kafka key handling 'T' (Transaction-ID) is not possible if transaction-ID is not recorded")
     end
