@@ -94,7 +94,7 @@ class TransferThread
       Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'TransferThread.process', additional_msg: "Worker-ID = #{@worker_id}: remaining ensure ") #
-      raise                                                                     # this raise may not be catched because it is the last operation of this thread
+      raise                                                                     # this raise may not be caught because it is the last operation of this thread
     end
   end # process
 
@@ -223,7 +223,7 @@ class TransferThread
 
   # read event_logs with multiple selects
   # Steps for processing are:
-  # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
+  # 1. read records with key value hash related to this worker (modulo). Each worker is responsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
   # 2. look for records without key value and with smaller ID than largest of last run (older records)
   # 3. look for records without key value and with larger ID than largest of last run (newer records)
   def read_event_logs_steps(max_records_to_read:, partition_name: nil, last_partition: true)
@@ -234,8 +234,8 @@ class TransferThread
       Rails.logger.debug('TransferThread.read_event_logs_steps') { "Initializing @max_sorted_id_distances for partition = '#{partition_name}' to #{@max_sorted_id_distances[partition_name]}"}
     end
 
-    # 1. read records with key value hash related to this worker (modulo). Each worker is reponsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
-    # Condition to identify events with msg_key for which this worker instance is reponsible for processing
+    # 1. read records with key value hash related to this worker (modulo). Each worker is responsible to process a number of keys (identified by modulo) to ensure in order processing to Kafka
+    # Condition to identify events with msg_key for which this worker instance is responsible for processing
     msg_key_filter_condition = case MovexCdc::Application.config.db_type
                                when 'ORACLE' then "Msg_Key IS NOT NULL AND MOD(ORA_HASH(Msg_Key, 1000000), #{MovexCdc::Application.config.initial_worker_threads}) = :worker_id"
                                when 'SQLITE' then "Msg_Key IS NOT NULL AND LENGTH(Msg_Key) % #{MovexCdc::Application.config.initial_worker_threads} = :worker_id" # LENGTH as workaround for not existing hash function
@@ -270,7 +270,7 @@ class TransferThread
         break if key_result.count < @max_transaction_size                       # it is ensured that no unread records are remaining with key IS NOT NULL and ID < @max_key_event_logs_id (sorted order ensured)
 
         # now handle that it has not been guaranteed that outside the read records (key_result) there are existing records with smaller IDs
-        # This will break the guaranteed order of events sorted by ID, therefor reduce the amount of read records in next attempt
+        # This will break the guaranteed order of events sorted by ID, therefore reduce the amount of read records in next attempt
         # Discard the read result and prepare next loop execution to reach the limit key_result.count < @max_transaction_size and ensure processing of all smaller IDs
         if @max_sorted_id_distances[partition_name] >= @max_transaction_size  # Possible to read more than @max_transaction_size records
           # set @max_sorted_id_distances[partition_name] to a value that ensures:
@@ -405,11 +405,11 @@ class TransferThread
     @statistic_counter.rollback_uncommitted_success_increments
     begin
       @kafka_producer.abort_transaction
-      # Calling abort_transaction will lead to InvalidTxnStateError if called after commit_transaction returned TimeoutException, ajust max.block.ms and retries for producer to prevent this
+      # Calling abort_transaction will lead to InvalidTxnStateError if called after commit_transaction returned TimeoutException, aajust max.block.ms and retries for producer to prevent this
       # java.lang.IllegalStateException: Cannot attempt operation `abortTransaction` because the previous call to `commitTransaction` timed out and must be retried
     rescue java.lang.IllegalStateException => e2
       if e.class == org.apache.kafka.common.errors.TimeoutException
-        Rails.logger.error('TransferThread.process_kafka_transaction'){"java.lang.IllegalStateException catched at producer.abort_transaction.: #{e2.message}"}
+        Rails.logger.error('TransferThread.process_kafka_transaction'){"java.lang.IllegalStateException caught at producer.abort_transaction.: #{e2.message}"}
         Rails.logger.error('TransferThread.process_kafka_transaction'){"This is because abort_transaction was called after a TimeoutException possible from commit_transaction."}
         Rails.logger.error('TransferThread.process_kafka_transaction'){"In this case it is not clear if commit_transaction succeeded or not (mostly not). Producer must be recreated in that case."}
       else
@@ -423,13 +423,13 @@ class TransferThread
       if concurrent_transaction_error_retry < max_concurrent_transaction_error_retries
         sleep @concurrent_tx_retry_delay_ms/1000.0
         # Give it a second try, no event is processed yet because error is raised while adding partitions to transaction
-        Rails.logger.info('TransferThread.process_kafka_transaction'){"org.apache.kafka.common.errors.ConcurrentTransactionsException catched. Trying 'process_kafka_transaction' again."}
+        Rails.logger.info('TransferThread.process_kafka_transaction'){"org.apache.kafka.common.errors.ConcurrentTransactionsException caught. Trying 'process_kafka_transaction' again."}
         process_kafka_transaction(event_logs, concurrent_transaction_error_retry: concurrent_transaction_error_retry + 1)
       else
         Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
         if @concurrent_tx_retry_delay_ms < 1000                                 # Max. 1 second for delay
           Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from org.apache.kafka.common.errors.ConcurrentTransactionsException next time"}
-          @concurrent_tx_retry_delay_ms = @concurrent_tx_retry_delay_ms * 10    # Increase ot sufficient value
+          @concurrent_tx_retry_delay_ms = @concurrent_tx_retry_delay_ms * 10    # Increase of sufficient value
         end
         raise
       end
@@ -541,7 +541,7 @@ class TransferThread
           end
         end
       else
-        sleep(sleeptime)                                                        # must not be interrrupted for small wait times
+        sleep(sleeptime)                                                        # must not be interrupted for small wait times
       end
     end
   end
@@ -567,7 +567,7 @@ class TransferThread
     @record_cache[cache_key]
   end
 
-  RECORD_CACHE_REFRESH_CYCLE = 60                                               # Number of seconds between cache refeshes
+  RECORD_CACHE_REFRESH_CYCLE = 60                                               # Number of seconds between cache refreshes
   def check_record_cache_for_aging
     unless @record_cache.has_key? :first_access
       @record_cache[:first_access] = Time.now
@@ -578,7 +578,7 @@ class TransferThread
     end
   end
 
-  # get maxium used ID, preferred from sequence
+  # get maximum used ID, preferred from sequence
   def get_max_event_logs_id_from_sequence
     max_event_logs_id_from_sequence = case MovexCdc::Application.config.db_type
                                       when 'ORACLE' then Database.select_one "SELECT Last_Number FROM User_Sequences WHERE Sequence_Name = 'EVENT_LOGS_SEQ'"

@@ -18,7 +18,7 @@ class User < ApplicationRecord
     # reset failed logons if user becomes unlocked
     unless self.id.nil?                                                         # unsaved created user
       prev_values = User.find self.id
-      if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N' # chenge of locked state
+      if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N' # change of locked state
         self.failed_logons = 0                                                  # start with no failed logons after unlock
       end
     end
@@ -53,7 +53,7 @@ class User < ApplicationRecord
   def increment_failed_logons
     self.failed_logons = self.failed_logons + 1 if self.failed_logons < 99      # remember only the first 99 failed logons because of number(2)
     self.yn_account_locked='Y' if self.failed_logons >= MovexCdc::Application.config.max_failed_logons_before_account_locked
-    save!                                                                       # explicite usage of save! instead of update!
+    save!                                                                       # explicit usage of save! instead of update!
   end
 
   def lock_account

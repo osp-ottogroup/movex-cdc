@@ -1,4 +1,5 @@
 require 'statistic_counter_concentrator'                                        # fast exit requires this for at_exit
+require "active_record"
 
 class ThreadHandling
   attr_reader :application_startup_timestamp
@@ -20,7 +21,7 @@ class ThreadHandling
 
     # calculate required number of worker threads
     required_number_of_threads = MovexCdc::Application.config.initial_worker_threads
-    Rails.logger.info('ThreadHandling.ensure_processing'){ "Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shudown requested = #{@shutdown_requested}" }
+    Rails.logger.info('ThreadHandling.ensure_processing'){ "Current number of threads = #{current_thread_pool_size}, required number of threads = #{required_number_of_threads}, shutdown requested = #{@shutdown_requested}" }
     unless @shutdown_requested                                                  # don't start new worker during server shutdown
 
       ExceptionHelper.warn_with_backtrace 'ThreadHandling.ensure_processing', "Mutex @thread_pool_mutex is locked by another thread! Waiting until Mutex is freed." if @thread_pool_mutex.locked?
@@ -67,9 +68,16 @@ class ThreadHandling
       Rails.logger.info('ThreadHandling.shutdown_processing') { "All TransferThread worker are stopped now, shutting down" }
       @shutdown_requested = false                                               # Reset state so next ensure_processing may start again
     else
-      Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nethertheless" }
+      Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nevertheless" }
     end
-    StatisticCounterConcentrator.get_instance.flush_to_db                       # write statistics to DB after stop of worker threads
+
+    if StatisticCounterConcentrator.get_instance.pending_values?
+      Database.close_db_connection                                              # Ensure connections are closed. This is regularly the case after Puma/Rails shutdown, but in some rare cases connections may remain open otherwise
+      ActiveRecord::Base.establish_connection                                   # Recreate the connection for writing the final statistics
+      Database.select_all "SELECT COUNT(*) FROM Schemas"                    # Workaround to ensure connection is open because next ActiveRecord::Base.transaction unfortunately does not open connection automatically here
+      StatisticCounterConcentrator.get_instance.flush_to_db                     # write statistics to DB after stop of worker threads
+      Database.close_db_connection                                              # Final close of DB connections now
+    end
   end
 
   # remove worker from pool: called from other threads after finishing TransferThread.process
@@ -109,7 +117,7 @@ class ThreadHandling
 
   # get worker_id for new worker from end of list or gap, called from inside Mutex.synchronize
   def next_free_worker_id
-    worker_id = 0                                                               # Default for emty list
+    worker_id = 0                                                               # Default for empty list
     used_ids = @thread_pool.map{|t| t.worker_id}.sort
     while used_ids.include? worker_id
       worker_id += 1

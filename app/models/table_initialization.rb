@@ -24,7 +24,7 @@ class TableInitialization
     check_for_next_processing
   end
 
-  # Check if tread pool size allows processing of next request, triggered at new reauests and if running requests finish
+  # Check if thread pool size allows processing of next request, triggered at new reauests and if running requests finish
   def check_for_next_processing
     if init_requests_count > 0 && running_threads_count < MovexCdc::Application.config.max_simultaneous_table_initializations
       begin

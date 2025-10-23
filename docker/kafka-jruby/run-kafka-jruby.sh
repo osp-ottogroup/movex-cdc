@@ -17,7 +17,7 @@ do
   sleep 1
 done
 
-echo "Container stopped, shudown kafka"
+echo "Container stopped, shutdown kafka"
 /opt/kafka/bin/kafka-server-stop.sh
 
 

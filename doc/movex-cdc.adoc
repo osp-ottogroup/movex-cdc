@@ -1036,11 +1036,11 @@ API Responses are JSON objects.
 dry_run=true: optional (default=false), checks only for differences without executing DDL +
 table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors +
  +
-http response code = 207 (Multi-Status) if DB errors occured at trigger generation|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
+http response code = 207 (Multi-Status) if DB errors occurred at trigger generation|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
 |POST|/db_triggers/generate_all|dry_run=true: optional (default=false), checks only for differences without executing DDL +
 table_id_list: optional (default=all), array with IDs from config table 'TABLES', only for this tables triggers will be deployed|JSON object with successful generated triggers and errors +
  +
-http response code = 207 (Multi-Status) if DB errors occured at trigger generation|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
+http response code = 207 (Multi-Status) if DB errors occurred at trigger generation|Check for difference between existing triggers and current configuration, generate and execute the needed DDL statements. Executes for all schemas where the login user has the deployment grant.
 |GET|/health_check|no|JSON object with several application status info|ask health status (200=ok) and get some condensed status information
 |GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
@@ -1060,7 +1060,7 @@ You can use curl or wget to call API functions with valid authorization by email
 Steps are:
 
 * authenticate with valid user and get JWT token for next steps
-* call API methode with use of JWT
+* call API method with use of JWT
 
 To use this examples replace the values for email, password, host and port with yours. +
 Needed tools are curl, jq, sed. +
@@ -1117,7 +1117,7 @@ CAUTION: TODO: Example config for MOVEX CDC behind nginx with docker compose sho
 This key can be defined by several ways:
 ** The key is generated at first startup if neither SECRET_KEY_BASE nor SECRET_KEY_BASE_FILE is given
 ** The key is given by environment variable SECRET_KEY_BASE
-** The key ist given in a file pointed to by environment variable SECRET_KEY_BASE_FILE
+** The key is given in a file pointed to by environment variable SECRET_KEY_BASE_FILE
 * Usually the generated key should be sufficient. This key changes only at recreation of Docker container.
 
 === Lock user account after multiple failed logons ===
@@ -1144,7 +1144,7 @@ For values at exact second the fraction digits are omitted.
 - Error message "javax.net.ssl.SSLHandshakeException: No subject alternative names present" in log output: The certificate of the Kafka broker does not contain the hostname of the Kafka broker as subject alternative name.
 
 == Frequently asked questions ==
-.FAQ will be completed over time with all upcoming questions that are not answered befor
+.FAQ will be completed over time with all upcoming questions that are not answered before
 [cols="~,~"]
 |===
 |Question|Answer
@@ -1152,7 +1152,7 @@ For values at exact second the fraction digits are omitted.
 |Do I have to redeploy triggers if I want to change the topic of a table|
 The target topic for a table is read from current configuration before transferring events to Kafka. +
 Therefore there is no need to redeploy the triggers in this case. +
-Each worker thread caches the topics of a table or schema for max. 60 seconds before refreshing it with the current configuation.
+Each worker thread caches the topics of a table or schema for max. 60 seconds before refreshing it with the current configuration.
 If want to exactly define the timestamp of change, then: +
 - Set the worker count to 0 +
 - Wait until all worker threads have finished. You can check this by health check. +

@@ -55,9 +55,6 @@ class TableTest < ActiveSupport::TestCase
 
   test "table validations" do
     run_with_current_user do
-      result = Table.find(tables_table.id).update(kafka_key_handling: 'N', fixed_message_key: 'hugo')
-      assert !result, log_on_failure('Validation should raise error for fixed_message_key if not empty')
-
       result = Table.find(tables_table.id).update(kafka_key_handling: 'F', fixed_message_key: nil)
       assert !result, log_on_failure('Validation should raise error for fixed_message_key if empty')
 
@@ -158,7 +155,7 @@ class TableTest < ActiveSupport::TestCase
           )
         end
 
-        # TODO: Test for user with SELECT ANY TABLE and implicite table grants for users's roles still missing
+        # TODO: Test for user with SELECT ANY TABLE and implicit table grants for users's roles still missing
       end
     end
   end

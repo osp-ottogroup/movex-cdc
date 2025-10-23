@@ -271,7 +271,7 @@ END;"
     if accessor == 'new'
       !expression.match(/old\./i) || expression.match(/new\./i)                 # new section, expression must not contain old. or also new.
     elsif accessor == 'old'
-      expression.match(/old\./i) && !expression.match(/new\./i)                 # old section, expression must conatin old. but not new.
+      expression.match(/old\./i) && !expression.match(/new\./i)                 # old section, expression must contain old. but not new.
     else
       raise "DBTriggerGeneratorSqlite.place_expression_in_section? : Invalid accessor '#{accessor}' for operation '#{operation}'"
     end

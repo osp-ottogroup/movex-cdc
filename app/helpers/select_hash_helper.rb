@@ -1,8 +1,8 @@
 # encoding: utf-8
-# Erweiterung der Klasse Hash um Zugriff auf Inhalte per Methode
+# Erweiterung der Klasse Hash um Zugriff auf Inhalte per Method
 module SelectHashHelper
 
-  # Ermittelns Spaltenwert aus korrespondierendem Hash-Value, Parameter wird als String erwartet
+  # Get column value from corresponding hash value, parameter expected as string
   def get_hash_value(key)
     if has_key?(key)
       self[key]
@@ -17,12 +17,12 @@ module SelectHashHelper
     self[key] = value
   end
 
-  # Überschreiben der existierenden Methode "id" der Klasse Hash um Spalte "id" auszulesen
+  # Überschreiben der existierenden Method "id" der Klasse Hash um Spalte "id" auszulesen
   def id
     get_hash_value 'id'
   end
 
-  # Umlenken des Methoden-Aufrufes auf den Hash-Inhalt gleichen Namens
+  # Umlenken des Method-Aufrufes auf den Hash-Inhalt gleichen Namens
   def method_missing(sym, *args, &block)
     methodname = sym.to_s
     if methodname['=']                  # Setter angefragt
@@ -34,11 +34,11 @@ module SelectHashHelper
 
 end
 
-# Toleriert Ansprache mit nicht existiernden Methoden und liefert nil zurück
+# Toleriert Ansprache mit nicht existiernden Methods und liefert nil zurück
 module TolerantSelectHashHelper
   include SelectHashHelper
 
-  # Überladen der Methode get_hash_value mit return nil statt Exception
+  # Überladen der Method get_hash_value mit return nil statt Exception
   def get_hash_value(key)
     if has_key?(key)
       self[key]

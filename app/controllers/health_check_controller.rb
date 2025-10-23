@@ -250,7 +250,7 @@ class HealthCheckController < ApplicationController
       if final_error_count > 0
         at_least = final_error_count == max_count ? " at least " : ""
         msg = "\nTable #{MovexCdc::Application.config.db_user}.Event_Log_Final_Errors contains#{at_least}#{final_error_count} records!"
-        msg << "\nExample error messge: #{EventLogFinalError.an_error_message}" if jwt_validated
+        msg << "\nExample error message: #{EventLogFinalError.an_error_message}" if jwt_validated
         health_data[:warnings] << msg
       end
     rescue Exception=>e

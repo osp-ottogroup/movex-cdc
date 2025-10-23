@@ -31,7 +31,7 @@ class ApplicationJob < ActiveJob::Base
       if job_info && Time.now > job_info[:last_execution] + job_info[:cycle_seconds] * wait_factor
         message = "Last execution of Job #{job_class} (#{job_info[:last_execution]}) is older than now - #{job_info[:cycle_seconds]} seconds "
         message << "(#{job_info[:cycle_seconds]/60} minutes, #{job_info[:cycle_seconds]/3600} hours, #{job_info[:cycle_seconds]/(3600*24)} days ), "
-        message << "but should occure every #{job_info[:cycle_seconds]} seconds! Please check for sufficient memory and restart MOVEX CDC to fix the issue."
+        message << "but should occur every #{job_info[:cycle_seconds]} seconds! Please check for sufficient memory and restart MOVEX CDC to fix the issue."
         Rails.logger.warn('ApplicationJob.last_job_warnings'){ message }
 
         retval << "\n" if retval != ''

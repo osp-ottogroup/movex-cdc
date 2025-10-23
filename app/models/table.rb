@@ -70,10 +70,6 @@ class Table < ApplicationRecord
       errors.add(:kafka_key_handling, "Invalid value '#{kafka_key_handling}', valid values are #{Table::VALID_KAFKA_KEY_HANDLINGS}")
     end
 
-    if kafka_key_handling != 'F' && !(fixed_message_key.nil? || fixed_message_key == '')
-      errors.add(:fixed_message_key, "Fixed message key must be empty if Kafka key handling is not 'F' (Fixed)")
-    end
-
     if kafka_key_handling == 'F' && (fixed_message_key.nil? || fixed_message_key == '')
       errors.add(:fixed_message_key, "Fixed message key must not be empty if Kafka key handling is 'F' (Fixed)")
     end
@@ -237,7 +233,7 @@ class Table < ApplicationRecord
                                      AND    tp.Table_Name = :table_name",
                                     owner: schema_name, table_name: table_name) > 0
 
-      # Check for explicite table grants for user
+      # Check for explicit table grants for user
       return if Database.select_one("SELECT COUNT(*)
                                      FROM   DBA_TAB_PRIVS
                                      WHERE  Privilege   = 'SELECT'
@@ -254,7 +250,7 @@ class Table < ApplicationRecord
                                      AND    Grantee     = :db_user",
                                     db_user: ApplicationController.current_user.db_user) > 0
 
-      # Check for implicite table grants for users's roles
+      # Check for implicit table grants for users's roles
       return if Database.select_one("SELECT COUNT(*)
                                      FROM   DBA_Tab_Privs tp
                                      JOIN   (SELECT Granted_Role, CONNECT_BY_ROOT GRANTEE Grantee

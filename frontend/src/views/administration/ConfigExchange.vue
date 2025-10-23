@@ -80,7 +80,7 @@ export default {
       this.$buefy.dialog.confirm({
         title: 'Acknowledge import',
         message: 'Do you really want to import the whole document?<br><br>'
-          + 'If an existing schema is not contained in the document, it\'s schema rights and tables will be deleted !',
+          + 'All existing tables and schema rights will be deleted if not contained in this document !!!',
         confirmText: 'Yes',
         cancelText: 'No',
         type: 'is-warning',

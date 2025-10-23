@@ -18,7 +18,7 @@ module ExceptionHelper
 
   # log exception as ERROR
   # @param [Exception] exception The exception object
-  # @param [String] context The class and method name where the exception occured
+  # @param [String] context The class and method name where the exception occurred
   # @param [String] additional_msg Additional text to log in subseauent lines
   # @param [Boolean] decorate_additional_message_next_lines If true, each line of additional_msg is decorated with context, otherwise only the first line
   def self.log_exception(exception, context, additional_msg: nil, decorate_additional_message_next_lines: true)
@@ -81,7 +81,7 @@ module ExceptionHelper
     gb = (1024 * 1024 * 1024).to_f
     {
       total_memory:         { name: 'Total OS Memory (GB)',      value: gb_value_from_proc('MemTotal',      'hw.memsize') },
-      available_memory:     { name: 'Available OS Memory (GB)',  value: gb_value_from_proc('MemAvailable',  'hw.memsize') },   # Real avail. mem. for application. Max-OS: phys. mem. used to ensure valid test becaus real mem avail is not available
+      available_memory:     { name: 'Available OS Memory (GB)',  value: gb_value_from_proc('MemAvailable',  'hw.memsize') },   # Real avail. mem. for application. Max-OS: phys. mem. used to ensure valid test because real mem avail is not available
       free_memory:          { name: 'Free Memory OS (GB)',       value: gb_value_from_proc('MemFree',       'page_free_count') },   # free mem. may be much smaller than real avail. mem. for app.
       total_swap:           { name: 'Total OS Swap (GB)',        value: gb_value_from_proc('SwapTotal',     'vm.swapusage') },
       free_swap:            { name: 'Free OS Swap (GB)',         value: gb_value_from_proc('SwapFree',      'vm.swapusage') },
@@ -213,7 +213,7 @@ module ExceptionHelper
       when 'Unknown error with code 50' then 'INVALID_TRANSACTION_TIMEOUT: The transaction timeout is larger than the maximum value allowed by the broker (as configured by transaction.max.timeout.ms).'
       when 'Unknown error with code 51' then 'CONCURRENT_TRANSACTIONS: The producer attempted to update a transaction while another concurrent operation on the same transaction was ongoing.'
       when 'Unknown error with code 52' then 'TRANSACTION_COORDINATOR_FENCED: Indicates that the transaction coordinator sending a WriteTxnMarker is no longer the current coordinator for a given producer.'
-      when 'Unknown error with code 53' then 'TRANSACTIONAL_ID_AUTHORIZATION_FAILED: The transactional id used by MOVEX CDC is not authorized to produce messages. Explicite authorization of transactional id is required, optional as wildcard: "kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf --add --transactional-id * --allow-principal User:* --operation write"'
+      when 'Unknown error with code 53' then 'TRANSACTIONAL_ID_AUTHORIZATION_FAILED: The transactional id used by MOVEX CDC is not authorized to produce messages. Explicit authorization of transactional id is required, optional as wildcard: "kafka-acls --bootstrap-server localhost:9092 --command-config adminclient-configs.conf --add --transactional-id * --allow-principal User:* --operation write"'
       when 'Unknown error with code 54' then 'SECURITY_DISABLED: Security features are disabled.'
       when 'Unknown error with code 55' then 'OPERATION_NOT_ATTEMPTED: The broker did not attempt to execute this operation. This may happen for batched RPCs where some operations in the batch failed, causing the broker to respond without trying the rest.'
       when 'Unknown error with code 56' then 'KAFKA_STORAGE_ERROR: Disk error when trying to access log file on the disk.'
