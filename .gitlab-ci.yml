@@ -220,7 +220,7 @@ generate_asciidoc:
       - doc/movex-cdc.pdf
 
 build_movex_cdc_with_podman:
-  stage: test
+  stage: build
   script:
     - |
       echo "Building Docker image with Podman"
@@ -231,34 +231,36 @@ build_movex_cdc_with_podman:
         --build-arg JRUBY_VERSION=$JRUBY_VERSION \
         -f $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle \
         -t $TEMP_DOCKER_IMAGE .
+      $PODMAN login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+      $PODMAN push $TEMP_DOCKER_IMAGE
 
-build_movex_cdc:
-  stage: build
+# build_movex_cdc:
+#   stage: build
 
-  image:
+#   image:
     # 2021-04-27: Image used from own registry because https://storage.googleapis.com/ is not accessible from within OCI
-    name: gcr.io/kaniko-project/executor:debug
+#     name: gcr.io/kaniko-project/executor:debug
     # name: registry.gitlab.com/osp-silver/oss/movex-cdc/kaniko-executor:debug
-    entrypoint: [""]
+#     entrypoint: [""]
 
-  script:
-    - mkdir -p /kaniko/.docker
-    - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
-    - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
-    - cat build.json
-    - echo "Docker image = $TEMP_DOCKER_IMAGE"
-    - |
-      BUILD_VERSION=${CI_COMMIT_REF_NAME#"prod_"}_`date "+%Y-%m-%d_%H-%M-%S"`
-      JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
+#   script:
+#     - mkdir -p /kaniko/.docker
+#     - echo "{\"auths\":{\"$CI_REGISTRY\":{\"username\":\"$CI_REGISTRY_USER\",\"password\":\"$CI_REGISTRY_PASSWORD\"}}}" > /kaniko/.docker/config.json
+#     - 'echo "{\"release\": \"$release_tag\", \"date\": \"$(date -I)\", \"commit\": \"$CI_COMMIT_REF_NAME-$CI_COMMIT_SHA\"}" > build.json'
+#     - cat build.json
+#     - echo "Docker image = $TEMP_DOCKER_IMAGE"
+#     - |
+#       BUILD_VERSION=${CI_COMMIT_REF_NAME#"prod_"}_`date "+%Y-%m-%d_%H-%M-%S"`
+#       JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
       # Speedup push to container registry as shown in https://gitlab.com/gitlab-org/gitlab/-/issues/241996
-      GODEBUG="http2client=0"
-      echo JRUBY_VERSION=$JRUBY_VERSION
-      /kaniko/executor \
-        --build-arg BUILD_VERSION=$BUILD_VERSION \
-        --build-arg JRUBY_VERSION=$JRUBY_VERSION \
-        --context $CI_PROJECT_DIR \
-        --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle \
-        --destination $TEMP_DOCKER_IMAGE
+#       GODEBUG="http2client=0"
+#       echo JRUBY_VERSION=$JRUBY_VERSION
+#       /kaniko/executor \
+#         --build-arg BUILD_VERSION=$BUILD_VERSION \
+#         --build-arg JRUBY_VERSION=$JRUBY_VERSION \
+#         --context $CI_PROJECT_DIR \
+#         --dockerfile $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle \
+#         --destination $TEMP_DOCKER_IMAGE
 
 trivy_scan:
   stage: post_build
