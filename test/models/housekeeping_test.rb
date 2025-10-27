@@ -127,6 +127,7 @@ class HousekeepingTest < ActiveSupport::TestCase
   end
 
   # drop all partitions above 1 for test, no matter if they are interval or not
+  # @return [Integer] The number of remaining partitions after execution
   def drop_all_event_logs_partitions_except_1
     # drop all partitions above 1 for test, no matter if they are interval or not
     Database.select_all("WITH Partitions AS (SELECT Partition_Name, Interval, Partition_Position
@@ -155,6 +156,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       end
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}" if drop_partition
     end
+    Database.select_one "SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
   end
 
   test "do_housekeeping" do
@@ -167,7 +169,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         # Drop all partitions except the first one (possibly there are only two range partitions at this point
-        drop_all_event_logs_partitions_except_1
+        initial_partition_count = drop_all_event_logs_partitions_except_1
         last_part = Database.select_first_row("SELECT Partition_Name, High_Value
                              FROM   User_Tab_Partitions
                              WHERE  Table_Name = 'EVENT_LOGS'
@@ -185,7 +187,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           create_event_logs_record(last_part_hv + 8 * MovexCdc::Application.config.partition_interval + 1) # This will be the fifth partition
           log_partition_state(false, 'Five interval partitions should exist now')
           intermediate_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-          assert_equal 6, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 5 + initial_partition_count, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
           end
