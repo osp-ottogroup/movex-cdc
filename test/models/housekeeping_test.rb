@@ -133,7 +133,7 @@ class HousekeepingTest < ActiveSupport::TestCase
                                                  FROM   User_Tab_Partitions
                                                  WHERE Table_Name = 'EVENT_LOGS'
                                                 )
-                             SELECT Partition_Name
+                             SELECT Partition_Name, Partition_Position
                              FROM   Partitions p
                              WHERE  Interval = 'YES'
                              OR     (    Interval = 'NO'
@@ -144,7 +144,16 @@ class HousekeepingTest < ActiveSupport::TestCase
                                     )
                              ORDER BY Partition_Position
                             ").each do |p|
-      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
+      drop_partition = true                                                     # Default
+      # Check if the following partition is old enough to ensure that inserts land in following partitions, but not in this one with future position 1
+      if p.partition_position == 1                                              # Duplicate partitions with interval = NO exists
+        hv_2 = get_time_from_high_value(2)
+        if hv_2 > Time.now - MovexCdc::Application.config.partition_interval - 60
+          drop_partition = false
+          Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 not dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
+        end
+      end
+      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}" if drop_partition
     end
   end
 
