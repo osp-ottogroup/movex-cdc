@@ -20,24 +20,30 @@ class TablesControllerTest < ActionDispatch::IntegrationTest
       Database.execute "DELETE FROM Tables WHERE Schema_ID = :schema_id AND Name = :name", binds: {schema_id:victim_schema.id, name: table_name}
     end
 
-    assert_difference('Table.all.select{|t| t.yn_hidden == "N" }.count') do
-      post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info' } }, as: :json
-    end
-    assert_response 201
-    assert_activity_log(schema_name:victim_schema.name, table_name:'VICTIM3')
-
-    remove_created_table('VICTIM3')                                             # Remove Tables-record for next try with same name
+    # Ensure that table exists
+    physical_delete_table = Table.new(schema_id: user_schema.id, name: 'PHYSICAL_DELETE', topic: 'Hugo')
+    run_with_current_user { physical_delete_table.save! }
+    # Mark table as hidden
+    delete "/tables/#{physical_delete_table.id}", headers: jwt_header, params: { table: physical_delete_table.attributes}, as: :json
 
     assert_difference('Table.all.select{|t| t.yn_hidden == "N" }.count') do
-      post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
+      post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'PHYSICAL_DELETE', info: 'New info' } }, as: :json
+      assert_response 201
+    end
+    assert_activity_log(schema_name:victim_schema.name, table_name:'PHYSICAL_DELETE')
+
+    remove_created_table('PHYSICAL_DELETE')                                             # Remove Tables-record for next try with same name
+
+    assert_difference('Table.all.select{|t| t.yn_hidden == "N" }.count') do
+      post "/tables", headers: jwt_header, params: { table: { schema_id: victim_schema.id, name: 'PHYSICAL_DELETE', info: 'New info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
     end
     assert_response 201
 
-    post "/tables", headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: victim_schema.id, name: 'VICTIM3', info: 'New info' } }, as: :json
+    post "/tables", headers: jwt_header(@jwt_no_schema_right_token), params: { table: { schema_id: victim_schema.id, name: 'PHYSICAL_DELETE', info: 'New info' } }, as: :json
     assert_response :internal_server_error, log_on_failure('Should not get access without schema rights')
 
     # reopen hidden table instead of creation
-    tables_deletable = Table.where(schema_id: victim_schema.id, name: 'VICTIM3').first
+    tables_deletable = Table.where(schema_id: victim_schema.id, name: 'PHYSICAL_DELETE').first
     run_with_current_user { tables_deletable.update!(yn_hidden: 'Y') }
     assert_no_difference('Table.count') do
       post "/tables", headers: jwt_header, params: { table: { schema_id: tables_deletable.schema_id, name: tables_deletable.name, info: 'different info', topic: KafkaHelper.existing_topic_for_test } }, as: :json
