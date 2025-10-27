@@ -157,7 +157,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       if p.partition_position == 1                                              # Duplicate partitions with interval = NO exists
         hv1 = get_time_from_high_value(1)
         hv2 = get_time_from_high_value(2)
-        if hv2 > time_now - MovexCdc::Application.config.partition_interval - 1
+        if hv2 > time_now - 1                                                   # Current inserts will end in partition 2
           drop_partition = false
           Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
 =begin
