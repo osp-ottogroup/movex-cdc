@@ -160,7 +160,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         if hv2 > time_now - MovexCdc::Application.config.partition_interval - 1
           drop_partition = false
           Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
-
+=begin
           if hv1 < time_now - MovexCdc::Application.config.partition_interval - 1    # Split partition if there is room for another partition older than now to avoid: xxx cannot be dropped because high value of next partition is not older than sysdate!
             new_first_partition_name  = "Part_1_#{rand(10000)}"
             new_second_partition_name = "Part_2_#{rand(10000)}"
@@ -172,6 +172,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           else
             Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
           end
+=end
         end
       end
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}" if drop_partition
