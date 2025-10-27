@@ -129,6 +129,7 @@ class HousekeepingTest < ActiveSupport::TestCase
   # drop all partitions above 1 for test, no matter if they are interval or not
   # @return [Integer] The number of remaining partitions after execution
   def drop_all_event_logs_partitions_except_1
+    Database.execute "DELETE FROM Event_Logs"
     # drop all partitions above 1 for test, no matter if they are interval or not
     Database.select_all("WITH Partitions AS (SELECT Partition_Name, Interval, Partition_Position
                                                  FROM   User_Tab_Partitions
@@ -137,12 +138,12 @@ class HousekeepingTest < ActiveSupport::TestCase
                              SELECT Partition_Name, Partition_Position
                              FROM   Partitions p
                              WHERE  Interval = 'YES'
-                             OR     (    Interval = 'NO'
-                                     /* Do not drop the last range partition to avoid ORA-14758, at least for Rel. 12.1 */
-                                     AND Partition_Position != (SELECT MAX(pi.Partition_Position)
-                                                                FROM   Partitions pi
-                                                                WHERE  pi.Interval = 'NO')
-                                    )
+                             --OR     (    Interval = 'NO'
+                             --        /* Do not drop the last range partition to avoid ORA-14758, at least for Rel. 12.1 */
+                             --        AND Partition_Position != (SELECT MAX(pi.Partition_Position)
+                             --                                   FROM   Partitions pi
+                             --                                  WHERE  pi.Interval = 'NO')
+                             --       )
                              ORDER BY Partition_Position
                             ").each do |p|
       drop_partition = true                                                     # Default
