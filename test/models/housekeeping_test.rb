@@ -148,10 +148,21 @@ class HousekeepingTest < ActiveSupport::TestCase
       drop_partition = true                                                     # Default
       # Check if the following partition is old enough to ensure that inserts land in following partitions, but not in this one with future position 1
       if p.partition_position == 1                                              # Duplicate partitions with interval = NO exists
-        hv_2 = get_time_from_high_value(2)
-        if hv_2 > Time.now - MovexCdc::Application.config.partition_interval - 1
+        hv1 = get_time_from_high_value(1)
+        hv2 = get_time_from_high_value(2)
+        if hv2 > Time.now - MovexCdc::Application.config.partition_interval - 1
           drop_partition = false
-          Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 not dropped because following partition with high_value #{hv_2} is too young so inserts may land in partition 1" }
+          Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
+
+          if hv1 < Time.now - MovexCdc::Application.config.partition_interval - 1    # Split partition if there is room for another partition older than now to avoid: xxx cannot be dropped because high value of next partition is not older than sysdate!
+            new_first_partition_name  = "Part_1_#{rand(10000)}"
+            new_second_partition_name = "Part_2_#{rand(10000)}"
+
+            Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
+            Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{p.partition_name} INTO (
+                              PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{(Time.now - MovexCdc::Application.config.partition_interval).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
+                              PARTITION #{new_second_partition_name})"
+          end
         end
       end
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}" if drop_partition
