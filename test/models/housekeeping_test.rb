@@ -149,7 +149,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       # Check if the following partition is old enough to ensure that inserts land in following partitions, but not in this one with future position 1
       if p.partition_position == 1                                              # Duplicate partitions with interval = NO exists
         hv_2 = get_time_from_high_value(2)
-        if hv_2 > Time.now - MovexCdc::Application.config.partition_interval - 60
+        if hv_2 > Time.now - MovexCdc::Application.config.partition_interval - 1
           drop_partition = false
           Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 not dropped because following partition with high_value #{hv_2} is too young so inserts may land in partition 1" }
         end
@@ -195,7 +195,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           # There should remain: the first partition, three partitions with pending inserts and the last partition
-          assert_equal 5, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 4 + initial_partition_count, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
@@ -255,7 +255,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         log_partition_state(false, 'after check_partition_interval')
         partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
 
-        assert 2 >= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
+        assert 2 <= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
         current_hv = get_time_from_high_value(1)
         assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
