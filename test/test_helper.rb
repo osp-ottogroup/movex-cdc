@@ -103,6 +103,7 @@ class ActiveSupport::TestCase
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM2")
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM3")
     exec_drop.call("DROP TABLE #{victim_schema_prefix}VICTIM4")
+    exec_drop.call("DROP TABLE #{victim_schema_prefix}PHYSICAL_DELETE")
 
     pkey_list = "PRIMARY KEY(ID, Num_Val, Name, Date_Val, TS_Val, Raw_Val)"
     victim1_drop_trigger_name = "#{DbTriggerGeneratorOracle::TRIGGER_NAME_PREFIX}I_#{victim_schema.id}_#{victim1_table.id}_TO_DROP"
@@ -160,6 +161,7 @@ class ActiveSupport::TestCase
     else
       raise "Unsupported value for MovexCdc::Application.config.db_type: '#{MovexCdc::Application.config.db_type}'"
     end
+    exec_victim_sql("CREATE TABLE #{victim_schema_prefix}PHYSICAL_DELETE (ID NUMBER)") # table which is only used for test where the TABLES record is physically deleted
   end
 
   # create records in Event_Log by trigger on VICTIM1, current_user should be set outside
