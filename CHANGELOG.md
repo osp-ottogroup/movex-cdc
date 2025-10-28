@@ -1,7 +1,7 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
-# 2025-10-23 1.13.3
+# 2025-10-28 1.13.3
 - Bugfix: Correct writing of pending statistics after termination of worker threads at shutdown
 
 # 2025-10-22 1.13.2

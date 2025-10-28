@@ -989,32 +989,50 @@ The content of configuration tables can be exported as a consistent JSON documen
 This JSON document can also be imported to a MOVEX-CDC instance. +
 This way, the configuration data can be stored as a backup outside the database and MOVEX-CDC instance.
 Import and export requires authentication as user with admin rights.
-This function is available in MOVEX-CDC's GUI at menu 'Administration/Config exchange' and also as raw http API.
+This function is available in MOVEX-CDC's GUI at menu 'Administration/Config exchange' and also as raw http API. +
+This gives you the choice to maintain the configuration in place via the GUI or managing it externally as a versioned JSON document e.g. in a VCS like git and importing it right before deployment.
 
 ===== Export of configuration data =====
 The export to a JSON document can be executed for a particular DB schema or for all schemas.
 It exports schemas, tables, columns, conditions, schema rights and users.
 
-This example exports the whole configuration data into a file +
+This example exports the whole configuration data into a file:
 [source]
 curl -X GET -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 http://localhost:8080/import_export/export > movex-cdc-config.json
 
-With schema name in parameter 'schema' the exported is limited to a particular schema. +
+With schema name in parameter 'schema' the export is limited to a particular schema:
+[source]
+curl -X GET -H "Authorization: \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+http://localhost:8080/import_export/export?schema=HUGO > movex-cdc-config.json
+
 Data of all configured users is included in the JSON document in both cases.
 
 ===== Import of schema configuration data =====
 The import from JSON data can be done for the whole content or you may pick only one schema to import. +
 
-This example imports a particular schema from a JSON document with several schemas:
+This example imports a whole JSON document with one or more schemas:
 [source]
 curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
 jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
 http://localhost:8080/import_export/import
+
+This example imports a particular schema from a JSON document with several schemas:
+[source]
+curl -X POST -H "Authorization: \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+-d "schema=HUGO&json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
+http://localhost:8080/import_export/import
+
+CAUTION: If importing a whole JSON document, all schemas and tables that do not occur in this document are purged from the configuration. +
+If importing a single schema all tables of that schema that are not contained in the JSON document are purged.
 
 ===== Import of user configuration data =====
 If importing one or all schemas from JSON file only users with rights for this schemas are created if they don't yet exist in DB.

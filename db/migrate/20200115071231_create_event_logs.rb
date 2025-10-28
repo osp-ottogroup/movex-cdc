@@ -20,7 +20,7 @@ class CreateEventLogs < ActiveRecord::Migration[6.0]
         INITRANS #{MovexCdc::Application.config.max_simultaneous_transactions}
         LOB(Payload) STORE AS (CACHE)
         #{"PARTITION BY RANGE (Created_At) INTERVAL( NUMTODSINTERVAL(#{MovexCdc::Application.config.partition_interval},'SECOND'))
-           ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{Time.now.strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if MovexCdc::Application.partitioning?}
+           ( PARTITION MIN VALUES LESS THAN (TO_DATE('#{(Time.now - Housekeeping.get_instance.max_min_partition_age/4).strftime "%Y-%m-%d"} 00:00:00', 'YYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')) )" if MovexCdc::Application.partitioning?}
       ")
 
       # Sequence Event_Logs_Seq is handled in ExtendEventLogs2
