@@ -25,7 +25,14 @@ class HeartbeatTest < ActiveSupport::TestCase
     # Simulate another instance by creating a heartbeat with different hostname or IP
     other_hostname = "other_host"
     other_ip = "10.10.10.10"
-    Heartbeat.create!(hostname: other_hostname, ip_address: other_ip, heartbeat_ts: Time.current)
+
+    existing_heartbeat = Heartbeat.find_by(hostname: other_hostname, ip_address: other_ip)
+    if existing_heartbeat.nil?
+      Heartbeat.create!(hostname: other_hostname, ip_address: other_ip, heartbeat_ts: Time.current)
+    else
+      existing_heartbeat.update!(heartbeat_ts: Time.current)
+    end
+
     Heartbeat.check_for_concurrent_instance
     last_line = `tail -n 1 #{Rails.root.join('log', "test.log")}`.strip
     assert last_line["This might be a false positive"], "Last line of log should contain 'This might be a false positive'"

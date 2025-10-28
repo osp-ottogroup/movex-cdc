@@ -115,7 +115,7 @@ class HousekeepingTest < ActiveSupport::TestCase
 
   # drop all partitions except the last range partition  for test, no matter if they are interval or not
   # Ensure that the high value of the remaining range partiton is at least x days old
-  # @return [void]
+  # @return [Integer] the remaining number of partitions (regular 1, but 2 or more for Oracle 12)
   def drop_all_event_logs_partitions_except_1
     sys_time = time_now
     Database.execute "DELETE FROM Event_Logs"
@@ -140,7 +140,8 @@ class HousekeepingTest < ActiveSupport::TestCase
     end
     part1 = Database.select_first_row("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
     hv1 = get_time_from_high_value(1, part1.high_value)                         # The HV of the remaining range partition
-    high_value_limit = sys_time - Housekeeping.get_instance.max_min_partition_age/2        # The HV should be equal or older than this
+    raise "High value of remaining partition #{part1.partition_name} (#{hv1}) is younger than expected " if hv1 > sys_time - Housekeeping.get_instance.max_min_partition_age/4
+    high_value_limit = sys_time - Housekeeping.get_instance.max_min_partition_age/4        # The HV should be equal or older than this
     if hv1 > high_value_limit
       Rails.logger.debug('HousekeepingTest.drop_all_event_logs_partitions_except_1') {"High_Value of remaining partition #{part1.partition_name} (#{part1.high_value}) is younger than limit (#{high_value_limit})! Split partition"}
       new_first_partition_name  = "Part_1_#{rand(10000)}"
@@ -155,6 +156,7 @@ class HousekeepingTest < ActiveSupport::TestCase
         Rails.logger.warn('HousekeepingTest.drop_all_event_logs_partitions_except_1') { "Partition #{new_second_partition_name} could bot be dropped! #{e.message}" }
       end
     end
+    Database.select_one "SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
   end
 
   test "do_housekeeping" do
@@ -167,7 +169,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         # Drop all partitions except the first one (possibly there are only two range partitions at this point
-        drop_all_event_logs_partitions_except_1
+        initial_partiton_count = drop_all_event_logs_partitions_except_1
         last_part = Database.select_first_row("SELECT Partition_Name, High_Value
                              FROM   User_Tab_Partitions
                              WHERE  Table_Name = 'EVENT_LOGS'
@@ -185,7 +187,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           create_event_logs_record(last_part_hv + 8 * MovexCdc::Application.config.partition_interval + 1) # This will be the fifth partition
           log_partition_state(false, 'Five interval partitions should exist now')
           intermediate_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-          assert_equal 6, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 5 + initial_partiton_count, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
           end
@@ -193,7 +195,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           # There should remain: the first partition, three partitions with pending inserts and the last partition
-          assert_equal 5, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 4 + initial_partiton_count, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
