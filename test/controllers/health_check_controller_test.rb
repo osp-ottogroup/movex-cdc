@@ -67,6 +67,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized, log_on_failure('No access without JWT')
 
     get "/health_check/log_file", headers: jwt_header, as: :json
+
     assert_response :success, log_on_failure('should get log file with JWT')
   end
 

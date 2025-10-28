@@ -149,7 +149,11 @@ class HousekeepingTest < ActiveSupport::TestCase
       Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{part1.partition_name} INTO (
                               PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{high_value_limit.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION #{new_second_partition_name})"
-      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{new_second_partition_name}"  # this will not work on Oracle 12
+      begin
+        Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{new_second_partition_name}"  # this will not work on Oracle 12
+      rescue Exception => e
+        Rails.logger.warn('HousekeepingTest.drop_all_event_logs_partitions_except_1') { "Partition #{new_second_partition_name} could bot be dropped! #{e.message}" }
+      end
     end
   end
 
