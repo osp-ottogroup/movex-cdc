@@ -34,45 +34,23 @@ class HousekeepingTest < ActiveSupport::TestCase
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
-        Database.select_all("SELECT Partition_Name, High_Value, Interval
-                             FROM   User_Tab_Partitions
-                             WHERE  Table_Name = 'EVENT_LOGS'
-                             AND    Partition_Position > 1
-                             ORDER BY Partition_Position DESC
-                            ").each do |part|
-          begin
-            Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Try to drop partition #{part.partition_name} with high value #{part.high_value}"}
-            Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{part.partition_name}"
-          rescue Exception => e
-            Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Error during DROP PARTITION #{part.partition_name} #{e.class}:#{e.message}"}
-          end
-        end
-        # Ensure that the first partition has a high value less than now - interval and is the only range partition
-        first_partition_high_value = get_time_from_high_value(1)
-        if first_partition_high_value > time_now - MovexCdc::Application.config.partition_interval
-          Rails.logger.debug('HousekeepingTest.restore_partitioning') { "Adjust high value of first partition because #{first_partition_high_value} is too young" }
-          partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
-          new_first_partition_name  = "Part_1_#{rand(10000)}"
-          new_second_partition_name = "Part_2_#{rand(10000)}"
-
-          Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{partition_name} INTO (
-                              PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{(time_now - Housekeeping.get_instance.max_min_partition_age/2).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
-                              PARTITION #{new_second_partition_name})"
-        end
-
-        force_interval_partition_creation(time_now)                             # Ensure that a interval partition is created again
+        drop_all_event_logs_partitions_except_1                                 # Only one range partition is remaining
+        force_interval_partition_creation(time_now)                             # Ensure that an  d interval partition is created again
         assure_last_partition
       end
     end
   end
 
+  # Create an event log record to force creation of an interval partition
+  # @param [Time] created_at The timestamp
+  # @return [void]
   def create_event_logs_record(created_at)
     Database.execute "INSERT INTO Event_Logs(ID, Created_At, Table_Id, Operation, DBUser, Payload) VALUES (Event_Logs_Seq.NextVal, TO_DATE(:created_at, 'YYYY-MM-DD HH24:MI:SS'), :table_id, 'I', 'hugo', '\"new\": { \"ID\": 1}')",
                      binds: {created_at: created_at.strftime('%Y-%m-%d %H:%M:%S'), table_id: victim1_table.id }  # Don't use Time directly as bind variable because of timezone drift
   end
 
   # create an record in Event_Logs to force creation of a new interval partition
-  # @param created_at [Time] the time to set the high value of the last partition
+  # @param [Time] created_at the time to set the high value of the last partition
   # @return [void]
   def force_interval_partition_creation(created_at)
     ActiveRecord::Base.transaction do
@@ -123,19 +101,25 @@ class HousekeepingTest < ActiveSupport::TestCase
   end
 
   # Get Time from Oracle partition high_value
-  # @param partition_position [Integer] the partition position
+  # @param [Integer] partition_position  the partition position
+  # @param [String] high_value The high value if already known
   # @return [Time] the Time from high_value
-  def get_time_from_high_value(partition_position)
-    high_value = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = #{partition_position}"
+  def get_time_from_high_value(partition_position, high_value = nil)
+    if high_value.nil?
+      high_value = Database.select_one "SELECT High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = #{partition_position}"
+    end
     raise "HousekeepingTest: Parameter high_value should not be nil" if high_value.nil?
     hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
     Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
   end
 
-  # drop all partitions above 1 for test, no matter if they are interval or not
-  # @return [Integer] The number of remaining partitions after execution
+  # drop all partitions except the last range partition  for test, no matter if they are interval or not
+  # Ensure that the high value of the remaining range partiton is at least x days old
+  # @return [void]
   def drop_all_event_logs_partitions_except_1
+    sys_time = time_now
     Database.execute "DELETE FROM Event_Logs"
+
     # drop all partitions above 1 for test, no matter if they are interval or not
     Database.select_all("WITH Partitions AS (SELECT Partition_Name, Interval, Partition_Position
                                                  FROM   User_Tab_Partitions
@@ -152,32 +136,21 @@ class HousekeepingTest < ActiveSupport::TestCase
                                     )
                              ORDER BY Partition_Position
                             ").each do |p|
-      drop_partition = true                                                     # Default
-      # Check if the following partition is old enough to ensure that inserts land in following partitions, but not in this one with future position 1
-      if p.partition_position == 1                                              # Duplicate partitions with interval = NO exists
-        hv1 = get_time_from_high_value(1)
-        hv2 = get_time_from_high_value(2)
-        if hv2 > time_now - 1                                                   # Current inserts will end in partition 2
-          drop_partition = false
-          Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
-=begin
-          if hv1 < time_now - MovexCdc::Application.config.partition_interval - 1    # Split partition if there is room for another partition older than now to avoid: xxx cannot be dropped because high value of next partition is not older than sysdate!
-            new_first_partition_name  = "Part_1_#{rand(10000)}"
-            new_second_partition_name = "Part_2_#{rand(10000)}"
-
-            Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
-            Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{p.partition_name} INTO (
-                              PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{(time_now - MovexCdc::Application.config.partition_interval).strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
-                              PARTITION #{new_second_partition_name})"
-          else
-            Rails.logger.debug("HousekeepingTest:drop_all_event_logs_partitions_except_1"){ "Partition #{p.partition_name} at position 1 cannot simply be dropped because following partition with high_value #{hv2} is too young so inserts may land in partition 1" }
-          end
-=end
-        end
-      end
-      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}" if drop_partition
+      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
     end
-    Database.select_one "SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
+    part1 = Database.select_first_row("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
+    hv1 = get_time_from_high_value(1, part1.high_value)                         # The HV of the remaining range partition
+    high_value_limit = sys_time - Housekeeping.get_instance.max_min_partition_age/2        # The HV should be equal or older than this
+    if hv1 > high_value_limit
+      Rails.logger.debug('HousekeepingTest.drop_all_event_logs_partitions_except_1') {"High_Value of remaining partition #{part1.partition_name} (#{part1.high_value}) is younger than limit (#{high_value_limit})! Split partition"}
+      new_first_partition_name  = "Part_1_#{rand(10000)}"
+      new_second_partition_name = "Part_2_#{rand(10000)}"
+
+      Database.execute "ALTER TABLE Event_Logs SPLIT PARTITION #{part1.partition_name} INTO (
+                              PARTITION #{new_first_partition_name} VALUES LESS THAN (TO_DATE(' #{high_value_limit.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
+                              PARTITION #{new_second_partition_name})"
+      Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{new_second_partition_name}"  # this will not work on Oracle 12
+    end
   end
 
   test "do_housekeeping" do
@@ -190,7 +163,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         # Drop all partitions except the first one (possibly there are only two range partitions at this point
-        initial_partition_count = drop_all_event_logs_partitions_except_1
+        drop_all_event_logs_partitions_except_1
         last_part = Database.select_first_row("SELECT Partition_Name, High_Value
                              FROM   User_Tab_Partitions
                              WHERE  Table_Name = 'EVENT_LOGS'
@@ -208,7 +181,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           create_event_logs_record(last_part_hv + 8 * MovexCdc::Application.config.partition_interval + 1) # This will be the fifth partition
           log_partition_state(false, 'Five interval partitions should exist now')
           intermediate_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-          assert_equal 5 + initial_partition_count, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 6, intermediate_partition_count, log_on_failure("There should exist all touched partitions now. Current interval = #{MovexCdc::Application.config.partition_interval}")
           hk_thread = Thread.new do
             Housekeeping.get_instance.do_housekeeping
           end
@@ -216,7 +189,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           # There should remain: the first partition, three partitions with pending inserts and the last partition
-          assert_equal 4 + initial_partition_count, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          assert_equal 5, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
