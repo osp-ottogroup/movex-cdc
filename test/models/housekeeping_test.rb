@@ -140,7 +140,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     end
     part1 = Database.select_first_row("SELECT Partition_Name, High_Value FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
     hv1 = get_time_from_high_value(1, part1.high_value)                         # The HV of the remaining range partition
-    raise "High value of remaining partition #{part1.partition_name} (#{hv1}) is younger than expected " if hv1 > sys_time - Housekeeping.get_instance.max_min_partition_age/4
+    # raise "High value of remaining partition #{part1.partition_name} (#{hv1}) is younger than expected " if hv1 > sys_time - Housekeeping.get_instance.max_min_partition_age/4
     high_value_limit = sys_time - Housekeeping.get_instance.max_min_partition_age/4        # The HV should be equal or older than this
     if hv1 > high_value_limit
       Rails.logger.debug('HousekeepingTest.drop_all_event_logs_partitions_except_1') {"High_Value of remaining partition #{part1.partition_name} (#{part1.high_value}) is younger than limit (#{high_value_limit})! Split partition"}
