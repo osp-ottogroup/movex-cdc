@@ -923,7 +923,7 @@ Scalability is given by configurable number of worker threads (INITIAL_WORKER_TH
 Depending on the capacity of the runtime env. (DB, CPU, network, Kafka) several 100 worker threads are possible.
 
 Example throughput with Oracle DB can be up to 300,000 events per minute and worker thread
-if message size is below the magic 4K (no content storage in CLOB).
+if message size is below the magic 1.8K limit for inline storage (no content storage in CLOB).
 
 ===== Error handling during transfer =====
 Transferring is done with bulk operations against database and Kafka.

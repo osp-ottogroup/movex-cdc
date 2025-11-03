@@ -25,6 +25,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   def destroy_table_with_dependencies(table)
     table.columns.each{|c| c.destroy!}
     table.conditions.each{|c| c.destroy!}
+    table.column_expressions.each{|c| c.destroy!}
     table.destroy!
   end
 
@@ -123,6 +124,16 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   end
 
   test 'import new schema' do
+    # Remove possibly existing test schema
+    run_with_current_user do
+      new_schema = Schema.find_by_name('NEW_SCHEMA')
+      unless new_schema.nil?
+        new_schema.tables.each{|t| destroy_table_with_dependencies(t) }
+        new_schema.schema_rights.each{|sr| sr.destroy!}
+        new_schema.destroy!
+      end
+    end
+
     exported_data = ImportExportConfig.new.export
     exported_data['schemas'] << {
       'name'          => 'NEW_SCHEMA',
@@ -145,12 +156,12 @@ class ImportExportConfigTest < ActiveSupport::TestCase
                               }
                             ],
                             'column_expressions' => [{
-                                "operation": "I",
-                                "sql": "SELECT JSON_OBJECT('SYSDATE' VALUE SYSDATE) Val1 FROM DUAL"
+                                "operation" => "I",
+                                "sql"       => "SELECT JSON_OBJECT('SYSDATE' VALUE SYSDATE) Val1 FROM DUAL"
                               },
                               {
-                                "operation": "I",
-                                "sql": "SELECT JSON_OBJECT('DATUM' VALUE SYSDATE) Val2 FROM DUAL"
+                                "operation" => "I",
+                                "sql"       => "SELECT JSON_OBJECT('DATUM' VALUE SYSDATE) Val2 FROM DUAL"
                               }
                             ]
                           }],
@@ -162,11 +173,18 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
     new_schema = Schema.where(name: 'NEW_SCHEMA').first
     assert_not_equal(nil, new_schema, 'The new schema should be created')
-    assert_equal('NEW_SCHEMA',  new_schema.name,                                'The new schema should be created with this name')
-    assert_equal('NEW_TABLE',   new_schema.tables[0].name,                      'A new table should be created with this name')
-    assert_equal('NEW_COL',     new_schema.tables[0].columns[0].name,           'A new column should be created with this name')
-    assert_equal('I',           new_schema.tables[0].conditions[0].operation,   'A new condition should be created with this operation')
-    assert_equal('admin',       new_schema.schema_rights[0].user.email,         'A new schema_right should be created with this user')
+    assert_equal('NEW_SCHEMA',  new_schema.name,                       'The new schema should be created with this name')
+    new_table = new_schema.tables[0]
+    assert_equal('NEW_TABLE',   new_table.name,                        'A new table should be created with this name')
+    assert_equal('NEW_COL',     new_table.columns[0].name,             'A new column should be created with this name')
+    assert_equal('I',           new_table.conditions[0].operation,     'A new condition should be created with this operation')
+    assert_equal('1 = 2',       new_table.conditions[0].filter,        'A new condition should be created with this filter')
+    assert_equal('I',           new_table.column_expressions[0].operation, 'A new column_expression should be created with this operation')
+    assert_equal(1,
+                 new_table.column_expressions.select{|ce| ce.sql == "SELECT JSON_OBJECT('SYSDATE' VALUE SYSDATE) Val1 FROM DUAL"}.count,
+                 'A new column_expression should be created with this sql'
+    )
+    assert_equal('admin',       new_schema.schema_rights[0].user.email,'A new schema_right should be created with this user')
 
     # Remove aditional test schema
     run_with_current_user do
@@ -186,6 +204,8 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       test_table.columns    << Column.new(name: 'TEST_TABLE_COL2')
       test_table.conditions << Condition.new(operation: 'I', filter: '2 = 3')
       test_table.conditions << Condition.new(operation: 'U', filter: '3 = 4')
+      test_table.column_expressions << ColumnExpression.new(operation: 'I', sql: 'sql_i')
+      test_table.column_expressions << ColumnExpression.new(operation: 'U', sql: 'sql_u')
       test_table.save!
 
       test_user_i = User.new(email: 'test_user_i', db_user: MovexCdc::Application.config.db_victim_user, first_name: 'Test', last_name: 'I' ); test_user_i.save!
@@ -205,12 +225,13 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
       # Table that is not existing in DB but in import data
       test_schema_hash['tables'] << {
-        'name'        => 'ADDED_TABLE',
-        'columns'     => [{ 'name' => 'COL1'}, { 'name' => 'COL2'}],
-        'conditions'  => [{ 'operation' => 'I', 'filter' => '1 = 2'}],
+        'name'                => 'ADDED_TABLE',
+        'columns'             => [{ 'name' => 'COL1'}, { 'name' => 'COL2'}],
+        'conditions'          => [{ 'operation' => 'I', 'filter' => '1 = 2'}],
+        'column_expressions'  => [{ 'operation' => 'I', 'sql' => "SELECT '{ \"ce\": 5}'"}],
       }
 
-      # existing table with added and deleted and changed column and conditions
+      # existing table with added and deleted and changed column, conditions and column_expressions
       test_table_hash = test_schema_hash['tables'].find{|t| t['name'] == 'TEST_TABLE_IMPORT'}
       raise "Hash value for table 'TEST_TABLE_IMPORT' not found in export" if test_table_hash.nil?
       test_table_hash['columns'] << { 'name' => 'TEST_TABLE_COL3'}
@@ -219,6 +240,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       test_table_hash['conditions'] << { 'operation' => 'D', 'filter' => '5 = 6'}
       test_table_hash['conditions'].find{|c| c['operation'] == 'U'}['filter'] = 'changed'
       test_table_hash['conditions'].delete_if{|c| c['operation'] == 'I'}
+      test_table_hash['column_expressions'] << { 'operation' => 'D', 'sql' => 'sql_d'}
+      test_table_hash['column_expressions'].find{|c| c['operation'] == 'U'}['sql'] = 'sql_u_changed'
+      test_table_hash['column_expressions'].delete_if{|c| c['operation'] == 'I'}
 
       SchemaRight.new(schema_id: test_schema.id, user_id: test_user_i.id).save! # SchemaRight existing in DB but not in import
       test_schema_hash['schema_rights'] << { 'email' => test_user_d.email}      # SchemaRight not existing in DB but in import
@@ -244,6 +268,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       assert_equal(1,       test_table.conditions.select{|c| c.operation == 'D'}.count,                                 'Condition should be added to existing table')
       assert_equal(1,       test_table.conditions.select{|c| c.operation == 'U' && c.filter == 'changed'}.count,        'Condition should be changed in existing table')
       assert_equal(0,       test_table.conditions.select{|c| c.operation == 'I'}.count,                                 'Condition should be deleted in existing table')
+      assert_equal(1,       test_table.column_expressions.select{|c| c.operation == 'D'}.count,                            'Column Expression should be added to existing table')
+      assert_equal(1,       test_table.column_expressions.select{|c| c.operation == 'U' && c.sql == 'sql_u_changed'}.count,'Column Expression should be changed in existing table')
+      assert_equal(0,       test_table.column_expressions.select{|c| c.operation == 'I'}.count,                            'Column Expression should be deleted in existing table')
       assert_equal(1,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_d.id}.count,                  'SchemaRight should be added to existing schema')
       assert_equal(1,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_u.id && sr.yn_deployment_granted == 'Y'}.count, 'SchemaRight should be changed in existing schema')
       assert_equal(0,       test_schema.schema_rights.select{|sr| sr.user_id == test_user_i.id}.count,                  'SchemaRight should be deleted in existing schema')
