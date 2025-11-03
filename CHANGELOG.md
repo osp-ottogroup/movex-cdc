@@ -1,6 +1,9 @@
 # MOVEX Change Data Capture: Release notes
 ## Upcoming next release
 
+# 2025-11-04 1.13.4
+- Bugfix: Import column expressions for a new table in config import
+
 # 2025-10-28 1.13.3
 - Bugfix: Correct writing of pending statistics after termination of worker threads at shutdown
 

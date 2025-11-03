@@ -293,6 +293,10 @@ class ImportExportConfig
       raise "Condition element of table '#{table_hash['name']}' should be of type Hash but is a #{condition_hash.class} with content '#{condition_hash}'" unless condition_hash.is_a? Hash
       Condition.new(relevant_import_data(condition_hash, Condition).merge('table_id' => table.id)).save!
     end
+    table_hash['column_expressions']&.each do |ce_hash|
+      raise "ColumnExpression element of table '#{table_hash['name']}' should be of type Hash but is a #{ce_hash.class} with content '#{ce_hash}'" unless ce_hash.is_a? Hash
+      ColumnExpression.new(relevant_import_data(ce_hash, ColumnExpression).merge('table_id' => table.id)).save!
+    end
     if yn_initialization == 'Y'                                                 # Exeute postponed setting
       table_hash['yn_initialization'] = 'Y'                                     # restore previous state of config data to prevent from confusion is reused later
       table.update!(yn_initialization: 'Y')
@@ -310,8 +314,10 @@ class ImportExportConfig
     table_hash['yn_initialization'] = 'N' if yn_initialization == 'Y'           # Ensure validation of yn_initialization = Y is postponed after column creation
     table.update!(relevant_import_data(table_hash, Table))
 
+    table_columns = Column.where(table_id: table.id)                            # Load current columns of a table all at once and only one time
+
     # delete columns of table missed in current import data
-    Column.where(table_id: table.id).each do |column|
+    table_columns.each do |column|
       if table_hash['columns'].find{|t| t['name'] == column.name}.nil?          # existing column not found in import data for table
         column.destroy!
       end
@@ -320,7 +326,7 @@ class ImportExportConfig
     # Insert or update columns
     table_hash['columns']&.each do |column_hash|
       raise "Column element of table '#{table_hash['name']}' should be of type Hash but is a #{column_hash.class} with content '#{column_hash}'" unless column_hash.is_a? Hash
-      existing_column = Column.where(table_id: table.id, name: column_hash['name']).first
+      existing_column = table_columns.select{|c| c.table_id == table.id && c.name == column_hash['name']}.first
       if existing_column.nil?
         Column.new(relevant_import_data(column_hash, Column).merge('table_id' => table.id)).save!
       else
@@ -328,8 +334,10 @@ class ImportExportConfig
       end
     end
 
+    table_conditions = Condition.where(table_id: table.id)                      # Load current conditions of a table all at once and only one time
+
     # delete conditions of table missed in current import data
-    Condition.where(table_id: table.id).each do |condition|
+    table_conditions.each do |condition|
       if table_hash['conditions'].find{|c| c['operation'] == condition.operation}.nil? # existing condition not found in import data for table
         condition.destroy!
       end
@@ -338,7 +346,7 @@ class ImportExportConfig
     # Insert or update conditions
     table_hash['conditions']&.each do |condition_hash|
       raise "Condition element of table '#{table_hash['name']}' should be of type Hash but is a #{condition_hash.class} with content '#{condition_hash}'" unless condition_hash.is_a? Hash
-      existing_condition = Condition.where(table_id: table.id, operation: condition_hash['operation']).first
+      existing_condition = table_conditions.select{|c| c.table_id == table.id && c.operation == condition_hash['operation'] }.first
       if existing_condition.nil?
         Condition.new(relevant_import_data(condition_hash, Condition).merge('table_id' => table.id)).save!
       else
@@ -346,8 +354,10 @@ class ImportExportConfig
       end
     end
 
+    table_column_expressions = ColumnExpression.where(table_id: table.id)       # Load current expressions of a table all at once and only one time
+
     # delete column_expressions of table missed in current import data
-    ColumnExpression.where(table_id: table.id).each do |ce|
+    table_column_expressions.each do |ce|
       if table_hash['column_expressions'].find{|c| c['operation'] == ce.operation && c['sql'] ==  ce.sql}.nil? # existing column_expression not found in import data for table
         ce.destroy!
       end
@@ -356,7 +366,7 @@ class ImportExportConfig
     # Insert or update column_expressions
     table_hash['column_expressions']&.each do |ce_hash|
       raise "ColumnExpression element of table '#{table_hash['name']}' should be of type Hash but is a #{ce_hash.class} with content '#{ce_hash}'" unless ce_hash.is_a? Hash
-      existing_ce = ColumnExpression.where(table_id: table.id, operation: ce_hash['operation']).select{|ce| ce.sql == ce_hash['sql'] }.first
+      existing_ce = table_column_expressions.select{|ce| ce.table_id == table.id && ce.operation == ce_hash['operation'] && ce.sql == ce_hash['sql'] }.first
       if existing_ce.nil?
         ColumnExpression.new(relevant_import_data(ce_hash, ColumnExpression).merge('table_id' => table.id)).save!
       else
