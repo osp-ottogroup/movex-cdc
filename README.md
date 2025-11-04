@@ -40,7 +40,7 @@ The latest build of the development master branch is available by:<br/>
 MOVEX Change Data Capture is a product of the Otto Group One.O GmbH.<br/>
 This product can be used under the terms and conditions of [GPL 3](https://gitlab.com/osp-silver/oss/movex-cdc/-/blob/master/LICENSE).<br/>
 One.O is the IT service provider of the Otto Group, formerly known as Otto Group Solution Provider (OSP) GmbH.<br/>
-If you are interested in commercial support please reach out to [movex-cdc@osp.de](mailto:movex-cdc@osp.de).<br/>
+If you are interested in commercial support please reach out to [movex-cdc@og1o.de](mailto:movex-cdc@og1o.de).<br/>
 
 ## Roadmap
 The tool has been developed independently of a particular database system.
