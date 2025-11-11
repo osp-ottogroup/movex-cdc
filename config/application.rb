@@ -138,7 +138,11 @@ module MovexCdc
       value = ENV[up_key] if ENV[up_key]                                        # Environment over previous config value
       value = value.to_s.upcase   if options[:upcase]
       value = value.to_s.downcase if options[:downcase]
-      value = value.to_i          if options[:integer]
+      if options[:integer]
+        raise "#{up_key} ('#{value}') should contain only a number" if value && !(value.match(/^\d+$/))
+        value = value.to_i
+      end
+
       log_value = value
       if !value.nil?
         if !options[:maximum].nil? && value > options[:maximum]
