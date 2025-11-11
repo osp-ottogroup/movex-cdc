@@ -139,7 +139,7 @@ module MovexCdc
       value = value.to_s.upcase   if options[:upcase]
       value = value.to_s.downcase if options[:downcase]
       if options[:integer]
-        raise "#{up_key} ('#{value}') should contain only a number" if value && !(value.match(/^\d+$/))
+        raise "#{up_key} ('#{value}') should contain only a number" if value.is_a?(String) && !(value.match(/^\d+$/))
         value = value.to_i
       end
 
