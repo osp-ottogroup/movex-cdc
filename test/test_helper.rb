@@ -165,6 +165,7 @@ class ActiveSupport::TestCase
   end
 
   # create records in Event_Log by trigger on VICTIM1, current_user should be set outside
+  # 3 records are for VICTIM2
   def create_event_logs_for_test(number_of_records)
     raise "Should create at least 11 records" if number_of_records < 11
     if ThreadHandling.get_instance.thread_count > 0
@@ -341,6 +342,8 @@ class ActiveSupport::TestCase
   end
 
   # Process records from event_log and restore previous app state
+  # @param [Hash] options { :max_wait_time, :expected_remaining_records, :count_without_error_only, :title }
+  # @return [Integer] the number of remaining records in Event_Logs (only without error if options[:count_without_error_only])
   def process_eventlogs(options = {})
     options[:max_wait_time]               = 20 unless options[:max_wait_time]
     options[:expected_remaining_records]  = 0  unless options[:expected_remaining_records]
@@ -353,23 +356,32 @@ class ActiveSupport::TestCase
     # worker ID=0 for exactly 1 running worker
     worker = TransferThread.new(0, max_transaction_size: 10000)  # Sync. call within one thread
 
+    where = options[:count_without_error_only] ? " WHERE Last_Error_Time IS NULL" : "" # Ensure that processing is really tried if all records are expected to not beeing processed
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that
     Thread.new do
       loop_count = 0
       while loop_count < options[:max_wait_time] do                           # wait up to x seconds for processing
         loop_count += 1
-        event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
+        event_logs = Database.select_one("SELECT COUNT(*) FROM Event_Logs #{where}")
         Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "#{event_logs} records remaining in Event_Logs" }
-        break if event_logs <= options[:expected_remaining_records]           # All records processed, no need to wait anymore
+        if event_logs <= options[:expected_remaining_records]           # All records processed, no need to wait anymore
+          Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "Stop worker thread after remaining records <= #{options[:expected_remaining_records]}" }
+          break
+        end
         sleep 1
+      end
+      if loop_count == options[:expected_remaining_records]
+        Rails.logger.debug('ActiveSupport::TestCase.process_eventlogs'){ "Stop worker thread after #{loop_count} loops" }
       end
       worker.stop_thread
     end
 
     worker.process                                                            # only synchrone execution ensures valid test of function
 
-    remaining_event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs")
-    log_event_logs_content(console_output: true, caption: "#{options[:title]}: #{remaining_event_log_count} Event_Logs records after processing") if remaining_event_log_count > options[:expected_remaining_records]   # List remaining events from table
+    remaining_event_log_count = Database.select_one("SELECT COUNT(*) FROM Event_Logs #{where}")
+    if remaining_event_log_count > options[:expected_remaining_records]   # List remaining events from table
+      log_event_logs_content(console_output: true, caption: "#{options[:title]}: #{remaining_event_log_count} Event_Logs records after processing")
+    end
 
     MovexCdc::Application.config.initial_worker_threads = original_worker_threads  # Restore possibly differing value
     remaining_event_log_count

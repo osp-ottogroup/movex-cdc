@@ -14,6 +14,27 @@ class TransferThreadTest < ActiveSupport::TestCase
   #  worker.stop_thread
   #end
 
+  # Similar to test "process with error" but multiple errors are produced
+  test "process with Kafka error wrong topic " do
+    Database.execute "DELETE FROM Event_Logs"                               # precondition for valid counters
+    Database.execute "DELETE FROM Event_Log_Final_Errors"
+    run_with_current_user {
+      org_topic = victim1_table.topic
+      victim1_table.update!(topic: 'wrong topic')
+      create_event_logs_for_test(11)
+      remaining_event_log_count = process_eventlogs(max_wait_time: 30,
+                                                    expected_remaining_records: 0,
+                                                    title: 'After processing 8 records should be erroneous',
+                                                    count_without_error_only: true
+      )
+      victim1_table.update!(topic: org_topic)
+      Database.execute "DELETE FROM Event_Logs"                               # restore empty queues
+      Database.execute "DELETE FROM Event_Log_Final_Errors"                   # restore empty queues
+
+      assert_equal 0, remaining_event_log_count, log_on_failure('All events of VICTIM1 should be unprocessed')
+    }
+  end
+
 
   test "process" do
     MovexCdc::Application.config.legacy_ts_format = nil                         # ensure legacy timestamp format is not used, check in KafkaMock

@@ -17,7 +17,8 @@ class KafkaJava < KafkaBase
       include org.apache.kafka.clients.producer.Callback
       def onCompletion(metadata, exception)
         if exception
-          Rails.logger.error('KafkaJava::Producer.produce') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{metadata.topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          Rails.logger.error('KafkaJava::Producer:ProduceCallback.onCompletion') { "Got #{exception.class} #{exception.message} in callback of send for topic = #{metadata.topic}, partition = #{metadata.partition}, offset = #{metadata.offset}" }
+          # Ensure that the first exception cancels the processing of the whole array, Kafka itself would try all events of the bulk array if the don't raise the exception again
           raise exception
         end
       end
@@ -128,11 +129,16 @@ class KafkaJava < KafkaBase
       if !defined?(@producer_abort_exceptions) || @producer_abort_exceptions.nil?
         # Kafka exceptions that should lead to abort of the worker thread
         @producer_abort_exceptions = [
-          Java::OrgApacheKafkaCommonErrors::InvalidProducerEpochException,
-          Java::OrgApacheKafkaCommonErrors::ProducerFencedException,
-          Java::OrgApacheKafkaCommonErrors::UnsupportedForMessageFormatException,
           Java::OrgApacheKafkaCommonErrors::AuthenticationException,
           Java::OrgApacheKafkaCommonErrors::AuthorizationException,
+          Java::OrgApacheKafkaCommonErrors::InvalidProducerEpochException,
+          Java::OrgApacheKafkaCommonErrors::InvalidTxnStateException,
+          Java::OrgApacheKafkaCommonErrors::NotEnoughReplicasException,
+          Java::OrgApacheKafkaCommonErrors::OutOfOrderSequenceException,
+          Java::OrgApacheKafkaCommonErrors::ProducerFencedException,
+          Java::OrgApacheKafkaCommonErrors::TimeoutException,
+          Java::OrgApacheKafkaCommonErrors::UnknownProducerIdException,
+          Java::OrgApacheKafkaCommonErrors::UnsupportedForMessageFormatException,
           Java::JavaLang::IllegalStateException,
         ]
       end
