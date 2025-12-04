@@ -1097,7 +1097,7 @@ JWT=`curl -s -d "email=admin&password=<my_password>" http://localhost:8080/login
 jq .token | \
 sed -e 's/^"//' -e 's/"$//'`
 
-curl -s -X POST -H "Authorization: $JWT" -d "dry_run=true" http://localhost:8080/db_triggers/generate_all
+curl -X POST -H "Authorization: $JWT" -d "dry_run=true" http://localhost:8080/db_triggers/generate_all
 ```
 
 ===== API example for reschedule erroneous events for a schema =====
@@ -1106,7 +1106,7 @@ JWT=`curl -s -d "email=admin&password=<my_password>" http://localhost:8080/login
 jq .token | \
 sed -e 's/^"//' -e 's/"$//'`
 
-curl -s -X POST -H "Authorization: $JWT" -d "schema_name=MOVEX_LOCAL_NEW" http://localhost:8080/server_control/reprocess_final_errors
+curl -X POST -H "Authorization: $JWT" -d "schema_name=MYSCHEMA" http://localhost:8080/server_control/reprocess_final_errors
 ```
 
 === Entity relationship model ===

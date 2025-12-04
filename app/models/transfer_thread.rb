@@ -390,7 +390,7 @@ class TransferThread
         table = table_cache(event_log['table_id'])
         kafka_message = prepare_message_from_event_log(event_log, table)
         @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
-        @kafka_producer.produce(message: kafka_message, key: event_log['msg_key'], headers: create_message_headers(event_log, table), table: table)
+        @kafka_producer.produce(message: kafka_message, table: table, key: event_log['msg_key'], headers: create_message_headers(event_log, table))
       end
     rescue Exception => e
       msg = "TransferThread.process #{@worker_id}: within transaction with transactional_id = #{@kafka_producer&.current_transactional_id}. Aborting transaction now.\n"
@@ -481,7 +481,7 @@ class TransferThread
     else
       # move event_log to list of erroneous and delete from queue
       @statistic_counter.increment(event_log['table_id'], event_log['operation'], :events_final_errors)
-      Rails.logger.debug("TransferThread.process_single_erroneous_event_log"){"Move to final error for Event_Logs.ID = #{event_log['id']}"}
+      Rails.logger.error("TransferThread.process_single_erroneous_event_log"){"Move event to final error for Event_Logs.ID = #{event_log['id']}"}
       Database.execute "INSERT INTO Event_Log_Final_Errors(ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, Error_Time, Error_Msg, Transaction_ID)
                        SELECT ID, Table_ID, Operation, DBUser, Payload, Msg_Key, Created_At, #{Database.systimestamp_sql}, :error_msg, Transaction_ID
                        FROM   Event_Logs
@@ -557,6 +557,9 @@ class TransferThread
 #{JSON.pretty_generate(ExceptionHelper.memory_info_hash)}")
   end
 
+  # Suppress subsequent DB access for table config
+  # @param [Integer] table_id
+  # @return [Table] the cached object
   def table_cache(table_id)
     check_record_cache_for_aging
     cache_key = "Table_#{table_id}"
