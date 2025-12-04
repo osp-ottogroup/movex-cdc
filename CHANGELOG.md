@@ -1,5 +1,6 @@
 # MOVEX Change Data Capture: Release notes
-
+## next
+- Bugfix: some more Kafka exception types lead to reconnect of producer
 ## 2025-11-04 1.13.4
 - Bugfix: Import column expressions for a new table in config import
 
