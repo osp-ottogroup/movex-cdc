@@ -224,9 +224,11 @@ build_movex_cdc_with_podman:
   script:
     - |
       echo "Building Docker image with Podman"
+      # "--format docker" is needed to keep the health check and avoid the error: HEALTHCHECK is not supported for OCI image format and will be ignored. Must use `docker` format
       BUILD_VERSION=${CI_COMMIT_REF_NAME#"prod_"}_`date "+%Y-%m-%d_%H-%M-%S"`
       JRUBY_VERSION=`cat .ruby-version | cut -c 7-20`
       $PODMAN build \
+        --format docker \
         --build-arg BUILD_VERSION=$BUILD_VERSION \
         --build-arg JRUBY_VERSION=$JRUBY_VERSION \
         -f $CI_PROJECT_DIR/docker/movex-cdc/Dockerfile-movex-cdc-oracle \

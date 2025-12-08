@@ -1,6 +1,8 @@
 # MOVEX Change Data Capture: Release notes
-## next
+## 2025-12-08 1.13.5
 - Bugfix: some more Kafka exception types lead to reconnect of producer
+- Bugfix: Docker health check reestablished for "podman build" by "--format docker"
+
 ## 2025-11-04 1.13.4
 - Bugfix: Import column expressions for a new table in config import
 
