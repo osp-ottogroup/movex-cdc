@@ -146,13 +146,14 @@ class EventLog < ApplicationRecord
                                         WHERE  Table_Name = 'EVENT_LOGS'
                                         AND    Partition_Name = :partition_name
                                        ", partition_name: partition_name
-      if self.partition_allowed_for_drop?(partition_name, part.partition_position, part.high_value, caller, lock_already_checked: lock_already_checked)
-        Rails.logger.info(caller) { "Execute drop partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
-        Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
-        Rails.logger.info(caller) { "Successful dropped partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
-        true                                                                    # status relevant for test only
+      if part.nil?
+        Rails.logger.info('EventLog.check_and_drop_partition') { "Called by #{caller}: Partition #{partition_name} does not exist no more, dropped by previous call of Housekeeping.do_housekeeping_internal" }
       else
-        false                                                                   # status relevant for test only
+        if self.partition_allowed_for_drop?(partition_name, part.partition_position, part.high_value, caller, lock_already_checked: lock_already_checked)
+          Rails.logger.info('EventLog.check_and_drop_partition') { "Called by #{caller}: Execute drop partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
+          Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{partition_name}"
+          Rails.logger.info('EventLog.check_and_drop_partition') { "Called by #{caller}: Successful dropped partition #{partition_name} with high value #{part.high_value} at position = #{part.partition_position}" }
+        end
       end
     end
   end
@@ -164,7 +165,7 @@ class EventLog < ApplicationRecord
   # @param [String] caller
   # @param [TrueClass] lock_already_checked signal if partition is already checked for pending transactions
   def self.partition_allowed_for_drop?(partition_name, partition_position, high_value, caller, lock_already_checked: false)
-    Rails.logger.debug(caller) { "Check partition #{partition_name} with high value #{high_value} for deletion" }
+    Rails.logger.debug('EventLog.partition_allowed_for_drop?') { "Called by #{caller}: Check partition #{partition_name} with high value #{high_value} for deletion" }
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
@@ -230,14 +231,14 @@ class EventLog < ApplicationRecord
               ", partition_name: partition_name
         )
         if pending_transactions > 0
-          Rails.logger.info(caller) { "Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{pending_transactions} pending transactions" }
+          Rails.logger.info('EventLog.partition_empty?') { "Called by #{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are #{pending_transactions} pending transactions" }
           return false
         end
       end
 
       existing_records = Database.select_one "SELECT COUNT(*) FROM Event_Logs PARTITION (#{partition_name}) WHERE Rownum < 2"
       if existing_records > 0
-        Rails.logger.info(caller) { "Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are one or more records remaining" }
+        Rails.logger.info('EventLog.partition_empty?') { "Called by #{caller}: Drop partition #{partition_name} with high value #{high_value} at position = #{partition_position} not possible because there are one or more records remaining" }
         return false
       end
     end

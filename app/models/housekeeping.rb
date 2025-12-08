@@ -8,6 +8,8 @@ class Housekeeping
 
   # public class helper methods
   # extract the time from high value string of Oracle partition
+  # @param [String] high_value The high value as beeing read from LONG column
+  # @return [Time] The time expression of high value
   def self.get_time_from_oracle_high_value(high_value)
     raise "Housekeeping.get_time_from_oracle_high_value: Parameter high_value should not be nil" if high_value.nil?
     hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
@@ -59,11 +61,11 @@ class Housekeeping
       # check all partitions for deletion except the youngest one, no matter if they are interval or not
       if MovexCdc::Application.partitioning?
         partitions_to_check = Database.select_all "\
-          WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval
+          WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval, High_Value
                               FROM   User_Tab_Partitions
                               WHERE  Table_Name = 'EVENT_LOGS'
                              )
-          SELECT p.Partition_Name, p.Partition_Position, stats.Interval_Count, stats.Max_Partition_Position
+          SELECT p.Partition_Name, p.Partition_Position, p.High_Value, stats.Interval_Count, stats.Max_Partition_Position
           FROM   Partitions p
           CROSS JOIN (SELECT SUM(DECODE(Interval, 'YES', 1, 0)) Interval_Count, MAX(Partition_Position) Max_Partition_Position
                       FROM Partitions
@@ -84,7 +86,11 @@ class Housekeeping
           # if only range partitions exists (no interval) than preserve the youngest two range partitions (because the first partition is not scanned by worker)
           if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
             if locked_partitions.include? part.partition_name                   # Don't check partition that has pending transactions
-              Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
+              if Housekeeping.get_time_from_oracle_high_value(part.high_value) < Time.now - max_min_partition_age.seconds
+                raise "Housekeeping.do_housekeeping_internal: Partition #{part.partition_name} with high value '#{part.high_value}' still has pending transactions but needs to be dropped to avoid ORA-14300"
+              else
+                Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
+              end
             else
               EventLog.check_and_drop_partition(part.partition_name, 'Housekeeping.do_housekeeping_internal', lock_already_checked: true)
             end
@@ -169,7 +175,7 @@ class Housekeeping
 
             Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}" }
-            # Drop partition only if empty and without transactions
+            # Drop partition only if still exists, is empty and without transactions
             EventLog.check_and_drop_partition(part1.partition_name, 'Housekeeping.check_partition_interval_internal')
           end
         end

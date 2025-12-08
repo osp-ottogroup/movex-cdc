@@ -84,6 +84,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       Database.execute "ALTER TABLE Event_Logs SET INTERVAL (NUMTODSINTERVAL(60,'SECOND'))" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       log_partition_state(false, 'set_high_value_time after splitting')
     end
+    force_interval_partition_creation(high_value_time+interval)                 # create a second partition directly after the first partition (will be with interval = NO)
     EventLog.adjust_interval                                                    # adjust in DB according to MovexCdc::Application.config.partition_interval
     force_interval_partition_creation(last_partition_time)                      # ensure existence of at least one interval partition
   end
@@ -214,11 +215,17 @@ class HousekeepingTest < ActiveSupport::TestCase
             max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
             set_high_value_time(time_now-max_seconds_for_interval_prev, prev_interval, time_now) # set old high_value to 1/2 of possible partition count and default interval
             Housekeeping.get_instance.check_partition_interval
-            log_partition_state(false, 'After check_partitions')                                               # log partitions
-
-            current_hv = get_time_from_high_value(1)
             max_expected_seconds_for_interval = (1024*1024)*10*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
             min_expected_hv = time_now-max_expected_seconds_for_interval
+
+            current_hv = get_time_from_high_value(1)
+            if current_hv <= min_expected_hv                                    # Repeat check_partition_interval to lift the second old partition also
+              Housekeeping.get_instance.check_partition_interval
+              current_hv = get_time_from_high_value(1)
+            end
+
+            log_partition_state(false, 'After check_partitions')                                               # log partitions
+
             assert current_hv > min_expected_hv, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} seconds (#{min_expected_hv})")
           end
 
@@ -238,6 +245,11 @@ class HousekeepingTest < ActiveSupport::TestCase
         restore_partitioning
       end
     end
+  end
+
+  test "check_partition_interval with locked middle partition" do
+    # TODO: Test that housekeeping fails if the two first partitions are without a gap and the second partition is locked by another transaction
+    # The first partition should be old enough to be caught by check_partition_interval
   end
 
   test "check_partition_interval with no gaps between min and last partition" do
