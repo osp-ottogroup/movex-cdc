@@ -4,7 +4,10 @@ class HousekeepingTest < ActiveSupport::TestCase
   setup do
     # Create victim tables and triggers
     create_victim_structures
-    run_with_current_user { create_event_logs_for_test(11) }                    # ensure that at least one interval partition is created
+    run_with_current_user do
+      EventLog.adjust_interval                                                  # Restore possibly wrong setting on table
+      create_event_logs_for_test(11)                                            # ensure that at least one interval partition is created
+    end
   end
 
   # Use the DB time instead of Time.now to avoid timezone conflicts
@@ -17,7 +20,7 @@ class HousekeepingTest < ActiveSupport::TestCase
   def assure_last_partition
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
+      if MovexCdc::Application.partitioning? && DatabaseOracle.db_version < '12.2'
         part_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
         if part_count < 2
           Database.select_all("SELECT Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |part|
@@ -195,8 +198,9 @@ class HousekeepingTest < ActiveSupport::TestCase
 
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-          # There should remain: the first partition, three partitions with pending inserts and the last partition
-          assert_equal 4 + initial_partiton_count, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
+          # There should remain: the first partition (if < 12.2), three partitions with pending inserts and the last partition
+          remaining_partitions = (DatabaseOracle.db_version < '12.2' ? 4 : 3) + initial_partiton_count
+          assert_equal remaining_partitions, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
@@ -214,8 +218,9 @@ class HousekeepingTest < ActiveSupport::TestCase
             drop_all_event_logs_partitions_except_1                             # possible need to remove the first partition if only range partitions exist
             max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
             set_high_value_time(time_now-max_seconds_for_interval_prev, prev_interval, time_now) # set old high_value to 1/2 of possible partition count and default interval
-            Housekeeping.get_instance.check_partition_interval
-            max_expected_seconds_for_interval = (1024*1024)*10*interval          # < 1/4 of max. partition count (1024*1024-1) for interval
+            Housekeeping.get_instance.do_housekeeping                           # Regular drop of partitions, ensures drop for >= 12.2
+            Housekeeping.get_instance.check_partition_interval                  # Test for < 12.2
+            max_expected_seconds_for_interval = (1024*1024)*10*interval         # < 1/4 of max. partition count (1024*1024-1) for interval
             min_expected_hv = time_now-max_expected_seconds_for_interval
 
             current_hv = get_time_from_high_value(1)

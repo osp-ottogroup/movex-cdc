@@ -222,7 +222,6 @@ class KafkaJava < KafkaBase
     # Handle exceptions at message production. Can be raised by producer.send and producer.commit_transaction
     # Reraise of exception should be done by caller
     # @param exception [Exception] Exception raised by producer
-    # @param caller [String] Name of the calling method
     def handle_kafka_server_exception(exception)
       fix_message_size_too_large if exception.class == Java::OrgApacheKafkaCommonErrors::RecordTooLargeException
     end

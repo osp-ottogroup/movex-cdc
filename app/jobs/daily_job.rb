@@ -23,7 +23,8 @@ class DailyJob < ApplicationJob
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'DailyJob.perform', additional_msg: "calling Housekeeping.check_partition_interval!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
-      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
+    ensure
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread after last step
     end
   end
 end

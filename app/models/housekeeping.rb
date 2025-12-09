@@ -52,6 +52,7 @@ class Housekeeping
     @last_partition_interval_check_started = nil                                # semaphore to prevent multiple execution
   end
 
+  # Drop outdated partitions
   def do_housekeeping_internal
     @last_housekeeping_started = Time.now
     log_partitions                                                              # log all existing partitions
@@ -70,8 +71,11 @@ class Housekeeping
           CROSS JOIN (SELECT SUM(DECODE(Interval, 'YES', 1, 0)) Interval_Count, MAX(Partition_Position) Max_Partition_Position
                       FROM Partitions
                      ) stats
-          /* do not check the youngest interval (should survive) and the youngest range partition (will raise ORA-14758) for deletion */
-          WHERE  Partition_Position != (SELECT MAX(pi.Partition_Position) FROM Partitions pi WHERE pi.Interval = p.Interval)
+          /* do not check the youngest or last partition */
+          WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions)
+          #{"/* do not check the youngest range partition (will raise ORA-14758) for deletion */
+             AND Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions WHERE Interval = 'NO')
+            " if DatabaseOracle.db_version < '12.2'}
           ORDER BY Partition_Position
         "
 
@@ -83,7 +87,7 @@ class Housekeeping
           WHERE  o.Object_Name    = 'EVENT_LOGS'
         ").map{|r| r.partition_name}
         partitions_to_check.each do |part|
-          # if only range partitions exists (no interval) than preserve the youngest two range partitions (because the first partition is not scanned by worker)
+          # if only range partitions exists (no interval) than preserve the youngest two range partitions
           if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
             if locked_partitions.include? part.partition_name                   # Don't check partition that has pending transactions
               if Housekeeping.get_time_from_oracle_high_value(part.high_value) < Time.now - max_min_partition_age.seconds
@@ -110,7 +114,8 @@ class Housekeeping
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
+      if MovexCdc::Application.partitioning? && DatabaseOracle.db_version < '12.2'
+        # Dropping the last range partition of an interval partitioned table fails with ORA-14758 before 12.2.0.1
         max_distance_seconds = max_min_partition_age
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
