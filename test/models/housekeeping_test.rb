@@ -174,6 +174,7 @@ class HousekeepingTest < ActiveSupport::TestCase
       if MovexCdc::Application.partitioning?
         # Drop all partitions except the first one (possibly there are only two range partitions at this point
         initial_partiton_count = drop_all_event_logs_partitions_except_1
+        Rails.logger.debug('HousekeepingTest.do_housekeeping with locked partition') { "initial_partiton_count = #{initial_partiton_count}" }
         last_part = Database.select_first_row("SELECT Partition_Name, High_Value
                              FROM   User_Tab_Partitions
                              WHERE  Table_Name = 'EVENT_LOGS'
@@ -199,7 +200,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           # There should remain: the first partition (if < 12.2), three partitions with pending inserts and the last partition
-          remaining_partitions = (DatabaseOracle.db_version < '12.2' ? 4 : 3) + initial_partiton_count
+          remaining_partitions = (DatabaseOracle.db_version < '12.2' ? 5 : 4)
           assert_equal remaining_partitions, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
