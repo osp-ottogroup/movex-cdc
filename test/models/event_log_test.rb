@@ -85,7 +85,9 @@ class EventLogTest < ActiveSupport::TestCase
     when 'ORACLE' then
       if MovexCdc::Application.partitioning?
         max_partition_name = Database.select_one "SELECT MAX(Partition_Name) KEEP (DENSE_RANK LAST ORDER BY Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"
-        assert !EventLog.check_and_drop_partition(max_partition_name, 'Test'), log_on_failure("Max. partition should not be dropped")
+        EventLog.check_and_drop_partition(max_partition_name, 'Test')
+        assert 1 == Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Name = :part_name", part_name: max_partition_name),
+               log_on_failure("Max. partition should not be dropped")
       end
     end
   end

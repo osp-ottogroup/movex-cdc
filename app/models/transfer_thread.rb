@@ -186,7 +186,7 @@ class TransferThread
         Rails.logger.debug('TransferThread.read_event_logs_batch'){"Start iterating over partitions"}
         partitions = Database.select_all("SELECT Partition_Name, High_Value
                                           FROM   User_Tab_Partitions
-                                          WHERE  Table_Name = 'EVENT_LOGS' AND Partition_Position > 1 /* Do not check the first non-interval partition */
+                                          WHERE  Table_Name = 'EVENT_LOGS'
                                          ").sort_by{|x| x['high_value']}
         Rails.logger.debug('TranferThread.read_event_logs_batch'){"Found #{partitions.count} partitions to scan"}
         @last_scanned_partitions = 0

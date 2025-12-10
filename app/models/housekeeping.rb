@@ -8,6 +8,8 @@ class Housekeeping
 
   # public class helper methods
   # extract the time from high value string of Oracle partition
+  # @param [String] high_value The high value as beeing read from LONG column
+  # @return [Time] The time expression of high value
   def self.get_time_from_oracle_high_value(high_value)
     raise "Housekeeping.get_time_from_oracle_high_value: Parameter high_value should not be nil" if high_value.nil?
     hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
@@ -50,6 +52,7 @@ class Housekeeping
     @last_partition_interval_check_started = nil                                # semaphore to prevent multiple execution
   end
 
+  # Drop outdated partitions
   def do_housekeeping_internal
     @last_housekeeping_started = Time.now
     log_partitions                                                              # log all existing partitions
@@ -59,32 +62,50 @@ class Housekeeping
       # check all partitions for deletion except the youngest one, no matter if they are interval or not
       if MovexCdc::Application.partitioning?
         partitions_to_check = Database.select_all "\
-          WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval
+          WITH Partitions AS (SELECT Partition_Name, Partition_Position, Interval, High_Value
                               FROM   User_Tab_Partitions
                               WHERE  Table_Name = 'EVENT_LOGS'
                              )
-          SELECT p.Partition_Name, p.Partition_Position, stats.Interval_Count, stats.Max_Partition_Position
+          SELECT p.Partition_Name, p.Partition_Position, p.High_Value, stats.Interval_Count, stats.Max_Partition_Position
           FROM   Partitions p
           CROSS JOIN (SELECT SUM(DECODE(Interval, 'YES', 1, 0)) Interval_Count, MAX(Partition_Position) Max_Partition_Position
                       FROM Partitions
                      ) stats
-          /* do not check the youngest interval (should survive) and the youngest range partition (will raise ORA-14758) for deletion */
-          WHERE  Partition_Position != (SELECT MAX(pi.Partition_Position) FROM Partitions pi WHERE pi.Interval = p.Interval)
+          /* do not check the youngest or last partition */
+          WHERE  Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions)
+          #{"/* do not check the youngest range partition (will raise ORA-14758) for deletion */
+             AND Partition_Position != (SELECT MAX(Partition_Position) FROM Partitions WHERE Interval = 'NO')
+            " if DatabaseOracle.db_version < '12.2'}
           ORDER BY Partition_Position
         "
 
         # check for locks on partitions only once to ensure that expensive SQL is executed as little as possible
-        locked_partitions = Database.select_all("\
-          SELECT DISTINCT o.SubObject_Name Partition_Name
+        locked_partitions = {}
+        Database.select_all("\
+          SELECT DISTINCT o.SubObject_Name Partition_Name, l.Inst_ID, l.SID, l.ctime
           FROM   gv$Lock l
           JOIN   User_Objects o ON o.Object_ID = l.ID1
           WHERE  o.Object_Name    = 'EVENT_LOGS'
-        ").map{|r| r.partition_name}
+          AND    o.SubObject_Name IS NOT NULL /* There is always a lock record for the whole table also if a partition is locked */
+        ").each do |row|
+          locked_partitions[row.partition_name] = [] unless locked_partitions.has_key? row.partition_name
+          locked_partitions[row.partition_name] << { inst_id: row.inst_id, sid: row.sid, lock_secs: row.ctime }
+        end
+
         partitions_to_check.each do |part|
-          # if only range partitions exists (no interval) than preserve the youngest two range partitions (because the first partition is not scanned by worker)
+          # if only range partitions exists (no interval) than preserve the youngest two range partitions
           if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
-            if locked_partitions.include? part.partition_name                   # Don't check partition that has pending transactions
-              Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
+            if locked_partitions.has_key? part.partition_name                   # Don't check partition that has pending transactions
+              high_value_time = Housekeeping.get_time_from_oracle_high_value(part.high_value)
+              if high_value_time < Time.now - max_min_partition_age.seconds
+                raise "Housekeeping.do_housekeeping_internal: Partition #{part.partition_name} with high value '#{part.high_value}' still has pending transactions but needs to be dropped to avoid ORA-14300"
+              else
+                min_lock_age_days = 2
+                if high_value_time < Time.now - min_lock_age_days.days
+                  Rails.logger.warn('Housekeeping.do_housekeeping_internal'){ "There are pending transactions on partition #{part.partition_name} with high value #{part.high_value} older than #{min_lock_age_days} days! #{locked_partitions[part.partition_name]}" }
+                end
+                Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} with high value #{part.high_value} for drop not possible because there are pending transactions" }
+              end
             else
               EventLog.check_and_drop_partition(part.partition_name, 'Housekeeping.do_housekeeping_internal', lock_already_checked: true)
             end
@@ -104,7 +125,8 @@ class Housekeeping
 
     case MovexCdc::Application.config.db_type
     when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
+      if MovexCdc::Application.partitioning? && DatabaseOracle.db_version < '12.2'
+        # Dropping the last range partition of an interval partitioned table fails with ORA-14758 before 12.2.0.1
         max_distance_seconds = max_min_partition_age
 
         part1 = Database.select_first_row "SELECT Partition_Name, High_Value, Partition_Position FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
@@ -169,7 +191,7 @@ class Housekeeping
 
             Database.execute "ALTER TABLE Event_Logs MERGE PARTITIONS #{part2.partition_name}, #{part3.partition_name}"
             Rails.logger.debug('Housekeeping.check_partition_interval_internal') { "Partition merged from #{part2.partition_name} and #{part3.partition_name} at position 2 is partition_name=#{part2.partition_name} and high_value=#{part2.high_value}" }
-            # Drop partition only if empty and without transactions
+            # Drop partition only if still exists, is empty and without transactions
             EventLog.check_and_drop_partition(part1.partition_name, 'Housekeeping.check_partition_interval_internal')
           end
         end
