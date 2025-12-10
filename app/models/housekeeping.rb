@@ -80,20 +80,31 @@ class Housekeeping
         "
 
         # check for locks on partitions only once to ensure that expensive SQL is executed as little as possible
-        locked_partitions = Database.select_all("\
-          SELECT DISTINCT o.SubObject_Name Partition_Name
+        locked_partitions = {}
+        Database.select_all("\
+          SELECT DISTINCT o.SubObject_Name Partition_Name, l.Inst_ID, l.SID, l.ctime
           FROM   gv$Lock l
           JOIN   User_Objects o ON o.Object_ID = l.ID1
           WHERE  o.Object_Name    = 'EVENT_LOGS'
-        ").map{|r| r.partition_name}
+          AND    o.SubObject_Name IS NOT NULL /* There is always a lock record for the whole table also if a partition is locked */
+        ").each do |row|
+          locked_partitions[row.partition_name] = [] unless locked_partitions.has_key? row.partition_name
+          locked_partitions[row.partition_name] << { inst_id: row.inst_id, sid: row.sid, lock_secs: row.ctime }
+        end
+
         partitions_to_check.each do |part|
           # if only range partitions exists (no interval) than preserve the youngest two range partitions
           if part.interval_count > 0 || ( part.partition_position < part.max_partition_position - 2 )
-            if locked_partitions.include? part.partition_name                   # Don't check partition that has pending transactions
-              if Housekeeping.get_time_from_oracle_high_value(part.high_value) < Time.now - max_min_partition_age.seconds
+            if locked_partitions.has_key? part.partition_name                   # Don't check partition that has pending transactions
+              high_value_time = Housekeeping.get_time_from_oracle_high_value(part.high_value)
+              if high_value_time < Time.now - max_min_partition_age.seconds
                 raise "Housekeeping.do_housekeeping_internal: Partition #{part.partition_name} with high value '#{part.high_value}' still has pending transactions but needs to be dropped to avoid ORA-14300"
               else
-                Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} for drop not possible because there are pending transactions" }
+                min_lock_age_days = 2
+                if high_value_time < Time.now - min_lock_age_days.days
+                  Rails.logger.warn('Housekeeping.do_housekeeping_internal'){ "There are pending transactions on partition #{part.partition_name} with high value #{part.high_value} older than #{min_lock_age_days} days! #{locked_partitions[part.partition_name]}" }
+                end
+                Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} with high value #{part.high_value} for drop not possible because there are pending transactions" }
               end
             else
               EventLog.check_and_drop_partition(part.partition_name, 'Housekeeping.do_housekeeping_internal', lock_already_checked: true)
