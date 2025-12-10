@@ -177,11 +177,6 @@ class Database
 
   # Physically close the DB connection of the current thread and ensure that the next DB access in that thread will re-open the connection again
   def self.close_db_connection
-    # Return Connection to pool only if Application retains, otherwise 'NameError: uninitialized constant ActiveRecord::Connection' is raised in test
-    if !Rails.env.test?                                                       # not for test because threads have all the same DB connection in test
-      ActiveRecord::Base.connection&.disconnect!                              # Physically disconnect from DB to ensure that a new fresh connection is established at next request in this thread
-      ActiveRecord::Base.connection_handler.clear_active_connections!         # Ensure that connections are freed in connection pool
-    end
+    ActiveRecord::Base.connection&.throw_away!                                  # Removes the connection from the pool and disconnect it.
   end
-
 end

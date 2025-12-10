@@ -39,7 +39,7 @@ module ExceptionHelper
     Rails.logger.error(context) {"Stack-Trace for exception '#{exception.class}' is:"}
     curr_line_no = 0
     exception.backtrace.each do |line|
-      if curr_line_no < 10
+      if curr_line_no < 20
         Rails.logger.error(context){ line }
       else
         Rails.logger.debug(context){ line }

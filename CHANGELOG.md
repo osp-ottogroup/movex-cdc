@@ -1,5 +1,5 @@
 # MOVEX Change Data Capture: Release notes
-## 2025-12-08 1.13.5
+## 2025-12-10 1.13.5
 - Bugfix: some more Kafka exception types lead to reconnect of producer
 - Bugfix: Docker health check reestablished for "podman build" by "--format docker"
 - Two partitions incl. one range partition are only kept for Oracle < 12.2. to prevent from ORA-14758.
