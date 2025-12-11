@@ -24,7 +24,7 @@ A detailed documentation of this product you find at: https://osp-silver.gitlab.
 - A running local Oracle database with an existing user to observe
 
 == Prepare environment in OS
-Please adjust the values according to your setup.
+Please adjust the environment values according to your setup and set them in each shell you use for the demo.
 ----
 # Physical IP address of the Docker host running Kafka and MOVEX Change Data Capture
 # Use real physical IP-addresses for Kafka configuration, not 'localhost'
@@ -53,29 +53,29 @@ export SOURCE_DB_PASSWORD=my_observed_schema_pw
 == Prepare Kafka
 
 === Run Kafka container
-For demo purposes we use an own Docker image that combines Zookeeper and Kafka in one image.
-The command will log the Kafka console output and block until termination by Ctrl-C.
+For demo purposes we use an own Docker image for Kafka.
+The command will log the Kafka console output and block until termination by Ctrl-C or `docker stop kafka`.
 ----
 docker run --rm \
   --name kafka \
   -p 2181:2181 \
   -p 9092:9092 \
-  -e IP_ADDRESS=$IP_ADDRESS \
-  -e KAFKA_ADVERTISED_LISTENERS=LISTENER_EXT://$IP_ADDRESS:9092,LISTENER_INT://localhost:9093 \
-  registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.0.0
+  -e KAFKA_HOST_IP=$IP_ADDRESS \
+  -e SECURITY_PROTOCOL=PLAINTEXT \
+  registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-compact:3.7.0
 ----
 
-=== Create the Kafka topic
-Run the command within the just started Kafka Docker container ("docker exec -ti kafka bash"):
+=== Create a Kafka topic
+Run the command within the just started Kafka Docker container (`docker exec -ti kafka bash`):
 ----
-$KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server $IP_ADDRESS:9092 --replication-factor 1
+$KAFKA_HOME/bin/kafka-topics.sh --create --topic hugo --partitions 4 --bootstrap-server localhost:9092 --replication-factor 1
 ----
 
 === Create a consumer process for the topic
-Run the command within in the just started Kafka Docker container ("docker exec -ti <container-ID> bash").
+Start a new shell and run the command within in the just started Kafka Docker container (`docker exec -ti kafka bash`).
 The command will log each new message of the topic and block until termination by Ctrl-C.
 ----
-$KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=$IP_ADDRESS:9092 --isolation-level=read_committed
+$KAFKA_HOME/bin/kafka-console-consumer.sh --topic=hugo --bootstrap-server=localhost:9092 --isolation-level=read_committed
 ----
 
 == Prepare the MOVEX Change Data Capture application
@@ -107,6 +107,11 @@ KAFKA_SEED_BROKER: $IP_ADDRESS:9092
 EOF
 ----
 
+=== Pull the Docker mage for MOVEX CDC
+----
+docker pull docker.io/ottogroupsolutionproviderosp/movex-cdc
+----
+
 === Create DB-User for MOVEX CDC
 If you don't already have a user for MOVEX CDC with the needed privileges at your DB,
 then this task ensures that the user exists and has the needed privileges. +
@@ -117,22 +122,24 @@ docker run --rm \
   -e RUN_CONFIG=/etc/run_config.yml \
   -e DB_SYS_PASSWORD=$DB_SYS_PASSWORD \
   -v $PWD/run_config.yml:/etc/run_config.yml \
-  ottogroupsolutionproviderosp/movex-cdc bundle exec rake ci_preparation:create_user
+  docker.io/ottogroupsolutionproviderosp/movex-cdc bundle exec rake ci_preparation:create_user
 ----
 
 === Run MOVEX CDC Docker container
+This will start the container and log the output to the console.
 ----
 docker run --rm \
   --name cdc \
   -e RUN_CONFIG=/etc/run_config.yml \
   -v $PWD/run_config.yml:/etc/run_config.yml \
   -p8080:8080 \
-  ottogroupsolutionproviderosp/movex-cdc
+  docker.io/ottogroupsolutionproviderosp/movex-cdc
 ----
 
 == Prepare test case
 
 === Create a table to observe for test user
+Start a new shell, set the environment values as mentioned above.
 ----
 echo "
 -- Remove possibly existing objects
@@ -187,9 +194,9 @@ In the "Create User" dialog:
 This can be any DB user including the MOVEX CDC schema owner.
 * Check "Admin User" to allow this user administrative tasks
 * Click "Create" to establish the user
-* Open the user again to add schema rights now
+* Open the user again with the pen icon to add schema rights now
 * Add authorized schemas where this user is enabled to configure change tracking
-  ** Select a schema from the list of schemas
+  ** Select the schema of the defined SOURCE_DB_USER from the list of schemas
   ** Check "Deployment granted" to allow creation of triggers for this user
   ** Click "Add" to add this schema to the list of enabled schemas
 * Click "Save"
