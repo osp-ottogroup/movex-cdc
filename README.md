@@ -3,13 +3,27 @@
 
 # Track changes in relational databases and transfer them to Kafka 
 
-This product captures data change events (Insert/Update/Delete) in relational databases using database triggers and immediately transfers the data changes to a Kafka event hub.
+This product captures data change events (Insert/Update/Delete) in relational databases and immediately transfers them to a Kafka event hub.
+
+![](doc/images/event_flow.svg)
 
 The full documentation of this product can be found here:
 - HTML: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
 - PDF: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.pdf
 
-![](doc/images/event_flow.svg)
+
+## Introduction
+CDC solutions are often based on processing of the write ahead logs / redo logs like using the XStream API, LogMiner etc. for Oracle.
+Besides the licensing needs this also require intervention in the operation of the DB.
+This can present hurdles, e.g. in migration scenarios for legacy applications or for managed cloud DBs.
+
+This application addresses these issues:
+- without interfering with DB’s operations or structures
+- with isolation of all DB objects required for CDC in a separate DB schema
+- Scalable up to billions of events/day
+
+The capture of change events is based on table level triggers.
+All functions for bootstrapping, API, web GUI for configuration, trigger generation and event transfer to Kafka are encapsulated in one Docker container.
 
 ## Supported database systems
 - <b>Oracle</b> Oracle databases with Release 12.1 and higher
