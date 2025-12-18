@@ -34,8 +34,12 @@ class HeartbeatTest < ActiveSupport::TestCase
     end
 
     Heartbeat.check_for_concurrent_instance
-    last_line = `tail -n 1 #{Rails.root.join('log', "test.log")}`.strip
-    assert last_line["This might be a false positive"], "Last line of log should contain 'This might be a false positive'"
+
+    last_line = nil
+    File.foreach(Rails.root.join('log', "test.log")) do |line|
+      last_line = line
+    end
+    assert last_line["This might be a false positive"], "Last line of log '#{last_line}' should contain 'This might be a false positive'"
     Heartbeat.where(hostname: other_hostname, ip_address: other_ip).delete_all  # Remove the simulated record
   end
 
