@@ -49,6 +49,7 @@ end
 
 group :test do
   gem 'simplecov', require: false
+  gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
 end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
