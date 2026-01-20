@@ -98,7 +98,9 @@ class Housekeeping
             if locked_partitions.has_key? part.partition_name                   # Don't check partition that has pending transactions
               high_value_time = Housekeeping.get_time_from_oracle_high_value(part.high_value)
               if high_value_time < Time.now - max_min_partition_age.seconds
-                raise "Housekeeping.do_housekeeping_internal: Partition #{part.partition_name} with high value '#{part.high_value}' still has pending transactions but needs to be dropped to avoid ORA-14300"
+                msg = "Partition #{part.partition_name} with high value '#{part.high_value}' still has pending transactions but needs to be dropped to avoid ORA-14300"
+                Rails.logger.error('Housekeeping.do_housekeeping_internal') { msg }
+                raise "Housekeeping.do_housekeeping_internal: #{msg}"
               else
                 min_lock_age_days = 2
                 if high_value_time < Time.now - min_lock_age_days.days
@@ -106,6 +108,7 @@ class Housekeeping
                 end
                 Rails.logger.info('Housekeeping.do_housekeeping_internal'){ "Check partition #{part.partition_name} with high value #{part.high_value} for drop not possible because there are pending transactions" }
               end
+              Rails.logger.debug('Housekeeping.do_housekeeping_internal'){ "Partition #{part.partition_name} is locked by #{locked_partitions[part.partition_name] }"}
             else
               EventLog.check_and_drop_partition(part.partition_name, 'Housekeeping.do_housekeeping_internal', lock_already_checked: true)
             end
