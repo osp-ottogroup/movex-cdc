@@ -95,17 +95,17 @@ prepare_tests:
     - bundle exec rake ci_preparation:create_user
     # rails db:seed return != 0 because of missing migrations, which follow immediately
     - bundle exec rails db:seed || true
-    - bundle exec rails db:migrate RAILS_LOG_LEVEL=debug
+    - bundle exec rails db:migrate LOG_LEVEL=debug
     - >
       if [ "$DB_TYPE" == "ORACLE" ]; then
         echo "Check if db:rollback is functional + restore migration"
         # SQLite does not support remove_foreign_key although it is implemented
         # add "--trace" after "db:migrate" to see details in output
-        bundle exec rails db:migrate RAILS_LOG_LEVEL=debug VERSION=0 
-        bundle exec rails db:migrate RAILS_LOG_LEVEL=debug 
+        bundle exec rails db:migrate LOG_LEVEL=debug VERSION=0 
+        bundle exec rails db:migrate LOG_LEVEL=debug 
         echo "##### migration finished" >> log/test.log
       fi
-    - export RAILS_LOG_LEVEL=debug && bundle exec rails test
+    - export LOG_LEVEL=debug && bundle exec rails test
   artifacts:
     when: always
     paths:
