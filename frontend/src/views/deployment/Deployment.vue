@@ -167,7 +167,7 @@ export default {
         }
         if (response.data) {
           this.deployResultList = this.prepareResults(response.data.results);
-          this.$buefy.toast.open({
+          this.$buefy.notification.open({
             message: 'Deployment completed! Please check the results in the list below.',
             type: 'is-info',
           });
