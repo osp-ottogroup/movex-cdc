@@ -154,7 +154,7 @@ GEM
     psych (5.3.1-java)
       date
       jar-dependencies (>= 0.1.7)
-    puma (7.1.0-java)
+    puma (7.2.0-java)
       nio4r (~> 2.0)
     racc (1.8.1-java)
     rack (3.2.4)
@@ -303,7 +303,7 @@ CHECKSUMS
   pp (0.6.3) sha256=2951d514450b93ccfeb1df7d021cae0da16e0a7f95ee1e2273719669d0ab9df6
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
   psych (5.3.1-java) sha256=20a4a81ad01479ef060f604ed75ba42fe673169e67d923b1bae5aa4e13cc5820
-  puma (7.1.0-java) sha256=b39afd0e6b12f99d8642df1027652f8e61efd5179de978c93d2730746d1d37bf
+  puma (7.2.0-java) sha256=5ef97cc64c0579e6a507cded86286869b6387d58d28abe347c1dd1d7decdf6d0
   racc (1.8.1-java) sha256=54f2e6d1e1b91c154013277d986f52a90e5ececbe91465d29172e49342732b98
   rack (3.2.4) sha256=5d74b6f75082a643f43c1e76b419c40f0e5527fcfee1e669ac1e6b73c0ccb6f6
   rack-cors (3.0.0) sha256=7b95be61db39606906b61b83bd7203fa802b0ceaaad8fcb2fef39e097bf53f68
