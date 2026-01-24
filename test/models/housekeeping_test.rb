@@ -71,7 +71,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     MovexCdc::Application.config.partition_interval = interval
     current_high_value_time = get_time_from_high_value(1)
     if current_high_value_time >= high_value_time                                       # high value should by adjusted to an older Time
-      Rails.logger.debug('HousekeepingTest.check_partition_interval'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
+      Rails.logger.debug('HousekeepingTest.set_high_value_time'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
       log_partition_state(false, 'set_high_value_time before splitting')
       Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
@@ -269,11 +269,14 @@ class HousekeepingTest < ActiveSupport::TestCase
         max_high_value_time = get_time_from_high_value(Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"))
         force_interval_partition_creation(max_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
         log_partition_state(false, 'before check_partition_interval')
+        Housekeeping.get_instance.do_housekeeping                               # Do regular housekeeping before because it will drop the first partitions for Oracle >= 12.2
         Housekeeping.get_instance.check_partition_interval
         log_partition_state(false, 'after check_partition_interval')
         partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
 
-        assert 2 <= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
+        if DatabaseOracle.db_version < '12.2'
+          assert 2 <= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
+        end
         current_hv = get_time_from_high_value(1)
         assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
