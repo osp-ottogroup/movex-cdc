@@ -65,7 +65,7 @@ class HealthCheckController < ApplicationController
     build_info_record(info, :kafka_ssl_truststore_type,         'Type of truststore file')
     build_info_record(info, :kafka_total_buffer_size_mb,        'Max. buffer size per thread')
     build_info_record(info, :kafka_transaction_timeout,         'Max. duration in milliseconds of a Kafka transaction')
-    build_info_record(info, :legacy_ts_format,                  'Keep unusualtimestamp format of previous releases')
+    build_info_record(info, :legacy_ts_format,                  'Keep unusual timestamp format of previous releases')
     build_info_record(info, :log_level,                         'Server side log level')
     build_info_record(info, :max_failed_logons_before_account_locked,  'Number of failed logons to GUI before the used user account will be locked')
     build_info_record(info, :max_partitions_to_count_as_healthy,  'Max. number of partitions, up to which the system is considered healthy')
