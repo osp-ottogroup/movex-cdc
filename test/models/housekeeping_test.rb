@@ -264,10 +264,12 @@ class HousekeepingTest < ActiveSupport::TestCase
       if MovexCdc::Application.partitioning?
         # Choose a high value time for the first partition that is old enough to trigger the adjustment but not too old to exceed the number of allowed partitions
         min_high_value_time = time_now - Housekeeping.get_instance.max_min_partition_age-3000
+        drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the youngest range partition, remove multiple range partitions if there are
         set_high_value_time(min_high_value_time, MovexCdc::Application.config.partition_interval, min_high_value_time+86400)
-        drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the MIN partition
+        drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the the youngest range partition, there should be only one range partition now
         max_high_value_time = get_time_from_high_value(Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"))
         force_interval_partition_creation(max_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
+        force_interval_partition_creation(time_now)                             # Ensure that there is also a current partition that can remain after housekeeping
         log_partition_state(false, 'before check_partition_interval')
         Housekeeping.get_instance.do_housekeeping                               # Do regular housekeeping before because it will drop the first partitions for Oracle >= 12.2
         Housekeeping.get_instance.check_partition_interval
@@ -278,7 +280,7 @@ class HousekeepingTest < ActiveSupport::TestCase
           assert 2 <= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
         end
         current_hv = get_time_from_high_value(1)
-        assert current_hv > min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
+        assert current_hv >= min_high_value_time+MovexCdc::Application.config.partition_interval, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
     end
   end
