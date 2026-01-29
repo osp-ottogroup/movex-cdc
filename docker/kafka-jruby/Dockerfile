@@ -48,7 +48,7 @@ COPY --from=openjdk /customjre $JAVA_HOME
 # - install podman
 # - install Kafka
 RUN  microdnf update && \
-     microdnf install git procps wget tar gzip vim util-linux findutils iputils podman jq bc make unzip openssl && \
+     microdnf install git procps wget tar gzip vim util-linux findutils iputils podman jq bc make gcc unzip openssl && \
      wget "https://downloads.apache.org/kafka/${KAFKA_VERSION}/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz" -O /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      cd /opt && tar xvf /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && rm /tmp/kafka_${SCALA_VERSION}-${KAFKA_VERSION}.tgz && \
      ln -s kafka_${SCALA_VERSION}-${KAFKA_VERSION} ${KAFKA_HOME} && \
