@@ -55,7 +55,7 @@ class ImportExportConfig
       end
 
       schema_hash['schema_rights'] = []
-      schema.schema_rights.order(:user_id).each do |schema_right|
+      schema.schema_rights.joins(:user).order(:email).each do |schema_right|
         schema_rights_hash = generate_export_object(schema_right, schema_right_columns)
         schema_rights_hash['email'] = schema_right.user.email
         schema_hash['schema_rights'] << schema_rights_hash
