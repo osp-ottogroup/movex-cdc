@@ -10,7 +10,7 @@ ruby '3.4.2'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.3'
+gem 'rails', '8.0.4'
 
 # Use jdbcsqlite3 as the database for gem ctive Record
 # gem 'activerecord-jdbcsqlite3-adapter', '~> 80.2'
@@ -41,7 +41,6 @@ gem 'snappy'
 # gem 'zstd-ruby'
 
 group :development do
-  # gem 'listen', '>= 3.0.5', '< 3.2'
   gem 'listen'
 
   # gem 'rubocop' not really needed as deployment artifact
@@ -49,7 +48,10 @@ end
 
 group :test do
   gem 'simplecov', require: false
-  gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
+
+  # gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
+  # Probem fixed by change minitest.rb:472 "run self, method_name, reporter" to "Runnable.run self, method_name, reporter"
+  # https://github.com/minitest/minitest/issues/1063
 end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem

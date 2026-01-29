@@ -1,4 +1,8 @@
 # MOVEX Change Data Capture: Release notes
+
+## 2026-01-29 1.13.6
+- Schema rights sorted by user's email in config export
+
 ## 2025-12-10 1.13.5
 - Bugfix: some more Kafka exception types lead to reconnect of producer
 - Bugfix: Docker health check reestablished for "podman build" by "--format docker"

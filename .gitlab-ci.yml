@@ -54,6 +54,11 @@ prepare_tests:
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
+    - |
+      # fix minitest issue https://github.com/minitest/minitest/issues/1063
+      file=`bundle show minitest`/lib/minitest.rb
+      chmod u+w $file
+      sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
   artifacts:
     when: always
     paths:

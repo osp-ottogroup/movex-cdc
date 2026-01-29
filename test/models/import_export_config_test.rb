@@ -105,6 +105,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   test 'export single schema' do
     assert_nothing_raised do
       exported_data = ImportExportConfig.new.export(single_schema_name: MovexCdc::Application.config.db_user)
+      assert_equal 1, exported_data['schemas'].count, log_on_failure("Should export exactly one schema.")
     end
   end
 
