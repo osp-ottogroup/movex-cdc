@@ -112,7 +112,7 @@ class TableInitializationTest < ActiveSupport::TestCase
                                                      "
             # if the timestamp at gotten SCN for flashback is used it should by older than 2 seconds now
             # with using SYSTIMESTAMP without flashback the youngest Created_At is about 1 seconds
-            assert max_age_seconds > 2, log_on_failure('Max(Event_logs.Created_At should be older than 2 seconds')
+            assert max_age_seconds > 2, log_on_failure("Max(Event_logs.Created_At) should be older than 2 seconds but is #{max_age_seconds}")
           end
           # Restore previous state
           Table.find(victim1_table.id).update!(yn_initialize_with_flashback: org_yn_initialize_with_flashback)
