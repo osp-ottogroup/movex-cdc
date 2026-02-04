@@ -502,6 +502,14 @@ END #{build_trigger_name(table, operation)};
     trigger_config  = table_config[operation.upcase]                            # Loads columns declared for insert trigger
     columns         = trigger_config[:columns]
 
+    timestamp_expression = if table.yn_initialize_with_flashback == 'Y'
+                             # Use now as the timestamp of the events that are created later
+                             # Ensure that events are created with a timestamp close to the SCN that is used for the select
+                             Database.select_one "SELECT 'TO_TIMESTAMP('''||TO_CHAR(SYSTIMESTAMP, 'YYYY-MM-DD HH24:MI:SS.FF')||''', ''YYYY-MM-DD HH24:MI:SS.FF'')' FROM DUAL"
+                           else
+                             "SYSTIMESTAMP"                                     # Use the timestamp at the real exeution of this load SQL
+                           end
+
     where = String.new                                                          # optional conditions
     where << "\nWHERE " if table.initialization_filter || trigger_config[:condition]
     where << "(/* initialization filter */ #{table.initialization_filter})" if table.initialization_filter
@@ -510,7 +518,12 @@ END #{build_trigger_name(table, operation)};
     where << "(/* insert condition */ #{trigger_config[:condition].gsub(/:new./i, "#{table.schema.name}.#{table.name}.")})" if trigger_config[:condition]
 
     load_sql = "DECLARE\n".dup
-    load_sql << generate_declare_section(table, operation, :load, trigger_config, addition: "  record_count      PLS_INTEGER := 0;") # use operation 'i' for event generation
+    load_sql << generate_declare_section(table, operation,                      # use operation 'i' for event generation
+                                         :load,
+                                         trigger_config,
+                                         addition: "  record_count      PLS_INTEGER := 0;",
+                                         timestamp_expression: timestamp_expression
+    )
     # use current SCN directly after creation of insert trigger if requested
     load_sql << "
 BEGIN
@@ -560,8 +573,9 @@ END;
   # @param [Symbol] mode :body | :load
   # @param [Hash] trigger_config config for operation of table { columns: [], condition:, column_expressions: [] }
   # @param [String, nil] addition additional PL/SQL code to be added to declaration section
+  # @param [String] timestamp_expression The timestamp to use for the event, external value for operation = INIT
   # @return [String] PL/SQL code for declaration section of trigger or load SQL
-  def generate_declare_section(table, operation, mode, trigger_config, addition: nil)
+  def generate_declare_section(table, operation, mode, trigger_config, addition: nil, timestamp_expression: "SYSTIMESTAMP")
     "\
 
 TYPE Payload_Rec_Type IS RECORD (
@@ -588,7 +602,7 @@ BEGIN
             '#{operation}',
             dbuser,
             payload_tab(i).Payload,
-            SYSTIMESTAMP, /* time according to system timezone setting of DB */
+            #{timestamp_expression}, /* time according to system timezone setting of DB */
             payload_tab(i).msg_key,
             transaction_id
     );
