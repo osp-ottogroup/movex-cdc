@@ -107,6 +107,7 @@ class TableInitializationTest < ActiveSupport::TestCase
                                                                                                         FROM Event_logs
                                                                                                         WHERE Operation = 'i'
                                                                                                        ) Diff
+                                                            FROM   Dual
                                                            )
                                                      "
             # if the timestamp at gotten SCN for flashback is used it should by older than 2 seconds now
