@@ -31,7 +31,7 @@ class TableInitializationTest < ActiveSupport::TestCase
 
     assert_instance_of Hash, result, log_on_failure('Should return result of type Hash')
     result.assert_valid_keys(:successes, :errors, :load_sqls)
-    assert_equal 0, result[:errors].count, log_on_failure('Should not return errors from trigger generation')
+    assert_equal 0, result[:errors].count, log_on_failure("Should not return errors from trigger generation: #{result[:errors].inspect}")
 
     ti_instance = TableInitialization.get_instance
     assert_equal 0, ti_instance.init_requests_count(raise_exception_if_locked: false), log_on_failure('Request should not be waiting')
@@ -91,5 +91,33 @@ class TableInitializationTest < ActiveSupport::TestCase
       }
       Table.find(victim1_table.id).update!(yn_payload_pkey_only: 'N')           # restore original state
     }
+  end
+
+  test "table_initialization_with_flashback" do
+    assert_nothing_raised do
+      if MovexCdc::Application.config.db_type == 'ORACLE'
+        run_with_current_user do
+          org_yn_initialize_with_flashback = Table.find(victim1_table.id).yn_initialize_with_flashback
+          Table.find(victim1_table.id).update!(yn_initialize_with_flashback: 'Y')
+          run_test do
+            # Ensure that the event timestamp is close to the start time of the test
+            max_age_seconds = Database.select_one"SELECT EXTRACT(MINUTE FROM Diff) * 60 + EXTRACT(SECOND FROM Diff) Seconds
+                                                      FROM (
+                                                            SELECT CAST( SYSTIMESTAMP AS TIMESTAMP)  - (SELECT MAX(Created_At)
+                                                                                                        FROM Event_logs
+                                                                                                        WHERE Operation = 'i'
+                                                                                                       ) Diff
+                                                            FROM   Dual
+                                                           )
+                                                     "
+            # if the timestamp at gotten SCN for flashback is used it should by older than 2 seconds now
+            # with using SYSTIMESTAMP without flashback the youngest Created_At is about 1 seconds
+            assert max_age_seconds > 2, log_on_failure("Max(Event_logs.Created_At) should be older than 2 seconds but is #{max_age_seconds}")
+          end
+          # Restore previous state
+          Table.find(victim1_table.id).update!(yn_initialize_with_flashback: org_yn_initialize_with_flashback)
+        end
+      end
+    end
   end
 end
