@@ -44,7 +44,7 @@
       "cwe_id": [
         77
       ],
-      "note": "Only used with fix literal"
+      "note": ""
     },
     {
       "warning_type": "Missing Encryption",
@@ -86,7 +86,7 @@
       "cwe_id": [
         77
       ],
-      "note": "Only used with fix literal"
+      "note": ""
     },
     {
       "warning_type": "Mass Assignment",
