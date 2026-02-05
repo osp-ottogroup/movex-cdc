@@ -237,7 +237,7 @@ GEM
     zeitwerk (2.7.4)
 
 PLATFORMS
-  universal-java-24
+  universal-java
 
 DEPENDENCIES
   activerecord-jdbcsqlite3-adapter!
@@ -340,7 +340,7 @@ CHECKSUMS
   zeitwerk (2.7.4) sha256=2bef90f356bdafe9a6c2bd32bcd804f83a4f9b8bc27f3600fff051eb3edcec8b
 
 RUBY VERSION
-  ruby 3.4.2 (jruby 10.0.2.0)
+  ruby 3.4.5 (jruby 10.0.3.0)
 
 BUNDLED WITH
-  4.0.4
+  4.0.6
