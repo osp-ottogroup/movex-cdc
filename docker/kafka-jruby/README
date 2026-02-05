@@ -4,3 +4,4 @@ Base image for CI-pipeline
 
 2021-03-02: Switched to Oracle linux because Debian image became incompatible with current podman's library requirements
 2021-03-16: jq added
+2026-02-05 JRuby changed to 10.0.3.0
