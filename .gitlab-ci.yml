@@ -159,33 +159,19 @@ test_sqlite_mock:
 #    DB_URL: "PANORAMATEST_TPURGENT"
 #    TNS_ADMIN: "./test/oracle_autonomous"
 
-test_oracle_12.1:
+test_oracle_12.2:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.1.0.2-ee
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
       alias: oracle-db
 
-test_oracle_12.1_SE:
+test_oracle_12.2_SE:
   stage: test
   extends: .tests_ORACLE
   services:
-    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.1.0.2-se2
+    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-se2
       alias: oracle-db
-
-#test_oracle_12.2:
-#  stage: test
-#  extends: .tests_ORACLE
-#  services:
-#    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-ee
-#      alias: oracle-db
-
-#test_oracle_12.2_SE:
-#  stage: test
-#  extends: .tests_ORACLE
-#  services:
-#    - name: registry.gitlab.com/osp-silver/oss/movex-cdc/oracle/database_prebuilt:12.2.0.1-se2
-#      alias: oracle-db
 
 test_oracle_19.10_EE:
   stage: test
@@ -445,7 +431,7 @@ trivy_scan:
       - /opt/kafka/*server*
     expire_in: 1 month
 
-docker_test_12.1_PLAINTEXT:
+docker_test_12.2_PLAINTEXT:
   stage: post_build
   extends: .docker_test
   services:

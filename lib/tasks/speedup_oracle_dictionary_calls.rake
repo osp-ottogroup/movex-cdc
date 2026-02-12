@@ -31,13 +31,6 @@ Access to dictionary views has massively slowed down in PDB environments while u
     if MovexCdc::Application.config.db_type == 'ORACLE'
       conn = DatabaseOracle.connect_as_sys_user
 
-      db_version_gt_12_1 = select_single conn, "SELECT CASE WHEN Version < '12.2' THEN 0 ELSE 1 END FROM v$Instance"
-      if db_version_gt_12_1 == 1
-        # Speed up execution in smaller test DBs
-        # in 12.1: ORA-65040: operation not allowed from within a pluggable database
-        #exec conn, "ALTER SYSTEM SET parallel_max_servers=0 SCOPE=BOTH"
-      end
-
       # exclude "X$COMVW$" from execution plan
       # see also: Dictionary Queries Run Slowly in 12C Pluggable Databases (Doc ID 2033658.1)
       # https://support.oracle.com/epmos/faces/DocumentDisplay?_afrLoop=471348295695682&parent=EXTERNAL_SEARCH&sourceId=PROBLEM&id=2033658.1&_afrWindowMode=0&_adf.ctrl-state=dywy3nphu_4

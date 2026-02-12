@@ -16,22 +16,6 @@ class HousekeepingTest < ActiveSupport::TestCase
     Database.select_one "SELECT SYSTIMESTAMP FROM DUAL"
   end
 
-  # Ensure that last partition remains existing
-  def assure_last_partition
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      if MovexCdc::Application.partitioning? && DatabaseOracle.db_version < '12.2'
-        part_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-        if part_count < 2
-          Database.select_all("SELECT Partition_Name, High_Value, Interval FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' ORDER BY Partition_Position").each do |part|
-            Rails.logger.debug('HousekeepingTest.assure_last_partition') {"Partition #{part.part_name} high value: #{part.high_value} interval:#{part.interval}"}
-          end
-          assert false, log_on_failure("There should remain at least two partitions")
-        end
-      end
-    end
-  end
-
   # Remove partitions that are not matching the needed high_value in the past
   def restore_partitioning
     case MovexCdc::Application.config.db_type
@@ -39,7 +23,6 @@ class HousekeepingTest < ActiveSupport::TestCase
       if MovexCdc::Application.partitioning?
         drop_all_event_logs_partitions_except_1                                 # Only one range partition is remaining
         force_interval_partition_creation(time_now)                             # Ensure that an  d interval partition is created again
-        assure_last_partition
       end
     end
   end
@@ -73,7 +56,7 @@ class HousekeepingTest < ActiveSupport::TestCase
     if current_high_value_time >= high_value_time                                       # high value should by adjusted to an older Time
       Rails.logger.debug('HousekeepingTest.set_high_value_time'){ "high value should by adjusted to an older Time: current=#{current_high_value_time}, expected=#{high_value_time}" }
       log_partition_state(false, 'set_high_value_time before splitting')
-      Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
+      # Database.execute "ALTER TABLE Event_Logs SET INTERVAL ()" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       partition_name = Database.select_one "SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Partition_Position = 1"
       # Remove all range partitions except the first partition
       Database.select_all("SELECT Partition_Name FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS' AND Interval = 'NO' AND Partition_Position > 1").each do |p|
@@ -84,7 +67,7 @@ class HousekeepingTest < ActiveSupport::TestCase
                               PARTITION TestSplit1 VALUES LESS THAN (TO_DATE(' #{high_value_time.strftime('%Y-%m-%d %H:%M:%S')}', 'SYYYY-MM-DD HH24:MI:SS', 'NLS_CALENDAR=GREGORIAN')),
                               PARTITION TestSplit2)"
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION TestSplit2"
-      Database.execute "ALTER TABLE Event_Logs SET INTERVAL (NUMTODSINTERVAL(60,'SECOND'))" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
+      # Database.execute "ALTER TABLE Event_Logs SET INTERVAL (NUMTODSINTERVAL(60,'SECOND'))" if Database.db_version < '13' # Workaround bug in 12.1.0.2 where oldest range partition cannot be dropped if split is done with older high_value (younger partition can be dropped instead)
       log_partition_state(false, 'set_high_value_time after splitting')
     end
     force_interval_partition_creation(high_value_time+interval)                 # create a second partition directly after the first partition (will be with interval = NO)
@@ -125,19 +108,10 @@ class HousekeepingTest < ActiveSupport::TestCase
     Database.execute "DELETE FROM Event_Logs"
 
     # drop all partitions above 1 for test, no matter if they are interval or not
-    Database.select_all("WITH Partitions AS (SELECT Partition_Name, Interval, Partition_Position
-                                                 FROM   User_Tab_Partitions
-                                                 WHERE Table_Name = 'EVENT_LOGS'
-                                                )
-                             SELECT Partition_Name, Partition_Position
-                             FROM   Partitions p
-                             WHERE  Interval = 'YES'
-                             OR     (    Interval = 'NO'
-                                     /* Do not drop the last range partition to avoid ORA-14758, at least for Rel. 12.1 */
-                                     AND Partition_Position != (SELECT MAX(pi.Partition_Position)
-                                                                FROM   Partitions pi
-                                                               WHERE  pi.Interval = 'NO')
-                                    )
+    Database.select_all("SELECT Partition_Name
+                             FROM   User_Tab_Partitions p
+                             WHERE  Table_Name = 'EVENT_LOGS'
+                             AND    Partition_Position > 1
                              ORDER BY Partition_Position
                             ").each do |p|
       Database.execute "ALTER TABLE Event_Logs DROP PARTITION #{p.partition_name}"
@@ -165,7 +139,6 @@ class HousekeepingTest < ActiveSupport::TestCase
 
   test "do_housekeeping" do
     Housekeeping.get_instance.do_housekeeping
-    assure_last_partition
   end
 
   test "do_housekeeping with locked partition" do
@@ -185,7 +158,6 @@ class HousekeepingTest < ActiveSupport::TestCase
         force_interval_partition_creation(last_part_hv+10*MovexCdc::Application.config.partition_interval)  # This will be the sixth partition
         Database.execute "DELETE FROM Event_Logs"                           # Ensure all partitions are empty
         log_partition_state(false, 'Two interval partitions should exist now')
-        assure_last_partition
         ActiveRecord::Base.transaction do                                       # Hold insert lock on partition until rollback
           create_event_logs_record(last_part_hv + 4 * MovexCdc::Application.config.partition_interval + 1) # This will be the third partition
           create_event_logs_record(last_part_hv + 6 * MovexCdc::Application.config.partition_interval + 1) # This will be the fourth partition
@@ -200,87 +172,11 @@ class HousekeepingTest < ActiveSupport::TestCase
           raise("Housekeeping not finished until limit") if hk_thread.join(30).nil?
           end_partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
           # There should remain: the first partition (if < 12.2), three partitions with pending inserts and the last partition
-          remaining_partitions = (DatabaseOracle.db_version < '12.2' ? 5 : 4)
+          remaining_partitions = 4
           assert_equal remaining_partitions, end_partition_count, log_on_failure("Temporary partition with pending insert should not be deleted. Current interval = #{MovexCdc::Application.config.partition_interval}")
         end
         Database.execute "DELETE FROM Event_Logs"                               # Ensure all unprocessable records are removed
         restore_partitioning
-      end
-    end
-  end
-
-  test "check_partition_interval" do
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
-        original_interval = MovexCdc::Application.config.partition_interval     # remember the original setting to restore after test
-        begin
-          do_check = proc do |interval, prev_interval|
-            drop_all_event_logs_partitions_except_1                             # possible need to remove the first partition if only range partitions exist
-            max_seconds_for_interval_prev= 700000*prev_interval                 # > 1/2 of max. partition count (1024*1024-1) for default interval
-            set_high_value_time(time_now-max_seconds_for_interval_prev, prev_interval, time_now) # set old high_value to 1/2 of possible partition count and default interval
-            Housekeeping.get_instance.do_housekeeping                           # Regular drop of partitions, ensures drop for >= 12.2
-            Housekeeping.get_instance.check_partition_interval                  # Test for < 12.2
-            max_expected_seconds_for_interval = (1024*1024)*10*interval         # < 1/4 of max. partition count (1024*1024-1) for interval
-            min_expected_hv = time_now-max_expected_seconds_for_interval
-
-            current_hv = get_time_from_high_value(1)
-            if current_hv <= min_expected_hv                                    # Repeat check_partition_interval to lift the second old partition also
-              Housekeeping.get_instance.check_partition_interval
-              current_hv = get_time_from_high_value(1)
-            end
-
-            log_partition_state(false, 'After check_partitions')                                               # log partitions
-
-            assert current_hv > min_expected_hv, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{interval} seconds (#{min_expected_hv})")
-          end
-
-          # take into account that Time cannot be before ca. 1729-02-15
-          do_check.call(60,     600)                                            # should change high_value and interval
-          do_check.call(600,    600)                                            # should change only high_value
-          do_check.call(120000, 600)                                            # should change high_value and interval
-          do_check.call(600,    120000)                                         # should change high_value and interval
-          do_check.call(120000, 12000)                                          # should change only high_value
-
-        rescue
-          log_partition_state(true, 'Error raised during check_partition')
-          raise
-        end
-        MovexCdc::Application.config.partition_interval = original_interval     # Restore the original setting before the test
-        EventLog.adjust_interval                                                # Restore the original interval in table
-        restore_partitioning
-      end
-    end
-  end
-
-  test "check_partition_interval with locked middle partition" do
-    # TODO: Test that housekeeping fails if the two first partitions are without a gap and the second partition is locked by another transaction
-    # The first partition should be old enough to be caught by check_partition_interval
-  end
-
-  test "check_partition_interval with no gaps between min and last partition" do
-    case MovexCdc::Application.config.db_type
-    when 'ORACLE' then
-      if MovexCdc::Application.partitioning?
-        # Choose a high value time for the first partition that is old enough to trigger the adjustment but not too old to exceed the number of allowed partitions
-        min_high_value_time = time_now - Housekeeping.get_instance.max_min_partition_age-3000
-        drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the youngest range partition, remove multiple range partitions if there are
-        set_high_value_time(min_high_value_time, MovexCdc::Application.config.partition_interval, min_high_value_time+86400)
-        drop_all_event_logs_partitions_except_1                                 # Remove all partitions except the the youngest range partition, there should be only one range partition now
-        max_high_value_time = get_time_from_high_value(Database.select_one("SELECT MAX(Partition_Position) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'"))
-        force_interval_partition_creation(max_high_value_time+MovexCdc::Application.config.partition_interval - 1) # Ensure that the next partition is the next possible regarding the interval
-        force_interval_partition_creation(time_now)                             # Ensure that there is also a current partition that can remain after housekeeping
-        log_partition_state(false, 'before check_partition_interval')
-        Housekeeping.get_instance.do_housekeeping                               # Do regular housekeeping before because it will drop the first partitions for Oracle >= 12.2
-        Housekeeping.get_instance.check_partition_interval
-        log_partition_state(false, 'after check_partition_interval')
-        partition_count = Database.select_one("SELECT COUNT(*) FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
-
-        if DatabaseOracle.db_version < '12.2'
-          assert 2 <= partition_count, log_on_failure("There should be two or more partitions, but are only #{partition_count}")
-        end
-        current_hv = get_time_from_high_value(1)
-        assert current_hv >= min_high_value_time+1000, log_on_failure("high value now (#{current_hv}) should be younger than 1/4 related to max. partition count (1024*1024-1) for interval #{MovexCdc::Application.config.partition_interval} seconds. Additional failed tests may occur.")
       end
     end
   end
