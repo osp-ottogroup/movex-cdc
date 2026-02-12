@@ -26,7 +26,7 @@ The capture of change events is based on table level triggers.
 All functions for bootstrapping, API, web GUI for configuration, trigger generation and event transfer to Kafka are encapsulated in one Docker container.
 
 ## Supported database systems
-- <b>Oracle</b> Oracle databases with Release 12.1 and higher
+- <b>Oracle</b> Oracle databases with Release 12.2 and higher
 - <b>SQLite</b> The additional implementation for SQLite ensures that the product remains database independent.
 
 

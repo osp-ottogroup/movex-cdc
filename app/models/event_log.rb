@@ -33,7 +33,7 @@ class EventLog < ApplicationRecord
           Database.execute "ALTER SESSION SET DDL_LOCK_TIMEOUT=20"              # Retry for 20 seconds before raising ORA-00054 if table Event_Logs is busy
           Database.execute "ALTER TABLE Event_Logs INITRANS #{expected_value}"
           begin
-            Database.execute "ALTER TABLE Event_Logs MOVE#{" ONLINE" if Database.db_version >= '12.2'}", options: { no_exception_logging: true}
+            Database.execute "ALTER TABLE Event_Logs MOVE ONLINE", options: { no_exception_logging: true}
           rescue Exception => e
             if e.message['ORA-00439']                                           # feature not enabled: Online Index Build
               Rails.logger.debug('EventLog.adjust_max_simultaneous_transactions'){'ORA-00439 with ONLINE, retrying without ONLINE'}
@@ -173,13 +173,6 @@ class EventLog < ApplicationRecord
                                              FROM User_Tab_Partitions WHERE Table_Name = 'EVENT_LOGS'")
       if part_stat.max_partition_position == partition_position
         msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is the last partition of table EVENT_LOGS and should not be dropped"
-        Rails.logger.error("EventLog.partition_allowed_for_drop?") { msg }
-        self.error_log_partitions
-        return false
-      end
-
-      if part_stat.partition_count < 3 && DatabaseOracle.db_version < '12.2'
-        msg = "Partition #{partition_name} with high value #{high_value} at position = #{partition_position} is one of the last two partitions of table EVENT_LOGS and should not be dropped"
         Rails.logger.error("EventLog.partition_allowed_for_drop?") { msg }
         self.error_log_partitions
         return false

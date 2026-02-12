@@ -134,7 +134,7 @@ Requires supplemental logging in Oracle DB.
 === Supported databases ===
 
 ==== Oracle Database ====
-Oracle Databases are supported for release 12.1. and higher.
+Oracle Databases are supported for release 12.2. and higher.
 
 ===== Enterprise or Express Edition with Partitioning Option =====
 MOVEX CDC works best if Partitioning Option is available for your database in Enterprise or Express Edition.

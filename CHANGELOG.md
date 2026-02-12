@@ -1,5 +1,8 @@
 # MOVEX Change Data Capture: Release notes
 
+## Upcoming
+- Support for Oracle 12.1 removed, first supported release is 12.2 now
+
 ## 2026-01-29 1.13.6
 - Schema rights sorted by user's email in config export
 

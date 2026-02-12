@@ -10,6 +10,12 @@ class InitializationJob < ApplicationJob
     KafkaBase.create.validate_connect_properties                                # Check at startup if configuration is sufficient or not, raises Exception if not
     log_memory_state
     Database.initialize_db_connection                                           # do some init actions for DB connection before use
+
+    case MovexCdc::Application.config.db_type
+    when 'ORACLE' then
+      raise "Oracle release #{DatabaseOracle.db_version} is not supported, only 12.2 and following!" if DatabaseOracle.db_version < '12.2'
+    end
+
     ensure_required_rights                                                      # check DB for required rights
     Database.set_application_info('InitializationJob/perform')
     Rails.logger.info('InitializationJob.perform'){ "Start db:migrate to ensure up to date data structures"}
