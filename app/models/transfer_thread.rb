@@ -501,6 +501,10 @@ class TransferThread
 \"transaction_id\": #{event_log['transaction_id'].nil? ? "null" : "\"#{event_log['transaction_id']}\"" },
 #{event_log['payload']}
 }"
+    if event_log['payload'].nil? or event_log['payload'].empty?
+      raise "TransferThread.prepare_message_from_event_log: Payload is empty! Message content is:\n#{msg}"
+    end
+
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
     if Rails.env.test?                                          # Check valid JSON structure for all test modes
       begin
