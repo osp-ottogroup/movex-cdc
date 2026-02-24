@@ -1,6 +1,8 @@
 # MOVEX Change Data Capture: Release notes
 
-## Upcoming
+## 2026-02-24 1.13.7
+- Fix for Oracle-Bug in rel. 19.30 (SR 4-0002131307)
+  If empty CLOB columns is read from DB, a processing error is raised instead of sending empty payload to Kafka
 - Support for Oracle 12.1 removed, first supported release is 12.2 now
 
 ## 2026-01-29 1.13.6
