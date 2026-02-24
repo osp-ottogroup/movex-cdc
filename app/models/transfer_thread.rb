@@ -126,7 +126,7 @@ class TransferThread
       thread_id:                      @thread&.object_id,
       transactional_id:               @kafka_producer&.current_transactional_id,
       worker_id:                      @worker_id,
-      warning:                        ''                                        # empty warning means healthy
+      warning:                        String.new                                # empty warning means healthy
     }
     retval[:warning] << "DB-connection not established, "    unless @db_session_info
     retval[:warning] << "Kafka-connection not established, " unless @kafka_connected
