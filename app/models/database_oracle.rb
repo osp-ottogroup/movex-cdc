@@ -99,7 +99,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
         #col_name =~ /[a-z]/ ? col_name : col_name.downcase!
         col_name.downcase!.freeze
       end
-      fetch_options = {:get_lob_value => (options[:query_name] != 'Writable Large Object')}
+      fetch_options = { get_lob_value: true }
       # noinspection RubyAssignmentExpressionInConditionalInspection
       row_count = 0
       result = []
