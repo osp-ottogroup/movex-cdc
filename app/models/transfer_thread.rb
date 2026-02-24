@@ -502,7 +502,8 @@ class TransferThread
 #{event_log['payload']}
 }"
     if event_log['payload'].nil? or event_log['payload'].empty?
-      raise "TransferThread.prepare_message_from_event_log: Payload is empty! Message content is:\n#{msg}"
+      Rails.logger.warn("TransferThread.prepare_message_from_event_log"){"Payload is empty, event will not be processed! Message content is:\n#{msg}"}
+      raise "TransferThread.prepare_message_from_event_log: Payload is empty! Message content is shown in previous warn output"
     end
 
     @max_message_size = msg.bytesize if msg.bytesize > @max_message_size
