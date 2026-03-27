@@ -1,22 +1,17 @@
 
-// Import Bulma v1 and Buefy 3.x styles
-@import "bulma/bulma";
-@import "buefy/src/scss/buefy";
+// Customize Bulma v1 via Sass variables
+@use "bulma/sass" with (
+  $primary: #3372a5,
+  $link: #3372a5,
+  $footer-padding: 0.3rem 0,
+  $body-overflow-y: auto,
+  $label-weight: 500,
+);
 
-// Custom theme overrides via CSS custom properties (Bulma v1 approach)
-// Primary color: #3372a5 = hsl(207, 53%, 42%)
-:root {
-  --bulma-primary-h: 207;
-  --bulma-primary-s: 53%;
-  --bulma-primary-l: 42%;
-  --bulma-link-h: 207;
-  --bulma-link-s: 53%;
-  --bulma-link-l: 42%;
-  --bulma-footer-padding: 0.3rem 0;
-  --bulma-body-overflow-y: auto;
-  --bulma-label-weight: 500;
-}
+// Import Buefy 3.x styles
+@use "buefy/src/scss/buefy";
 
+// Application variables
 $osp-red: #e62314;
 $osp-gray: #5f696e;
 
