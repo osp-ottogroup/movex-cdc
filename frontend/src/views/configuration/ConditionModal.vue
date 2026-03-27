@@ -1,13 +1,13 @@
 <template>
   <b-modal id="condition-modal"
-           :active="true"
+           :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
            @close="onClose">
     <div class="modal-card">
-      <b-loading :active="isLoading" :is-full-page="false"/>
+      <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">{{title}}</p>

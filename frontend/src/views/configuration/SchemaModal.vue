@@ -1,12 +1,12 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
            @close="onClose">
     <div class="modal-card" style="width: auto">
-      <b-loading :active="isLoading" :is-full-page="false"/>
+      <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">Edit Schema ({{internalSchema.name}})</p>

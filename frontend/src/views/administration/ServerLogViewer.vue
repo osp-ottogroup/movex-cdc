@@ -13,7 +13,7 @@
 
     <div class="logs" >
       <tt>
-        <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+        <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
         {{data}}
       </tt>
     </div>

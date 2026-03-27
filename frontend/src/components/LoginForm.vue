@@ -1,6 +1,6 @@
 <template>
   <div class="modal-card" style="width: auto">
-    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+    <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
     <form @submit.prevent="onSubmit">
       <header class="modal-card-head">
         <div class="modal-card-title is-flex is-justify-content-space-between">

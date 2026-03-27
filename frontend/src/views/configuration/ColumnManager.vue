@@ -1,6 +1,6 @@
 <template>
   <div class="is-relative">
-    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+    <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
     <column-table v-if="mergedColumns.length > 0"
                   :schema="schema"
                   :table="table"

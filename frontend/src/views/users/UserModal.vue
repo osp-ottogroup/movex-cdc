@@ -1,5 +1,5 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
@@ -14,7 +14,7 @@
         </button>
       </header>
       <section class="modal-card-body">
-        <b-loading :active="isActionPending" :is-full-page="false"/>
+        <b-loading :model-value="isActionPending" :is-full-page="false"/>
 
         <div class="columns">
           <div class="column">

@@ -1,5 +1,5 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            width="90vw"
            has-modal-card
            trap-focus
@@ -64,7 +64,7 @@
           </b-table>
         </div>
 
-        <b-loading :active="isLoading" :is-full-page="false"/>
+        <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       </section>
       <footer class="modal-card-foot is-justify-content-flex-end">

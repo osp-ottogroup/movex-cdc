@@ -1,6 +1,6 @@
 <template>
   <section class="hero">
-    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+    <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
     <div class="hero-body">
       <div class="container has-text-centered">
         <transition name="fade">

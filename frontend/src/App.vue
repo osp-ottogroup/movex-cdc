@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <template v-if="isLoginCheckPending">
-      <b-loading :active="isLoginCheckPending" animation="none" />
+      <b-loading :model-value="isLoginCheckPending" animation="none" />
     </template>
     <template v-else>
       <template v-if="loggedIn">
@@ -14,7 +14,7 @@
       <template v-else>
         <b-modal
           :can-cancel="false"
-          :active="true"
+          :model-value="true"
           :trap-focus="true"
           :width="400"
         >

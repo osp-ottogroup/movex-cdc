@@ -1,6 +1,6 @@
 <template>
   <div class="is-relative">
-    <b-loading :active="isLoading" :is-full-page="false"/>
+    <b-loading :model-value="isLoading" :is-full-page="false"/>
 
     <schema-table :schemas="schemas"
                   v-bind="$attrs"
