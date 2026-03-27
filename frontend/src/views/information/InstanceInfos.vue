@@ -3,7 +3,7 @@
     <div class="is-flex is-justify-content-flex-end">
       <b-button @click="refresh" icon-left="refresh" size="is-small" type="is-info">Refresh</b-button>
     </div>
-    <b-tabs v-model="currentTab" @input="onTabChanged">
+    <b-tabs v-model="currentTab" @update:modelValue="onTabChanged">
       <b-tab-item label="Instance" :value="tabNames.INSTANCE">
         <InstanceDataTable :instanceData="instanceData" :isLoading="isLoading"></InstanceDataTable>
       </b-tab-item>
@@ -14,7 +14,7 @@
 
       <b-tab-item label="Kafka Topics" :value="tabNames.KAFKA_TOPICS">
         <b-field>
-          <b-select placeholder="Select a topic" @input="onTopicSelected" :loading="isLoading">
+          <b-select placeholder="Select a topic" @update:modelValue="onTopicSelected" :loading="isLoading">
             <option v-for="topic in topics" :key="topic" :value="topic">{{ topic }}</option>
           </b-select>
         </b-field>
@@ -25,7 +25,7 @@
 
       <b-tab-item label="Kafka Groups" :value="tabNames.KAFKA_GROUPS">
         <b-field>
-          <b-select placeholder="Select a group" @input="onGroupSelected" :loading="isLoading">
+          <b-select placeholder="Select a group" @update:modelValue="onGroupSelected" :loading="isLoading">
             <option v-for="group in groups" :key="group" :value="group">{{ group }}</option>
           </b-select>
         </b-field>

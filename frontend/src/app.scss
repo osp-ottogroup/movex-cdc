@@ -1,25 +1,24 @@
 
-// custom definitions
-$footer-padding: 0.3rem 0;
-$body-overflow-y: auto;
+// Import Bulma v1 and Buefy 3.x styles
+@import "bulma/bulma";
+@import "buefy/src/scss/buefy";
 
-$primary: #3372a5;
+// Custom theme overrides via CSS custom properties (Bulma v1 approach)
+// Primary color: #3372a5 = hsl(207, 53%, 42%)
+:root {
+  --bulma-primary-h: 207;
+  --bulma-primary-s: 53%;
+  --bulma-primary-l: 42%;
+  --bulma-link-h: 207;
+  --bulma-link-s: 53%;
+  --bulma-link-l: 42%;
+  --bulma-footer-padding: 0.3rem 0;
+  --bulma-body-overflow-y: auto;
+  --bulma-label-weight: 500;
+}
 
 $osp-red: #e62314;
 $osp-gray: #5f696e;
-
-// Links
-$link: $primary;
-$link-focus-border: $primary;
-
-// Import Bulma's core
-@import "bulma/sass/utilities/_all";
-
-$label-weight: $weight-medium;
-
-// Import Bulma and Buefy styles
-@import "bulma/bulma.sass";
-@import "buefy/src/scss/buefy";
 
 .b-tooltip .tooltip-content {
   white-space: pre; // allow line breaks in tooltip by line break in source line

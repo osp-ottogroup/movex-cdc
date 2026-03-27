@@ -51,7 +51,7 @@
                         placeholder="Select a schema"
                         expanded
                         required
-                        @input="onDbUserChanged">
+                        @update:modelValue="onDbUserChanged">
                 <option v-for="(dbSchema, index) in dbSchemas" :key="index">
                   {{ dbSchema.name }}
                 </option>

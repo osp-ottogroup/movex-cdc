@@ -45,7 +45,7 @@
                     true-value="Y"
                     false-value="N"
                     v-model="props.row.yn_log_insert"
-                    @input="onColumnChanged(props.row)"/>
+                    @update:modelValue="onColumnChanged(props.row)"/>
         </template>
       </b-table-column>
       <b-table-column centered field="name" label="Update-Trigger" searchable>
@@ -70,7 +70,7 @@
                     true-value="Y"
                     false-value="N"
                     v-model="props.row.yn_log_update"
-                    @input="onColumnChanged(props.row)"/>
+                    @update:modelValue="onColumnChanged(props.row)"/>
         </template>
       </b-table-column>
       <b-table-column centered field="name" label="Delete-Trigger" searchable>
@@ -95,7 +95,7 @@
                     true-value="Y"
                     false-value="N"
                     v-model="props.row.yn_log_delete"
-                    @input="onColumnChanged(props.row)"/>
+                    @update:modelValue="onColumnChanged(props.row)"/>
         </template>
       </b-table-column>
     </b-table>

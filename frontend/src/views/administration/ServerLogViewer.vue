@@ -85,7 +85,7 @@ export default {
 @import "../../app.scss";
 
 .server-logs {
-  height: calc(100vh - #{$navbar-height} - 30px - 2rem);
+  height: calc(100vh - var(--bulma-navbar-height) - 30px - 2rem);
   display: flex;
   flex-direction: column;
 }

@@ -45,7 +45,7 @@ the JSON data
 of the event?" position="is-bottom" size="is-small">
               <b-field label="Record Tx.-ID">
                 <b-switch v-model="internalTable.yn_record_txid"
-                @input="onRecordTxIdChanged"
+                @update:modelValue="onRecordTxIdChanged"
                 true-value="Y"
                 false-value="N"/>
               </b-field>

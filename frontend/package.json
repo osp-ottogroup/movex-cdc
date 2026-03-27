@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "buefy": "^3.0.4",
-    "bulma": "^0.9.4",
+    "bulma": "^1.0.4",
     "pinia": "^2.3.1",
     "vue": "^3.5.31",
     "vue-router": "^4.6.4"
