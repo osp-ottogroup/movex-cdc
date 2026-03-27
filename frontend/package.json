@@ -17,14 +17,11 @@
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
-    "@babel/core": "^7.20.2",
-    "@babel/eslint-parser": "^7.19.1",
-    "@babel/preset-env": "^7.29.2",
     "@vitejs/plugin-vue": "^5.2.4",
     "@vue/eslint-config-airbnb": "^6.0.0",
     "@vue/test-utils": "^2.4.6",
-    "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "eslint": "^7.32.0",
+    "eslint-import-resolver-alias": "^1.1.2",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-vue": "^8.7.1",
     "eslint-plugin-vuejs-accessibility": "^1.2.0",
