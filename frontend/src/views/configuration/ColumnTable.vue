@@ -182,7 +182,7 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-  ::v-deep table thead tr:nth-child(2) th .th-wrap>span {
+  :deep(table thead tr:nth-child(2) th .th-wrap>span) {
     display: block;
     width: 100%;
     .icon-wrapper {

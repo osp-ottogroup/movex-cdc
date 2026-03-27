@@ -145,7 +145,7 @@ export default {
     },
     onSaved(savedUser) {
       const index = this.users.findIndex((user) => user.id === savedUser.id);
-      this.$set(this.users, index, savedUser);
+      this.users.splice(index, 1, savedUser);
       this.closeUserModal();
     },
     onDeleted(deletedUser) {

@@ -1,18 +1,14 @@
-import Vue from 'vue';
+import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import Buefy from 'buefy';
 import App from './App.vue';
 import router from './router';
-import store from './store';
 
-Vue.use(Buefy, {
+const app = createApp(App);
+app.use(createPinia());
+app.use(router);
+app.use(Buefy, {
   defaultTooltipType: 'is-light',
   defaultTooltipDelay: 500,
 });
-
-Vue.config.productionTip = false;
-
-new Vue({
-  router,
-  store,
-  render: (h) => h(App),
-}).$mount('#app');
+app.mount('#app');

@@ -133,7 +133,7 @@ export default {
 <style lang="scss" scoped>
 .circle-button {
   border-radius: 50%;
-  ::v-deep span {
+  :deep(span) {
     font-size: 1.3rem;
   }
 }

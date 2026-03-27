@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-table :data="tables"
-             :selected.sync="selectedTable"
+             v-model:selected="selectedTable"
              @click="onTableSelected">
       <b-table-column field="name" label="Observed Tables" searchable>
         <template v-slot:searchable="props">

@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
-import vue2 from '@vitejs/plugin-vue2';
+import vue from '@vitejs/plugin-vue';
 import path from 'path';
 
 export default defineConfig({
-  plugins: [vue2()],
+  plugins: [vue()],
   // use an alias for base which should be replaced in built artifacts before production usage
   // This way URLs with path may become usable like for nginx locations
   base: process.env.NODE_ENV === 'production' ? '/REPLACE_PUBLIC_PATH_BEFORE/' : '/',
@@ -24,5 +24,10 @@ export default defineConfig({
         },
       },
     },
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
+    setupFiles: ['./tests/unit/vueSetup.js'],
   },
 });

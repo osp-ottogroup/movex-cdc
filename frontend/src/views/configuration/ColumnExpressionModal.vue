@@ -72,7 +72,7 @@ export default {
     },
   },
   mounted() {
-    this.$on('expression-saved', this.reloadExpressions);
+    // Vue 3: $on removed; reloadExpressions is called directly by parent via $refs
   },
   methods: {
     async reloadExpressions() {

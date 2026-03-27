@@ -3,7 +3,7 @@
     <b-loading :active="isLoading" :is-full-page="false"/>
 
     <schema-table :schemas="schemas"
-                  v-on="$listeners"
+                  v-bind="$attrs"
                   @edit-schema="onEditSchema"/>
 
     <template v-if="modal.show">
@@ -72,7 +72,7 @@ export default {
     },
     async onSaved(savedSchema) {
       const index = this.schemas.findIndex((schema) => schema.id === savedSchema.id);
-      this.$set(this.schemas, index, savedSchema);
+      this.schemas.splice(index, 1, savedSchema);
       this.modal.schema = null;
       this.modal.show = false;
     },

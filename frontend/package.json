@@ -6,37 +6,31 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test:unit": "vue-cli-service test:unit",
-    "lint": "vue-cli-service lint"
+    "test:unit": "vitest run",
+    "lint": "eslint src/"
   },
   "dependencies": {
-    "buefy": "^0.9.22",
+    "buefy": "^3.0.4",
     "bulma": "^0.9.4",
-    "vue": "^2.7.14",
-    "vue-router": "^3.6.5",
-    "vuex": "^3.6.2"
+    "pinia": "^2.3.1",
+    "vue": "^3.5.31",
+    "vue-router": "^4.6.4"
   },
   "devDependencies": {
     "@babel/core": "^7.20.2",
     "@babel/eslint-parser": "^7.19.1",
-    "@babel/plugin-syntax-import-meta": "^7.10.4",
     "@babel/preset-env": "^7.29.2",
-    "@vitejs/plugin-vue2": "^2.3.3",
-    "@vue/cli-plugin-eslint": "~5.0.8",
-    "@vue/cli-plugin-unit-jest": "~5.0.8",
-    "@vue/cli-service": "~5.0.8",
+    "@vitejs/plugin-vue": "^5.2.4",
     "@vue/eslint-config-airbnb": "^6.0.0",
-    "@vue/test-utils": "^1.3.3",
-    "@vue/vue2-jest": "^27.0.0",
-    "babel-jest": "^27.5.1",
+    "@vue/test-utils": "^2.4.6",
     "babel-plugin-transform-vite-meta-env": "^1.0.3",
     "eslint": "^7.32.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-vue": "^8.7.1",
     "eslint-plugin-vuejs-accessibility": "^1.2.0",
-    "jest": "^27.5.1",
+    "jsdom": "^26.1.0",
     "sass": "^1.56.1",
     "vite": "^5.4.14",
-    "vue-template-compiler": "^2.7.14"
+    "vitest": "^3.1.1"
   }
 }

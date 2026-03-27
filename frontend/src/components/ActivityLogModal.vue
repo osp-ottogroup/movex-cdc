@@ -137,7 +137,7 @@ export default {
   min-width: 30vw;
   min-height: 30vh;
 }
-::v-deep .no-wrap {
+:deep(.no-wrap) {
   white-space: nowrap;
 }
 .pointer {

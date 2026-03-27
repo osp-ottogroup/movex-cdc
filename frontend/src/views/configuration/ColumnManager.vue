@@ -144,7 +144,7 @@ export default {
         const conditions = await CRUDService.conditions.getAll({ table_id: table.id });
         this.activeConditionTypes = {};
         conditions.forEach((condition) => {
-          this.$set(this.activeConditionTypes, condition.operation, condition);
+          this.activeConditionTypes[condition.operation] = condition;
         });
 
         // load all column expressions per table
@@ -154,9 +154,9 @@ export default {
         columnExpressions.forEach((colExpr) => {
           result[colExpr.operation].push(colExpr);
         });
-        this.$set(this.activeColumnExpressionTypes, 'I', result.I);
-        this.$set(this.activeColumnExpressionTypes, 'U', result.U);
-        this.$set(this.activeColumnExpressionTypes, 'D', result.D);
+        this.activeColumnExpressionTypes.I = result.I;
+        this.activeColumnExpressionTypes.U = result.U;
+        this.activeColumnExpressionTypes.D = result.D;
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e, 'An error occurred while loading columns!'),
@@ -232,11 +232,11 @@ export default {
       this.conditionModal.show = true;
     },
     onConditionSaved(condition) {
-      this.$set(this.activeConditionTypes, condition.operation, condition);
+      this.activeConditionTypes[condition.operation] = condition;
       this.conditionModal.show = false;
     },
     onConditionRemoved(condition) {
-      this.$delete(this.activeConditionTypes, condition.operation);
+      delete this.activeConditionTypes[condition.operation];
       this.conditionModal.show = false;
     },
     onCloseConditionModal() {
@@ -269,7 +269,7 @@ export default {
           type: 'is-success',
         });
         // inform the modal that an expression was saved and list should be reloaded
-        this.$refs.columnExpressionModal.$emit('expression-saved');
+        this.$refs.columnExpressionModal.reloadExpressions();
       } catch (e) {
         this.$buefy.notification.open({
           message: getErrorMessageAsHtml(e),
@@ -293,7 +293,7 @@ export default {
             type: 'is-success',
           });
           // inform the modal that an expression was removed and list should be reloaded
-          this.$refs.columnExpressionModal.$emit('expression-saved');
+          this.$refs.columnExpressionModal.reloadExpressions();
         }
       } catch (e) {
         this.$buefy.notification.open({

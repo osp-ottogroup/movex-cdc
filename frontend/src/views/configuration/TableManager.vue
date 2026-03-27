@@ -4,7 +4,7 @@
 
     <table-table :tables="tables"
                  :schema="schema"
-                 v-on="$listeners"
+                 v-bind="$attrs"
                  @edit-table="onEditTable"/>
 
     <b-button v-if="schema"
@@ -127,7 +127,7 @@ export default {
     },
     async onUpdated(updatedTable) {
       const index = this.tables.findIndex((table) => table.id === updatedTable.id);
-      this.$set(this.tables, index, updatedTable);
+      this.tables.splice(index, 1, updatedTable);
       this.modal.table = null;
       this.modal.show = false;
     },

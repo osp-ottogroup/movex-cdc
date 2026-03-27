@@ -7,7 +7,7 @@
                type="search"
                icon="magnify"
                v-model="filter"
-               @search.native="search">
+               @search="search">
       </b-input>
     </b-field>
 
