@@ -61,21 +61,16 @@ export default {
   },
   computed: {
     title() {
-      let title = null;
       switch (this.condition.operation) {
         case 'I':
-          title = 'Edit condition for insert-trigger';
-          break;
+          return 'Edit condition for insert-trigger';
         case 'U':
-          title = 'Edit condition for update-trigger';
-          break;
+          return 'Edit condition for update-trigger';
         case 'D':
-          title = 'Edit condition for delete-trigger';
-          break;
+          return 'Edit condition for delete-trigger';
         default:
           throw new Error(`trigger type ${this.condition.operation} is not supported`);
       }
-      return title;
     },
     removable() {
       return this.condition.id !== undefined;

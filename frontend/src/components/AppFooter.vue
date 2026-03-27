@@ -34,7 +34,7 @@ export default {
     try {
       const response = await HttpService.get(`${Config.backendUrl}/login/release_info`);
       this.releaseInfo = response.data.release_info;
-    } catch (e) {
+    } catch {
       // TODO send error to backend
     }
   },

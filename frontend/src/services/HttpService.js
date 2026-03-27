@@ -3,7 +3,6 @@
 import TokenService from './TokenService';
 import FetchService from './FetchService';
 import ServerError from '../models/ServerError';
-// eslint-disable-next-line import/no-cycle
 import LoginService from './LoginService';
 
 const HTTP_STATUS_CODE_401 = 401; // Unauthorized

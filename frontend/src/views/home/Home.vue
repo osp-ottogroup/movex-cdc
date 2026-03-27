@@ -46,7 +46,7 @@ export default {
       if (found !== undefined) {
         this.contactPerson = found.value;
       }
-    } catch (e) {
+    } catch {
       // nothing
     } finally {
       this.isLoading = false;

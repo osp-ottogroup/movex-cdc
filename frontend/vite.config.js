@@ -1,6 +1,6 @@
+import { fileURLToPath, URL } from 'node:url';
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
-import path from 'path';
 
 export default defineConfig({
   plugins: [vue()],
@@ -9,19 +9,17 @@ export default defineConfig({
   base: process.env.NODE_ENV === 'production' ? '/REPLACE_PUBLIC_PATH_BEFORE/' : '/',
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
   build: {
-    rollupOptions: {
+    cssMinify: 'esbuild', // Lightning CSS fails on Bulma v1 media queries
+    rolldownOptions: {
       output: {
         // Keep js/ and css/ directories so the Docker startup sed script (run-movex-cdc.sh) works unchanged
         entryFileNames: 'js/[name]-[hash].js',
         chunkFileNames: 'js/[name]-[hash].js',
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.names && assetInfo.names.some((n) => n.endsWith('.css'))) return 'css/[name]-[hash][extname]';
-          return 'assets/[name]-[hash][extname]';
-        },
+        assetFileNames: 'css/[name]-[hash][extname]',
       },
     },
   },

@@ -100,7 +100,7 @@ export default {
       if (!newList || newList.length === 0) {
         this.selectedTable = null;
       } else if (newList && newList !== oldList) {
-        // eslint-disable-next-line prefer-destructuring
+         
         this.selectedTable = newList[0];
       } else if (newList && newList === oldList && this.selectedTable !== null) {
         // reference of table list has not changed

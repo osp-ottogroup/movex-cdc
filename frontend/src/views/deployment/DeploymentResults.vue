@@ -74,13 +74,13 @@ export default {
     },
     onSelectAll(schema) {
       schema.tables.forEach((table) => {
-        // eslint-disable-next-line no-param-reassign
+         
         table.deploy = true;
       });
     },
     onDeselectAll(schema) {
       schema.tables.forEach((table) => {
-        // eslint-disable-next-line no-param-reassign
+         
         table.deploy = false;
       });
     },

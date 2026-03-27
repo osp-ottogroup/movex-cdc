@@ -88,7 +88,7 @@ export default {
   watch: {
     schemas(newList, oldList) {
       if (newList && newList !== oldList && newList.length > 0) {
-        // eslint-disable-next-line prefer-destructuring
+         
         this.selectedSchema = newList[0];
       }
       if (newList === oldList) {
