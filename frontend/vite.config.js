@@ -30,4 +30,10 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./tests/unit/vueSetup.js'],
   },
+  server: {
+    host: '0.0.0.0', // listen on all interfaces (required for Docker)
+    port: 8080,
+    strictPort: true, // fail if the configured port is already in use
+    open: false, // do not open the default browser
+  },
 });
