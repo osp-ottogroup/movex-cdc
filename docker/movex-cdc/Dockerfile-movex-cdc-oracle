@@ -12,8 +12,7 @@ FROM node:25-alpine AS frontend_build
 
 ENV FRONTEND_SRC_PATH=frontend
 
-RUN apk update && apk upgrade && \
-    npm install -g @vue/cli
+RUN apk update && apk upgrade
 
 
 WORKDIR /app

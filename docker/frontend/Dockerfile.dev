@@ -1,7 +1,6 @@
-FROM node:16-alpine
+FROM node:22-alpine
 
-RUN apk update && apk upgrade && \
-    npm install -g @vue/cli
+RUN apk update && apk upgrade
 
 WORKDIR /app
 
@@ -11,4 +10,4 @@ RUN npm install
 
 COPY . .
 
-CMD npm install && npm run serve
+CMD npm install && npm run dev
