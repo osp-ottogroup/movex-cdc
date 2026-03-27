@@ -13,13 +13,13 @@ $link: $primary;
 $link-focus-border: $primary;
 
 // Import Bulma's core
-@import "~bulma/sass/utilities/_all";
+@import "bulma/sass/utilities/_all";
 
 $label-weight: $weight-medium;
 
 // Import Bulma and Buefy styles
-@import "~bulma";
-@import "~buefy/src/scss/buefy";
+@import "bulma/bulma.sass";
+@import "buefy/src/scss/buefy";
 
 .b-tooltip .tooltip-content {
   white-space: pre; // allow line breaks in tooltip by line break in source line

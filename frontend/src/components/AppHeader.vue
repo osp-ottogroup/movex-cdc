@@ -5,7 +5,7 @@
       <template v-slot:brand>
         <b-navbar-item tag="router-link" :to="{ path: '/' }">
           <div class="is-size-4">
-            <img src="images/one.o_reduced.png" alt="One.O" style="height:1em" @click="openOg1o"
+            <img :src="'images/one.o_reduced.png'" alt="One.O" style="height:1em" @click="openOg1o"
             title="Click to open the One.O homepage"/>
           </div>
         </b-navbar-item>
