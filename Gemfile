@@ -7,15 +7,14 @@ ruby '3.4.5'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.4'
+gem 'rails', '8.0.5'
 
-# Use jdbcsqlite3 as the database for gem ctive Record
+# Use jdbcsqlite3 as the database for gem active Record
 # gem 'activerecord-jdbcsqlite3-adapter', '~> 80.2'
 gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master'
 
-gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80'
-# gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80', ref: 'c1094bc'
-# gem 'activerecord-oracle_enhanced-adapter'
+gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'
+#gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80'
 
 # Use Puma as the app server
 gem 'puma'
@@ -45,7 +44,7 @@ end
 
 group :test do
   gem 'simplecov', require: false
-
+  gem 'minitest', '~> 5.20'
   # gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
   # Probem fixed by change minitest.rb:472 "run self, method_name, reporter" to "Runnable.run self, method_name, reporter"
   # https://github.com/minitest/minitest/issues/1063
@@ -53,3 +52,10 @@ end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
 gem 'tzinfo-data', platforms: [:windows, :jruby]
+
+# Exclude gems that are not really needed but may cause trouble
+# fixes problems like: You have already activated erb 4.0.4, but your Gemfile requires erb 6.0.2.
+no_require = File.readlines('excluded_gems.txt').map(&:strip).reject{|s| s.empty? || s.start_with?('#') }
+no_require.each do |name|
+  gem name, require: false
+end

@@ -56,9 +56,9 @@ prepare_tests:
     - bundle install --jobs 4
     - |
       # fix minitest issue https://github.com/minitest/minitest/issues/1063
-      file=`bundle show minitest`/lib/minitest.rb
-      chmod u+w $file
-      sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
+      # file=`bundle show minitest`/lib/minitest.rb
+      # chmod u+w $file
+      # sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
   artifacts:
     when: always
     paths:
@@ -259,7 +259,7 @@ build_movex_cdc_with_podman:
 trivy_scan:
   stage: post_build
   image:
-    name: docker.io/aquasec/trivy:latest
+    name: docker.io/aquasec/trivy:canary
     entrypoint: [""]
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
