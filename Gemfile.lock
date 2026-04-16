@@ -1,6 +1,7 @@
 GIT
   remote: https://github.com/jruby/activerecord-jdbc-adapter.git
   revision: 47b9509df678c0949316dcfe2efa6144d59cdfe0
+  ref: 47b9509
   branch: master
   specs:
     activerecord-jdbc-adapter (80.0-java)
@@ -246,14 +247,24 @@ DEPENDENCIES
   activerecord-jdbc-adapter!
   activerecord-jdbcsqlite3-adapter!
   activerecord-oracle_enhanced-adapter!
+  benchmark
+  erb
+  io-console
+  irb
+  jar-dependencies
   java-properties
   jwt
   listen
   minitest (~> 5.20)
+  pp
+  prettyprint
+  prism
+  psych
   puma
   rack-cors
   rails (= 8.0.5)
   rdoc
+  reline
   ruby-maven
   simplecov
   snappy
@@ -352,4 +363,4 @@ RUBY VERSION
   ruby 3.4.5 (jruby 10.0.5.0)
 
 BUNDLED WITH
-  4.0.9
+  4.0.10
