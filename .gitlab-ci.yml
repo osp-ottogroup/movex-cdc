@@ -59,11 +59,6 @@ prepare_tests:
       # Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
       cd $(bundle info activerecord-jdbc-adapter --path)
       rake jar
-    - |
-      # fix minitest issue https://github.com/minitest/minitest/issues/1063
-      # file=`bundle show minitest`/lib/minitest.rb
-      # chmod u+w $file
-      # sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
   artifacts:
     when: always
     paths:
