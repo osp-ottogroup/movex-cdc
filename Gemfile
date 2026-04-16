@@ -11,6 +11,7 @@ gem 'rails', '8.0.5'
 
 # Use jdbcsqlite3 as the database for gem active Record
 # gem 'activerecord-jdbcsqlite3-adapter', '~> 80.2'
+gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master'
 gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master'
 
 gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'

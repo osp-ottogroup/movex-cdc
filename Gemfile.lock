@@ -243,6 +243,7 @@ PLATFORMS
   universal-java
 
 DEPENDENCIES
+  activerecord-jdbc-adapter!
   activerecord-jdbcsqlite3-adapter!
   activerecord-oracle_enhanced-adapter!
   java-properties
