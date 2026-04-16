@@ -260,7 +260,7 @@ trivy_scan:
   stage: post_build
   image:
     # Don't use a tag so latest release should be used
-    name: docker.io/aquasec/trivy
+    name: docker.io/aquasec/trivy:canary
     entrypoint: [""]
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
