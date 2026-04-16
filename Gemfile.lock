@@ -103,7 +103,7 @@ GEM
     date (3.5.1-java)
     docile (1.4.1)
     drb (2.2.3)
-    erb (6.0.2-java)
+    erb (6.0.3-java)
     erubi (1.13.1)
     ffi (1.17.4-java)
     globalid (1.3.0)
@@ -156,7 +156,7 @@ GEM
     psych (5.3.1-java)
       date
       jar-dependencies (>= 0.1.7)
-    puma (7.2.0-java)
+    puma (8.0.0-java)
       nio4r (~> 2.0)
     racc (1.8.1-java)
     rack (3.2.6)
@@ -200,7 +200,7 @@ GEM
       thor (~> 1.0, >= 1.2.2)
       tsort (>= 0.2)
       zeitwerk (~> 2.6)
-    rake (13.3.1)
+    rake (13.4.2)
     rb-fsevent (0.11.2)
     rb-inotify (0.11.1)
       ffi (~> 1.0)
@@ -210,7 +210,10 @@ GEM
       tsort
     reline (0.6.3)
       io-console (~> 0.5)
-    ruby-plsql (0.8.0)
+    ruby-maven (3.9.3)
+      ruby-maven-libs (~> 3.9.9)
+    ruby-maven-libs (3.9.9)
+    ruby-plsql (0.9.9-java)
     securerandom (0.4.1)
     simplecov (0.22.0)
       docile (~> 1.1)
@@ -250,6 +253,7 @@ DEPENDENCIES
   rack-cors
   rails (= 8.0.5)
   rdoc
+  ruby-maven
   simplecov
   snappy
   tzinfo-data
@@ -279,7 +283,7 @@ CHECKSUMS
   date (3.5.1-java) sha256=12e09477dc932afe45bf768cd362bf73026804e0db1e6c314186d6cd0bee3344
   docile (1.4.1) sha256=96159be799bfa73cdb721b840e9802126e4e03dfc26863db73647204c727f21e
   drb (2.2.3) sha256=0b00d6fdb50995fe4a45dea13663493c841112e4068656854646f418fda13373
-  erb (6.0.2-java) sha256=38f0e2e15453963fda1754d6b555b26650631cad72567304d59e6c3d847cd1be
+  erb (6.0.3-java) sha256=91640948ba09c7d7505080a550373001ef1c863d069fa01ca0628f7aad2ef3e9
   erubi (1.13.1) sha256=a082103b0885dbc5ecf1172fede897f9ebdb745a4b97a5e8dc63953db1ee4ad9
   ffi (1.17.4-java) sha256=449281c799727413eb367e396a838328e767a41fd76a14ae2dfbee0c37f0a279
   globalid (1.3.0) sha256=05c639ad6eb4594522a0b07983022f04aa7254626ab69445a0e493aa3786ff11
@@ -307,7 +311,7 @@ CHECKSUMS
   prettyprint (0.2.0) sha256=2bc9e15581a94742064a3cc8b0fb9d45aae3d03a1baa6ef80922627a0766f193
   prism (1.9.0) sha256=7b530c6a9f92c24300014919c9dcbc055bf4cdf51ec30aed099b06cd6674ef85
   psych (5.3.1-java) sha256=20a4a81ad01479ef060f604ed75ba42fe673169e67d923b1bae5aa4e13cc5820
-  puma (7.2.0-java) sha256=5ef97cc64c0579e6a507cded86286869b6387d58d28abe347c1dd1d7decdf6d0
+  puma (8.0.0-java) sha256=494ccc69aa368cf271e2612fcb88cb50653727c160519c95b0b3d34a856fcd81
   racc (1.8.1-java) sha256=54f2e6d1e1b91c154013277d986f52a90e5ececbe91465d29172e49342732b98
   rack (3.2.6) sha256=5ed78e1f73b2e25679bec7d45ee2d4483cc4146eb1be0264fc4d94cb5ef212c2
   rack-cors (3.0.0) sha256=7b95be61db39606906b61b83bd7203fa802b0ceaaad8fcb2fef39e097bf53f68
@@ -318,12 +322,14 @@ CHECKSUMS
   rails-dom-testing (2.3.0) sha256=8acc7953a7b911ca44588bf08737bc16719f431a1cc3091a292bca7317925c1d
   rails-html-sanitizer (1.7.0) sha256=28b145cceaf9cc214a9874feaa183c3acba036c9592b19886e0e45efc62b1e89
   railties (8.0.5) sha256=ad98c6e9a096b7e8cf63c70872b60ec6c1d4152be2a4ffa63483ec02a837a9d5
-  rake (13.3.1) sha256=8c9e89d09f66a26a01264e7e3480ec0607f0c497a861ef16063604b1b08eb19c
+  rake (13.4.2) sha256=cb825b2bd5f1f8e91ca37bddb4b9aaf345551b4731da62949be002fa89283701
   rb-fsevent (0.11.2) sha256=43900b972e7301d6570f64b850a5aa67833ee7d87b458ee92805d56b7318aefe
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
-  ruby-plsql (0.8.0) sha256=3cbf0a2f31ecf449a08f64bb0688bb3fc5bffdd7a4ab949ce54f01cbe0b9f465
+  ruby-maven (3.9.3) sha256=f79b8b56fa1cfcffd966d6e7b7afe81d66f1d087ea0536fb51ea10278e72a604
+  ruby-maven-libs (3.9.9) sha256=d03f665b231a6a4731a117282a3598b62a2ad75fa01918df3eaeba3a8df3d9b1
+  ruby-plsql (0.9.9-java) sha256=060e51575848980b92519601ce680ef4e65d30e641df12ec101dc290b8355669
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5
   simplecov-html (0.13.2) sha256=bd0b8e54e7c2d7685927e8d6286466359b6f16b18cb0df47b508e8d73c777246

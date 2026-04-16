@@ -43,6 +43,9 @@ group :development do
 end
 
 group :test do
+  # Ensure java libs are included
+  gem 'ruby-maven'
+
   gem 'simplecov', require: false
   gem 'minitest', '~> 5.20'
   # gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
