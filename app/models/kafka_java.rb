@@ -298,7 +298,7 @@ class KafkaJava < KafkaBase
   def describe_topic_complete(topic)
     result = {}
     run_with_admin do |admin|
-      description = admin.describeTopics([topic]).all.get[topic]
+      description = admin.describeTopics([topic]).allTopicNames.get[topic]
       raise "Description for topic '#{topic}' not found at Kafka" if description.nil?
       result[:partitions]   = description.partitions.count
       result[:replicas]     = description.partitions.first.replicas.count       # all partitions have the same number of replicas
