@@ -259,7 +259,8 @@ build_movex_cdc_with_podman:
 trivy_scan:
   stage: post_build
   image:
-    name: docker.io/aquasec/trivy:canary
+    # Don't use a tag so latest release should be used
+    name: docker.io/aquasec/trivy
     entrypoint: [""]
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
