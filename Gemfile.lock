@@ -242,24 +242,14 @@ PLATFORMS
 DEPENDENCIES
   activerecord-jdbcsqlite3-adapter!
   activerecord-oracle_enhanced-adapter!
-  benchmark
-  erb
-  io-console
-  irb
-  jar-dependencies
   java-properties
   jwt
   listen
   minitest (~> 5.20)
-  pp
-  prettyprint
-  prism
-  psych
   puma
   rack-cors
   rails (= 8.0.5)
   rdoc
-  reline
   simplecov
   snappy
   tzinfo-data
