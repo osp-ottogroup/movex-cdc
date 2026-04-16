@@ -55,6 +55,11 @@ prepare_tests:
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
     - |
+      # Fix problem with activerecord-jdbc-adapter, missing jar file: Gem Load Error is: cannot load such file -- arjdbc/jdbc/adapter_java
+      # Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
+      cd $(bundle info activerecord-jdbc-adapter --path)
+      rake jar
+    - |
       # fix minitest issue https://github.com/minitest/minitest/issues/1063
       # file=`bundle show minitest`/lib/minitest.rb
       # chmod u+w $file
