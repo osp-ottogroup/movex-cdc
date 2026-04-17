@@ -15,11 +15,16 @@ class User < ApplicationRecord
       errors.add(:db_user, "User '#{db_user}' does not exists in database")
     end
 
-    # reset failed logons if user becomes unlocked
     unless self.id.nil?                                                         # unsaved created user
       prev_values = User.find self.id
+      # reset failed logons if user becomes unlocked
       if prev_values&.yn_account_locked == 'Y' && self.yn_account_locked == 'N' # change of locked state
         self.failed_logons = 0                                                  # start with no failed logons after unlock
+      end
+
+      # check if email address "admin" should be changed - if yes, return an error
+      if prev_values&.email == 'admin' && self.email != 'admin'                 # change of email address
+        errors.add(:email, "It's not allowed to change email address of User")
       end
     end
   end

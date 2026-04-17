@@ -76,6 +76,16 @@ class UsersControllerTest < ActionDispatch::IntegrationTest
     run_with_current_user { GlobalFixtures.restore_schema_rights }
   end
 
+  test "should not change email address 'admin'" do
+    admin_user = User.find_by!(email: 'admin')
+
+    patch "/users/#{admin_user.id}", headers: jwt_header(@jwt_admin_token), params: { user: {email: 'admin2', lock_version: admin_user.lock_version } }, as: :json
+
+    assert_response :unprocessable_entity
+    assert_includes response.body, "It's not allowed to change email address of User"
+    assert_equal 'admin', User.find(admin_user.id).email, 'Admin email should remain unchanged'
+  end
+
   test "should destroy user" do
     user_to_delete = User.new(email: 'hans.dampf2@hugo.de', db_user: MovexCdc::Application.config.db_user, first_name: 'hans', last_name: 'dampf2')
     run_with_current_user { user_to_delete.save! }
