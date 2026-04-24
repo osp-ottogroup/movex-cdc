@@ -82,7 +82,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../../app.scss";
 
 .server-logs {
   height: calc(100vh - var(--bulma-navbar-height) - 30px - 2rem);

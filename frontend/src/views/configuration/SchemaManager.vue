@@ -3,7 +3,7 @@
     <b-loading :model-value="isLoading" :is-full-page="false"/>
 
     <schema-table :schemas="schemas"
-                  v-bind="$attrs"
+                  @schema-selected="$emit('schema-selected', $event)"
                   @edit-schema="onEditSchema"/>
 
     <template v-if="modal.show">

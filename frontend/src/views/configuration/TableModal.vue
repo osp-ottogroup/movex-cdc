@@ -150,17 +150,17 @@ as insert events at next deployment?" position="is-right" size="is-small">
             <div class="columns is-1 is-variable">
               <div class="column">
                 <b-field label="Insert" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_insert_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_insert_trigger_changed_at"/>
                 </b-field>
               </div>
               <div class="column">
                 <b-field label="Update" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_update_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_update_trigger_changed_at"/>
                 </b-field>
               </div>
               <div class="column">
                 <b-field label="Delete" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_delete_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_delete_trigger_changed_at"/>
                 </b-field>
               </div>
             </div>

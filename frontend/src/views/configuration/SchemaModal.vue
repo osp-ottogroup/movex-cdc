@@ -23,7 +23,7 @@
       </section>
       <section class="modal-card-body">
         <b-field label="Last Trigger Deployment">
-          <b-input disabled :value="lastTriggerDeployment()"/>
+          <b-input disabled :model-value="lastTriggerDeployment()"/>
         </b-field>
       </section>
       <footer class="modal-card-foot">

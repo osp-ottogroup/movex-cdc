@@ -3,7 +3,7 @@
     <b-collapse
       class="card"
       animation="slide"
-      :open="false">
+      :model-value="false">
       <template #trigger="props">
         <div class="card-header" role="button">
           <div class="card-header-title is-justify-content-space-between">

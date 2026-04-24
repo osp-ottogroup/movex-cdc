@@ -16,7 +16,7 @@
                   <div class="is-size-7 has-text-grey" @click.stop>
                     Deploy
                     <b-tooltip label="Select all pending trigger changes for deployment.Then click the button 'Deploy' to execute the changes."
-                               multilined="true">
+                               multilined>
                       <a @click="onSelectAll(result)">All</a>
                     </b-tooltip>
                     |
@@ -74,13 +74,13 @@ export default {
     },
     onSelectAll(schema) {
       schema.tables.forEach((table) => {
-         
+
         table.deploy = true;
       });
     },
     onDeselectAll(schema) {
       schema.tables.forEach((table) => {
-         
+
         table.deploy = false;
       });
     },

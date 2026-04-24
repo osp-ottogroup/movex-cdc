@@ -25,7 +25,7 @@
             password-reveal
             placeholder="Your password"
             required
-            validation-message="Password must not be empty">>
+            validation-message="Password must not be empty">
           </b-input>
         </b-field>
 

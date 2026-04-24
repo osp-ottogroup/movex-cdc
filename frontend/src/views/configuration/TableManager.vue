@@ -4,7 +4,7 @@
 
     <table-table :tables="tables"
                  :schema="schema"
-                 v-bind="$attrs"
+                 @table-selected="$emit('table-selected', $event)"
                  @edit-table="onEditTable"/>
 
     <b-button v-if="schema"
