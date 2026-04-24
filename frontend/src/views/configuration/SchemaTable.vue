@@ -86,16 +86,15 @@ export default {
     },
   },
   watch: {
-    schemas(newList, oldList) {
-      if (newList && newList !== oldList && newList.length > 0) {
-         
-        this.selectedSchema = newList[0];
-      }
-      if (newList === oldList) {
-        // reference of schema list has not changed
-        // it seems that the selected schema has changed, so find changed schema
-        const newSchema = newList.find((schema) => schema.id === this.selectedSchema.id);
-        this.selectedSchema = newSchema;
+    schemas(newList) {
+      if (newList && newList.length > 0) {
+        if (this.selectedSchema !== null) {
+          // try to keep the current selection after the list was replaced
+          const found = newList.find((schema) => schema.id === this.selectedSchema.id);
+          this.selectedSchema = found !== undefined ? found : newList[0];
+        } else {
+          this.selectedSchema = newList[0];
+        }
       }
       this.$emit('schema-selected', this.selectedSchema);
     },

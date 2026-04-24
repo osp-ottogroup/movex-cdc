@@ -71,8 +71,7 @@ export default {
       this.modal.show = false;
     },
     async onSaved(savedSchema) {
-      const index = this.schemas.findIndex((schema) => schema.id === savedSchema.id);
-      this.schemas.splice(index, 1, savedSchema);
+      this.schemas = this.schemas.map((schema) => (schema.id === savedSchema.id ? savedSchema : schema));
       this.modal.schema = null;
       this.modal.show = false;
     },

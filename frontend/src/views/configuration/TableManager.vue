@@ -90,8 +90,10 @@ export default {
         topic: '',
         kafka_key_handling: 'N',
         fixed_message_key: '',
+        key_expression: '',
         yn_record_txid: 'N',
         yn_add_cloudevents_header: 'N',
+        yn_payload_pkey_only: 'N',
         yn_initialization: 'N',
         yn_initialize_with_flashback: 'N',
         initialization_filter: '',
@@ -108,14 +110,12 @@ export default {
       this.modal.show = false;
     },
     async onRemoved(removedTable) {
-      const index = this.tables.findIndex((table) => table.id === removedTable.id);
-      this.tables.splice(index, 1);
+      this.tables = this.tables.filter((table) => table.id !== removedTable.id);
       this.modal.table = null;
       this.modal.show = false;
     },
     async onCreated(createdTable) {
-      this.tables.push(createdTable);
-      this.tables = this.tables.sort((a, b) => {
+      this.tables = [...this.tables, createdTable].sort((a, b) => {
         const aName = a.name.toUpperCase();
         const bName = b.name.toUpperCase();
         if (aName < bName) { return -1; }
@@ -126,8 +126,7 @@ export default {
       this.modal.show = false;
     },
     async onUpdated(updatedTable) {
-      const index = this.tables.findIndex((table) => table.id === updatedTable.id);
-      this.tables.splice(index, 1, updatedTable);
+      this.tables = this.tables.map((table) => (table.id === updatedTable.id ? updatedTable : table));
       this.modal.table = null;
       this.modal.show = false;
     },
