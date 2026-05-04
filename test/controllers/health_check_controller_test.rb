@@ -42,12 +42,14 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     assert_response :success, log_on_failure('This request within the same second should succeed because it is authorized with valid JWT')
 
     # Check Protection against DOS attacks
+    threads = []
     12.downto(1).each do |i|
-      Thread.new() do
+      threads <<  Thread.new() do
         get "/health_check", as: :json
         assert_response :internal_server_error, log_on_failure('After more that x checks it should fail within same second') if i == 1
       end
     end
+    threads.each(&:join)                                                        # wait for all threads to complete
 
     sleep 2                                                                     # prevent from double call exception
     begin
