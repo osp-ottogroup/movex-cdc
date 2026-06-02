@@ -1,5 +1,5 @@
 <template>
-  <b-modal :model-value="show" @close="$emit('close')">
+  <b-modal :model-value="show" @close="$emit('close')" @update:model-value="$emit('close')">
     <div class="modal-card" style="width: 100%">
       <header class="modal-card-head">
         <p class="modal-card-title">SQL Expressions for operation '{{ operation }}'</p>
@@ -39,6 +39,7 @@ import EditColumnExpressionModal from './EditColumnExpressionModal.vue';
 export default {
   name: 'ColumnExpressionModal',
   components: { EditColumnExpressionModal },
+  emits: ['close', 'save-expression', 'remove-expression'],
   props: {
     show: Boolean,
     expressions: Array,
@@ -81,7 +82,6 @@ export default {
         const allExpr = await CRUDService.columnExpressions.getAll({ table_id: this.tableId });
         this.localExpressions = allExpr.filter((e) => e.operation === this.operation);
       } catch (e) {
-         
         alert(`error in reloadExpressions ${e}`);
       }
     },

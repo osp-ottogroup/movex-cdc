@@ -4,7 +4,8 @@
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card">
       <header class="modal-card-head">
         <p class="modal-card-title">{{ modalTitle }}</p>
@@ -186,6 +187,7 @@ export default {
   props: {
     userId: { type: Number, default: null },
   },
+  emits: ['close', 'deleted', 'saved', 'created'],
   async created() {
     try {
       if (this.isUpdateMode) {

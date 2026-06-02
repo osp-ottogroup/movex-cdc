@@ -5,7 +5,8 @@
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card" :style="`width: ${activityLog.length === 0 ? '30vw' : '80vw'}`">
       <header class="modal-card-head">
         <p class="modal-card-title">Activity Log</p>
@@ -86,6 +87,7 @@ export default {
   props: {
     filter: { type: Object, default: () => {} },
   },
+  emits: ['close'],
   async created() {
     try {
       const filterParams = {};

@@ -4,7 +4,8 @@
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card" style="width: auto">
       <b-loading :model-value="isLoading" :is-full-page="false"/>
 
@@ -46,6 +47,7 @@ export default {
   props: {
     schema: { type: Object, default: () => {} },
   },
+  emits: ['close', 'saved'],
   data() {
     return {
       // copy of property 'schema' to avoid changing property directly
