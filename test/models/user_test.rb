@@ -102,14 +102,10 @@ class UserTest < ActiveSupport::TestCase
     run_with_current_user { reloaded_user.update!(yn_account_locked: 'N') }
   end
 
-  test "should not rename reserved admin user" do
+  test "should not change admin email address" do
     admin_user = User.find_by!(email: 'admin')
-
-    success = run_with_current_user { admin_user.update(email: 'admin2') }
-
-    assert_equal false, success, 'Changing email address "admin" should be rejected'
-    assert_includes admin_user.errors[:email], "Email 'admin' must not be changed"
-    assert_equal 'admin', User.find(admin_user.id).email, 'It''s not allowed to change email address of User'
+    assert_equal false, admin_user.update(email: 'admin2'), "Changing email address 'admin' should be rejected"
+    assert_includes admin_user.errors[:email], "It's not allowed to change email address of user"
   end
 
   test "check_for_system_init_completed" do

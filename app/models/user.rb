@@ -24,7 +24,7 @@ class User < ApplicationRecord
 
       # check if email address "admin" should be changed - if yes, return an error
       if prev_values&.email == 'admin' && self.email != 'admin'                 # change of email address
-        errors.add(:email, "It's not allowed to change email address of User")
+        errors.add(:email, "It's not allowed to change email address of user")
       end
     end
   end
