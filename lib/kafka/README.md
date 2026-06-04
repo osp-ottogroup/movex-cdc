@@ -4,6 +4,7 @@ Download binary from https://kafka.apache.org/downloads
 ## Used releases
 2024-01-01 Kafka 3.7.0, log4j 2.23.1
 2025-05-27 Kafka 3.9.1 log4j 2.24.3
+2026-04-16 Kafka 4.2.0 log4j 2.25.3
 
 ## Used libs
 
@@ -13,8 +14,8 @@ Download binary from https://kafka.apache.org/downloads
 | log4j-api-x.x.x.jar        | The Log4j 2 API
 | log4j-core-x.x.x.jar       | The Log4j 2 Core
 | log4j-slf4j-impl-x.x.x.jar | The SLF4J binding for Log4j 2
-| slf4j-api-x.x.x.jar        | The SLF4J API
 | lz4-java-x,x.x.jar         | The LZ4 compression library
+| slf4j-api-x.x.x.jar        | The SLF4J API
 | snappy-java-x.x.x.jar      | The Snappy compression library   
 | zstd-jni-x.x.x.jar         | The zstd compression library
 - 
