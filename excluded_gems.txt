@@ -1,0 +1,14 @@
+# This is a list of Gems that should be excluded from initialization
+# In Gemfile they are marked with "gem name, require: false"
+# After bundle install the Gem dir can be removed, but specifications and extensions must remain
+benchmark
+erb
+io-console
+irb
+jar-dependencies
+pp
+prettyprint
+prism
+psych
+reline
+rdoc

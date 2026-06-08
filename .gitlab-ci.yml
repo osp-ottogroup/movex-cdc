@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.0.3.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.0.5.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
@@ -55,10 +55,10 @@ prepare_tests:
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
     - bundle install --jobs 4
     - |
-      # fix minitest issue https://github.com/minitest/minitest/issues/1063
-      file=`bundle show minitest`/lib/minitest.rb
-      chmod u+w $file
-      sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
+      # Fix problem with activerecord-jdbc-adapter, missing jar file: Gem Load Error is: cannot load such file -- arjdbc/jdbc/adapter_java
+      # Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
+      cd $(bundle info activerecord-jdbc-adapter --path)
+      rake jar
   artifacts:
     when: always
     paths:
@@ -259,7 +259,8 @@ build_movex_cdc_with_podman:
 trivy_scan:
   stage: post_build
   image:
-    name: docker.io/aquasec/trivy:latest
+    # Don't use a tag so latest release should be used
+    name: docker.io/aquasec/trivy:canary
     entrypoint: [""]
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy

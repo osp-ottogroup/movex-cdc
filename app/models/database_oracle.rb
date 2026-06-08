@@ -99,7 +99,7 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
         #col_name =~ /[a-z]/ ? col_name : col_name.downcase!
         col_name.downcase!.freeze
       end
-      fetch_options = {:get_lob_value => (options[:query_name] != 'Writable Large Object')}
+      fetch_options = { get_lob_value: true }
       # noinspection RubyAssignmentExpressionInConditionalInspection
       row_count = 0
       result = []
@@ -122,7 +122,12 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 end #class_eval
 
 class DatabaseOracle
-  # options: :query_name, :query_timeout, :fetch_limit
+
+  # Do SQL selection for Event_Logs etc. with limited result count
+  # @param [String] stmt  The SQL statement
+  # @param [Hash] filter Bind values
+  # @param [Hash] options :query_name, :query_timeout, :fetch_limit
+  # @return [Array]
   def self.select_all_limit(stmt, filter={}, options={})
     options[:query_name] = 'select_all_limit' unless options[:query_name]
 

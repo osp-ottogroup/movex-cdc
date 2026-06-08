@@ -1,7 +1,7 @@
 # create secrets to use for encryption and signing of JWT
 # Peter Ramm, 2020-10-07
 
-DEFAULT_SECRET_KEY_BASE_FILE = File.join(Rails.root, 'config', 'secret_key_base')
+DEFAULT_SECRET_KEY_BASE_FILE = File.join(Rails.root, 'config', 'secret_key_base') unless defined?(DEFAULT_SECRET_KEY_BASE_FILE)
 
 # use local variables
 begin
