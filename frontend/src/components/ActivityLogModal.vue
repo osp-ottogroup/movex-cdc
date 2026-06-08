@@ -50,7 +50,9 @@
               <div>{{ props.row.action.substring(0, 40) }} ...</div>
               <div class="has-text-info-dark pointer"
                    @click="props.toggleDetails(props.row)">
-                {{ $refs.activityLogTable.isVisibleDetailRow(props.row) ? 'less ...' : 'more ...'}}
+                <template v-if="$refs.activityLogTable">
+                  {{ $refs.activityLogTable.isVisibleDetailRow(props.row) ? 'less ...' : 'more ...'}}
+                </template>
               </div>
             </b-table-column>
             <b-table-column field="created_at" label="Timestamp" sortable v-slot="props">
