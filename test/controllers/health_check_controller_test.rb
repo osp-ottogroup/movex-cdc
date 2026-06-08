@@ -52,7 +52,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
       end
     end
     threads.each(&:join)                                                        # wait for all threads to complete
-    assert internal_server_error_raised, log_on_failure('After more that x checks some should fail within same second')
+    assert internal_server_error_raised, log_on_failure('After more than x checks some should fail within same second')
 
     sleep 2                                                                     # prevent from double call exception
     begin
