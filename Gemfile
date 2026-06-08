@@ -41,7 +41,6 @@ gem 'snappy'
 
 group :development do
   gem 'listen'
-
   # gem 'rubocop' not really needed as deployment artifact
 end
 

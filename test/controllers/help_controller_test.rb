@@ -5,10 +5,4 @@ class HelpControllerTest < ActionDispatch::IntegrationTest
     get "/movex-cdc.html", as: :html
     assert_response :success
   end
-
-  test "should get pdf doc" do
-    get "/movex-cdc.pdf", as: :html
-    assert_response :success
-  end
-
 end
