@@ -1,6 +1,7 @@
 GIT
   remote: https://github.com/jruby/activerecord-jdbc-adapter.git
   revision: 424d6698451915f9c2b8ee83452fd4d75f2589d4
+  ref: 424d669
   branch: master
   specs:
     activerecord-jdbc-adapter (80.0.pre1-java)
@@ -11,8 +12,8 @@ GIT
     jdbc-sqlite3 (3.46.1.1)
 
 GIT
-  remote: https://github.com/rammpeter/oracle-enhanced.git
-  revision: c1094bc2e69147920999273a682b555b6c79e097
+  remote: https://github.com/rsim/oracle-enhanced.git
+  revision: c72d0c19e74dcb5d2a2f12f6b6085788ca9c0cc1
   branch: release80
   specs:
     activerecord-oracle_enhanced-adapter (8.0.0-java)
@@ -136,9 +137,7 @@ GEM
       net-smtp
     marcel (1.2.1)
     mini_mime (1.1.5)
-    minitest (6.0.6)
-      drb (~> 2.0)
-      prism (~> 1.5)
+    minitest (5.27.0)
     net-imap (0.6.4)
       date
       net-protocol
@@ -212,6 +211,9 @@ GEM
       tsort
     reline (0.6.3)
       io-console (~> 0.5)
+    ruby-maven (3.9.3)
+      ruby-maven-libs (~> 3.9.9)
+    ruby-maven-libs (3.9.9)
     ruby-plsql (0.9.9-java)
     securerandom (0.4.1)
     simplecov (0.22.0)
@@ -242,14 +244,28 @@ PLATFORMS
   universal-java
 
 DEPENDENCIES
+  activerecord-jdbc-adapter!
   activerecord-jdbcsqlite3-adapter!
   activerecord-oracle_enhanced-adapter!
+  benchmark
+  erb
+  io-console
+  irb
+  jar-dependencies
   java-properties
   jwt
   listen
+  minitest (~> 5.20)
+  pp
+  prettyprint
+  prism
+  psych
   puma
   rack-cors
   rails (= 8.0.5)
+  rdoc
+  reline
+  ruby-maven
   simplecov
   snappy
   tzinfo-data
@@ -296,7 +312,7 @@ CHECKSUMS
   mail (2.9.0) sha256=6fa6673ecd71c60c2d996260f9ee3dd387d4673b8169b502134659ece6d34941
   marcel (1.2.1) sha256=1678e9360e32f9eafa917c80029e2f6d10b2715c66a4b87b6d0da9b9cd1f859f
   mini_mime (1.1.5) sha256=8681b7e2e4215f2a159f9400b5816d85e9d8c6c6b491e96a12797e798f8bccef
-  minitest (6.0.6) sha256=153ea36d1d987a62942382b61075745042a2b3123b1cd48f4c3675af9cc7d6f1
+  minitest (5.27.0) sha256=2d3b17f8a36fe7801c1adcffdbc38233b938eb0b4966e97a6739055a45fa77d5
   net-imap (0.6.4) sha256=9a5598c67a3022c284d98430ef1d4948e7dbdb62596f61081ea8ca933270a02b
   net-pop (0.1.2) sha256=848b4e982013c15b2f0382792268763b748cce91c9e91e36b0f27ed26420dff3
   net-protocol (0.2.2) sha256=aa73e0cba6a125369de9837b8d8ef82a61849360eba0521900e2c3713aa162a8
@@ -323,6 +339,8 @@ CHECKSUMS
   rb-inotify (0.11.1) sha256=a0a700441239b0ff18eb65e3866236cd78613d6b9f78fea1f9ac47a85e47be6e
   rdoc (7.2.0) sha256=8650f76cd4009c3b54955eb5d7e3a075c60a57276766ebf36f9085e8c9f23192
   reline (0.6.3) sha256=1198b04973565b36ec0f11542ab3f5cfeeec34823f4e54cebde90968092b1835
+  ruby-maven (3.9.3) sha256=f79b8b56fa1cfcffd966d6e7b7afe81d66f1d087ea0536fb51ea10278e72a604
+  ruby-maven-libs (3.9.9) sha256=d03f665b231a6a4731a117282a3598b62a2ad75fa01918df3eaeba3a8df3d9b1
   ruby-plsql (0.9.9-java) sha256=060e51575848980b92519601ce680ef4e65d30e641df12ec101dc290b8355669
   securerandom (0.4.1) sha256=cc5193d414a4341b6e225f0cb4446aceca8e50d5e1888743fac16987638ea0b1
   simplecov (0.22.0) sha256=fe2622c7834ff23b98066bb0a854284b2729a569ac659f82621fc22ef36213a5

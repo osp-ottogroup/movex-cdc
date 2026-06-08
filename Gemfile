@@ -10,8 +10,8 @@ ruby '4.0.0'
 gem 'rails', '8.0.5'
 
 # Use the current development branch for Rails 8.0, frozen to a certain commit to avoid unwanted changes
-gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '47b9509'
-gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '47b9509'
+gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
+gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
 
 gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'
 #gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80'
