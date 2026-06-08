@@ -1,13 +1,13 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-# According to JRuby-Version (movex-cdc/.ruby-version)
-ruby '3.4.5'
-
+# According to JRuby-Version (movex-cdc/.ruby-version) 4.0.0. since JRuby 10.1.0.0
+# ruby '3.4.5'
+ruby '4.0.0'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.4'
+gem 'rails', '8.0.5'
 
 # Use jdbcsqlite3 as the database for gem ctive Record
 # gem 'activerecord-jdbcsqlite3-adapter', '~> 80.2'
