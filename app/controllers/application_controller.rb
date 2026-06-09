@@ -83,14 +83,12 @@ class ApplicationController < ActionController::API
     { controller: :login,         action: :release_info },
     { controller: :health_check,  action: :index},
     { controller: :help,          action: :doc_html },
-    { controller: :help,          action: :doc_pdf }
   ]
 
   # requests that do not need DB connection and do not need setting application info
   @@set_application_info_exceptions = [
     { controller: :login,         action: :release_info },
     { controller: :help,          action: :doc_html },
-    { controller: :help,          action: :doc_pdf }
   ]
 
   # Terminate further processing if request is not authorized

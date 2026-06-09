@@ -1,17 +1,20 @@
 source 'https://rubygems.org'
 git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 
-# According to JRuby-Version (movex-cdc/.ruby-version)
-ruby '3.4.5'
-
+# According to JRuby-Version (movex-cdc/.ruby-version) 4.0.0. since JRuby 10.1.0.0
+# ruby '3.4.5'
+ruby '4.0.0'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
 gem 'rails', '8.0.5'
 
 # Use the current development branch for Rails 8.0, frozen to a certain commit to avoid unwanted changes
-gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '47b9509'
-gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '47b9509'
+#gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
+#gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
+
+gem 'activerecord-jdbc-adapter', '80.0.pre1', platform: :jruby
+gem 'activerecord-jdbcsqlite3-adapter', '80.0.pre1', platform: :jruby
 
 gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'
 #gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80'
@@ -38,7 +41,6 @@ gem 'snappy'
 
 group :development do
   gem 'listen'
-
   # gem 'rubocop' not really needed as deployment artifact
 end
 

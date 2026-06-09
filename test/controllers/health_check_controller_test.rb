@@ -37,9 +37,22 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     get "/health_check", as: :json                                              # warmup health check to ensure next response within one second
     assert_response :success, log_on_failure('This request should succeed')
     get "/health_check", as: :json
-    assert_response :internal_server_error, log_on_failure('second check should fail within same second')
+    assert_response :success, log_on_failure('second check should not fail within same second')
     get "/health_check", headers: jwt_header, as: :json                                              # warmup health check to ensure next response within one second
     assert_response :success, log_on_failure('This request within the same second should succeed because it is authorized with valid JWT')
+
+    # Check Protection against DOS attacks
+    sleep(1.0 - Time.now.subsec)                                                # wait until next second to ensure that all following requests are within the same second
+    threads = []
+    internal_server_error_raised = false
+    12.downto(0).each do
+      threads <<  Thread.new() do
+        get "/health_check", as: :json
+        internal_server_error_raised = true if response.status == 500
+      end
+    end
+    threads.each(&:join)                                                        # wait for all threads to complete
+    assert internal_server_error_raised, log_on_failure('After more than x checks some should fail within same second')
 
     sleep 2                                                                     # prevent from double call exception
     begin
