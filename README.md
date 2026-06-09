@@ -7,7 +7,7 @@ This product captures data change events (Insert/Update/Delete) in relational da
 
 ![](doc/images/event_flow.svg)
 
-The full documentation of this product can be found here:
+The full documentation of this product can be found here:<br/>
 https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
 
 ## Introduction
