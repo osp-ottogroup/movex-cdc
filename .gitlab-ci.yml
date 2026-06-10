@@ -12,7 +12,7 @@ variables:
   LOG_LEVEL: "info"
   RAILS_MAX_THREADS: 100
   KAFKA_SEED_BROKER: localhost:9092
-  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
+  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
   RUBYOPT: -W0
   JRUBY_OPTS: --dev
@@ -557,7 +557,7 @@ final_tag_docker:
     # Deploy prod-Releases to gitlab registry and OSPs dockerhub account
     - |
       # use tag name as branch name, but with release number only for prod (without prefix "prod_")
-      TAG_NAME=${CI_COMMIT_REF_NAME#"prod_"}
+      TAG_NAME=${CI_COMMIT_REF_SLUG#"prod_"}
       echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
       $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
       $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME     
