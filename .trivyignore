@@ -5,3 +5,16 @@ CVE-2021-42392
 CVE-2022-23221
 CVE-2022-41853
 CVE-2024-1597
+# used 2.16.0-java is also always 2.16.0
+CVE-2026-33210
+
+# JRuby 10.1.0.0 has default Gems installed in old versions, MOVEX CDC uses the newer versions
+# gem update --system did not fix this at 2026-06-09
+# erb (erb-6.0.1-java.gemspec)
+CVE-2026-41316
+# net-imap (net-imap-0.6.2.gemspec)
+CVE-2026-42257
+CVE-2026-42258
+CVE-2026-42245
+CVE-2026-42246
+CVE-2026-42256

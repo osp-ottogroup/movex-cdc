@@ -4,7 +4,7 @@
 #  - kafka-jruby image built from /docker/kafka-jruby
 
 # Dockerfile for image is located in movex-cdc/docker/kafka-jruby
-image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.0.3.0-jdk21
+image: registry.gitlab.com/osp-silver/oss/movex-cdc/kafka-jruby:10.1.0.0-jdk21
 
 variables:
   # Should the log output of DB service be shown in the job log?
@@ -12,7 +12,7 @@ variables:
   LOG_LEVEL: "info"
   RAILS_MAX_THREADS: 100
   KAFKA_SEED_BROKER: localhost:9092
-  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_NAME-ci-temp
+  TEMP_DOCKER_IMAGE: $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG-ci-temp
   PODMAN: podman --events-backend=file --storage-driver=vfs --cgroup-manager=cgroupfs
   RUBYOPT: -W0
   JRUBY_OPTS: --dev
@@ -52,12 +52,18 @@ prepare_tests:
     - bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
+    # Pre-install ruby-maven-libs/ruby-maven and warm the Maven plugin cache to
+    # avoid a race in `bundle install --jobs 4`: psych's post-install runs maven
+    # which writes plugin jars into ruby-maven-libs's gem dir, while another
+    # worker may concurrently strict_rm_rf the same dir, causing ENOTEMPTY.
+    - gem install --no-doc ruby-maven-libs ruby-maven
     - bundle install --jobs 4
     - |
-      # fix minitest issue https://github.com/minitest/minitest/issues/1063
-      file=`bundle show minitest`/lib/minitest.rb
-      chmod u+w $file
-      sed -i 's/ run self, method_name, reporter/ Runnable.run self, method_name, reporter # patched for issue 1063/' $file
+      # Fix problem with activerecord-jdbc-adapter, missing jar file: Gem Load Error is: cannot load such file -- arjdbc/jdbc/adapter_java
+      # Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
+      # commented out after using release '80.0.pre1' for sqlite adapter
+      # cd $(bundle info activerecord-jdbc-adapter --path)
+      # rake jar
   artifacts:
     when: always
     paths:
@@ -201,14 +207,11 @@ generate_asciidoc:
     - gem install --no-doc asciidoctor
     - asciidoctor -o doc/movex-cdc.html doc/movex-cdc.adoc
     - asciidoctor -o doc/movex-cdc_demo.html doc/movex-cdc_demo.adoc
-    - gem install --no-doc asciidoctor-pdf
-    - asciidoctor-pdf -o doc/movex-cdc.pdf doc/movex-cdc.adoc
   artifacts:
     paths:
       - doc/movex-cdc.html
       - doc/movex-cdc_demo.html
       - doc/images/
-      - doc/movex-cdc.pdf
 
 build_movex_cdc_with_podman:
   stage: build
@@ -258,7 +261,8 @@ build_movex_cdc_with_podman:
 trivy_scan:
   stage: post_build
   image:
-    name: docker.io/aquasec/trivy:latest
+    # Don't use a tag so latest release should be used
+    name: docker.io/aquasec/trivy:canary
     entrypoint: [""]
   variables:
     # No need to clone the repo, we exclusively work on artifacts.  See https://docs.gitlab.com/ee/ci/runners/README.html#git-strategy
@@ -536,13 +540,11 @@ pages:
   script:
     - cp doc/movex-cdc.html public/
     - cp -r doc/images public/
-    - cp doc/movex-cdc.pdf public/
     - cp doc/movex-cdc_demo.html public/
     - cp doc/google70fcb57bf7ac9cbe.html public/
     - cp doc/sitemap.xml public/
   artifacts:
     paths:
-      - public/movex-cdc.pdf
       - public/movex-cdc.html
       - public/movex-cdc_demo.html
       - public/google70fcb57bf7ac9cbe.html
@@ -559,7 +561,7 @@ final_tag_docker:
     # Deploy prod-Releases to gitlab registry and OSPs dockerhub account
     - |
       # use tag name as branch name, but with release number only for prod (without prefix "prod_")
-      TAG_NAME=${CI_COMMIT_REF_NAME#"prod_"}
+      TAG_NAME=${CI_COMMIT_REF_SLUG#"prod_"}
       echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
       $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
       $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME     

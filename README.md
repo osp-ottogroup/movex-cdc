@@ -7,10 +7,8 @@ This product captures data change events (Insert/Update/Delete) in relational da
 
 ![](doc/images/event_flow.svg)
 
-The full documentation of this product can be found here:
-- HTML: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
-- PDF: https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.pdf
-
+The full documentation of this product can be found here:<br/>
+https://osp-silver.gitlab.io/oss/movex-cdc/movex-cdc.html
 
 ## Introduction
 CDC solutions are often based on processing of the write ahead logs / redo logs like using the XStream API, LogMiner etc. for Oracle.

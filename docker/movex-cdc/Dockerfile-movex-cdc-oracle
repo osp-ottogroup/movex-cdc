@@ -93,6 +93,12 @@ RUN  rm -rf vendor/bundle # remove old vendor gems
 # Ensure bundle install uses the correct JRE
 RUN  bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
 RUN  bundle install --jobs 4 --no-cache
+
+# Fix problem with activerecord-jdbc-adapter, missing jar file: Gem Load Error is: cannot load such file -- arjdbc/jdbc/adapter_java
+# Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
+# commented out after using release '80.0.pre1' for sqlite adapter
+# RUN cd $(bundle info activerecord-jdbc-adapter --path) && rake jar
+
 RUN  rm -f vendor/cache/* && rm -rf vendor/bundle/jruby/*/cache/*
 
 # Copy Frontend-Build into Rails-Project for static serve
@@ -122,8 +128,8 @@ COPY --from=build_stage /opt/async-profiler-4.1-linux-x64  /opt/async-profiler
 
 
 # Show doc files for direct access
-# nonexistence of movex-cdc.html and movex-cdc.pdf is accepted for build outside CI pipeline
-COPY doc/movex-cdc.html doc/movex-cdc.pdf doc/images public/
+# nonexistence of movex-cdc.html is accepted for build outside CI pipeline
+COPY doc/movex-cdc.html doc/images public/
 
 # use ARG not before this point, because ARGs are implicitly used by RUN commands and
 # this will force docker cache misses which results in not using cached layers

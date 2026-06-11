@@ -2,6 +2,8 @@ require 'json'
 class HealthCheckController < ApplicationController
 
   @@last_call_time = Time.now-100.seconds                                       # ensure enough distance at startup
+  @@calls_at_last_call_time = 0                                                 # Allow some calls at the same time
+  MAX_UNVALIDATED_CALLS_AT_A_TIME = 10                                          # Max. number of calls at the same time without valid JWT, to suppress DOS attacks
 
   # GET /health_check
   # Does not require valid JWT
@@ -11,7 +13,12 @@ class HealthCheckController < ApplicationController
     jwt_validated = validate_jwt.nil?                                           # Does request has been called with valid JWT
     # Check for DOS on health check only if not called with valid JWT
     unless jwt_validated
-      raise "Health check called too frequently" if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
+      if Time.now - 1.seconds < @@last_call_time   # suppress DOS attacks
+        @@calls_at_last_call_time += 1
+        raise "Health check called too frequently" if @@calls_at_last_call_time > MAX_UNVALIDATED_CALLS_AT_A_TIME
+      else
+        @@calls_at_last_call_time = 0                                           # Reset the counter if new call at the next time
+      end
       @@last_call_time = Time.now
     end
 
