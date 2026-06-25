@@ -283,8 +283,8 @@ export default {
       try {
         this.isSaving = true;
         if (this.isUpdateMode) {
-          await CRUDService.users.update(this.user.id, { user: this.user });
-          this.$emit('saved', this.user);
+          const updatedUser = await CRUDService.users.update(this.user.id, { user: this.user });
+          this.$emit('saved', updatedUser);
         } else {
           const newUser = await CRUDService.users.create({ user: this.user });
           this.$emit('created', newUser);
