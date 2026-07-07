@@ -11,4 +11,8 @@ prettyprint
 prism
 psych
 reline
-rdoc
+
+# rdoc 8.0.0 now depends on rbs which has a native extension
+# rdoc < 8 does not have this dependency and is compatible with jRuby, so we use rdoc < 8.0
+# Possibly another solutuion could be to use rdoc 8.0.0 and "gem 'rbs', '4.1.0.pre.2', platforms: :jruby"
+rdoc, 7.2.0

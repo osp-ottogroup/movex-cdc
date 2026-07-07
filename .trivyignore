@@ -18,3 +18,6 @@ CVE-2026-42258
 CVE-2026-42245
 CVE-2026-42246
 CVE-2026-42256
+
+# bouncycastle 1.83 is core lib part of JRuby 10.1.0.0, would be replaced with next JRuby version, but for now we ignore the CVEs
+CVE-2025-14813
