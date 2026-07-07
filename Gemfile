@@ -61,6 +61,14 @@ gem 'tzinfo-data', platforms: [:windows, :jruby]
 # Exclude gems that are not really needed but may cause trouble
 # fixes problems like: You have already activated erb 4.0.4, but your Gemfile requires erb 6.0.2.
 no_require = File.readlines('excluded_gems.txt').map(&:strip).reject{|s| s.empty? || s.start_with?('#') }
-no_require.each do |name|
-  gem name, require: false
+no_require.each do |nr|
+  name = nr.split(',')[0].strip
+  version = nr.split(',')[1]&.strip
+  unless ['minitest'].include?(name)
+    if version
+      gem name, version, require: false
+    else
+      gem name, require: false
+    end
+  end
 end
