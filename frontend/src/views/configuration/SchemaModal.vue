@@ -1,12 +1,13 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card" style="width: auto">
-      <b-loading :active="isLoading" :is-full-page="false"/>
+      <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">Edit Schema ({{internalSchema.name}})</p>
@@ -23,7 +24,7 @@
       </section>
       <section class="modal-card-body">
         <b-field label="Last Trigger Deployment">
-          <b-input disabled :value="lastTriggerDeployment()"/>
+          <b-input disabled :model-value="lastTriggerDeployment()"/>
         </b-field>
       </section>
       <footer class="modal-card-foot">
@@ -46,6 +47,7 @@ export default {
   props: {
     schema: { type: Object, default: () => {} },
   },
+  emits: ['close', 'saved'],
   data() {
     return {
       // copy of property 'schema' to avoid changing property directly

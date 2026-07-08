@@ -9,7 +9,7 @@ services:
     ports:
       - "8080:8080"
     environment:
-      VUE_APP_BACKEND_URL: http://localhost:3000
+      VITE_BACKEND_URL: http://localhost:3000
 
   movex-cdc-backend:
     build:

@@ -1,6 +1,4 @@
-import Vue from 'vue';
+import { config } from '@vue/test-utils';
 import Buefy from 'buefy';
-import VueRouter from 'vue-router';
 
-Vue.use(Buefy);
-Vue.use(VueRouter);
+config.global.plugins = [Buefy];

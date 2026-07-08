@@ -1,9 +1,10 @@
+import { describe, it, expect, vi } from 'vitest';
 import HttpService from '@/services/HttpService';
 import LoginService from '@/services/LoginService';
 import TokenService from '@/services/TokenService';
 import Config from '@/config/config';
 
-jest.mock('@/services/HttpService');
+vi.mock('@/services/HttpService');
 
 describe('LoginService', () => {
   it('should login', async () => {
@@ -25,7 +26,7 @@ describe('LoginService', () => {
     const { location } = window;
     delete window.location;
     window.location = {
-      assign: jest.fn(),
+      assign: vi.fn(),
       origin: 'http://localhost:8080',
     };
 

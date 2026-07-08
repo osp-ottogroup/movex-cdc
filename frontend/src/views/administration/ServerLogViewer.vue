@@ -7,13 +7,13 @@
                type="search"
                icon="magnify"
                v-model="filter"
-               @search.native="search">
+               @search="search">
       </b-input>
     </b-field>
 
     <div class="logs" >
       <tt>
-        <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+        <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
         {{data}}
       </tt>
     </div>
@@ -82,10 +82,9 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-@import "../../app.scss";
 
 .server-logs {
-  height: calc(100vh - #{$navbar-height} - 30px - 2rem);
+  height: calc(100vh - var(--bulma-navbar-height) - 30px - 2rem);
   display: flex;
   flex-direction: column;
 }

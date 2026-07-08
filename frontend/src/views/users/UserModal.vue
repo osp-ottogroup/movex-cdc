@@ -1,10 +1,11 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card">
       <header class="modal-card-head">
         <p class="modal-card-title">{{ modalTitle }}</p>
@@ -14,7 +15,7 @@
         </button>
       </header>
       <section class="modal-card-body">
-        <b-loading :active="isActionPending" :is-full-page="false"/>
+        <b-loading :model-value="isActionPending" :is-full-page="false"/>
 
         <div class="columns">
           <div class="column">
@@ -51,7 +52,7 @@
                         placeholder="Select a schema"
                         expanded
                         required
-                        @input="onDbUserChanged">
+                        @update:modelValue="onDbUserChanged">
                 <option v-for="(dbSchema, index) in dbSchemas" :key="index">
                   {{ dbSchema.name }}
                 </option>
@@ -186,6 +187,7 @@ export default {
   props: {
     userId: { type: Number, default: null },
   },
+  emits: ['close', 'deleted', 'saved', 'created'],
   async created() {
     try {
       if (this.isUpdateMode) {
@@ -281,8 +283,8 @@ export default {
       try {
         this.isSaving = true;
         if (this.isUpdateMode) {
-          await CRUDService.users.update(this.user.id, { user: this.user });
-          this.$emit('saved', this.user);
+          const updatedUser = await CRUDService.users.update(this.user.id, { user: this.user });
+          this.$emit('saved', updatedUser);
         } else {
           const newUser = await CRUDService.users.create({ user: this.user });
           this.$emit('created', newUser);

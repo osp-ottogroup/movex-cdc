@@ -1,8 +1,5 @@
-import Vue from 'vue';
-import VueRouter from 'vue-router';
+import { createRouter, createWebHashHistory } from 'vue-router';
 import Home from '../views/home/Home.vue';
-
-Vue.use(VueRouter);
 
 const routes = [
   {
@@ -13,54 +10,52 @@ const routes = [
   {
     path: '/users',
     name: 'users',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/users/Users.vue'),
+    component: () => import('../views/users/Users.vue'),
   },
   {
     path: '/configuration',
     name: 'configuration',
-    component: () => import(/* webpackChunkName: "about" */ '../views/configuration/Configuration.vue'),
+    component: () => import('../views/configuration/Configuration.vue'),
   },
   {
     path: '/deployment',
     name: 'deployment',
-    component: () => import(/* webpackChunkName: "about" */ '../views/deployment/Deployment.vue'),
+    component: () => import('../views/deployment/Deployment.vue'),
   },
   {
     path: '/administration/server-log',
     name: 'server-log',
-    component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogViewer.vue'),
+    component: () => import('../views/administration/ServerLogViewer.vue'),
   },
   {
     path: '/administration/worker-count',
     name: 'worker-count',
-    component: () => import(/* webpackChunkName: "about" */ '../views/administration/WorkerCount.vue'),
+    component: () => import('../views/administration/WorkerCount.vue'),
   },
   {
     path: '/administration/max-transaction-size',
     name: 'max-transaction-size',
-    component: () => import(/* webpackChunkName: "about" */ '../views/administration/MaxTransactionSize.vue'),
+    component: () => import('../views/administration/MaxTransactionSize.vue'),
   },
   {
     path: '/administration/server-log-level',
     name: 'server-log-level',
-    component: () => import(/* webpackChunkName: "about" */ '../views/administration/ServerLogLevel.vue'),
+    component: () => import('../views/administration/ServerLogLevel.vue'),
   },
   {
     path: '/administration/config-exchange',
     name: 'config-exchange',
-    component: () => import(/* webpackChunkName: "about" */ '../views/administration/ConfigExchange.vue'),
+    component: () => import('../views/administration/ConfigExchange.vue'),
   },
   {
     path: '/information',
     name: 'information',
-    component: () => import(/* webpackChunkName: "about" */ '../views/information/InstanceInfos.vue'),
+    component: () => import('../views/information/InstanceInfos.vue'),
   },
 ];
 
-const router = new VueRouter({
+const router = createRouter({
+  history: createWebHashHistory(),
   routes,
 });
 

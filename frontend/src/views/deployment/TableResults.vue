@@ -3,13 +3,13 @@
     <b-collapse
       class="card"
       animation="slide"
-      :open="false">
+      :model-value="false">
       <template #trigger="props">
         <div class="card-header" role="button">
           <div class="card-header-title is-justify-content-space-between">
             <b-field grouped>
               <b-field v-if="enableSwitches" label="Deploy" custom-class="is-size-7">
-                <b-switch size="is-small" @click.native.stop v-model="/* eslint-disable-line vue/no-mutating-props */ table.deploy"/>
+                <b-switch size="is-small" @click.stop v-model="/* eslint-disable-line vue/no-mutating-props */ table.deploy"/>
               </b-field>
               <b-field label="Table" custom-class="is-size-7">
                 {{table.tableName}}

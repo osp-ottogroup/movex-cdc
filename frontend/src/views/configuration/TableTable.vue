@@ -1,7 +1,7 @@
 <template>
   <div>
     <b-table :data="tables"
-             :selected.sync="selectedTable"
+             v-model:selected="selectedTable"
              @click="onTableSelected">
       <b-table-column field="name" label="Observed Tables" searchable>
         <template v-slot:searchable="props">
@@ -96,22 +96,15 @@ export default {
     },
   },
   watch: {
-    tables(newList, oldList) {
+    tables(newList) {
       if (!newList || newList.length === 0) {
         this.selectedTable = null;
-      } else if (newList && newList !== oldList) {
-        // eslint-disable-next-line prefer-destructuring
+      } else if (this.selectedTable !== null) {
+        // try to keep the current selection after the list was replaced
+        const found = newList.find((table) => table.id === this.selectedTable.id);
+        this.selectedTable = found !== undefined ? found : newList[0];
+      } else {
         this.selectedTable = newList[0];
-      } else if (newList && newList === oldList && this.selectedTable !== null) {
-        // reference of table list has not changed
-        // it seems that the selected table has changed, so find changed table
-        const newTable = newList.find((table) => table.id === this.selectedTable.id);
-        if (newTable !== undefined) {
-          this.selectedTable = newTable;
-        } else {
-          // table was deleted
-          this.selectedTable = null;
-        }
       }
       this.$emit('table-selected', this.selectedTable);
     },

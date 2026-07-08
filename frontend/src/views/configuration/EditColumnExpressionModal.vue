@@ -1,5 +1,5 @@
 <template>
-  <b-modal :active="show" @close="$emit('close')">
+  <b-modal :model-value="show" @close="$emit('close')" @update:model-value="$emit('close')">
     <div class="modal-card" style="width: 100%">
       <header class="modal-card-head">
         <p class="modal-card-title">Edit Column Expression</p>
@@ -32,6 +32,7 @@ SELECT '[ '||LISTAGG(JSON_OBJECT('Name' VALUE Name), ', ')||' ]' FROM tab WHERE 
 <script>
 export default {
   name: 'EditColumnExpressionModal',
+  emits: ['close', 'save', 'remove'],
   props: {
     show: Boolean,
     expression: Object,

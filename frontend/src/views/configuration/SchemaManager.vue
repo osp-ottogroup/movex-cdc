@@ -1,9 +1,9 @@
 <template>
   <div class="is-relative">
-    <b-loading :active="isLoading" :is-full-page="false"/>
+    <b-loading :model-value="isLoading" :is-full-page="false"/>
 
     <schema-table :schemas="schemas"
-                  v-on="$listeners"
+                  @schema-selected="$emit('schema-selected', $event)"
                   @edit-schema="onEditSchema"/>
 
     <template v-if="modal.show">
@@ -71,8 +71,7 @@ export default {
       this.modal.show = false;
     },
     async onSaved(savedSchema) {
-      const index = this.schemas.findIndex((schema) => schema.id === savedSchema.id);
-      this.$set(this.schemas, index, savedSchema);
+      this.schemas = this.schemas.map((schema) => (schema.id === savedSchema.id ? savedSchema : schema));
       this.modal.schema = null;
       this.modal.show = false;
     },

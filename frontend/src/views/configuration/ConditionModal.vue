@@ -1,13 +1,14 @@
 <template>
   <b-modal id="condition-modal"
-           :active="true"
+           :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card">
-      <b-loading :active="isLoading" :is-full-page="false"/>
+      <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">{{title}}</p>
@@ -53,6 +54,7 @@ export default {
   props: {
     condition: { type: Object, default: () => {} },
   },
+  emits: ['close', 'saved', 'removed'],
   data() {
     return {
       isLoading: false,
@@ -61,21 +63,16 @@ export default {
   },
   computed: {
     title() {
-      let title = null;
       switch (this.condition.operation) {
         case 'I':
-          title = 'Edit condition for insert-trigger';
-          break;
+          return 'Edit condition for insert-trigger';
         case 'U':
-          title = 'Edit condition for update-trigger';
-          break;
+          return 'Edit condition for update-trigger';
         case 'D':
-          title = 'Edit condition for delete-trigger';
-          break;
+          return 'Edit condition for delete-trigger';
         default:
           throw new Error(`trigger type ${this.condition.operation} is not supported`);
       }
-      return title;
     },
     removable() {
       return this.condition.id !== undefined;

@@ -1,6 +1,5 @@
 // @ts-check
 
-// eslint-disable-next-line import/no-cycle
 import HttpService from './HttpService';
 import TokenService from './TokenService';
 import Config from '../config/config';

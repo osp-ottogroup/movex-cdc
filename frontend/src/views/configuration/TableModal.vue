@@ -1,13 +1,14 @@
 <template>
   <b-modal id="table-modal"
-           :active="true"
+           :model-value="true"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card" style="width: auto">
-      <b-loading :active="isLoading" :is-full-page="false"/>
+      <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       <header class="modal-card-head">
         <p class="modal-card-title">{{title}}</p>
@@ -45,7 +46,7 @@ the JSON data
 of the event?" position="is-bottom" size="is-small">
               <b-field label="Record Tx.-ID">
                 <b-switch v-model="internalTable.yn_record_txid"
-                @input="onRecordTxIdChanged"
+                @update:modelValue="onRecordTxIdChanged"
                 true-value="Y"
                 false-value="N"/>
               </b-field>
@@ -150,17 +151,17 @@ as insert events at next deployment?" position="is-right" size="is-small">
             <div class="columns is-1 is-variable">
               <div class="column">
                 <b-field label="Insert" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_insert_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_insert_trigger_changed_at"/>
                 </b-field>
               </div>
               <div class="column">
                 <b-field label="Update" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_update_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_update_trigger_changed_at"/>
                 </b-field>
               </div>
               <div class="column">
                 <b-field label="Delete" custom-class="is-small has-text-grey">
-                  <b-input size="is-small" disabled :value="triggerDates.youngest_delete_trigger_changed_at"/>
+                  <b-input size="is-small" disabled :model-value="triggerDates.youngest_delete_trigger_changed_at"/>
                 </b-field>
               </div>
             </div>
@@ -197,6 +198,7 @@ export default {
     table: { type: Object, default: () => {} },
     schema: { type: Object, default: () => {} },
   },
+  emits: ['close', 'removed', 'updated', 'created'],
   data() {
     return {
       isLoading: false,

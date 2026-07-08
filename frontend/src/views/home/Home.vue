@@ -1,6 +1,6 @@
 <template>
   <section class="hero">
-    <b-loading :active="isLoading" :is-full-page="false"></b-loading>
+    <b-loading :model-value="isLoading" :is-full-page="false"></b-loading>
     <div class="hero-body">
       <div class="container has-text-centered">
         <transition name="fade">
@@ -46,7 +46,7 @@ export default {
       if (found !== undefined) {
         this.contactPerson = found.value;
       }
-    } catch (e) {
+    } catch {
       // nothing
     } finally {
       this.isLoading = false;
@@ -64,7 +64,7 @@ h1 {
   transition: opacity .5s;
 }
 
-.fade-enter, .fade-leave-to /* .fade-leave-active below version 2.1.8 */ {
+.fade-enter-from, .fade-leave-to {
   opacity: 0;
 }
 </style>

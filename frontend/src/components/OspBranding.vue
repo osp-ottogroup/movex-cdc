@@ -9,13 +9,13 @@
 </template>
 
 <style lang="scss" scoped>
-@import '../app.scss';
+@use '../variables' as vars;
 
 .osp-red {
-  color: $osp-red;
+  color: vars.$osp-red;
 }
 .osp-gray {
-  color: $osp-gray;
+  color: vars.$osp-gray;
 }
 .osp-stroke {
   position: relative;

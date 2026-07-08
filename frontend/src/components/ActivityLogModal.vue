@@ -1,11 +1,12 @@
 <template>
-  <b-modal :active="true"
+  <b-modal :model-value="true"
            width="90vw"
            has-modal-card
            trap-focus
            aria-role="dialog"
            aria-modal
-           @close="onClose">
+           @close="onClose"
+           @update:model-value="onClose">
     <div class="modal-card" :style="`width: ${activityLog.length === 0 ? '30vw' : '80vw'}`">
       <header class="modal-card-head">
         <p class="modal-card-title">Activity Log</p>
@@ -49,7 +50,9 @@
               <div>{{ props.row.action.substring(0, 40) }} ...</div>
               <div class="has-text-info-dark pointer"
                    @click="props.toggleDetails(props.row)">
-                {{ $refs.activityLogTable.isVisibleDetailRow(props.row) ? 'less ...' : 'more ...'}}
+                <template v-if="$refs.activityLogTable">
+                  {{ $refs.activityLogTable.isVisibleDetailRow(props.row) ? 'less ...' : 'more ...'}}
+                </template>
               </div>
             </b-table-column>
             <b-table-column field="created_at" label="Timestamp" sortable v-slot="props">
@@ -64,7 +67,7 @@
           </b-table>
         </div>
 
-        <b-loading :active="isLoading" :is-full-page="false"/>
+        <b-loading :model-value="isLoading" :is-full-page="false"/>
 
       </section>
       <footer class="modal-card-foot is-justify-content-flex-end">
@@ -86,6 +89,7 @@ export default {
   props: {
     filter: { type: Object, default: () => {} },
   },
+  emits: ['close'],
   async created() {
     try {
       const filterParams = {};
@@ -137,7 +141,7 @@ export default {
   min-width: 30vw;
   min-height: 30vh;
 }
-::v-deep .no-wrap {
+:deep(.no-wrap) {
   white-space: nowrap;
 }
 .pointer {

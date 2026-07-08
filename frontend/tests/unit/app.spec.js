@@ -1,4 +1,5 @@
 import { shallowMount } from '@vue/test-utils';
+import { describe, it, expect, vi } from 'vitest';
 import App from '@/App.vue';
 
 describe('App.vue', () => {
@@ -8,13 +9,16 @@ describe('App.vue', () => {
   });
 
   it('renders application if user is logged in', () => {
-    const onCreatedStub = jest.spyOn(App.methods, 'onCreated').mockImplementation(jest.fn());
+    const onCreatedStub = vi.spyOn(App.methods, 'onCreated').mockImplementation(vi.fn());
     const wrapper = shallowMount(App, {
       data() {
         return {
           loggedIn: true,
           isLoginCheckPending: false,
         };
+      },
+      global: {
+        stubs: { RouterView: true },
       },
     });
     expect(onCreatedStub).toHaveBeenCalledWith();

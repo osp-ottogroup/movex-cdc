@@ -144,17 +144,15 @@ export default {
       this.showSearchFields = !this.showSearchFields;
     },
     onSaved(savedUser) {
-      const index = this.users.findIndex((user) => user.id === savedUser.id);
-      this.$set(this.users, index, savedUser);
+      this.users = this.users.map((user) => (user.id === savedUser.id ? savedUser : user));
       this.closeUserModal();
     },
     onDeleted(deletedUser) {
-      const index = this.users.findIndex((user) => user.id === deletedUser.id);
-      this.users.splice(index, 1);
+      this.users = this.users.filter((user) => user.id !== deletedUser.id);
       this.closeUserModal();
     },
     onCreated(createdUser) {
-      this.users.push(createdUser);
+      this.users = [...this.users, createdUser];
       this.closeUserModal();
     },
   },

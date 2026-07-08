@@ -19,7 +19,6 @@ const escape = (string) => {
   return (`${string}`).replace(htmlEscaper, (match) => htmlEscapes[match]);
 };
 
-// eslint-disable-next-line import/prefer-default-export
 export const getErrorMessageAsHtml = (error, prependMessage = '') => {
   let errorMessage;
 
