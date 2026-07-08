@@ -52,12 +52,8 @@ prepare_tests:
     - bundle lock --add-platform universal-java-21 && bundle lock --add-platform universal-java-24
     # due to error building digest-crc:6.0.3 sh: line 0: exec: jrake: not found
     - ln -s /opt/jruby-$JRUBY_VERSION/bin/rake /opt/jruby-$JRUBY_VERSION/bin/jrake
-    # Pre-install ruby-maven-libs/ruby-maven and warm the Maven plugin cache to
-    # avoid a race in `bundle install --jobs 4`: psych's post-install runs maven
-    # which writes plugin jars into ruby-maven-libs's gem dir, while another
-    # worker may concurrently strict_rm_rf the same dir, causing ENOTEMPTY.
-    - gem install --no-doc ruby-maven-libs ruby-maven
-    - bundle install --jobs 4
+    # Do not use parallel jobs for bundle install, because it will have a race condition at ruby-maven-libs and ruby-maven otherwise
+    - bundle install --jobs 1
     - |
       # Fix problem with activerecord-jdbc-adapter, missing jar file: Gem Load Error is: cannot load such file -- arjdbc/jdbc/adapter_java
       # Build jar file explicitely, because it is not included in the gem and not built automatically by bundler
