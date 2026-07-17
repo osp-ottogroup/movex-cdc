@@ -93,6 +93,16 @@ class HealthCheckController < ApplicationController
     build_info_record(info, :run_config,                        'Path to config file')
     build_info_record(info, :tz,                                'Local timezone within the Docker-container of the applikation')
 
+    StatisticEventLogFinalErrors.get_instance.get_statistic.each do |log|
+      info << {
+        name: log.instance_name,
+        description: 'Count of most recent records in table Event_Log_Final_Errors',
+        value: log.current_value,
+        default_value: '',
+        startup_config_value: ''
+    }
+    end
+
     render json: { config_info: info  }, status: :ok
   end
 
