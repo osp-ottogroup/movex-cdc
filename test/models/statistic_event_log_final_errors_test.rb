@@ -1,7 +1,7 @@
 require 'test_helper'
 
 class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
-  test "retrieve_Staticstics_of_tableEvent_Log_Final_Errors" do
+  test "retrieve table Event_Log_Final_Errors statistics" do
     run_with_current_user do
       StatisticEventLogFinalErrors.remove_instance
 
@@ -48,10 +48,10 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
                    ", binds: {created_at: 50.minutes.ago, error_time: 50.minutes.ago}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-4, -100, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation INSERT: Non Visible Event Log Final Error entry')
-                   ", binds: {created_at: 100.minutes.ago, error_time: 100.minutes.ago}
+                   ", binds: {created_at: 130.minutes.ago, error_time: 130.minutes.ago}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-5, -100, 'D', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation DELETE: Non Visible Event Log Final Error entry')
-                   ", binds: {created_at: 100.minutes.ago, error_time: 100.minutes.ago}
+                   ", binds: {created_at: 130.minutes.ago, error_time: 130.minutes.ago}
 
       # Retrieve object containing most recent statistic of table Event_Log_Final_Errors
       statistics = StatisticEventLogFinalErrors.get_instance.get_statistic
@@ -59,8 +59,8 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
       # Expected test result #1: 2 items are returned by the database
       assert_equal 2, statistics.length
       # Expected test result #2: 1st item relates to deletion / 2nd (last) item relates to insertion of records
-      assert_equal @schema_name + ' / StatisticEventLogFinalErrorsTest / D', statistics.first.instance_name
-      assert_equal @schema_name + ' / StatisticEventLogFinalErrorsTest / I', statistics.last.instance_name
+      assert_equal @schema_name + '.StatisticEventLogFinalErrorsTest/D', statistics.first.schema_name + '.' + statistics.first.table_name + '/' + statistics.first.operation
+      assert_equal @schema_name + '.StatisticEventLogFinalErrorsTest/I', statistics.last.schema_name + '.' + statistics.last.table_name + '/' + statistics.last.operation
       # Expected test result #3: 1st item relates to deletion of one record / 2nd (last) item relates to insertion of two records
       assert_equal 1, statistics.first.current_value
       assert_equal 2, statistics.last.current_value

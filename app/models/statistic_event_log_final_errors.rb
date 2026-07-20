@@ -13,10 +13,11 @@ class StatisticEventLogFinalErrors
 
   def refresh_statistic()
     # Retrieve aggregation of data records written to table Event_Log_Final_Errors during the last 120 minutes (7200 seconds)
-    # Query result is prepared as key-value-pair with the aim to provide appropriate config_info data
     @record_cache = Database.select_all("\
         SELECT
-            sch.NAME || ' / ' || tab.NAME || ' / ' || elfe.OPERATION AS instance_name
+            sch.NAME AS schema_name
+            ,tab.NAME AS table_name
+            ,elfe.OPERATION AS operation
             ,COUNT(*) AS current_value
         FROM
             Event_Log_Final_Errors elfe
@@ -25,7 +26,7 @@ class StatisticEventLogFinalErrors
             INNER JOIN Schemas sch
                 ON sch.id = tab.schema_id
         WHERE
-            elfe.CREATED_AT >= :start_eval_period
+            elfe.error_time >= :start_eval_period
         GROUP BY
             sch.NAME
             ,tab.NAME

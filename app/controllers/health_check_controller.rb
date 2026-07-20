@@ -95,8 +95,8 @@ class HealthCheckController < ApplicationController
 
     StatisticEventLogFinalErrors.get_instance.get_statistic.each do |log|
       info << {
-        name: log.instance_name,
-        description: 'Count of most recent records in table Event_Log_Final_Errors',
+        name: log.schema_name + '.' + log.table_name + '/' + log.operation,
+        description: 'Statistic of table Event_Log_Final_Errors',
         value: log.current_value,
         default_value: '',
         startup_config_value: ''
