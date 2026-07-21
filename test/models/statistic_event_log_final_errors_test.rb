@@ -39,19 +39,20 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
       Database.execute "DELETE FROM Event_Log_Final_Errors"
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-1, -100, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation INSERT: Visible Event Log Final Error entry')
-                   ", binds: {created_at: 10.minutes.ago, error_time: 10.minutes.ago}
+                   ", binds: {created_at: (Time.now - (10 * 60)), error_time: (Time.now - (10 * 60))}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-2, -100, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation INSERT: Visible Event Log Final Error entry')
-                   ", binds: {created_at: 20.minutes.ago, error_time: 20.minutes.ago}
+                   ", binds: {created_at: (Time.now - (20 * 60)), error_time: (Time.now - (20 * 60))}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-3, -100, 'D', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation DELETE: Visible Event Log Final Error entry')
-                   ", binds: {created_at: 50.minutes.ago, error_time: 50.minutes.ago}
+                   ", binds: {created_at: (Time.now - (50 * 60)), error_time: (Time.now - (50 * 60))}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-4, -100, 'I', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation INSERT: Non Visible Event Log Final Error entry')
-                   ", binds: {created_at: 130.minutes.ago, error_time: 130.minutes.ago}
+                   ", binds: {created_at: (Time.now - (130 * 60)), error_time: (Time.now - (130 * 60))}
       Database.execute "INSERT INTO Event_Log_Final_Errors (ID, Table_ID, Operation, DBUser, Payload, Created_At, Error_Time, Error_Msg)
                     VALUES (-5, -100, 'D', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation DELETE: Non Visible Event Log Final Error entry')
-                   ", binds: {created_at: 130.minutes.ago, error_time: 130.minutes.ago}
+                   ", binds: {created_at: (Time.now - (130 * 60)), error_time: (Time.now - (130 * 60))}
+      Database.execute "COMMIT" if MovexCdc::Application.config.db_type == 'ORACLE'
 
       # Retrieve object containing most recent statistic of table Event_Log_Final_Errors
       statistics = StatisticEventLogFinalErrors.get_instance.get_statistic
