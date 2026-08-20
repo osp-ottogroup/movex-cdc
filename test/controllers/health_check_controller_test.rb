@@ -45,14 +45,15 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     sleep(1.0 - Time.now.subsec)                                                # wait until next second to ensure that all following requests are within the same second
     threads = []
     internal_server_error_raised = false
-    12.downto(0).each do
+    concurrent_requests = 20                                                    # more than 10 requests within one second should cause 500 error
+    concurrent_requests.downto(0).each do
       threads <<  Thread.new() do
         get "/health_check", as: :json
         internal_server_error_raised = true if response.status == 500
       end
     end
     threads.each(&:join)                                                        # wait for all threads to complete
-    assert internal_server_error_raised, log_on_failure('After more than x checks some should fail within same second')
+    assert internal_server_error_raised, log_on_failure("After more than #{concurrent_requests} checks some should fail within same second")
 
     sleep 2                                                                     # prevent from double call exception
     begin
