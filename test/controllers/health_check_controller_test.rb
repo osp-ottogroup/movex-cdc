@@ -45,7 +45,7 @@ class HealthCheckControllerTest < ActionDispatch::IntegrationTest
     sleep(1.0 - Time.now.subsec)                                                # wait until next second to ensure that all following requests are within the same second
     threads = []
     internal_server_error_raised = false
-    concurrent_requests = 20                                                    # more than 10 requests within one second should cause 500 error
+    concurrent_requests = 20                                                    # more than x requests within one second should cause 500 error
     concurrent_requests.downto(0).each do
       threads <<  Thread.new() do
         get "/health_check", as: :json
