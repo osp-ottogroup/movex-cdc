@@ -12,40 +12,44 @@ class StatisticEventLogFinalErrors
   end
 
   def refresh_statistic()
-    # Retrieve aggregation of data records written to table Event_Log_Final_Errors during the last 120 minutes (7200 seconds)
-    @record_cache = Database.select_all("\
-        SELECT
-            sch.NAME AS schema_name
-            ,tab.NAME AS table_name
-            ,elfe.OPERATION AS operation
-            ,COUNT(*) AS current_value
-        FROM
-            Event_Log_Final_Errors elfe
-            INNER JOIN Tables tab
-                ON tab.id = elfe.table_id
-            INNER JOIN Schemas sch
-                ON sch.id = tab.schema_id
-        WHERE
-            elfe.error_time >= :start_eval_period
-        GROUP BY
-            sch.NAME
-            ,tab.NAME
-            ,elfe.OPERATION
-        ORDER BY
-            sch.NAME
-            ,tab.NAME
-            ,elfe.OPERATION
-      ",{start_eval_period: Time.now - (120 * 60)}
+    # Retrieve aggregation of data records written to table Event_Log_Final_Errors without any time limit,
+    # because old records are deleted by housekeeping processes after several days.
+    record_cache = Database.select_all("\
+      SELECT
+        sch.NAME AS schema_name
+        ,tab.NAME AS table_name
+        ,elfe.OPERATION AS operation
+        ,COUNT(*) AS current_value
+      FROM
+        Event_Log_Final_Errors elfe
+        INNER JOIN Tables tab
+          ON tab.id = elfe.table_id
+        INNER JOIN Schemas sch
+          ON sch.id = tab.schema_id
+      GROUP BY
+        sch.NAME
+        ,tab.NAME
+        ,elfe.OPERATION
+      ORDER BY
+        sch.NAME
+        ,tab.NAME
+        ,elfe.OPERATION"
     )
+    @mutex.synchronize do
+      @record_cache = record_cache
+    end
   end
 
   def get_statistic()
-    @record_cache
+    @mutex.synchronize do
+      @record_cache
+    end
   end
 
   private
   def initialize
     @record_cache = {}
+    @mutex = Mutex.new
     refresh_statistic
   end
 end
