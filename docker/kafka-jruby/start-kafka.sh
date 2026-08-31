@@ -28,15 +28,25 @@ echo "Prepare configuration"
 rm -f $CLIENT_PROPERTIES
 touch $CLIENT_PROPERTIES
 
+cat << EOF >> $SERVER_PROPERTIES
 # Use the existing config/server.properties file which includes the KRAFT configuration already
-echo "process.roles=broker,controller"                                                        >> $SERVER_PROPERTIES
-echo "node.id=1"                                                                              >> $SERVER_PROPERTIES
-echo "controller.quorum.voters=1@localhost:9093"                                              >> $SERVER_PROPERTIES
-echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
-echo "controller.listener.names=LISTENER_INT"                                                 >> $SERVER_PROPERTIES
-echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092"                                   >> $SERVER_PROPERTIES
-echo "listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:$SECURITY_PROTOCOL" >> $SERVER_PROPERTIES
-echo "inter.broker.listener.name=LISTENER_EXT"                                                >> $SERVER_PROPERTIES
+process.roles=broker,controller
+node.id=1
+controller.quorum.voters=1@localhost:9093
+listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093
+controller.listener.names=LISTENER_INT
+advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092
+listener.security.protocol.map=LISTENER_EXT:$SECURITY_PROTOCOL,LISTENER_INT:$SECURITY_PROTOCOL
+inter.broker.listener.name=LISTENER_EXT
+# Ensure one replica will function
+offsets.topic.replication.factor=1
+transaction.state.log.replication.factor=1
+transaction.state.log.min.isr=1
+default.replication.factor=1
+min.insync.replicas=1
+share.coordinator.state.topic.replication.factor=1
+share.coordinator.state.topic.min.isr=1
+EOF
 
 echo "security.protocol=$SECURITY_PROTOCOL"                                                   >> $CLIENT_PROPERTIES
 
@@ -176,8 +186,8 @@ do
 
     echo "Waiting for Kafka to create groups now"
     echo "Following double output 'org.apache.kafka.common.errors.TimeoutException' is 'works as designed'"
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
-    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --consumer.config $CLIENT_PROPERTIES &
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group1 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --command-config $CLIENT_PROPERTIES &
+    $KAFKA_HOME/bin/kafka-console-consumer.sh --bootstrap-server $KAFKA_HOST:9092 --topic TestTopic1 --group Group2 --timeout-ms ${WAIT_FOR_KAFKA_SECS}000 --command-config $CLIENT_PROPERTIES &
     typeset -i GROUP_LOOP_COUNT=0
     while [ 1 -eq 1 ]
     do
@@ -191,6 +201,9 @@ do
       if [ $GROUP_LOOP_COUNT -gt $WAIT_FOR_KAFKA_SECS ]; then
         echo "Two Kafka groups missing after $WAIT_FOR_KAFKA_SECS seconds, terminating"
         $KAFKA_HOME/bin/kafka-consumer-groups.sh --bootstrap-server=$KAFKA_HOST:9092 --list --command-config $CLIENT_PROPERTIES
+        echo ""
+        echo "############# Kafka log ##############"
+        cat $KAFKA_HOME/logs/kafkaServer.out
         exit 1
       fi
       echo -n "."
