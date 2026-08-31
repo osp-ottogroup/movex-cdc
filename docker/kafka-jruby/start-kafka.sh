@@ -29,7 +29,6 @@ rm -f $CLIENT_PROPERTIES
 touch $CLIENT_PROPERTIES
 
 # Use the existing config/server.properties file which includes the KRAFT configuration already
-cat  $KAFKA_HOME/config/server.properties
 echo "process.roles=broker,controller"                                                        >> $SERVER_PROPERTIES
 echo "node.id=1"                                                                              >> $SERVER_PROPERTIES
 echo "controller.quorum.voters=1@localhost:9093"                                              >> $SERVER_PROPERTIES
