@@ -11,7 +11,6 @@ else
 fi
 
 export KAFKA_HOME=/opt/kafka
-export BROKER_ID=-1
 export WAIT_FOR_KAFKA_SECS=60
 export CLIENT_KEYSTOREFILE=/opt/kafka/kafka.client.keystore.p12
 export SERVER_KEYSTOREFILE=/opt/kafka/kafka.server.keystore.p12
@@ -25,13 +24,15 @@ export KAFKA_HOST=$HOSTNAME
 export KAFKA_HOST_IP=`ping -c 1 $KAFKA_HOST | awk -F'[()]' '/PING/{print $2}'`
 echo "KAFKA host to use in SSL config, Kafka config and Kafka clients = '$KAFKA_HOST' with IP $KAFKA_HOST_IP"
 echo "Prepare configuration"
-# Create a new server.properties file
-cp -f $KAFKA_HOME/config/kraft/server.properties $SERVER_PROPERTIES
 # Create a new client.properties file
 rm -f $CLIENT_PROPERTIES
 touch $CLIENT_PROPERTIES
 
-sed -i "s|^broker.id=.*$|broker.id=$BROKER_ID|" $KAFKA_HOME/config/server.properties
+# Use the existing config/server.properties file which includes the KRAFT configuration already
+cat  $KAFKA_HOME/config/server.properties
+echo "process.roles=broker,controller"                                                        >> $SERVER_PROPERTIES
+echo "node.id=1"                                                                              >> $SERVER_PROPERTIES
+echo "controller.quorum.voters=1@localhost:9093"                                              >> $SERVER_PROPERTIES
 echo "listeners=LISTENER_EXT://0.0.0.0:9092,LISTENER_INT://0.0.0.0:9093"                      >> $SERVER_PROPERTIES
 echo "controller.listener.names=LISTENER_INT"                                                 >> $SERVER_PROPERTIES
 echo "advertised.listeners=LISTENER_EXT://$KAFKA_HOST:9092"                                   >> $SERVER_PROPERTIES
