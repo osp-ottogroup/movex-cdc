@@ -5,6 +5,7 @@ Download binary from https://kafka.apache.org/downloads
 2024-01-01 Kafka 3.7.0, log4j 2.23.1
 2025-05-27 Kafka 3.9.1 log4j 2.24.3
 2026-04-16 Kafka 4.2.0 log4j 2.25.3
+2026-08-31 Kafka 4.3.1 log4j 2.25.4
 
 ## Used libs
 
