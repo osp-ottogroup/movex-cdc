@@ -11,6 +11,8 @@ class HourlyJob < ApplicationJob
     begin
       Database.set_application_info('HourlyJob/HousekeepingFinalErrors.do_housekeeping')
       HousekeepingFinalErrors.get_instance.do_housekeeping
+      Database.set_application_info('HourlyJob/StatisticEventLogFinalErrors.refresh_statistic')
+      StatisticEventLogFinalErrors.get_instance.refresh_statistic
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'HourlyJob.perform', additional_msg: "calling HousekeepingFinalErrors.do_housekeeping!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
