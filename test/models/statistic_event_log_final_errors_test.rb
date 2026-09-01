@@ -55,7 +55,7 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
       assert_equal @schema_name + '.StatisticEventLogFinalErrorsTest/I', statistics.last.schema_name + '.' + statistics.last.table_name + '/' + statistics.last.operation
 
       Database.select_all("SELECT * FROM Event_Log_Final_Errors").each do |record|
-        puts "Event_Log_Final_Errors record: #{record.inspect}"
+        STDERR.puts "Event_Log_Final_Errors record: #{record.inspect}"
       end
 
       # Expected test result #3: 1st item relates to deletion of two records / 2nd (last) item relates to insertion of three records
