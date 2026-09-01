@@ -53,13 +53,14 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
       # Expected test result #2: 1st item relates to deletion / 2nd (last) item relates to insertion of records
       assert_equal @schema_name + '.StatisticEventLogFinalErrorsTest/D', statistics.first.schema_name + '.' + statistics.first.table_name + '/' + statistics.first.operation
       assert_equal @schema_name + '.StatisticEventLogFinalErrorsTest/I', statistics.last.schema_name + '.' + statistics.last.table_name + '/' + statistics.last.operation
-      # Expected test result #3: 1st item relates to deletion of two records / 2nd (last) item relates to insertion of three records
-      assert_equal 2, statistics.first.current_value
-      assert_equal 3, statistics.last.current_value
 
       Database.select_all("SELECT * FROM Event_Log_Final_Errors").each do |record|
         puts "Event_Log_Final_Errors record: #{record.inspect}"
       end
+
+      # Expected test result #3: 1st item relates to deletion of two records / 2nd (last) item relates to insertion of three records
+      assert_equal 2, statistics.first.current_value
+      assert_equal 3, statistics.last.current_value
 
       Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Table_ID = (SELECT id FROM Tables WHERE name = 'StatisticEventLogFinalErrorsTest')"
       Database.execute "DELETE FROM Tables WHERE name = 'StatisticEventLogFinalErrorsTest'"
