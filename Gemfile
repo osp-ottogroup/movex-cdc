@@ -7,7 +7,7 @@ ruby '4.0.0'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
 # gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.5'
+gem 'rails', '8.0.5.1'
 
 # Use the current development branch for Rails 8.0, frozen to a certain commit to avoid unwanted changes
 #gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
