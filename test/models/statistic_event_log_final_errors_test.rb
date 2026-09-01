@@ -57,6 +57,10 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
       assert_equal 2, statistics.first.current_value
       assert_equal 3, statistics.last.current_value
 
+      Database.select_all("SELECT * FROM Event_Log_Final_Errors").each do |record|
+        puts "Event_Log_Final_Errors record: #{record.inspect}"
+      end
+
       Database.execute "DELETE FROM Event_Log_Final_Errors WHERE Table_ID = (SELECT id FROM Tables WHERE name = 'StatisticEventLogFinalErrorsTest')"
       Database.execute "DELETE FROM Tables WHERE name = 'StatisticEventLogFinalErrorsTest'"
     end

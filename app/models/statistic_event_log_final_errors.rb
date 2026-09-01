@@ -42,10 +42,7 @@ class StatisticEventLogFinalErrors
 
   def get_statistic()
     @mutex.synchronize do
-      # Sort results by schema_name, table_name, and operation to ensure consistent ordering
-      @record_cache.sort_by do |record|
-        [record['schema_name'], record['table_name'], record['operation']]
-      end
+      @record_cache
     end
   end
 
