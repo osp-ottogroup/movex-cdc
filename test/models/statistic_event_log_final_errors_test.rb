@@ -44,7 +44,8 @@ class StatisticEventLogFinalErrorsTest < ActiveSupport::TestCase
                     VALUES (-5, -100, 'D', 'HUGO', '\"new\": { \"ID\": 1}', :created_at, :error_time, 'Operation DELETE: Event Log Final Error entry')
                    ", binds: {created_at: (Time.now - (130 * 60)), error_time: (Time.now - (130 * 60))}
 
-      # Retrieve object containing most recent statistic of table Event_Log_Final_Errors
+      # Force refresh and retrieve object containing most recent statistic of table Event_Log_Final_Errors
+      StatisticEventLogFinalErrors.get_instance.refresh_statistic
       statistics = StatisticEventLogFinalErrors.get_instance.get_statistic
 
       # Expected test result #1: 2 items are returned by the database
