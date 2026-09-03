@@ -61,8 +61,8 @@ class TransferThread
     @thread                         = nil                                       # Reference to thread, set in new thread in method process
     @stop_requested                 = false
     @thread_mutex                   = Mutex.new                                 # Ensure access on instance variables from two threads
-    @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread
-    @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value
+    @max_event_logs_id              = 0                                         # maximum processed id over all Event_Logs-records of thread, maintained in process_kafka_transaction
+    @max_key_event_logs_id          = get_max_event_logs_id_from_sequence       # maximum processed id over all Event_Logs-records of thread with key != NULL, initialized with max value, maintained in read_keyed_events
     # Kafka transactional ID, must be unique per thread / Kafka connection
     @statistic_counter              = StatisticCounter.new
     @record_cache                   = {}                                        # cache subsequent access on Tables and Schemas, each Thread uses it's own cache
@@ -89,7 +89,6 @@ class TransferThread
 
     # Loop for ever, check cancel criteria in ThreadHandling
     idle_sleep_time = 0
-    event_logs = []                                                             # ensure variable is also known in exception handling
     while !@thread_mutex.synchronize { @stop_requested }
       ActiveRecord::Base.transaction do                                         # commit delete on database only if all messages are processed by kafka, rollback at exception
         event_logs = read_event_logs_batch                                      # read bulk collection of messages from Event_Logs
@@ -101,7 +100,7 @@ class TransferThread
         end
         idle_sleep_time = calc_idle_sleep_time(processed_events_count: event_logs.count, current_idle_sleep_time: idle_sleep_time)
       end                                                                       # ActiveRecord::Base.transaction do
-      sleep_and_watch(idle_sleep_time) if idle_sleep_time > 0                   # sleep some time outside transaction if no records are to be processed
+      sleep_and_watch(idle_sleep_time * SLEEP_TIME_SCALE)                       # sleep some time outside transaction if no records are to be processed
     end
   rescue Exception => e
     log_exception_with_worker_state(e, 'TransferThread.process',  message: "Worker #{@worker_id}: Terminating thread due to exception")
@@ -437,7 +436,10 @@ class TransferThread
     Rails.logger.debug('TransferThread.process_kafka_transaction'){"Process event_logs with #{event_logs.count} records"}
     begin
       event_logs.each do |event_log|
-        @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id  # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime
+        # remember greatest processed ID to ensure lower IDs from pending transactions are also processed neartime.
+        # This watermark is advanced while producing, so also for a transaction that is aborted afterwards.
+        # No event is lost by that because step 2 and 3 of read_event_logs_steps together cover the whole ID range, only the border between them moves.
+        @max_event_logs_id = event_log['id'] if event_log['id'] > @max_event_logs_id
         table = table_cache(event_log['table_id'])
         kafka_message = prepare_message_from_event_log(event_log, table)
         @statistic_counter.increment_uncomitted_success(table.id, event_log['operation'])    # unsure up to now if really successful
@@ -586,24 +588,26 @@ class TransferThread
     end
   end
 
+  # Sleep the given time, but check once per second if the thread should stop
+  # @param sleeptime [Numeric] seconds to sleep, may be fractional
+  # @return [void]
   def sleep_and_watch(sleeptime)
-    if sleeptime > 0                                                            # no action for sleeptime == 0
-      Rails.logger.debug('TransferThread.sleep_and_watch'){"Sleeping #{sleeptime} seconds"}
-      if sleeptime > 1
-        1.upto(sleeptime) do
-          sleep(1)
-          if @thread_mutex.synchronize { @stop_requested }                      # Cancel sleep if stop requested
-            return                                                              # return immediate
-          end
-        end
-      else
-        sleep(sleeptime)                                                        # must not be interrupted for small wait times
-      end
+    return if sleeptime <= 0                                                    # no action for sleeptime == 0
+    Rails.logger.debug('TransferThread.sleep_and_watch'){"Sleeping #{sleeptime} seconds"}
+    full_seconds, remainder = sleeptime.divmod(1)                               # fractional sleep times are used in test environment
+    full_seconds.to_i.times do
+      sleep(1)
+      return if @thread_mutex.synchronize { @stop_requested }                   # Cancel sleep if stop requested
     end
+    sleep(remainder) if remainder > 0                                           # must not be interrupted for small wait times
   end
 
+  # Get a mandatory option from the options Hash
+  # @param options [Hash] the options passed to the worker
+  # @param option_name [Symbol] name of the required option
+  # @return [Object] the value of the option, may also be false or 0
   def require_option(options, option_name)
-    raise "Option ':#{option_name}' required!" unless options[option_name]
+    raise "Option ':#{option_name}' required!" unless options.has_key?(option_name)
     options[option_name]
   end
 
@@ -696,9 +700,13 @@ class TransferThread
     msg
   end
 
+  SLEEP_TIME_SCALE = Rails.env.test? ? 0.01 : 1                                 # ensure test processes are fast enough, applied when the calculated time is really slept
+
   # how long should be waited after processing of whole DB transaction
+  # @param processed_events_count [Integer] number of events processed in the last loop
+  # @param current_idle_sleep_time [Numeric] result of the previous call, unscaled seconds
+  # @return [Numeric] the new sleep time in unscaled seconds, to be multiplied with SLEEP_TIME_SCALE before sleeping
   def calc_idle_sleep_time(processed_events_count:, current_idle_sleep_time:)
-    current_idle_sleep_time = current_idle_sleep_time * 100 if Rails.env.test?  # restore comparable sleep time for following calculation
     max_sleep_time = MovexCdc::Application.config.max_worker_thread_sleep_time
     new_sleep_time = case
                      when processed_events_count > @max_transaction_size/5 then 0 # Ensure also small max transactions do immediately proceed
@@ -710,7 +718,6 @@ class TransferThread
                      else max_sleep_time                                        # this line should never be reached
                      end
     new_sleep_time = max_sleep_time if new_sleep_time > max_sleep_time          # Correct to max. if current + step exceeds maximum
-    new_sleep_time = new_sleep_time/100.0 if Rails.env.test?                    # ensure test processes are fast enough, reduce sleep time
     new_sleep_time
   end
 
