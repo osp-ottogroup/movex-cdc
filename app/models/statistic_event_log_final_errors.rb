@@ -11,7 +11,7 @@ class StatisticEventLogFinalErrors
     @instance = nil
   end
 
-  def refresh_statistic()
+  def refresh_statistic
     # Retrieve aggregation of data records written to table Event_Log_Final_Errors without any time limit,
     # because old records are deleted by housekeeping processes after several days.
     record_cache = Database.select_all("\
@@ -38,9 +38,10 @@ class StatisticEventLogFinalErrors
     @mutex.synchronize do
       @record_cache = record_cache
     end
+    Rails.logger.debug('StatisticEventLogFinalErrors.refresh_statistic'){ "#{@record_cache.count} records fetched from Event_Log_Final_Errors" }
   end
 
-  def get_statistic()
+  def get_statistic
     @mutex.synchronize do
       @record_cache
     end
