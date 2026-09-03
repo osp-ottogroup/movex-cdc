@@ -205,15 +205,15 @@ class TransferThread
       else                                                                      # non-partitioned Oracle table
         event_logs.concat(read_event_logs_steps(max_records_to_read: @max_transaction_size))
       end
-
-      # adjust cached value to reality for next read if not maximum number of records has been read
-      @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if event_logs.count < @max_transaction_size
-
     when 'SQLITE' then
       event_logs.concat(read_event_logs_steps(max_records_to_read: @max_transaction_size))
     else
       raise "Unsupported DB type '#{MovexCdc::Application.config.db_type}'"
     end
+
+    # adjust cached value to reality for next read if not maximum number of records has been read
+    # must be done for every DB type, otherwise read_event_logs_steps keeps working with the value from thread start
+    @cached_max_event_logs_seq_id = get_max_event_logs_id_from_sequence if event_logs.count < @max_transaction_size
     event_logs.sort_by! {|e| e['id']}                                           # ensure original order of event creation
     event_logs.each do |e|
       @statistic_counter.increment(e['table_id'], e['operation'], :events_delayed_retries) if e['retry_count'] > 0
@@ -428,8 +428,8 @@ class TransferThread
       else
         Rails.logger.error('TransferThread.process_kafka_transaction'){"Aborting Kafka transaction at second try after sleeping #{@concurrent_tx_retry_delay_ms} ms due to #{e.class}:#{e.message}"}
         if @concurrent_tx_retry_delay_ms < 1000                                 # Max. 1 second for delay
-          Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from org.apache.kafka.common.errors.ConcurrentTransactionsException next time"}
           @concurrent_tx_retry_delay_ms = @concurrent_tx_retry_delay_ms * 10    # Increase of sufficient value
+          Rails.logger.warn('TransferThread.process_kafka_transaction'){"Increasing @concurrent_tx_retry_delay_ms to #{@concurrent_tx_retry_delay_ms} ms to prevent from org.apache.kafka.common.errors.ConcurrentTransactionsException next time"}
         end
         raise
       end
