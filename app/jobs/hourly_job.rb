@@ -11,12 +11,19 @@ class HourlyJob < ApplicationJob
     begin
       Database.set_application_info('HourlyJob/HousekeepingFinalErrors.do_housekeeping')
       HousekeepingFinalErrors.get_instance.do_housekeeping
-      Database.set_application_info('HourlyJob/StatisticEventLogFinalErrors.refresh_statistic')
-      StatisticEventLogFinalErrors.get_instance.refresh_statistic
     rescue Exception => e
       ExceptionHelper.log_exception(e, 'HourlyJob.perform', additional_msg: "calling HousekeepingFinalErrors.do_housekeeping!\n#{ExceptionHelper.memory_info_hash}")
       add_execption_to_job_warning(e)
-    ensure
+      Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
+    end
+
+    # do EventLogFinalErrors statistic refresh
+    begin
+      Database.set_application_info('HourlyJob/StatisticEventLogFinalErrors.refresh_statistic')
+      StatisticEventLogFinalErrors.get_instance.refresh_statistic
+    rescue Exception => e
+      ExceptionHelper.log_exception(e, 'HourlyJob.perform', additional_msg: "calling StatisticEventLogFinalErrors.refresh_statistic!\n#{ExceptionHelper.memory_info_hash}")
+      add_execption_to_job_warning(e)
       Database.close_db_connection                                              # Physically disconnect the DB connection of this thread, so that next request in this thread will re-open the connection again
     end
   end
