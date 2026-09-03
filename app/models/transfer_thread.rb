@@ -164,42 +164,68 @@ class TransferThread
 
 
   # Process the event_logs array within the AR transaction
-  # Method is called recursive on error until event_logs.size = 1
+  #
+  # Events are deleted from Event_Logs only after they have been transferred to Kafka successfully.
+  # If the Kafka transaction fails, the array is divided into smaller parts which are processed
+  # recursively until a single erroneous event is isolated. Every recursion level deletes the events
+  # it processed successfully itself, therefore nothing is left to delete on the failing level.
+  #
+  # @param event_logs [Array] the event_log records to transfer within one Kafka transaction
+  # @param recursive_depth [Integer] current depth of the divide and conquer recursion
+  # @return [void]
   def process_event_logs_divide_and_conquer(event_logs, recursive_depth = 0)
-    return if event_logs.count == 0                                             # No useful processing of empty arrays, should not occur
-    event_logs.each do |e|
-      @statistic_counter.increment(e['table_id'], e['operation'], :events_d_and_c_retries) if recursive_depth > 0
-    end
+    return if event_logs.empty?                                                 # No useful processing of empty arrays, should not occur
 
-    kafka_transaction_successful = false                                        # Flag that ensures delete_event_logs_batch is called only if process_kafka_transaction was successful
+    if recursive_depth > 0                                                      # this array is a part of an array that failed before
+      event_logs.each { |e| @statistic_counter.increment(e['table_id'], e['operation'], :events_d_and_c_retries) }
+    end
 
     begin
       process_kafka_transaction(event_logs)
-      kafka_transaction_successful = true                                       # delete_event_logs_batch can be called
     rescue Exception => e
-      Rails.logger.info('TransferThread.process_event_logs_divide_and_conquer'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{e.class}:#{e.message}"}
-      if @kafka_producer.producer_reset_needed?(e)
-        Rails.logger.error('TransferThread.process_event_logs_divide_and_conquer'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{e.class}:#{e.message}. The producer is not usable anymore, reset called!"}
-        @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
-      end
-      if event_logs.count > 1                                                   # divide remaining event_logs in smaller parts
-        max_slice_size = event_logs.count / 10                                  # divide the array size by x each time an error occurs
-        max_slice_size = 1 if max_slice_size < 1                                # ensure minimum size of single array
-        event_logs.each_slice(max_slice_size).to_a.each do |slice|
-          process_event_logs_divide_and_conquer(slice, recursive_depth + 1)     # Process recursively single parts of previous array
-        end
-      else                                                                      # single erroneous event isolated now
-        process_single_erroneous_event_log(event_logs[0], e)
-      end
+      handle_failed_kafka_transaction(event_logs, e, recursive_depth)           # the isolated parts have deleted their events themselves
+      return                                                                    # nothing left to delete at this recursion level
     end
 
-    begin
-      delete_event_logs_batch(event_logs) if kafka_transaction_successful       # delete the events that are successfully processed in previous kafka transaction
-    rescue Exception => e
-      ExceptionHelper.log_exception(e, 'TransferThread.process_event_logs_divide_and_conquer', additional_msg: "delete_event_logs_batch failed. This should never happen and leads to multiple processing of events to Kafka.")
-      event_logs_debug_info(event_logs)
-      raise
+    delete_processed_event_logs(event_logs)                                     # only a committed Kafka transaction reaches this point
+  end
+
+  # Isolate the erroneous events of a failed Kafka transaction
+  #
+  # The array is divided into smaller parts that are processed recursively until a single event
+  # remains, which is then moved to the retry / final error handling.
+  #
+  # @param event_logs [Array] the event_log records of the failed Kafka transaction
+  # @param exception [Exception] the exception raised by the Kafka transaction
+  # @param recursive_depth [Integer] current depth of the divide and conquer recursion
+  # @return [void]
+  def handle_failed_kafka_transaction(event_logs, exception, recursive_depth)
+    Rails.logger.info('TransferThread.handle_failed_kafka_transaction'){"Divide & conquer with current array size = #{event_logs.count}, recursive depth = #{recursive_depth} due to #{exception.class}:#{exception.message}"}
+    if @kafka_producer.producer_reset_needed?(exception)
+      Rails.logger.error('TransferThread.handle_failed_kafka_transaction'){"Worker #{@worker_id}: FATAL ERROR in Kafka producer due to #{exception.class}:#{exception.message}. The producer is not usable anymore, reset called!"}
+      @kafka_producer.reset_kafka_producer                                      # After transaction error in Kafka the current producer ends up in InvalidTxnStateError if trying to continue with begin_transaction
     end
+
+    if event_logs.count == 1                                                    # single erroneous event isolated now
+      process_single_erroneous_event_log(event_logs[0], exception)
+    else                                                                        # divide remaining event_logs in smaller parts
+      slice_size = event_logs.count / 10                                        # divide the array size by 10 each time an error occurs
+      slice_size = 1 if slice_size < 1                                          # ensure minimum size of single array
+      event_logs.each_slice(slice_size) do |slice|
+        process_event_logs_divide_and_conquer(slice, recursive_depth + 1)       # Process recursively single parts of previous array
+      end
+    end
+  end
+
+  # Delete the events that have been transferred to Kafka successfully
+  # @param event_logs [Array] the event_log records of the committed Kafka transaction
+  # @return [void]
+  # @raise Exception if the delete failed, which rolls back the surrounding AR transaction
+  def delete_processed_event_logs(event_logs)
+    delete_event_logs_batch(event_logs)
+  rescue Exception => e
+    ExceptionHelper.log_exception(e, 'TransferThread.delete_processed_event_logs', additional_msg: "delete_event_logs_batch failed. This should never happen and leads to multiple processing of events to Kafka.\n#{event_logs_debug_info(event_logs)}")
+    raise
   end
 
   def read_event_logs_batch
