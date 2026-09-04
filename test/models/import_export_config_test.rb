@@ -293,7 +293,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     schema0 = Schema.where(name: exported_data['schemas'][0]['name']).first
     org_topic = schema0.topic
     exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_name_to_pick: schema0.name) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_name_to_pick: [schema0.name]) }
 
     Schema.all.each do |schema|
       if schema.id == schema0.id
@@ -305,6 +305,33 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
     # Restore original state
     run_with_current_user { Schema.find(schema0.id).update!(topic: org_topic) }
+  end
+
+  test 'import multiple schemas from full export' do
+    exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
+    assert_operator(exported_data['schemas'].count, :>=, 2, 'Test data should contain at least two schemas')
+
+    schema_names = exported_data['schemas'].first(2).map{|s| s['name'] }
+    original_topics = schema_names.to_h do |schema_name|
+      [schema_name, Schema.where(name: schema_name).first.topic]
+    end
+
+    exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_name_to_pick: schema_names) }
+
+    Schema.all.each do |schema|
+      if schema_names.include?(schema.name)
+        assert_equal('CHANGED_TOPIC', schema.topic, 'The selected schemas should be updated')
+      else
+        assert_not_equal('CHANGED_TOPIC', schema.topic, 'The other schemas should not be updated')
+      end
+    end
+
+    run_with_current_user do
+      schema_names.each do |schema_name|
+        Schema.find_by(name: schema_name).update!(topic: original_topics[schema_name])
+      end
+    end
   end
 
   test 'import all from single schema export' do

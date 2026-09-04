@@ -16,14 +16,14 @@ class ImportExportController < ApplicationController
     end
   end
 
-  # Importing all schemas or one schema if param :schema is set
+  # Importing all schemas or a pre-selected list of schemas if param :schema is set
   # post '/import_export/import'
   def import
     logger.info('ImportExportController.import'){ 'Starting import of trigger configuration' }
     params.require([:json_data])
 
-    single_schema_name = params.permit![:schema]
-    single_schema_name = nil if single_schema_name == ''
+    schema_name_to_pick = params.permit![:schema]
+    schema_name_to_pick = nil if schema_name_to_pick == ''
 
     json_data = convert_json_data_param_to_h(params.permit![:json_data])
     raise "ImportExportController.import: JSON data should contain an 'schemas' array!" unless json_data['schemas']
@@ -34,7 +34,7 @@ class ImportExportController < ApplicationController
     # following function removes this empty string element from arrays
     check_array_for_empty_string_element(json_data['schemas'])
     check_array_for_empty_string_element(json_data['users'])
-    ImportExportConfig.new.import_schemas(json_data, schema_name_to_pick: single_schema_name)
+    ImportExportConfig.new.import_schemas(json_data, schema_name_to_pick: schema_name_to_pick)
   end
 
   # Import all users as they are incl. admin rights

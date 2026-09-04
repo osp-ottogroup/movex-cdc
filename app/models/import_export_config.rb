@@ -82,16 +82,25 @@ class ImportExportConfig
 
   # import schema data
   # @param [Hash] import_hash Hash with list of schema objects and list of user objects
-  # @param [String] schema_name_to_pick  Single schema name which should be imported out of the whole list of schemas, nil = import all schemas in list
+  # @param [String, Array<String>, nil] schema_name_to_pick One or more schema names which should be imported out of the whole list of schemas, nil/empty = import all schemas in list
   def import_schemas(import_hash, schema_name_to_pick: nil)
     raise "Parameter import_hash is not a Hash"     unless import_hash.is_a? Hash
     raise "Object users is not an array"            unless import_hash['users'].instance_of? Array
     raise "Object schemas is not an array"          unless import_hash['schemas'].instance_of? Array
-    raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
+
+    selected_schema_names = normalize_schema_names(schema_name_to_pick)
+    selected_schemas = if selected_schema_names.empty?
+      import_hash['schemas']
+    else
+      missing_schema_names = selected_schema_names - import_hash['schemas'].map{|s| s['name'] }
+      raise "Schema(s) '#{missing_schema_names.join("', '")}' do not exist in import data" if missing_schema_names.any?
+
+      import_hash['schemas'].select{|s| selected_schema_names.include?(s['name']) }
+    end
 
     ActiveRecord::Base.transaction do
       # Ensure all users exist in DB that are referenced in schema_rights
-      import_hash['schemas']&.each do |schema_hash|
+      selected_schemas&.each do |schema_hash|
         raise "Schema does not have an String element 'name'"                                   unless schema_hash['name'].instance_of? String
         raise "Schema '#{schema_hash['name']}' does not have an Array element 'tables'"         unless schema_hash['tables'].instance_of? Array
         raise "Schema '#{schema_hash['name']}' does not have an Array element 'schema_rights'"  unless schema_hash['schema_rights'].instance_of? Array
@@ -112,7 +121,7 @@ class ImportExportConfig
     end
 
     # Deactivate schemas which are not part of full import
-    if schema_name_to_pick.nil?
+    if selected_schema_names.empty?
       Schema.all.each do |schema|
         if import_hash['schemas'].find{|s| s['name'] == schema.name}.nil?       # existing schema not in list
           deactivate_surplus_schema(schema)                                     # Deactivate, not physically delete
@@ -120,7 +129,7 @@ class ImportExportConfig
       end
     end
 
-    import_hash['schemas'].select{|s| schema_name_to_pick.nil? || schema_name_to_pick == s['name'] }.each do |schema_hash|
+    selected_schemas.each do |schema_hash|
       existing_schema = Schema.where(name: schema_hash['name']).first
       if existing_schema
         update_existing_schema(schema_hash, existing_schema)
@@ -173,6 +182,17 @@ class ImportExportConfig
     # Hide all tables but let them physically exist with the origin ID if triggers are still active for that tables
     schema.tables.each do |t|
       t.mark_hidden
+    end
+  end
+
+  def normalize_schema_names(schema_name_to_pick)
+    case schema_name_to_pick
+    when nil
+      []
+    when Array
+      schema_name_to_pick.map{|schema_name| schema_name.to_s.strip }.reject(&:empty?).uniq
+    else
+      [schema_name_to_pick.to_s.strip].reject(&:empty?)
     end
   end
 
