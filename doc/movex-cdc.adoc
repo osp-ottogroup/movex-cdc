@@ -575,6 +575,14 @@ To stick with the previously used format there is a configuration parameter LEGA
   This was the default format after release 1.10.1 and before 1.12.1 dated 2025-08-04.
 
 ==== Common error traps ====
+===== Issues that can alter the original order of events =====
+If an error occurs during transfer of events to Kafka then MOVEX CDC retries the transfer of the event
+delayed with ERROR_RETRY_START_DELAY seconds for the first retry. +
+If events with the same message key can be processed without any error before the retry of the failed event then the order of events with the same key may be altered.
+
+To reduce the likelihood of such situations you can reduce the ERROR_RETRY_START_DELAY to the lowest possible value (e.g. 1 second). +
+This ensures that retries are done faster, but may increase the load on the database and Kafka broker thus reducing the throughput.
+
 ===== Kafka =====
 List of Kafka error codes is available here: https://kafka.apache.org/protocol#protocol_error_codes
 
