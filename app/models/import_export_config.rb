@@ -185,14 +185,17 @@ class ImportExportConfig
     end
   end
 
+  # convert given schema names of different data types to an array of non-empty values
+  # @param [String, Array<String>] a single name of a schema as string or a list of schema names as array
+  # @return [Array<String>] list of non-empty and unique schema names as array
   def normalize_schema_names(schema_name_to_pick)
-    case schema_name_to_pick
-    when nil
-      []
-    when Array
-      schema_name_to_pick.map{|schema_name| schema_name.to_s.strip }.reject(&:empty?).uniq
-    else
-      [schema_name_to_pick.to_s.strip].reject(&:empty?)
+    case
+      when schema_name_to_pick.nil?
+        return []
+      when schema_name_to_pick.is_a?(Array)
+        return schema_name_to_pick.map{|schema_name| schema_name.to_s.strip }.reject(&:empty?).uniq
+      else
+        return [schema_name_to_pick.to_s.strip].reject(&:empty?)
     end
   end
 
