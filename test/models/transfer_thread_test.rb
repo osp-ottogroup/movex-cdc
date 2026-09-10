@@ -135,4 +135,25 @@ class TransferThreadTest < ActiveSupport::TestCase
     MovexCdc::Application.config.error_retry_start_delay = org_error_retry_start_delay
     MovexCdc::Application.config.error_max_retries       = org_error_max_retries
   end
+
+  test "LoopGuard raises as soon as the shared iteration budget is exhausted" do
+    guard = TransferThread::LoopGuard.new(max_iterations: 3)
+    3.times { guard.tick! { 'diagnostic context' } }                            # budget must not be exceeded by the allowed number of iterations
+
+    exception = assert_raises(RuntimeError, 'LoopGuard should cancel processing after the budget is exhausted') do
+      guard.tick! { 'diagnostic context' }
+    end
+    assert exception.message['diagnostic context'], "Diagnostic context should be part of the message, but is:\n#{exception.message}"
+  end
+
+  test "LoopGuard evaluates the diagnostic block only if the budget is exhausted" do
+    guard             = TransferThread::LoopGuard.new(max_iterations: 2)
+    block_evaluations = 0
+
+    2.times { guard.tick! { block_evaluations += 1; 'diagnostic context' } }
+    assert_equal 0, block_evaluations, 'Diagnostic block should not be evaluated as long as the budget is sufficient'
+
+    assert_raises(RuntimeError) { guard.tick! { block_evaluations += 1; 'diagnostic context' } }
+    assert_equal 1, block_evaluations, 'Diagnostic block should be evaluated exactly once when the budget is exhausted'
+  end
 end
