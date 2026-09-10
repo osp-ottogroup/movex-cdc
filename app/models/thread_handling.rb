@@ -68,7 +68,7 @@ class ThreadHandling
       Rails.logger.info('ThreadHandling.shutdown_processing') { "All TransferThread worker are stopped now, shutting down" }
       @shutdown_requested = false                                               # Reset state so next ensure_processing may start again
     else
-      Rails.logger.info('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nevertheless" }
+      Rails.logger.warn('ThreadHandling.shutdown_processing'){ "Not all TransferThread worker are stopped now after #{SHUTDOWN_TIMEOUT_SECS} seconds (#{@thread_pool_mutex.synchronize { @thread_pool.count } } remaining) , shutting down nevertheless" }
     end
 
     if StatisticCounterConcentrator.get_instance.pending_values?

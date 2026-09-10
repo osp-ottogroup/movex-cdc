@@ -41,8 +41,7 @@ build_version
 /identifier.sqlite
 /db/development.sqlite3-shm
 /db/development.sqlite3-wal
-/vendor/bundle/jruby/2.6.0/
-/vendor/bundle/jruby/3.1.0/
+/vendor/bundle/jruby/*
 /kafka.properties
 /test/oracle_autonomous/Wallet_panoramatest.zip
 /kafka.properties
