@@ -195,7 +195,7 @@ class KafkaJava < KafkaBase
           producer_properties.put('max.block.ms',           MovexCdc::Application.config.kafka_producer_timeout.to_i) # Max number of milliseconds to wait for response from Kafka broker
           producer_properties.put('retries',                java.lang.Integer.new(1))  # ensure producer does not sleep between retries, setting > 0 will reduce MOVEX CDC's throughput
           producer_properties.put('transactional.id',       @transactional_id)
-          producer_properties.put('transaction.timeout.ms', MovexCdc::Application.config.kafka_transaction_timeout.to_i)  # Max. time in ms a transaction may be active before timing out. Must not be greater than the broker setting transaction.max.timeout.ms
+          producer_properties.put('transaction.timeout.ms', MovexCdc::Application.config.kafka_transaction_timeout.to_java(:int))  # Max. time in ms a transaction may be active before timing out. Must not be greater than the broker setting transaction.max.timeout.ms
           producer_properties.put('value.serializer',       'org.apache.kafka.common.serialization.StringSerializer') # According to predecessor ruby-kafka
           # producer_properties.put('delivery.timeout.ms',  100) # Possible way to reduce the time for retries, if retries > 0
 
