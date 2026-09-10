@@ -12,7 +12,7 @@ class Housekeeping
   # @return [Time] The time expression of high value
   def self.get_time_from_oracle_high_value(high_value)
     raise "Housekeeping.get_time_from_oracle_high_value: Parameter high_value should not be nil" if high_value.nil?
-    hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "TIMESTAMP' 2021-04-14 00:00:00'"
+    hv_string = high_value.split("'")[1].strip                            # extract "2021-04-14 00:00:00" from "DATE' 2021-04-14 00:00:00'"
     Time.new(hv_string[0,4].to_i, hv_string[5,2].to_i, hv_string[8,2].to_i, hv_string[11,2].to_i, hv_string[14,2].to_i, hv_string[17,2].to_i)
   end
 

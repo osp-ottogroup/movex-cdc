@@ -55,8 +55,7 @@ class ServerControlController < ApplicationController
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info('ServerControlController.set_worker_threads_count'){ ": Nothing to do because #{worker_threads_count} workers are still active" }
       else
-        MovexCdc::Application.config.initial_worker_threads = worker_threads_count
-        restart_worker_threads "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"
+        restart_worker_threads(worker_threads_count, "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}")
       end
     end
   end
@@ -185,11 +184,18 @@ class ServerControlController < ApplicationController
     end
   end
 
-  def restart_worker_threads(context)
+  # Shutdown and restart worker threads to apply new configuration values, set the new value only after shutdown_processing is finished to avoid that running threads still use the old value
+  # @param [Integer] new_worker_count the new number of worker threads to be set
+  # @param [String] context a string to describe the reason for the restart
+  def restart_worker_threads(new_worker_count, context)
     @@restart_worker_threads_mutex.synchronize do
       begin
         @@restart_worker_threads_active = "Waiting for shutdown_processing. #{context}"
         ThreadHandling.get_instance.shutdown_processing
+
+        # now we can set the new worker count because the value isn't used anymore by running worker threads
+        MovexCdc::Application.config.initial_worker_threads = new_worker_count
+
         @@restart_worker_threads_active = "Waiting for ensure_processing. #{context}"
         ThreadHandling.get_instance.ensure_processing
         Rails.logger.warn('ServerControlController.restart_worker_threads') { "Restart of worker threads done for: #{context}" }
