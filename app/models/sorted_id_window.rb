@@ -39,11 +39,13 @@ class SortedIdWindow
 
   # Reduce the distance so that the next read returns less than max_transaction_size records but still more than none.
   # Falls back to the initial distance if the calculation yields an unusable value.
+  # Only integer arithmetic is used here: Event_Logs.ID may exceed the 53 bits of an exact Float value,
+  # a Float in this calculation would result in a rounded distance that may never converge.
   # @param lowest_read_id [Integer] smallest Event_Logs.ID of the discarded read result
   # @param base_id [Integer] the start ID the discarded read was based on
   # @return [Integer] the new distance
   def shrink_to_fit(lowest_read_id:, base_id:)
-    new_distance = (lowest_read_id + @max_transaction_size * 0.9 - base_id - 1).to_i
+    new_distance = (lowest_read_id - base_id + @max_transaction_size * 9 / 10 - 1).to_i  # 90 percent of max_transaction_size as safety margin
     if new_distance < 1                                                         # suppress negative results that may be possible in some circumstances
       # This leads to a recalculation of the caller's start ID at next loop if the result size is still too large
       Rails.logger.debug('SortedIdWindow.shrink_to_fit'){ "calculation of max_sorted_id_distance discarded (#{new_distance})#{partition_suffix}" }

@@ -342,11 +342,12 @@ class ActiveSupport::TestCase
   end
 
   # Process records from event_log and restore previous app state
-  # @param [Hash] options { :max_wait_time, :expected_remaining_records, :count_without_error_only, :title }
+  # @param [Hash] options { :max_wait_time, :expected_remaining_records, :count_without_error_only, :max_transaction_size, :title }
   # @return [Integer] the number of remaining records in Event_Logs (only without error if options[:count_without_error_only])
   def process_eventlogs(options = {})
-    options[:max_wait_time]               = 20 unless options[:max_wait_time]
-    options[:expected_remaining_records]  = 0  unless options[:expected_remaining_records]
+    options[:max_wait_time]               = 20    unless options[:max_wait_time]
+    options[:expected_remaining_records]  = 0     unless options[:expected_remaining_records]
+    options[:max_transaction_size]        = 10000 unless options[:max_transaction_size]  # smaller values enforce multiple batches for the same events
 
     original_worker_threads = MovexCdc::Application.config.initial_worker_threads
     MovexCdc::Application.config.initial_worker_threads = 1                        # Ensure that all keys are matching to this worker thread by MOD
@@ -354,7 +355,7 @@ class ActiveSupport::TestCase
     log_event_logs_content(console_output: false, caption: "#{options[:title]}: Event_Logs records before processing")
 
     # worker ID=0 for exactly 1 running worker
-    worker = TransferThread.new(0, max_transaction_size: 10000)  # Sync. call within one thread
+    worker = TransferThread.new(0, max_transaction_size: options[:max_transaction_size])  # Sync. call within one thread
 
     where = options[:count_without_error_only] ? " WHERE Last_Error_Time IS NULL" : "" # Ensure that processing is really tried if all records are expected to not beeing processed
     # Stop process in separate thread after 10 seconds because following call of 'process' will never end without that

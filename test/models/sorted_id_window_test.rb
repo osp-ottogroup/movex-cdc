@@ -37,6 +37,18 @@ class SortedIdWindowTest < ActiveSupport::TestCase
     assert_equal MAX_TRANSACTION_SIZE-1, window.distance
   end
 
+  test "shrink_to_fit stays exact for IDs beyond the precision of a Float" do
+    window = new_window
+    window.grow(read_count: 0)                                                  # 99 -> (99+1)*10 = 1000
+
+    # Event_Logs.ID may exceed the 53 bits of an exact Float value (e.g. after multiple sequence cycles).
+    # A calculation with Float precision would round the result to a multiple of the Float resolution at this magnitude,
+    # so the distance would stay too large and the reads of TransferThread.read_keyed_events_in_sorted_order would never converge.
+    base_id = 99999999999918760                                                 # far above 2**53
+    assert_equal MAX_TRANSACTION_SIZE*9/10, window.shrink_to_fit(lowest_read_id: base_id+1, base_id: base_id)
+    assert_operator window.distance, :<, MAX_TRANSACTION_SIZE, 'Next read must be able to return less than max_transaction_size records'
+  end
+
   test "growth is only useful if less than a third of max_transaction_size was read" do
     window = new_window
     assert     window.growth_useful?(read_count: 0)
