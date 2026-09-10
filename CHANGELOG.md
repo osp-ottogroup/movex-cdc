@@ -1,5 +1,12 @@
 # MOVEX Change Data Capture: Release notes
 
+## 2026-09-10 1.13.8
+- Major frontend modernization: migration from Vue CLI to Vite, upgrade to Vue 3/Buefy 3, and related reactivity/UI fixes.
+- Platform dependency refresh: Rails 8.0.5/8.0.5.1, JRuby 10.x upgrades, Kafka client updates up to 4.3.1.
+- Backend stability improvements around threading, exception handling, and health-check request behavior.
+- Extended statistics functionality for Event Log Final Errors, including new model/test coverage.
+- CI/Docker hardening and security/tooling updates (Brakeman config, Trivy handling, image/tag fixes).
+
 ## 2026-02-24 1.13.7
 - Fix for Oracle-Bug in rel. 19.30 (SR 4-0002131307)
   If empty CLOB columns is read from DB, a processing error is raised instead of sending empty payload to Kafka
