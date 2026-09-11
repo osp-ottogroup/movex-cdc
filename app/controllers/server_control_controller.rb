@@ -55,8 +55,7 @@ class ServerControlController < ApplicationController
       if worker_threads_count == ThreadHandling.get_instance.thread_count
         Rails.logger.info('ServerControlController.set_worker_threads_count'){ ": Nothing to do because #{worker_threads_count} workers are still active" }
       else
-        MovexCdc::Application.config.initial_worker_threads = worker_threads_count
-        restart_worker_threads "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}"
+        restart_worker_threads(worker_threads_count, MovexCdc::Application.config.max_transaction_size, "Worker count: current=#{ThreadHandling.get_instance.thread_count}, new=#{worker_threads_count}")
       end
     end
   end
@@ -80,8 +79,7 @@ class ServerControlController < ApplicationController
         Rails.logger.warn("ServerControl.set_max_transaction_size") { "Setting max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}! User = '#{ApplicationController.current_user.email}', client IP = #{client_ip_info}" }
         ActivityLog.log_activity(action: "Set max. transaction size from #{MovexCdc::Application.config.max_transaction_size} to #{max_transaction_size}")
         context = "max. transaction size: current=#{MovexCdc::Application.config.max_transaction_size}, new=#{max_transaction_size}"
-        MovexCdc::Application.config.max_transaction_size = max_transaction_size
-        restart_worker_threads context
+        restart_worker_threads(MovexCdc::Application.config.initial_worker_threads, max_transaction_size, context)
       end
     end
   end
@@ -185,11 +183,20 @@ class ServerControlController < ApplicationController
     end
   end
 
-  def restart_worker_threads(context)
+  # Shutdown and restart worker threads to apply new configuration values, set the new value only after shutdown_processing is finished to avoid that running threads still use the old value
+  # @param [Integer] new_worker_count the new number of worker threads to be set or the current value if only max. transaction size is changed
+  # @param [Integer] new_max_transaction_size the new max. transaction size to be set or the current value if only worker count is changed
+  # @param [String] context a string to describe the reason for the restart
+  def restart_worker_threads(new_worker_count, new_max_transaction_size, context)
     @@restart_worker_threads_mutex.synchronize do
       begin
         @@restart_worker_threads_active = "Waiting for shutdown_processing. #{context}"
         ThreadHandling.get_instance.shutdown_processing
+
+        # now we can set the new worker count because the value isn't used anymore by running worker threads
+        MovexCdc::Application.config.initial_worker_threads = new_worker_count
+        MovexCdc::Application.config.max_transaction_size = new_max_transaction_size
+
         @@restart_worker_threads_active = "Waiting for ensure_processing. #{context}"
         ThreadHandling.get_instance.ensure_processing
         Rails.logger.warn('ServerControlController.restart_worker_threads') { "Restart of worker threads done for: #{context}" }

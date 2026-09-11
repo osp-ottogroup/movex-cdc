@@ -59,23 +59,15 @@ That means the strategy of key creation influences the horizontal scalability ov
 NOTE: For Oracle-DB: If using RAC the sequential event ID represents the original order only per RAC-instance because a cached sequence is used for value generation.
 
 
-MOVEX CDC supports five kinds of message keys for Kafka that can be defined by GUI at table level:
-
-===== No message key =====
-Messages are placed randomly in partitions. MOVEX CDC transmits events in multiple simultaneous threads, therefore sequential order is not guaranteed,
+MOVEX CDC supports five types of message keys for Kafka that can be defined by GUI at table level:
+[cols="~,~"]
+|===
+| No message key | Messages are placed randomly in partitions. MOVEX CDC transmits events in multiple simultaneous threads, therefore sequential order is not guaranteed,
 even if the target topic has only one partition.
-
-===== Fixed value =====
-A given value is used as key for all produced events. All change events of a table are placed in the same single Kafka partition.
-
-===== Primary key values =====
-Ensures that the change history of a single DB record is always consumed in original sequence
-
-===== Transaction-ID =====
-Ensures that all events of a particular DB transaction can be consumed in original sequence
-
-===== Expression =====
-A SQL expression or SQL statement which returns a single text/char value. This allows to define own strategies for key creation. +
+| Fixed value | A given value is used as key for all produced events. All change events of a table are placed in the same single Kafka partition.
+| Primary key values | Ensures that the change history of a single DB record is always consumed in original sequence
+| Transaction-ID | Ensures that all events of a particular DB transaction can be consumed in original sequence
+|Expression| A SQL expression or SQL statement which returns a single text/char value. This allows to define own strategies for key creation. +
 Definition of the expression is done at table level.
 You can use the pseudo-records :new and :old of the trigger in the expression definition.
 At trigger generation these pseudo record aliases are adjusted to the operation (insert and update uses :new, delete uses :old). +
@@ -83,6 +75,7 @@ If the expression is not a SQL statement then it is treated as a direct assignme
 Example expressions: +
 - `:new.ID` +
 - `SELECT Company FROM Other_Table WHERE ID=:new.Other_Table_ID`
+|===
 
 ==== Uniqueness of incoming events in Kafka ====
 * MOVEX CDC works with transactions at both DB and Kafka.
@@ -93,6 +86,26 @@ Caution: Kafka distinguishes between read_uncommitted and read_committed when co
 * Transactional coupling between the two resources DB and Kafka is implemented with two nested transactions inside the MOVEX CDC application.
 There is no XA or 2-phase commit coupling of the two transactions.
 
+==== Issues that can alter the original order of events  ====
+MOVEX CDC guarantees in most cases that events with message key are transferred to Kafka in the same order as they were created in the database. +
+But there are some exceptions where the original order of events with the same message key may be altered:
+
+* If a transactions lasts longer until commit and another transaction producing events with the same message key is committed before,
+then the possibly younger events are transferred to Kafka before the older events of the still uncommitted transaction. +
+This will not be a problem for the message key types "Primary key values" and "Transaction-ID" because the events of a single record or transaction are always transferred in original order.
+
+* If an error occurs during bulk processing of events with the same message key,
+then MOVEX CDC retries the transfer of the bulk array by splitting it into smaller chunks of events but keeping the original order (divide & conquer). +
+Thus all events are tried to be transferred to Kafka multiple times. +
+But if the chunk size is reduced to one and the transfer of a single event still fails, then it is skipped and the following events are tried to transferred to Kafka.
+
+* If an error occurs during transfer of a single event to Kafka, then MOVEX CDC retries the transfer of the event
+delayed with ERROR_RETRY_START_DELAY seconds for the first retry. +
+If events with the same message key can be processed without any error before the retry of the failed event, then the order of events with the same key may be altered. +
+To reduce the likelihood of such situations you can reduce the ERROR_RETRY_START_DELAY to the lowest possible value (e.g. 1 second). +
+This ensures that retries are done faster, but may increase the load on the database and Kafka broker thus reducing the throughput.
+
+* If using initialization of table data there is a risk that new changes with a same messsage key are processed to Kafka before the initialization finishes.
 
 
 
@@ -575,13 +588,6 @@ To stick with the previously used format there is a configuration parameter LEGA
   This was the default format after release 1.10.1 and before 1.12.1 dated 2025-08-04.
 
 ==== Common error traps ====
-===== Issues that can alter the original order of events =====
-If an error occurs during transfer of events to Kafka then MOVEX CDC retries the transfer of the event
-delayed with ERROR_RETRY_START_DELAY seconds for the first retry. +
-If events with the same message key can be processed without any error before the retry of the failed event then the order of events with the same key may be altered.
-
-To reduce the likelihood of such situations you can reduce the ERROR_RETRY_START_DELAY to the lowest possible value (e.g. 1 second). +
-This ensures that retries are done faster, but may increase the load on the database and Kafka broker thus reducing the throughput.
 
 ===== Kafka =====
 List of Kafka error codes is available here: https://kafka.apache.org/protocol#protocol_error_codes
