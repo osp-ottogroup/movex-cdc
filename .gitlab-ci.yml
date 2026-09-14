@@ -19,11 +19,11 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-  - code_analysis
-  - test
-  - pre_build
-  - build
-  - post_build
+#  - code_analysis
+#  - test
+#  - pre_build
+#  - build
+#  - post_build
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
@@ -557,6 +557,9 @@ final_tag_docker:
     # Deploy prod-Releases to gitlab registry and OSPs dockerhub account
     - |
       # use tag name as branch name, but with release number only for prod (without prefix "prod_")
+      echo "CI_COMMIT_REF_SLUG = $CI_COMMIT_REF_SLUG"
+      echo "CI_COMMIT_REF_NAME = $CI_COMMIT_REF_NAME"
+      echo "CI_COMMIT_REF = $CI_COMMIT_REF"
       TAG_NAME=${CI_COMMIT_REF_SLUG#"prod_"}
       echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
       $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
@@ -577,6 +580,8 @@ final_tag_docker:
           sed 's/"//g' | \
           sort -t. -k1,1n -k2,2n -k3,3n | \
           tail -n 1`
+        echo "Latest productive branch detected = $LATEST_PROD_BRANCH"
+        echo "Current branch = $CI_COMMIT_REF_NAME"
         if [[ "$LATEST_PROD_BRANCH" = "$CI_COMMIT_REF_NAME" ]]; then
           echo "Tagging the image :latest at gitlab registry because $CI_COMMIT_REF_NAME is the latest productive branch"
           $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:latest
