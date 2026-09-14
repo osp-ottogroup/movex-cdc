@@ -19,11 +19,11 @@ variables:
 
 # Separate stages because pending jobs get stuck after one hour (hard limit)
 stages:
-#  - code_analysis
-#  - test
-#  - pre_build
-#  - build
-#  - post_build
+  - code_analysis
+  - test
+  - pre_build
+  - build
+  - post_build
   - deploy
 
 # interactive edit config/brakemen.ignore by > brakeman -A -I
@@ -559,15 +559,13 @@ final_tag_docker:
       # use tag name as branch name, but with release number only for prod (without prefix "prod_")
       echo "CI_COMMIT_REF_SLUG = $CI_COMMIT_REF_SLUG"
       echo "CI_COMMIT_REF_NAME = $CI_COMMIT_REF_NAME"
-      echo "CI_COMMIT_REF = $CI_COMMIT_REF"
-      TAG_NAME=${CI_COMMIT_REF_SLUG#"prod_"}
-      echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
-      $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
-      $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME     
       # only push prod-branches to Dockerhub
       if [[ $CI_COMMIT_REF_NAME == "prod_"* ]]; then
         # Ensure that the tag name is without prefix "prod_" but with dots instead of - as ist was by CI_COMMIT_REF_SLUG
-        TAG_NAME=${CI_COMMIT_REF#"prod_"}
+        TAG_NAME=${CI_COMMIT_REF_NAME#"prod_"}
+        echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$TAG_NAME"
+        $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$TAG_NAME
+        $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME    
         DOCKER_IMAGE_NAME=docker.io/ottogroupsolutionproviderosp/movex-cdc
         echo "Push image $TEMP_DOCKER_IMAGE to $DOCKER_IMAGE_NAME:$TAG_NAME"
         $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
@@ -581,7 +579,6 @@ final_tag_docker:
           sort -t. -k1,1n -k2,2n -k3,3n | \
           tail -n 1`
         echo "Latest productive branch detected = $LATEST_PROD_BRANCH"
-        echo "Current branch = $CI_COMMIT_REF_NAME"
         if [[ "$LATEST_PROD_BRANCH" = "$CI_COMMIT_REF_NAME" ]]; then
           echo "Tagging the image :latest at gitlab registry because $CI_COMMIT_REF_NAME is the latest productive branch"
           $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:latest
@@ -593,5 +590,9 @@ final_tag_docker:
           echo "$CI_COMMIT_REF_NAME is not the latest productive branch ($LATEST_PROD_BRANCH). Not tagged as latest"
         fi
       else
+        # Use the escaped branch name as tah name without / etc. 
+        echo "Push image $TEMP_DOCKER_IMAGE to $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG"
+        $PODMAN tag $TEMP_DOCKER_IMAGE $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG
+        $PODMAN push $CI_REGISTRY_IMAGE:$CI_COMMIT_REF_SLUG    
         echo "Image of branch $CI_COMMIT_REF_NAME not pushed to Dockerhub"
       fi
