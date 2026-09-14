@@ -563,6 +563,8 @@ final_tag_docker:
       $PODMAN push $CI_REGISTRY_IMAGE:$TAG_NAME     
       # only push prod-branches to Dockerhub
       if [[ $CI_COMMIT_REF_NAME == "prod_"* ]]; then
+        # Ensure that the tag name is without prefix "prod_" but with dots instead of - as ist was by CI_COMMIT_REF_SLUG
+        TAG_NAME=${CI_COMMIT_REF#"prod_"}
         DOCKER_IMAGE_NAME=docker.io/ottogroupsolutionproviderosp/movex-cdc
         echo "Push image $TEMP_DOCKER_IMAGE to $DOCKER_IMAGE_NAME:$TAG_NAME"
         $PODMAN login -u peterramm -p $DOCKERHUB_ACCESS_TOKEN docker.io
