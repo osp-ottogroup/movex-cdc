@@ -1027,9 +1027,11 @@ http://localhost:8080/import_export/export?schema=HUGO > movex-cdc-config.json
 Data of all configured users is included in the JSON document in both cases.
 
 ===== Import of schema configuration data =====
-The import from JSON data can be done for the whole content or you may pick only one schema to import. +
+The import from JSON data can be done for the whole file content or you may pick one, several or all schemas to import. +
+If no schema is selected, all schemas from the import file are imported by default.
+If more than one schema is contained in the source file, the GUI provides a multi-select list to select which schemas to import. If all items are selected, a checkbox with the option to deactivate schemas not contained in selection will appear. +
 
-This example imports a whole JSON document with one or more schemas:
+This example imports all schemas from a JSON document (default behavior when no schema parameter is provided):
 [source]
 curl -X POST -H "Authorization: \
 `curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
@@ -1045,14 +1047,22 @@ jq .token | sed -e 's/^"//' -e 's/"$//'`" \
 -d "schema=HUGO&json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
 http://localhost:8080/import_export/import
 
-CAUTION: If importing a whole JSON document, all schemas and tables that do not occur in this document are purged from the configuration. +
-If importing a single schema all tables of that schema that are not contained in the JSON document are purged.
+This example imports two selected of two available schemas and deactivates schemas that are not part of the selected import set:
+[source]
+curl -X POST -H "Authorization: \
+`curl -d "email=admin&password=<my_password>" http://localhost:8080/login/do_logon | \
+jq .token | sed -e 's/^"//' -e 's/"$//'`" \
+-d "schema[]=HUGO&schema[]=KUNDE&deactivate_missing_schemas=true&json_data=`cat movex-cdc-config.json | sed 's/"/\\"/g'`" \
+http://localhost:8080/import_export/import
+
+CAUTION: If `deactivate_missing_schemas=true`, all schemas that do not occur in the selected import set are deactivated in the configuration. Their schema rights are removed and their tables are marked as hidden. This option is only available when all schemas from the import file are selected for import. +
+If not all schemas from the import file are selected, only the selected schemas are updated. For each imported schema, tables that are not contained in the JSON document are deactivated.
 
 ===== Import of user configuration data =====
-If importing one or all schemas from JSON file only users with rights for this schemas are created if they don't yet exist in DB.
+If importing one or more schemas from a JSON file, only users with rights for these schemas are created if they do not yet exist in the DB.
 Missing users are created with locked account in this case to avoid unwanted security issues.
 
-To import all users with all their attributes from JSON document there's a separate function.
+There is a separate function to import all users with all their attributes from a JSON document.
 
 
 === API endpoints ===
@@ -1077,7 +1087,7 @@ http response code = 207 (Multi-Status) if DB errors occurred at trigger generat
 |GET|/health_check/log_file|no|current log file of application|Download log file of MOVEX CDC application. +
 Requires valid user JWT in request header.
 |GET|/import_export/export|schema (Limit export to a single schema, optional)|JSON object|Export configuration data of all or a particular schema (users, schemas, tables, columns, conditions, schema rights, users) as JSON object
-|POST|/import_export/import|JSON object, schema (Limit exports to a single schema, optional)|no|Import configuration data for users and schemas. Each user / schema contained in the JSON object creates/replaces the configuration data in the applications config tables
+|POST|/import_export/import|JSON object, schema (optional, may be passed once or multiple times to limit import to one or more schemas; if omitted, all schemas from the JSON file are imported), deactivate_missing_schemas (boolean, optional; only effective when all schemas from the file are selected)|no|Import configuration data for users and schemas.
 |POST|/import_export/import_all_users|JSON object|no|Import the complete configuration data for users from JSON object. The schema import in contrast imports only the users that are necessary for dependencies with locked account.
 |POST|/login/do_logon|email, password|token|Validate user authentication, get JWT token for authentication/authorization of following requests
 |POST|/server_control/reprocess_final_errors|schema_name, table_name (optional)|reprocess_count: Number of rescheduled events|Move stored erroneous events from table Event_Log_Final_Errors to table Event_Logs for repeated transfer to Kafka

@@ -82,16 +82,27 @@ class ImportExportConfig
 
   # import schema data
   # @param [Hash] import_hash Hash with list of schema objects and list of user objects
-  # @param [String] schema_name_to_pick  Single schema name which should be imported out of the whole list of schemas, nil = import all schemas in list
-  def import_schemas(import_hash, schema_name_to_pick: nil)
+  # @param [Array<String>] schema_list  List of one, several or all schemas to import. If empty or nil, all schemas from import file are imported.
+  # @param [Boolean] deactivate_missing_schemas  If true, schemas not present in the selected import set will be deactivated. Important: Option is only available if all schemas of an import files were chosen for import.
+  def import_schemas(import_hash, schema_list, deactivate_missing_schemas = false)
     raise "Parameter import_hash is not a Hash"     unless import_hash.is_a? Hash
     raise "Object users is not an array"            unless import_hash['users'].instance_of? Array
     raise "Object schemas is not an array"          unless import_hash['schemas'].instance_of? Array
-    raise "Schema '#{schema_name_to_pick}' does not exist in import data" if !schema_name_to_pick.nil? && import_hash['schemas'].find{|s| s['name'] == schema_name_to_pick }.nil?
+
+    schema_list = normalize_schema_names(schema_list)
+    # If schema_list is empty, default to importing all schemas from the import file
+    if schema_list.empty?
+      schema_list = import_hash['schemas'].map{|s| s['name'] }
+    end
+
+    missing_schema_names = schema_list.reject{|schema_name| import_hash['schemas'].any?{|s| s['name'] == schema_name} }
+    raise "Schema(s) #{missing_schema_names.map{|s| "'#{s}'"}.join(', ')} do not exist in import data" if missing_schema_names.any?
+
+    selected_schema_hashes = import_hash['schemas'].select{|s| schema_list.include?(s['name']) }
 
     ActiveRecord::Base.transaction do
       # Ensure all users exist in DB that are referenced in schema_rights
-      import_hash['schemas']&.each do |schema_hash|
+      selected_schema_hashes&.each do |schema_hash|
         raise "Schema does not have an String element 'name'"                                   unless schema_hash['name'].instance_of? String
         raise "Schema '#{schema_hash['name']}' does not have an Array element 'tables'"         unless schema_hash['tables'].instance_of? Array
         raise "Schema '#{schema_hash['name']}' does not have an Array element 'schema_rights'"  unless schema_hash['schema_rights'].instance_of? Array
@@ -111,8 +122,9 @@ class ImportExportConfig
       end
     end
 
-    # Deactivate schemas which are not part of full import
-    if schema_name_to_pick.nil?
+    # Deactivate schemas which are not part of the selected import set when requested.
+    # Important: This option is only available if all schemas of an import files were chosen for import.
+    if deactivate_missing_schemas && schema_list.size == import_hash['schemas'].size
       Schema.all.each do |schema|
         if import_hash['schemas'].find{|s| s['name'] == schema.name}.nil?       # existing schema not in list
           deactivate_surplus_schema(schema)                                     # Deactivate, not physically delete
@@ -120,7 +132,7 @@ class ImportExportConfig
       end
     end
 
-    import_hash['schemas'].select{|s| schema_name_to_pick.nil? || schema_name_to_pick == s['name'] }.each do |schema_hash|
+    selected_schema_hashes.each do |schema_hash|
       existing_schema = Schema.where(name: schema_hash['name']).first
       if existing_schema
         update_existing_schema(schema_hash, existing_schema)
@@ -153,6 +165,18 @@ class ImportExportConfig
   end
 
   private
+
+  # Provides a cleansed schema list
+  # @param [String, Array<String>] list of schemas to be imported
+  # @return [Array<String>] list of non-empty and unique schema names as array
+  def normalize_schema_names(schema_names)
+    Array(schema_names)
+      .flatten
+      .compact
+      .map(&:to_s)
+      .reject(&:empty?)
+      .uniq
+  end
 
   # Create hash with columns of object
   def generate_export_object(exp_obj, columns)

@@ -62,6 +62,28 @@ class ImportExportControllerTest < ActionDispatch::IntegrationTest
     assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
   end
 
+  test "import multiple selected schemas" do
+    json_data = ImportExportConfig.new.export
+    schema_names = json_data['schemas'].map{|s| s['name']}.first(2)
+    assert_equal(2, schema_names.count, 'Test data should contain at least two schemas')
+
+    [json_data, JSON.pretty_generate(json_data)].each do |import_data|
+      post "/import_export/import", headers: jwt_header(@jwt_admin_token), params: {
+        json_data: import_data,
+        schema: schema_names,
+        deactivate_missing_schemas: false,
+      }
+      assert_response :success
+    end
+
+    post "/import_export/import", headers: jwt_header(@jwt_token), params: {
+      json_data: json_data,
+      schema: schema_names,
+      deactivate_missing_schemas: false,
+    }
+    assert_response :unauthorized, log_on_failure('Access allowed to supervisor only')
+  end
+
   test 'import all users' do
     json_data = ImportExportConfig.new.export
 

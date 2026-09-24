@@ -29,6 +29,13 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     table.destroy!
   end
 
+  # Function extracts schema names from given import data hash.
+  # @param [Hash] import_data Hash values
+  # @return [Array] Array of schema names
+  def schema_names_from_import_data(import_data)
+    import_data['schemas'].map{|schema| schema['name'] }
+  end
+
   setup do
     # Ensure config data is loaded
     create_victim_structures
@@ -118,7 +125,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       unused_schema.tables          << Table.new(name: 'UNUSED_TABLE' )
       unused_schema.schema_rights   << SchemaRight.new(user_id: User.where(email: 'admin')&.first&.id)
       unused_schema.save!
-      ImportExportConfig.new.import_schemas(exported_data)
+      ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data), true)
       assert_equal('Y', Schema.find(unused_schema.id).tables[0].yn_hidden, 'Table should be hidden now')
       assert_equal(0, Schema.find(unused_schema.id).schema_rights.count, 'SchemaRights should be deleted')
     end
@@ -171,7 +178,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
                             'wrong_colname' => 'no more existent column name',  # This should test for toleration of columns not existing in DB
                           }]
     }
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data)) }
     new_schema = Schema.where(name: 'NEW_SCHEMA').first
     assert_not_equal(nil, new_schema, 'The new schema should be created')
     assert_equal('NEW_SCHEMA',  new_schema.name,                       'The new schema should be created with this name')
@@ -249,7 +256,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       test_schema_hash['schema_rights'] << { 'email' => test_user_d.email}      # SchemaRight not existing in DB but in import
       test_schema_hash['schema_rights'].find{|sr| sr['email'] == test_user_u.email}['yn_deployment_granted'] = 'Y'
 
-      ImportExportConfig.new.import_schemas(exported_data)                      # Now import the data for test
+      ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data))                      # Now import the data for test
       assert_equal('Changed topic', Schema.find(test_schema.id).topic, 'Changed topic should occur in DB')
       assert_equal('Y', Table.find(missing_table.id).yn_hidden, 'Missing table should be set hidden after import')
       assert_equal(1, Table.where(name: 'ADDED_TABLE').count, 'Additional table from import should exist in DB now')  # ensure also that only one table exists with this name
@@ -293,7 +300,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     schema0 = Schema.where(name: exported_data['schemas'][0]['name']).first
     org_topic = schema0.topic
     exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_name_to_pick: schema0.name) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, [schema0.name]) }
 
     Schema.all.each do |schema|
       if schema.id == schema0.id
@@ -307,11 +314,60 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     run_with_current_user { Schema.find(schema0.id).update!(topic: org_topic) }
   end
 
+  test 'import selected schemas without deactivating others' do
+    exported_data = ImportExportConfig.new.export
+    selected_schema_names = schema_names_from_import_data(exported_data).first(2)
+    assert_equal(2, selected_schema_names.count, 'Test data should contain at least two schemas')
+
+    original_topics = {}
+    selected_schema_names.each do |schema_name|
+      original_topics[schema_name] = Schema.where(name: schema_name).first.topic
+    end
+    untouched_schema = Schema.where.not(name: selected_schema_names).first
+    untouched_topic = untouched_schema&.topic
+
+    exported_data['schemas'].each do |schema_hash|
+      schema_hash['topic'] = "CHANGED_#{schema_hash['name']}"
+    end
+
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names) }
+
+    selected_schema_names.each do |schema_name|
+      assert_equal("CHANGED_#{schema_name}", Schema.where(name: schema_name).first.topic, 'Selected schemas should be updated')
+    end
+
+    if untouched_schema
+      assert_equal(untouched_topic, Schema.where(name: untouched_schema.name).first.topic, 'Unselected schemas should remain unchanged')
+    end
+
+    run_with_current_user do
+      selected_schema_names.each do |schema_name|
+        Schema.where(name: schema_name).first.update!(topic: original_topics[schema_name])
+      end
+    end
+  end
+
+  test 'import selected schemas does not deactivate others if not all schemas were selected' do
+    exported_data = ImportExportConfig.new.export
+    selected_schema_names = schema_names_from_import_data(exported_data).first(2)
+    assert_equal(2, selected_schema_names.count, 'Test data should contain at least two schemas')
+
+    untouched_schema = Schema.where.not(name: selected_schema_names).first
+    assert_not_nil(untouched_schema, 'Test data should contain at least one schema that is not selected')
+    untouched_table = untouched_schema.tables.first
+    untouched_schema_right_count = untouched_schema.schema_rights.count
+
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names, true) }
+
+    assert_equal('N', Table.find(untouched_table.id).yn_hidden, 'Unselected schemas should stay active if not all schemas of the file were selected') if untouched_table
+    assert_equal(untouched_schema_right_count, Schema.find(untouched_schema.id).schema_rights.count, 'Unselected schema rights should stay unchanged if not all schemas of the file were selected')
+  end
+
   test 'import all from single schema export' do
     org_exported_data = ImportExportConfig.new.export # get the whole JSON data to restore after test
     exported_data = ImportExportConfig.new.export(single_schema_name: victim_schema.name) # get JSON data for single schema to test for import
     exported_data['schemas'].each {|s| s['topic'] = 'CHANGED_TOPIC'}
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }  # Import the whole document
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data), true) }  # Import the whole document
 
     Schema.all.each do |schema|
       if schema.id == victim_schema.id
@@ -330,15 +386,16 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     end
 
     # Restore original state
-    run_with_current_user { ImportExportConfig.new.import_schemas(org_exported_data) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(org_exported_data, schema_names_from_import_data(org_exported_data), true) }
   end
 
   test 'import schema with missing user' do
     exported_data = ImportExportConfig.new.export                               # get JSON data to test for import
+    selected_schema_name = exported_data['schemas'][0]['name']
     exported_data['schemas'][0]['schema_rights'] << { 'email'       => 'NON_EXISTING' }
 
     begin
-      exported_users   = ImportExportConfig.new.import_schemas(exported_data)
+      ImportExportConfig.new.import_schemas(exported_data, [selected_schema_name])
       raise "Missing user should raise exception before executing this line"
     rescue Exception => e
       assert(e.message["doesn't exist neither in the DB"], "Missing user should raise specific exception, but is #{e.class}:#{e.message}")
@@ -353,7 +410,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       'yn_account_locked' => 'N'
     }
 
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) } # Now import with valid user
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, [selected_schema_name]) } # Now import with valid user
     user = User.where(email: 'NON_EXISTING').first
     assert_not_nil(user, 'Missing user should be created')
     assert_equal('N', user.yn_admin, 'User should not remain admin')
@@ -368,9 +425,9 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
   test 'import config with missing structure elements' do
     # Excpect raise of RuntimeError due to explicit raise "String" in code
-    def expect_raise(msg, data)
+    def expect_raise(msg, data, schema_list = [])
       assert_raise(RuntimeError, "Missing #{msg} should raise own raised RuntimeError exception") do
-        run_with_current_user { ImportExportConfig.new.import_schemas(data) }
+        run_with_current_user { ImportExportConfig.new.import_schemas(data, schema_list) }
       rescue Exception => e
         puts "#{e.class}:#{e.message}" unless e.instance_of? RuntimeError
         raise
@@ -379,12 +436,12 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
     expect_raise('schemas and users', {})
     expect_raise('schemas', {'users' => []})
-    run_with_current_user { ImportExportConfig.new.import_schemas({'schemas' => [], 'users' => []}) } # Should not raise an exception
+    run_with_current_user { ImportExportConfig.new.import_schemas({'schemas' => [], 'users' => []}, []) } # Should not raise an exception
 
-    expect_raise('schema name', {'schemas'=>[{}], 'users'=>[]})
-    expect_raise('tables array', {'schemas'=>[{ 'name'=>'HUGO'}], 'users'=>[]})
-    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>victim_schema.name, 'tables'=>[]}], 'users'=>[]})  # Existing schema
-    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>'HUGO', 'tables'=>[]}], 'users'=>[]})  # new schema
+    expect_raise('selected schema existing in import data', {'schemas'=>[{}], 'users'=>[]}, [victim_schema.name])
+    expect_raise('tables array', {'schemas'=>[{ 'name'=>'HUGO'}], 'users'=>[]}, ['HUGO'])
+    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>victim_schema.name, 'tables'=>[]}], 'users'=>[]}, [victim_schema.name])  # Existing schema
+    expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>'HUGO', 'tables'=>[]}], 'users'=>[]}, ['HUGO'])  # new schema
 
     # restore original state, recreate needed elements
     GlobalFixtures.repeat_initialization                                        # Create fixtures again at start of the next test
@@ -398,12 +455,12 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     export_schema_table['yn_initialization'] = 'Y'
     # Should fail because no column logs insert
     assert_raise("Should raise ActiveRecord::RecordInvalid: Validation failed: Yn initialization Table #{user_schema.name}.#{tables_table.name} should have at least one column registered for insert trigger to execute initialization!") do
-      run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+      run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data)) }
     end
 
     # Should not fail on existing table
     export_schema_table['columns'].first['yn_log_insert'] = 'Y'                                  # Fix previous error condition
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data)) }
     existing_table = Table.find(tables_table.id)
     assert_equal('Y', existing_table.yn_initialization, log_on_failure('YN_Initialization should be set in DB for existing table'))
 
@@ -413,7 +470,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
       'yn_initialization' => 'Y',
       'columns'           => [{ 'name' => 'OPERATION', 'yn_log_insert' => 'Y'}],
     }
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data) }
+    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, schema_names_from_import_data(exported_data)) }
     added_table = Table.where(schema_id: user_schema.id, name: 'STATISTICS').first
     assert_equal('Y', added_table.yn_initialization, log_on_failure('YN_Initialization should be set in DB for added table'))
 

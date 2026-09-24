@@ -22,6 +22,29 @@
             Import
           </b-button>
         </b-field>
+
+        <div v-if="importSchemas.length > 0" class="mt-4">
+          <b-message v-if="importSchemas.length > 1" type="is-info">
+            The uploaded file contains {{ importSchemas.length }} schemas. Select one or more schemas to import.
+          </b-message>
+
+          <b-field v-if="importSchemas.length > 1" label="Schemas to import">
+            <b-select v-model="selectedSchemaNames"
+                      multiple
+                      expanded
+                      :disabled="isLoading">
+              <option v-for="schema in importSchemas" :key="schema.name" :value="schema.name">
+                {{ schema.name }}
+              </option>
+            </b-select>
+          </b-field>
+
+          <b-field v-if="importSchemas.length > 1 && areAllImportSchemasSelected">
+            <b-checkbox v-model="deactivateMissingSchemas" :disabled="isLoading">
+              Deactivate schemas that are not contained in the import set.
+            </b-checkbox>
+          </b-field>
+        </div>
       </b-tab-item>
 
       <b-tab-item label="Export">
@@ -58,7 +81,19 @@ export default {
       schemas: [],
       selectedSchema: null,
       file: null,
+      importData: null,
+      selectedSchemaNames: [],
+      deactivateMissingSchemas: false,
     };
+  },
+  computed: {
+    importSchemas() {
+      return this.importData?.schemas ?? [];
+    },
+    areAllImportSchemasSelected() {
+      return this.importSchemas.length > 0
+        && this.selectedSchemaNames.length === this.importSchemas.length;
+    },
   },
   async created() {
     try {
@@ -75,12 +110,74 @@ export default {
       this.isLoading = false;
     }
   },
+  watch: {
+    async file(newFile) {
+      await this.loadImportData(newFile);
+    },
+    selectedSchemaNames() {
+      if (!this.areAllImportSchemasSelected) {
+        this.deactivateMissingSchemas = false;
+      }
+    },
+  },
   methods: {
+    async loadImportData(file) {
+      if (!file) {
+        this.importData = null;
+        this.selectedSchemaNames = [];
+        this.deactivateMissingSchemas = false;
+        return;
+      }
+
+      try {
+        const jsonText = await file.text();
+        const jsonData = JSON.parse(jsonText);
+
+        if (!Array.isArray(jsonData.schemas)) {
+          throw new Error("Import file should contain a 'schemas' array.");
+        }
+
+        if (!Array.isArray(jsonData.users)) {
+          throw new Error("Import file should contain a 'users' array.");
+        }
+
+        this.importData = jsonData;
+        this.selectedSchemaNames = jsonData.schemas.map((schema) => schema.name);
+        this.deactivateMissingSchemas = false;
+      } catch (e) {
+        this.importData = null;
+        this.selectedSchemaNames = [];
+        this.deactivateMissingSchemas = false;
+        this.$buefy.notification.open({
+          message: getErrorMessageAsHtml(e),
+          type: 'is-danger',
+          indefinite: true,
+          position: 'is-top',
+        });
+        this.file = null;
+      }
+    },
+    getSelectedSchemaNames() {
+      return this.selectedSchemaNames.length > 0 ? this.selectedSchemaNames : this.importSchemas.map((schema) => schema.name);
+    },
     async onImportClicked() {
+      if (!this.importData) {
+        return;
+      }
+
+      const selectedSchemaNames = this.getSelectedSchemaNames();
+      const selectedSchemaLabel = selectedSchemaNames.length === 1
+        ? `schema '${selectedSchemaNames[0]}'`
+        : `${selectedSchemaNames.length} schemas`;
+      const cleanupMessage = this.deactivateMissingSchemas
+        ? 'Schemas not contained in the selected import set will be deactivated.'
+        : 'Schemas not contained in the selected import set will remain unchanged.';
+
       this.$buefy.dialog.confirm({
         title: 'Acknowledge import',
-        message: 'Do you really want to import the whole document?<br><br>'
-          + 'All existing tables and schema rights will be deleted if not contained in this document !!!',
+        message: `Do you really want to import ${selectedSchemaLabel}?<br><br>`
+          + `${cleanupMessage}<br>`
+          + 'All existing tables and schema rights will be updated according to the imported schema data.',
         confirmText: 'Yes',
         cancelText: 'No',
         type: 'is-warning',
@@ -89,10 +186,11 @@ export default {
         onConfirm: async () => {
           try {
             this.isLoading = true;
-            const jsonText = await this.file.text();
-            const json = JSON.parse(jsonText);
-            // TODO: Reduce JSON-File to all or selected schemas + 'users' section
-            await CRUDService.config.import({ json_data: json });
+            await CRUDService.config.import({
+              json_data: this.importData,
+              schema: this.getSelectedSchemaNames(),
+              deactivate_missing_schemas: this.deactivateMissingSchemas,
+            });
             this.$buefy.toast.open({
               message: 'Import was successful!',
               type: 'is-success',
