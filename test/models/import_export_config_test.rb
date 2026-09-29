@@ -438,7 +438,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     expect_raise('schemas', {'users' => []})
     run_with_current_user { ImportExportConfig.new.import_schemas({'schemas' => [], 'users' => []}, []) } # Should not raise an exception
 
-    expect_raise('selected schema existing in import data', {'schemas'=>[{}], 'users'=>[]}, [victim_schema.name])
+    expect_raise('schema name', {'schemas'=>[{}], 'users'=>[]}, [])
     expect_raise('tables array', {'schemas'=>[{ 'name'=>'HUGO'}], 'users'=>[]}, ['HUGO'])
     expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>victim_schema.name, 'tables'=>[]}], 'users'=>[]}, [victim_schema.name])  # Existing schema
     expect_raise('schema_rights array', {'schemas'=>[{ 'name'=>'HUGO', 'tables'=>[]}], 'users'=>[]}, ['HUGO'])  # new schema
