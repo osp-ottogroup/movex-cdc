@@ -11,6 +11,13 @@ if RUBY_ENGINE == 'jruby' && ActiveRecord.version >= Gem::Version.new('8.1')
   module ArJdbcSQLite3Rails81ColumnFix
     private
 
+    # Removed in Rails 8.1 but still used by ArJdbc::SQLite3#copy_table (e.g. at add_foreign_key / alter_table in migrations):
+    #   NoMethodError: undefined method 'lookup_cast_type_from_column' for an instance of ActiveRecord::ConnectionAdapters::SQLite3Adapter
+    # Rails 8.1 uses column.fetch_cast_type(connection) instead
+    def lookup_cast_type_from_column(column)
+      column.fetch_cast_type(self)
+    end
+
     def new_column_from_field(table_name, field, definitions)
       default         = field["dflt_value"]
       type_metadata   = fetch_type_metadata(field["type"])
