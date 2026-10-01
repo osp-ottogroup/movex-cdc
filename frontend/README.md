@@ -8,9 +8,9 @@ npm install
 ### Compiles and hot-reloads for development
 Start backend e.g. at port 4000
 ```
-export VUE_APP_BACKEND_URL=http://localhost:4000
+export VITE_BACKEND_URL=http://localhost:4000
 cd frontend
-npm run serve
+npm run dev
 ```
 
 ### Compiles and minifies for production
