@@ -54,10 +54,7 @@ group :test do
   gem 'ruby-maven'
 
   gem 'simplecov', require: false
-  gem 'minitest', '~> 5.20'
-  # gem 'minitest', '5.26.0'  # Rel. 6.0.1 causes ArgumentError: wrong number of arguments (given 3, expected 1..2) at minitest-6.0.1/lib/minitest.rb:472
-  # Probem fixed by change minitest.rb:472 "run self, method_name, reporter" to "Runnable.run self, method_name, reporter"
-  # https://github.com/minitest/minitest/issues/1063
+  gem 'minitest'
 end
 
 # Windows does not include zoneinfo files, so bundle the tzinfo-data gem
