@@ -31,7 +31,11 @@ class TableTest < ActiveSupport::TestCase
       t1 = Table.new(schema_id: user_schema.id, name: 'CONDITIONS',  info: 'info', yn_initialization: 'Y')  # Real existing table
       t1.save!
       t1.mark_hidden
-      assert_equal('Y', Table.find(t1.id).yn_hidden, 'Table should be hidden now')
+      t1 = Table.find(t1.id)                                                    # reread from DB to ensure that the change was persisted
+      assert_equal('Y', t1.yn_hidden, 'Table should be hidden now')
+      tn = Table.create_or_mark_visible(t1.attributes.with_indifferent_access)
+      t1 = Table.find(t1.id)                                                    # reread from DB to ensure that the change was persisted
+      assert_equal('N', t1.yn_hidden, 'Table should not be hidden now')
       t1.destroy!
     end
   end

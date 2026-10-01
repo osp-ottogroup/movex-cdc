@@ -34,6 +34,7 @@ Backend (JRuby, from repo root):
 
 ```bash
 bundle install --jobs 1        # do NOT parallelize: race condition in ruby-maven-libs
+(cd $(bundle info activerecord-jdbc-adapter --path) && rake jar)  # needed once after install: adapter_java.jar is missing in GitHub checkout of activerecord-jdbc-adapter
 bundle exec rails db:migrate   # no schema.rb load — migrations are the source of truth
 bundle exec rails test                                   # whole suite
 bundle exec rails test test/models/table_test.rb         # single file

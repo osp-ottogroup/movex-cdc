@@ -6,17 +6,22 @@ git_source(:github) { |repo| "https://github.com/#{repo}.git" }
 ruby '4.0.0'
 # Bundle edge Rails instead: gem 'rails', github: 'rails/rails'
 # see: https://rubygems.org/gems/rails/versions
-# gem 'rails', '6.1.7.10'
-gem 'rails', '8.0.5.1'
+# gem 'rails', '8.0.5.1'
+gem 'rails', '8.1.4'
 
 # Use the current development branch for Rails 8.0, frozen to a certain commit to avoid unwanted changes
 #gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
 #gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: '424d669'
 
-gem 'activerecord-jdbc-adapter', '80.0.pre1', platform: :jruby
-gem 'activerecord-jdbcsqlite3-adapter', '80.0.pre1', platform: :jruby
+# No released version supports Rails 8.1 yet (latest: 80.0.pre1 / 72.1). Without version constraint Bundler falls back to ancient 1.3.22!
+# Master contains Rails 8.1 support (PR #1207), frozen to a certain commit to avoid unwanted changes
+gem 'activerecord-jdbc-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: 'a5bf39a', platform: :jruby
+gem 'activerecord-jdbcsqlite3-adapter', github: 'jruby/activerecord-jdbc-adapter', branch: 'master', ref: 'a5bf39a', platform: :jruby
+#gem 'activerecord-jdbc-adapter', '80.0.pre1', platform: :jruby
+#gem 'activerecord-jdbcsqlite3-adapter', '80.0.pre1', platform: :jruby
 
-gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'
+gem 'activerecord-oracle_enhanced-adapter'
+# gem "activerecord-oracle_enhanced-adapter", github: 'rsim/oracle-enhanced', branch: 'release80'
 #gem "activerecord-oracle_enhanced-adapter", github: 'rammpeter/oracle-enhanced', branch: 'release80'
 
 # Use Puma as the app server
@@ -41,7 +46,7 @@ gem 'snappy'
 
 group :development do
   gem 'listen'
-  # gem 'rubocop' not really needed as deployment artifact
+  gem 'ostruct' # fix ruby-debug-ide-0.7.5/bin/rdebug-ide:4: warning: ostruct was loaded from the standard library, but is not part of the default gems starting from Ruby 3.5.0.
 end
 
 group :test do

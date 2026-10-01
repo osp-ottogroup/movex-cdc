@@ -24,7 +24,10 @@ class Table < ApplicationRecord
     tables = Table.where({ schema_id: table_params[:schema_id], name: table_params[:name]})   # Check for existing hidden or not hidden table
     if tables.length > 0                                                        # table still exists
       table = tables[0]
-      table.update(table_params.to_h.merge({yn_hidden: 'N'}))    # mark visible for GUI, store errors in table.errors if any
+      # Never overwrite the primary key of the existing record with the value from the client params.
+      # The GUI sends 'id' => nil for a "new" table, which otherwise would set TABLES.ID to NULL (ORA-01407).
+      update_params = table_params.to_h.except('id', :id).merge({yn_hidden: 'N'})
+      table.update(update_params)                                # mark visible for GUI, store errors in table.errors if any
       table
     else
       table = Table.new(table_params)
@@ -108,8 +111,11 @@ class Table < ApplicationRecord
   end
 
   def validate_yn_initialization_update
-    # Validation should not be tested at update when table is marked as hidden
-    if yn_initialization == 'Y' && yn_hidden == 'N'
+    # Get the current value of yn_hidden from DB to check if it was changed from hidden to visible.
+    db_state = Table.find(self.id)
+    # Validation should not be tested at update when table is marked as hidden or changed from hidden to visible
+    # allow violation of initialization if table was hidden before and now is visible
+    if yn_initialization == 'Y' && yn_hidden == 'N' && db_state.yn_hidden != 'Y'
       if Column.where(table_id: self.id, yn_log_insert: 'Y').count == 0
         errors.add(:yn_initialization, "Table #{self.schema.name}.#{self.name} should have at least one column registered for insert trigger to execute initialization!")
       end
