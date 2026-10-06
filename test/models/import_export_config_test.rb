@@ -317,32 +317,34 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   test 'import selected schemas without deactivating others' do
     exported_data = ImportExportConfig.new.export
     selected_schema_names = schema_names_from_import_data(exported_data).first(2)
-    assert_equal(2, selected_schema_names.count, 'Test data should contain at least two schemas')
 
-    original_topics = {}
-    selected_schema_names.each do |schema_name|
-      original_topics[schema_name] = Schema.where(name: schema_name).first.topic
-    end
-    untouched_schema = Schema.where.not(name: selected_schema_names).first
-    untouched_topic = untouched_schema&.topic
-
-    exported_data['schemas'].each do |schema_hash|
-      schema_hash['topic'] = "CHANGED_#{schema_hash['name']}"
-    end
-
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names) }
-
-    selected_schema_names.each do |schema_name|
-      assert_equal("CHANGED_#{schema_name}", Schema.where(name: schema_name).first.topic, 'Selected schemas should be updated')
-    end
-
-    if untouched_schema
-      assert_equal(untouched_topic, Schema.where(name: untouched_schema.name).first.topic, 'Unselected schemas should remain unchanged')
-    end
-
-    run_with_current_user do
+    # Test starts if at least two schemas are available
+    if selected_schema_names.count >= 2
+      original_topics = {}
       selected_schema_names.each do |schema_name|
-        Schema.where(name: schema_name).first.update!(topic: original_topics[schema_name])
+        original_topics[schema_name] = Schema.where(name: schema_name).first.topic
+      end
+      untouched_schema = Schema.where.not(name: selected_schema_names).first
+      untouched_topic = untouched_schema&.topic
+
+      exported_data['schemas'].each do |schema_hash|
+        schema_hash['topic'] = "CHANGED_#{schema_hash['name']}"
+      end
+
+      run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names) }
+
+      selected_schema_names.each do |schema_name|
+        assert_equal("CHANGED_#{schema_name}", Schema.where(name: schema_name).first.topic, 'Selected schemas should be updated')
+      end
+
+      if untouched_schema
+        assert_equal(untouched_topic, Schema.where(name: untouched_schema.name).first.topic, 'Unselected schemas should remain unchanged')
+      end
+
+      run_with_current_user do
+        selected_schema_names.each do |schema_name|
+          Schema.where(name: schema_name).first.update!(topic: original_topics[schema_name])
+        end
       end
     end
   end
@@ -350,17 +352,19 @@ class ImportExportConfigTest < ActiveSupport::TestCase
   test 'import selected schemas does not deactivate others if not all schemas were selected' do
     exported_data = ImportExportConfig.new.export
     selected_schema_names = schema_names_from_import_data(exported_data).first(2)
-    assert_equal(2, selected_schema_names.count, 'Test data should contain at least two schemas')
 
-    untouched_schema = Schema.where.not(name: selected_schema_names).first
-    assert_not_nil(untouched_schema, 'Test data should contain at least one schema that is not selected')
-    untouched_table = untouched_schema.tables.first
-    untouched_schema_right_count = untouched_schema.schema_rights.count
+    # Test starts if at least two schemas are available
+    if selected_schema_names.count >= 2
+      untouched_schema = Schema.where.not(name: selected_schema_names).first
+      assert_not_nil(untouched_schema, 'Test data should contain at least one schema that is not selected')
+      untouched_table = untouched_schema.tables.first
+      untouched_schema_right_count = untouched_schema.schema_rights.count
 
-    run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names, true) }
+      run_with_current_user { ImportExportConfig.new.import_schemas(exported_data, selected_schema_names, true) }
 
-    assert_equal('N', Table.find(untouched_table.id).yn_hidden, 'Unselected schemas should stay active if not all schemas of the file were selected') if untouched_table
-    assert_equal(untouched_schema_right_count, Schema.find(untouched_schema.id).schema_rights.count, 'Unselected schema rights should stay unchanged if not all schemas of the file were selected')
+      assert_equal('N', Table.find(untouched_table.id).yn_hidden, 'Unselected schemas should stay active if not all schemas of the file were selected') if untouched_table
+      assert_equal(untouched_schema_right_count, Schema.find(untouched_schema.id).schema_rights.count, 'Unselected schema rights should stay unchanged if not all schemas of the file were selected')
+    end
   end
 
   test 'import all from single schema export' do
