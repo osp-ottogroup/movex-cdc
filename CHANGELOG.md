@@ -1,10 +1,7 @@
 # MOVEX Change Data Capture: Release notes
-## Most recent changes
-- Schema-specific configuration import: allows selective import of one, several, or all schemas from a JSON configuration file. New optional "Deactivate Missing Schemas" feature (available when all schemas from the import file are selected) automatically deactivates unused schemas in the configuration. Enhanced /import_export/import API endpoint with multi-schema selection support and improved ConfigExchange UI.
-- Platform dependency refresh: JRuby 10.1.2.0 upgrade 
-
 ## Upcoming release 
 - Dependencies updated: Rails 8.1.4, JRuby 10.1.2.0
+- Schema-specific configuration import: allows selective import of one, several, or all schemas from a JSON configuration file. New optional "Deactivate Missing Schemas" feature (available when all schemas from the import file are selected) automatically deactivates unused schemas in the configuration. Enhanced /import_export/import API endpoint with multi-schema selection support and improved ConfigExchange UI.
 
 ## 2026-09-10 1.13.8
 - Major frontend modernization: migration from Vue CLI to Vite, upgrade to Vue 3/Buefy 3, and related reactivity/UI fixes.
