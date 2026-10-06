@@ -55,7 +55,7 @@ module MovexCdc
 
     # Prevent the deprecation warning:
     # DEPRECATION WARNING: `to_time` will always preserve the full timezone rather than offset of the receiver in Rails 8.1. To opt in to the new behavior, set `config.active_support.to_time_preserves_timezone = :zone`. (called from <main> at /Users/pramm/Documents/Projekte/gitlab.com/movex-cdc/config/environment.rb:5)
-    config.active_support.to_time_preserves_timezone = :zone
+    # config.active_support.to_time_preserves_timezone = :zone
 
     # Settings in config/environments/* take precedence over those specified here.
     # Application configuration can go into files in config/initializers

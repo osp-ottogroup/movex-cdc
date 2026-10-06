@@ -15,6 +15,9 @@ RUN gem install ruby-maven
 
 RUN bundle install --jobs 4
 
+# activerecord-jdbc-adapter is used from GitHub master (Rails 8.1): build missing adapter_java.jar explicitly
+RUN cd $(bundle info activerecord-jdbc-adapter --path) && rake jar
+
 COPY . .
 
 EXPOSE 3000

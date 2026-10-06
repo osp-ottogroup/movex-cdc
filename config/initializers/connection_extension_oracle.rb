@@ -57,22 +57,19 @@ ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection.class_eval do
 end
 
 
-# Fix for https://github.com/rsim/oracle-enhanced/pull/2473
-# https://github.com/rsim/oracle-enhanced/issues/2470
+# The former patch of Cursor#select_statement? for https://github.com/rsim/oracle-enhanced/issues/2470 has been removed:
+# oracle-enhanced 8.1 checks for an existing result set now, and the patch (using get_original_sql) fails for plain Statements.
 
+# Fix for oracle-enhanced 8.1.x: JDBCConnection#prepare uses a plain java.sql.Statement (createStatement) for SQL starting
+# with CREATE|DROP|BEGIN|DECLARE and stores the SQL in @exec_sql. Cursor#exec respects this, but Cursor#exec_update doesn't
+# and calls executeUpdate without SQL, which leads to:
+#   ArgumentError: no method 'executeUpdate' (for zero arguments) on Java::OracleJdbcDriver::OracleStatementWrapper
+# Affects e.g. Database.execute "BEGIN ... END;" or Database.execute "DROP TRIGGER ..." without bind variables.
+# Remove this patch as soon as oracle-enhanced fixes Cursor#exec_update.
 ActiveRecord::ConnectionAdapters::OracleEnhanced::JDBCConnection::Cursor.class_eval do
-  puts "connection_extension_oracle.rb: patching OracleEnhanced::JDBCConnection::Cursor to fix issue #2470"
-  def select_statement?
-    # Only simple SELECT and WITH statements are considered SELECT statements.
-    # because no other valid ojdbc method found to check it.
-
-    sql = @raw_statement.get_original_sql.strip
-
-    sql.gsub!(/\A\n+/, "")            # remove leading newlines
-    sql.gsub!(/\A\r+/, "")            # remove leading carriage returns
-    sql.gsub!(/--.*$/, "")            # remove single line comments
-    sql.gsub!(/\/\*.*?\*\//m, "")     # Remove multi-line comments (/* ... */)
-    sql.match?(/\A\s*(SELECT|WITH)/i)
+  puts "connection_extension_oracle.rb: patching OracleEnhanced::JDBCConnection::Cursor#exec_update for DDL and PL/SQL without binds"
+  def exec_update
+    @exec_sql ? @raw_statement.executeUpdate(@exec_sql) : @raw_statement.executeUpdate  # @exec_sql is nil for PreparedStatement
   end
 
 end
