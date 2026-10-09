@@ -316,10 +316,10 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
   test 'import selected schemas without deactivating others' do
     exported_data = ImportExportConfig.new.export
-    selected_schema_names = schema_names_from_import_data(exported_data).first(2)
 
     # Test starts if at least two schemas are available
-    if selected_schema_names.count >= 2
+    if exported_data.count >= 2
+      selected_schema_names = schema_names_from_import_data(exported_data).first(1)
       original_topics = {}
       selected_schema_names.each do |schema_name|
         original_topics[schema_name] = Schema.where(name: schema_name).first.topic
@@ -351,10 +351,10 @@ class ImportExportConfigTest < ActiveSupport::TestCase
 
   test 'import selected schemas does not deactivate others if not all schemas were selected' do
     exported_data = ImportExportConfig.new.export
-    selected_schema_names = schema_names_from_import_data(exported_data).first(2)
 
     # Test starts if at least two schemas are available
-    if selected_schema_names.count >= 2
+    if exported_data.count >= 2
+      selected_schema_names = schema_names_from_import_data(exported_data).first(1)
       untouched_schema = Schema.where.not(name: selected_schema_names).first
       assert_not_nil(untouched_schema, 'Test data should contain at least one schema that is not selected')
       untouched_table = untouched_schema.tables.first
