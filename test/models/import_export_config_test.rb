@@ -318,7 +318,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     exported_data = ImportExportConfig.new.export
 
     # Test starts if at least two schemas are available
-    if exported_data.count >= 2
+    if schema_names_from_import_data(exported_data).unique.count >= 2
       selected_schema_names = schema_names_from_import_data(exported_data).first(1)
       original_topics = {}
       selected_schema_names.each do |schema_name|
@@ -353,7 +353,7 @@ class ImportExportConfigTest < ActiveSupport::TestCase
     exported_data = ImportExportConfig.new.export
 
     # Test starts if at least two schemas are available
-    if exported_data.count >= 2
+    if schema_names_from_import_data(exported_data).unique.count >= 2
       selected_schema_names = schema_names_from_import_data(exported_data).first(1)
       untouched_schema = Schema.where.not(name: selected_schema_names).first
       assert_not_nil(untouched_schema, 'Test data should contain at least one schema that is not selected')
