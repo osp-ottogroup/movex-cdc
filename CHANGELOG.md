@@ -1,7 +1,7 @@
 # MOVEX Change Data Capture: Release notes
 
-## Upcoming release 
-- Dependencies updated: Rails 8.1.4, JRuby 10.1.2.0
+## 2026-11-09 1.13.9 
+- Dependencies updated: Rails 8.1.4.1, JRuby 10.1.2.0
 
 ## 2026-09-10 1.13.8
 - Major frontend modernization: migration from Vue CLI to Vite, upgrade to Vue 3/Buefy 3, and related reactivity/UI fixes.
