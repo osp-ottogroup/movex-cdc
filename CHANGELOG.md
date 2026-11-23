@@ -1,4 +1,6 @@
 # MOVEX Change Data Capture: Release notes
+## 2026-11-23 1.13.10
+- Security/tooling update (Brakeman config)
 
 ## 2026-11-09 1.13.9 
 - Dependencies updated: Rails 8.1.4.1, JRuby 10.1.2.0
