@@ -20,6 +20,27 @@
       "note": ""
     },
     {
+      "warning_type": "Remote Code Execution",
+      "warning_code": 130,
+      "fingerprint": "2abcd7cf807a16bc9d53731288fbc9c9943489f6923079074e3b44cc676e8e06",
+      "check_name": "Ruby2Shell",
+      "message": "Ruby 4.0.0 has a critical remote code execution vulnerability (CVE-2026-132825). Upgrade to Ruby 4.0.10 or later",
+      "file": "Gemfile.lock",
+      "line": 359,
+      "link": "https://www.ruby-lang.org/en/news/2026/11/18/multiple-vulnerabilities-in-regexp-and-string/",
+      "code": null,
+      "render_path": null,
+      "location": null,
+      "user_input": null,
+      "confidence": "High",
+      "cwe_id": [
+        122,
+        125,
+        787
+      ],
+      "note": "Movex CDC uses JRuby 10.1.x, which targets Ruby 4.0 compatibility. Because the application runs on JRuby rather than standard CRuby (MRI), upgrading directly to Ruby version 4.0.10 or later is not applicable. Therefore, this Brakeman finding should be classified as a false positive and ignored."
+    },
+    {
       "warning_type": "Mass Assignment",
       "warning_code": 70,
       "fingerprint": "305ef047c6154ef6e8858825b1b1a90184a162ab8290a581a43b1334ea4bcde6",
@@ -135,5 +156,5 @@
       "note": "allow JSON structure with unknown content"
     }
   ],
-  "brakeman_version": "8.0.6"
+  "brakeman_version": "8.1.1"
 }
